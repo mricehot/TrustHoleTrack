@@ -1090,19 +1090,7 @@ function renderAll(){
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
 
-el('btn-clear').addEventListener('click', async ()=>{
-  if(aneis.length === 0) return;
-  if(!(await confirmDialog('Remover todos os anéis, leques e furos? Esta ação não pode ser desfeita.', 'Remover tudo'))) return;
-  try{
-    const { error } = await db.from('aneis').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if(error) throw error;
-    anelAtivoId = null;
-    await loadData();
-    showToast('Todos os registros foram removidos.');
-  }catch(err){
-    showToast('Erro ao limpar dados: ' + (err && err.message ? err.message : err));
-  }
-});
+
 
 el('btn-csv').addEventListener('click', ()=>{
   if(furos.length === 0) return;
