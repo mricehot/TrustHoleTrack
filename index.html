@@ -408,11 +408,8 @@
 // (painel do Supabase → Project Settings → API)
 // ======================================================
 const SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
-
 const SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
 let aneis = [];        // { id, nome, ativo }
