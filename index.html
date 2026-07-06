@@ -313,6 +313,24 @@
     </div>
   </details>
 
+  <details class="turno-menu" id="ocorrencia-menu" style="border-color:var(--rust);">
+    <summary>
+      <span class="caret" style="color:var(--rust);">▸</span>
+      <span class="label" style="color:var(--rust);">Dia sem Atividade</span>
+      <span class="tag">registrar motivo e gerar relatório</span>
+    </summary>
+    <div class="turno-body">
+      <div class="field">
+        <label for="ocorrencia-motivo">Motivo</label>
+        <textarea id="ocorrencia-motivo" rows="3" placeholder="ex: chuva forte impediu acesso à galeria, equipamento em manutenção, etc." style="background:var(--surface-2); border:1px solid var(--line); color:var(--text); padding:8px 9px; border-radius:4px; font-size:14px; font-family:var(--sans); width:100%; resize:vertical;"></textarea>
+      </div>
+      <div>
+        <button type="button" id="btn-registrar-ocorrencia" class="danger">Registrar e Exportar PDF</button>
+      </div>
+      <div id="ocorrencias-lista"></div>
+    </div>
+  </details>
+
 
   <div class="row-2" id="painel-trabalho">
     <div class="panel" id="painel-leque">
@@ -406,10 +424,9 @@
 // COLOQUE AQUI A URL E A CHAVE "anon public" DO SEU PROJETO
 // (painel do Supabase → Project Settings → API)
 // ======================================================
-const SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
+const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
+const SUPABASE_ANON_KEY = 'SUA-CHAVE-ANON-PUBLICA';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado' }
@@ -612,6 +629,140 @@ function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
+function mapOcorrencia(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, tecnicos: row.tecnicos, supervisor: row.supervisor, projeto: row.projeto, local: row.local, motivo: row.motivo, ts: row.criado_em }; }
+let ocorrencias = [];
+
+async function loadOcorrencias(){
+  try{
+    const { data, error } = await db.from('ocorrencias').select('*').order('criado_em', { ascending: false });
+    if(error) throw error;
+    ocorrencias = (data || []).map(mapOcorrencia);
+  }catch(e){
+    showToast('Erro ao carregar ocorrências: ' + (e && e.message ? e.message : e));
+    ocorrencias = [];
+  }
+  renderOcorrencias();
+}
+
+function renderOcorrencias(){
+  const box = el('ocorrencias-lista');
+  if(!box) return;
+  if(ocorrencias.length === 0){
+    box.innerHTML = `<div class="hint">Nenhum dia sem atividade registrado.</div>`;
+    return;
+  }
+  box.innerHTML = ocorrencias.map(o=>{
+    const turnoTxt = (o.turnoNumero || o.turnoLetra) ? `${o.turnoNumero || '-'}º Turno - Letra ${o.turnoLetra || '-'}` : '-';
+    return `
+      <div class="anel-row">
+        <span class="nome">${o.data || '-'} · ${turnoTxt}</span>
+        <span class="hint">${o.motivo}</span>
+        <span class="spacer"></span>
+        <button class="icon" onclick="exportarOcorrenciaPDF('${o.id}')" title="exportar PDF">⬇ PDF</button>
+        <button class="icon" onclick="removerOcorrencia('${o.id}')" title="remover">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function registrarOcorrencia(){
+  const motivo = el('ocorrencia-motivo').value.trim();
+  if(!motivo){ showToast('Escreva o motivo antes de registrar.'); return; }
+  try{
+    const { data, error } = await db.from('ocorrencias').insert({
+      data: turnoInfo.data,
+      turno_numero: turnoInfo.turnoNumero,
+      turno_letra: turnoInfo.turnoLetra,
+      tecnicos: turnoInfo.tecnicos,
+      supervisor: turnoInfo.supervisor,
+      projeto: turnoInfo.projeto,
+      local: turnoInfo.local,
+      motivo
+    }).select().single();
+    if(error) throw error;
+    el('ocorrencia-motivo').value = '';
+    await loadOcorrencias();
+    exportarOcorrenciaPDF(data.id);
+    showToast('Ocorrência registrada.');
+  }catch(err){
+    showToast('Erro ao registrar ocorrência: ' + (err && err.message ? err.message : err));
+  }
+}
+
+async function removerOcorrencia(id){
+  if(!(await confirmDialog('Remover este registro de dia sem atividade?', 'Remover'))) return;
+  try{
+    const { error } = await db.from('ocorrencias').delete().eq('id', id);
+    if(error) throw error;
+    await loadOcorrencias();
+    showToast('Registro removido.');
+  }catch(err){
+    showToast('Erro ao remover: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function exportarOcorrenciaPDF(id){
+  const o = ocorrencias.find(x=>x.id===id);
+  if(!o) return;
+  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
+
+  doc.setFontSize(12); doc.setFont(undefined,'bold');
+  doc.text('STATUS TURNO PERFILAGEM DE LAVRA/TOPOGRAFIA', 40, 15);
+  doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120);
+  doc.text('Gerado em ' + new Date().toLocaleString('pt-BR'), 40, 21);
+  doc.setTextColor(0);
+  doc.setDrawColor(180); doc.line(15, 30, 195, 30);
+
+  doc.setFontSize(10);
+  let y = 38;
+  const turnoTxt = (o.turnoNumero || o.turnoLetra) ? `${o.turnoNumero || '-'}º Turno - Letra ${o.turnoLetra || '-'}` : '-';
+  const campos = [
+    ['Data:', o.data],
+    ['Turno:', turnoTxt],
+    ['Tecnicos:', o.tecnicos],
+    ['Supervisor:', o.supervisor],
+    ['Projeto:', o.projeto],
+    ['Local:', o.local],
+  ];
+  campos.forEach(([label,val])=>{
+    doc.setFont(undefined,'bold'); doc.text(label, 15, y);
+    doc.setFont(undefined,'normal'); doc.text(String(val||'-'), 42, y);
+    y += 6;
+  });
+
+  y += 4;
+  doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
+
+  doc.setFontSize(11); doc.setFont(undefined,'bold');
+  doc.setTextColor(193,88,79);
+  doc.text('DIA SEM ATIVIDADE DE PERFILAGEM', 15, y);
+  doc.setTextColor(0);
+  y += 10;
+
+  doc.setFontSize(10); doc.setFont(undefined,'bold');
+  doc.text('Motivo:', 15, y);
+  y += 7;
+  doc.setFont(undefined,'normal');
+  const linhas = doc.splitTextToSize(o.motivo, 165);
+  doc.text(linhas, 15, y);
+
+  const nomeArquivo = ('sem-atividade_' + (o.data || 'data')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+el('btn-registrar-ocorrencia').addEventListener('click', registrarOcorrencia);
 
 async function loadData(){
   try{
@@ -1090,8 +1241,6 @@ function renderAll(){
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
 
-
-
 el('btn-csv').addEventListener('click', ()=>{
   if(furos.length === 0) return;
   const header = 'anel,codigo_furo,tipo,metragem_esperada,metragem_real,diferenca,situacao,timestamp\n';
@@ -1122,6 +1271,7 @@ document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip')
   });
 });
 loadTurnoInfo();
+loadOcorrencias();
 loadData();
 </script>
 </body>
