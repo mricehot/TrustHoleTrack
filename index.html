@@ -601,6 +601,14 @@ const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
 const pad2 = n => String(n).padStart(2,'0');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
+// Padroniza número de 1 dígito com zero na frente (1 -> 01), evitando duplicidade tipo "1" vs "01".
+// Se já tiver 2+ dígitos, ou não for só números, mantém como o usuário digitou.
+function normalizarNumero(str){
+  const trimmed = String(str).trim();
+  if(/^\d$/.test(trimmed)) return '0' + trimmed;
+  return trimmed;
+}
+
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
 function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre' }[t] || t; }
 function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre' }[t] || 'Criar Medição'; }
@@ -711,7 +719,7 @@ function editFuroModal(furo){
     el('modal-cancelar').addEventListener('click', ()=> fechar(null));
     el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
     const salvar = ()=>{
-      const numero = el('edit-furo-numero').value.trim();
+      const numero = normalizarNumero(el('edit-furo-numero').value.trim());
       const metragemEsperada = parseFloat(el('edit-furo-esperada').value);
       const metragemReal = parseFloat(el('edit-furo-real').value);
       const situacao = el('edit-furo-situacao').value;
@@ -923,7 +931,7 @@ async function criarLeque(){
     const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
     if(!anelAtivo) return;
     const tipo = el('leque-tipo').value;
-    const numero = el('leque-numero').value.trim();
+    const numero = normalizarNumero(el('leque-numero').value.trim());
     if(!numero) return;
     const duplicado = leques.some(l=>l.anelId===anelAtivo.id && l.tipo===tipo && l.numero===numero);
     if(duplicado){
@@ -989,7 +997,7 @@ async function adicionarFuro(){
   try{
     const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
     if(!lequeAberto) return;
-    const numero = el('furo-numero').value.trim();
+    const numero = normalizarNumero(el('furo-numero').value.trim());
     if(!numero) return;
     const duplicado = furos.some(f=>f.lequeId===lequeAberto.id && f.numero===numero);
     if(duplicado){
