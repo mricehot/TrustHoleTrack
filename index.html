@@ -102,8 +102,9 @@
   .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    padding:7px 0; width:36px; text-align:center; border-radius:20px; font-family:var(--mono); font-size:13px;
+    padding:10px 0; width:44px; min-height:44px; text-align:center; border-radius:20px; font-family:var(--mono); font-size:14px;
     cursor:pointer; text-transform:none; font-weight:600; letter-spacing:0;
+    display:inline-flex; align-items:center; justify-content:center;
   }
   .chip:hover{ border-color:var(--amber); }
   .chip.active{ background:var(--amber); color:#191231; border-color:var(--amber); }
@@ -135,13 +136,14 @@
   .field label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
   input, select{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    padding:8px 9px; border-radius:4px; font-size:14px; font-family:var(--mono); width:100%;
+    padding:10px 9px; min-height:44px; border-radius:4px; font-size:14px; font-family:var(--mono); width:100%;
+    box-sizing:border-box;
   }
   input:focus, select:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
   input:disabled, select:disabled{ opacity:0.4; cursor:not-allowed; }
   button{
     background:var(--amber); color:#191231; border:none; border-radius:4px;
-    padding:9px 14px; font-weight:700; font-size:13px; letter-spacing:0.5px;
+    padding:12px 16px; min-height:44px; font-weight:700; font-size:13px; letter-spacing:0.5px;
     cursor:pointer; text-transform:uppercase; font-family:var(--sans);
   }
   button:hover{ filter:brightness(1.08); }
@@ -150,7 +152,11 @@
   button.danger{ background:var(--rust); color:#ffffff; }
   button.ghost{ background:transparent; color:var(--muted); border:1px solid var(--line); text-transform:none; font-weight:500; letter-spacing:0; }
   button.ghost:hover{ color:var(--text); border-color:var(--muted); }
-  button.icon{ background:transparent; border:none; padding:4px 6px; font-size:13px; color:var(--muted); text-transform:none; font-weight:400; }
+  button.icon{
+    background:transparent; border:none; padding:10px; font-size:15px; color:var(--muted);
+    text-transform:none; font-weight:400; min-width:44px; min-height:44px;
+    display:inline-flex; align-items:center; justify-content:center; gap:4px;
+  }
   button.icon:hover{ color:var(--rust); }
   .hint{ font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:2px; }
 
@@ -180,7 +186,7 @@
   .leque-head .fan{ flex-shrink:0; }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
-    width:20px; height:20px; font-size:12px; line-height:1; padding:0; flex-shrink:0;
+    width:44px; height:44px; font-size:16px; line-height:1; padding:0; flex-shrink:0;
     text-transform:none; font-weight:400; letter-spacing:0;
   }
   .leque-head .code{ font-family:var(--mono); font-size:14px; font-weight:700; }
