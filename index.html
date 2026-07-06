@@ -43,6 +43,27 @@
   header .sub{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; letter-spacing:0.5px; }
   .readout{ font-family:var(--mono); font-size:12px; color:var(--muted); display:flex; gap:18px; text-align:right; }
   .readout-label{ font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
+
+  .offline-banner{
+    display:none; position:sticky; top:0; z-index:2000;
+    background:var(--rust); color:#fff; text-align:center;
+    padding:10px 16px; font-size:13px; font-weight:600; font-family:var(--sans);
+  }
+
+  .sync-badge{
+    display:none; align-items:center; gap:6px; font-family:var(--mono); font-size:11px;
+    color:var(--steel); background:var(--surface-2); border:1px solid var(--steel);
+    padding:4px 10px; border-radius:20px; margin-bottom:6px; white-space:nowrap;
+  }
+  .sync-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--steel); flex-shrink:0;
+    animation:sync-pulse 1s ease-in-out infinite;
+  }
+  @keyframes sync-pulse{
+    0%, 100%{ opacity:0.25; }
+    50%{ opacity:1; }
+  }
+  body.syncing .wrap{ opacity:0.55; pointer-events:none; transition:opacity 0.2s; }
   .readout b{ display:block; color:var(--text); font-size:16px; font-weight:600; }
   .readout .alert b{ color:var(--rust); }
   .readout .neg b{ color:var(--rust); }
@@ -247,6 +268,7 @@
 </style>
 </head>
 <body>
+<div class="offline-banner" id="offline-banner">Sem conexão — verifique sua internet. As últimas alterações podem não ter sido salvas.</div>
 <div class="wrap">
 
   <header>
@@ -256,6 +278,7 @@
     </div>
     <div>
       <div class="readout-label" id="readout-label">anel ativo: —</div>
+      <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
         <div><span>furos</span><b id="stat-furos">0</b></div>
@@ -421,6 +444,45 @@
 const SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- Feedback de rede / sincronização ----------
+// Envolve o fetch nativo pra detectar automaticamente qualquer chamada ao Supabase
+// (login, select, insert, update, delete) sem precisar alterar cada função individual.
+let syncCounter = 0;
+let syncTimer = null;
+function syncStart(){
+  syncCounter++;
+  if(syncCounter === 1){
+    // só mostra o indicador se demorar mais que 300ms, evitando "flicker" em conexão rápida
+    syncTimer = setTimeout(()=>{
+      document.body.classList.add('syncing');
+      const badge = document.getElementById('sync-badge');
+      if(badge) badge.style.display = 'inline-flex';
+    }, 300);
+  }
+}
+function syncEnd(){
+  syncCounter = Math.max(0, syncCounter - 1);
+  if(syncCounter === 0){
+    clearTimeout(syncTimer);
+    document.body.classList.remove('syncing');
+    const badge = document.getElementById('sync-badge');
+    if(badge) badge.style.display = 'none';
+  }
+}
+const _fetchOriginal = window.fetch.bind(window);
+window.fetch = function(...args){
+  syncStart();
+  return _fetchOriginal(...args).finally(syncEnd);
+};
+
+function atualizarStatusConexao(){
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online', atualizarStatusConexao);
+window.addEventListener('offline', atualizarStatusConexao);
+atualizarStatusConexao();
 
 
 let aneis = [];        // { id, nome, ativo }
