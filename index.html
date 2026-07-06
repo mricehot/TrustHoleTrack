@@ -671,6 +671,93 @@ function confirmDialog(mensagem, textoConfirmar){
   });
 }
 
+function editFuroModal(furo){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Editar furo</p>
+          <div class="grid-3" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="edit-furo-numero">Número</label>
+              <input id="edit-furo-numero" type="text" value="${furo.numero}">
+            </div>
+            <div class="field">
+              <label for="edit-furo-esperada">Esperada (m)</label>
+              <input id="edit-furo-esperada" type="number" step="0.1" min="0" value="${furo.metragemEsperada}">
+            </div>
+            <div class="field">
+              <label for="edit-furo-real">Real (m)</label>
+              <input id="edit-furo-real" type="number" step="0.1" min="0" value="${furo.metragemReal}">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-furo-situacao">Situação</label>
+            <select id="edit-furo-situacao">
+              <option value="livre" ${furo.situacao==='livre'?'selected':''}>Livre</option>
+              <option value="obstruido" ${furo.situacao==='obstruido'?'selected':''}>Obstruído</option>
+              <option value="varado" ${furo.situacao==='varado'?'selected':''}>Varado</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=>{
+      const numero = el('edit-furo-numero').value.trim();
+      const metragemEsperada = parseFloat(el('edit-furo-esperada').value);
+      const metragemReal = parseFloat(el('edit-furo-real').value);
+      const situacao = el('edit-furo-situacao').value;
+      if(!numero || isNaN(metragemEsperada) || isNaN(metragemReal)){
+        showToast('Preencha número, esperada e real corretamente.');
+        return;
+      }
+      fechar({ numero, metragemEsperada, metragemReal, situacao });
+    };
+    el('modal-salvar').addEventListener('click', salvar);
+    ['edit-furo-numero','edit-furo-esperada','edit-furo-real'].forEach(id=>{
+      el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    });
+  });
+}
+
+async function editarFuro(id){
+  const f = furos.find(x=>x.id===id);
+  if(!f) return;
+  const l = leques.find(x=>x.id===f.lequeId);
+  const resultado = await editFuroModal(f);
+  if(!resultado) return;
+
+  if(resultado.numero !== f.numero){
+    const duplicado = furos.some(x=>x.lequeId===f.lequeId && x.numero===resultado.numero && x.id!==f.id);
+    if(duplicado){
+      showToast(`Já existe o furo ${l ? lequeCode(l) : ''}F${resultado.numero} neste leque.`);
+      return;
+    }
+  }
+
+  try{
+    const { error } = await db.from('furos').update({
+      numero: resultado.numero,
+      metragem_esperada: resultado.metragemEsperada,
+      metragem_real: resultado.metragemReal,
+      situacao: resultado.situacao
+    }).eq('id', id);
+    if(error) throw error;
+    await loadData();
+    showToast('Furo atualizado.');
+  }catch(err){
+    showToast('Erro ao editar furo: ' + (err && err.message ? err.message : err));
+  }
+}
+
 function fanSVG(furosDoLeque){
   const n = Math.max(furosDoLeque.length, 1);
   const w = 46, h = 34, cx = 8, cy = h - 4;
@@ -1013,9 +1100,6 @@ function render(){
       if(situacaoFiltro) furosDoLeque = furosDoLeque.filter(f=>f.situacao===situacaoFiltro);
       if(busca) furosDoLeque = furosDoLeque.filter(f=>furoCode(l,f).includes(busca) || lequeCode(l).includes(busca));
 
-      if((tipoFiltro || situacaoFiltro || busca) && furosDoLeque.length === 0 && !(!busca && !situacaoFiltro)) {
-        // if filters active and nothing matches in this leque, skip it (unless no furo-level filter at all)
-      }
       const semFurosPorFiltro = furosDoLeque.length === 0 && (situacaoFiltro || busca);
       if(semFurosPorFiltro) return '';
 
@@ -1033,7 +1117,10 @@ function render(){
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
           <td>${situacaoLabel(f.situacao)}</td>
-          <td class="actions"><button class="icon" onclick="removerFuro('${f.id}')" title="remover">✕</button></td>
+          <td class="actions">
+            <button class="icon" onclick="editarFuro('${f.id}')" title="editar">✎</button>
+            <button class="icon" onclick="removerFuro('${f.id}')" title="remover">✕</button>
+          </td>
         </tr>`;
       }).join('');
 
