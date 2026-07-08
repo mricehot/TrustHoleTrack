@@ -43,19 +43,23 @@
   header h1{ font-size:17px; letter-spacing:1.5px; text-transform:uppercase; margin:0; font-weight:700; }
   header h1 span{ color:var(--amber); }
   header .sub{ font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.4px; }
+  .header-stats{ min-width:0; flex:1 1 auto; }
   .readout{
     font-family:var(--mono); font-size:11px; color:var(--muted);
-    display:grid; grid-template-columns:repeat(3, auto); gap:10px 14px;
-    text-align:left; justify-content:end;
+    display:flex; flex-wrap:nowrap; gap:14px; align-items:start;
+    text-align:left; justify-content:flex-end;
+    overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%;
   }
   .readout-label{ font-family:var(--mono); font-size:10px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
+  .readout > div{ flex-shrink:0; white-space:nowrap; }
   .readout b{ display:block; color:var(--text); font-size:14px; font-weight:600; white-space:nowrap; }
   .readout .alert b{ color:var(--rust); }
   .readout .neg b{ color:var(--rust); }
   .readout .pos b{ color:var(--moss); }
   @media (max-width:480px){
     header{ flex-direction:column; align-items:stretch; }
-    .readout{ grid-template-columns:repeat(2, auto); justify-content:start; text-align:left; }
+    .readout{ justify-content:flex-start; gap:12px; font-size:10px; }
+    .readout b{ font-size:13px; }
     .readout-label{ text-align:left; }
   }
 
@@ -311,7 +315,7 @@
       <h1>Perfil<span>agem</span> · Furos de Lavra</h1>
       <div class="sub">LQ/SL/FL &middot; furo &middot; esperada &times; real</div>
     </div>
-    <div>
+    <div class="header-stats">
       <div class="readout-label" id="readout-label">anel ativo: —</div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
