@@ -153,12 +153,13 @@
 
   .field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
   .field label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
-  input, select{
+  input, select, textarea{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
     padding:10px 9px; min-height:44px; border-radius:4px; font-size:14px; font-family:var(--mono); width:100%;
     box-sizing:border-box;
   }
-  input:focus, select:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
+  textarea{ resize:vertical; font-family:var(--sans); line-height:1.4; }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
   input:disabled, select:disabled{ opacity:0.4; cursor:not-allowed; }
   button{
     background:var(--amber); color:#191231; border:none; border-radius:4px;
@@ -378,6 +379,10 @@
       <div class="grid-3">
         <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
       </div>
+      <div class="field">
+        <label for="turno-observacoes">Observações</label>
+        <textarea id="turno-observacoes" rows="3" placeholder="ex: chuva parou o serviço por 40min, equipamento X com defeito, etc."></textarea>
+      </div>
     </div>
   </details>
 
@@ -538,7 +543,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICR
 const TURNO_ROW_ID = 'current';
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', observacoes:'' };
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -558,7 +563,8 @@ async function loadTurnoInfo(){
         tecnicos: data.tecnicos || '',
         supervisor: SUPERVISOR_CONST,
         projeto: PROJETO_CONST,
-        local: data.local || ''
+        local: data.local || '',
+        observacoes: data.observacoes || ''
       };
     }
   }catch(e){
@@ -572,6 +578,7 @@ async function loadTurnoInfo(){
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
+  el('turno-observacoes').value = turnoInfo.observacoes || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
   el('turno-projeto').value = turnoInfo.projeto;
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
@@ -584,6 +591,7 @@ async function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
+  turnoInfo.observacoes = el('turno-observacoes').value;
   turnoInfo.supervisor = SUPERVISOR_CONST;
   turnoInfo.projeto = PROJETO_CONST;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
@@ -599,7 +607,8 @@ async function saveTurnoInfo(){
       tecnicos: turnoInfo.tecnicos,
       supervisor: turnoInfo.supervisor,
       projeto: turnoInfo.projeto,
-      local: turnoInfo.local
+      local: turnoInfo.local,
+      observacoes: turnoInfo.observacoes
     });
   }catch(e){
     showToast('Erro ao salvar dados do turno: ' + (e && e.message ? e.message : e));
@@ -648,6 +657,15 @@ function desenharCabecalhoTurnoPDF(doc){
     doc.setFont(undefined,'normal'); doc.text(String(val||'-'), 42, y);
     y += 6;
   });
+
+  if(turnoInfo.observacoes && turnoInfo.observacoes.trim()){
+    doc.setFont(undefined,'bold'); doc.text('Observacoes:', 15, y); y += 6;
+    doc.setFont(undefined,'normal');
+    const linhasObs = doc.splitTextToSize(turnoInfo.observacoes.trim(), 178);
+    if(y + linhasObs.length * 5 > 275){ doc.addPage(); y = 20; }
+    doc.text(linhasObs, 15, y);
+    y += linhasObs.length * 5 + 4;
+  }
 
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
@@ -1418,7 +1436,7 @@ el('btn-csv').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-['data','tecnicos','local'].forEach(k=>{
+['data','tecnicos','local','observacoes'].forEach(k=>{
   const campo = document.getElementById('turno-'+k);
   if(campo) campo.addEventListener('input', saveTurnoInfo);
 });
