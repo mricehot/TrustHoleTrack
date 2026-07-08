@@ -378,6 +378,7 @@
       </div>
       <div class="grid-3">
         <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
+        <div class="field"><label for="turno-status">Status</label><input id="turno-status" type="text" placeholder="ex: concluído, parcial, interrompido"></div>
       </div>
       <div class="field">
         <label for="turno-observacoes">Observações</label>
@@ -543,7 +544,7 @@ const LOGO_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICR
 const TURNO_ROW_ID = 'current';
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', observacoes:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', status:'', observacoes:'' };
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -564,6 +565,7 @@ async function loadTurnoInfo(){
         supervisor: SUPERVISOR_CONST,
         projeto: PROJETO_CONST,
         local: data.local || '',
+        status: data.status || '',
         observacoes: data.observacoes || ''
       };
     }
@@ -578,6 +580,7 @@ async function loadTurnoInfo(){
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
+  el('turno-status').value = turnoInfo.status || '';
   el('turno-observacoes').value = turnoInfo.observacoes || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
   el('turno-projeto').value = turnoInfo.projeto;
@@ -591,6 +594,7 @@ async function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
+  turnoInfo.status = el('turno-status').value;
   turnoInfo.observacoes = el('turno-observacoes').value;
   turnoInfo.supervisor = SUPERVISOR_CONST;
   turnoInfo.projeto = PROJETO_CONST;
@@ -608,6 +612,7 @@ async function saveTurnoInfo(){
       supervisor: turnoInfo.supervisor,
       projeto: turnoInfo.projeto,
       local: turnoInfo.local,
+      status: turnoInfo.status,
       observacoes: turnoInfo.observacoes
     });
   }catch(e){
@@ -651,6 +656,7 @@ function desenharCabecalhoTurnoPDF(doc){
     ['Supervisor:', turnoInfo.supervisor],
     ['Projeto:', turnoInfo.projeto],
     ['Local:', turnoInfo.local],
+    ['Status:', turnoInfo.status],
   ];
   campos.forEach(([label,val])=>{
     doc.setFont(undefined,'bold'); doc.text(label, 15, y);
@@ -1436,7 +1442,7 @@ el('btn-csv').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
-['data','tecnicos','local','observacoes'].forEach(k=>{
+['data','tecnicos','local','status','observacoes'].forEach(k=>{
   const campo = document.getElementById('turno-'+k);
   if(campo) campo.addEventListener('input', saveTurnoInfo);
 });
