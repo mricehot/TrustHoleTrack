@@ -166,6 +166,16 @@
   textarea{ resize:vertical; font-family:var(--sans); line-height:1.4; }
   input:focus, select:focus, textarea:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
   input:disabled, select:disabled{ opacity:0.4; cursor:not-allowed; }
+  @keyframes shake-invalido{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(2px); }
+    30%,50%,70%{ transform:translateX(-3px); }
+    40%,60%{ transform:translateX(3px); }
+  }
+  .campo-invalido{
+    border-color:var(--rust) !important;
+    animation:shake-invalido 0.4s;
+  }
   button{
     background:var(--amber); color:#191231; border:none; border-radius:4px;
     padding:12px 16px; min-height:44px; font-weight:700; font-size:13px; letter-spacing:0.5px;
@@ -387,7 +397,7 @@
       </div>
       <div class="field">
         <label for="turno-observacoes">Observações</label>
-        <textarea id="turno-observacoes" rows="3" placeholder="ex:Rampa interditada por 40min, equipamento X no espaço de trabalho, etc."></textarea>
+        <textarea id="turno-observacoes" rows="3" placeholder="ex: chuva parou o serviço por 40min, equipamento X com defeito, etc."></textarea>
       </div>
     </div>
   </details>
@@ -895,6 +905,18 @@ function showToast(msg){
   t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
 }
 
+function destacarCampoInvalido(id){
+  const campo = el(id);
+  if(!campo) return;
+  campo.classList.remove('campo-invalido');
+  // força reflow para a animação poder rodar de novo mesmo se o campo já estava marcado
+  void campo.offsetWidth;
+  campo.classList.add('campo-invalido');
+  campo.focus();
+  clearTimeout(campo._invalidoTimer);
+  campo._invalidoTimer = setTimeout(()=> campo.classList.remove('campo-invalido'), 1600);
+}
+
 function confirmDialog(mensagem, textoConfirmar){
   return new Promise(resolve=>{
     const root = el('modal-root');
@@ -962,6 +984,9 @@ function editFuroModal(furo){
       const situacao = el('edit-furo-situacao').value;
       if(!numero || isNaN(metragemEsperada) || isNaN(metragemReal)){
         showToast('Preencha número, esperada e real corretamente.');
+        if(!numero) destacarCampoInvalido('edit-furo-numero');
+        else if(isNaN(metragemEsperada)) destacarCampoInvalido('edit-furo-esperada');
+        else destacarCampoInvalido('edit-furo-real');
         return;
       }
       fechar({ numero, metragemEsperada, metragemReal, situacao });
@@ -1087,11 +1112,16 @@ async function criarAnel(){
     const nome = campoNome.value.trim();
     campoNome.style.borderColor = '';
     el('anel-erro').textContent = '';
-    if(!nome) return;
+    if(!nome){
+      showToast('Informe o nome do anel/galeria.');
+      destacarCampoInvalido('anel-nome');
+      return;
+    }
     if(aneis.some(a=>a.nome.toLowerCase() === nome.toLowerCase())){
       campoNome.style.borderColor = 'var(--rust)';
       el('anel-erro').textContent = `Já existe um anel chamado "${nome}". Escolha outro nome ou use o existente na lista abaixo.`;
       showToast('Já existe um anel com esse nome.');
+      destacarCampoInvalido('anel-nome');
       return;
     }
     await db.from('aneis').update({ ativo: false }).eq('ativo', true);
@@ -1166,13 +1196,21 @@ function renderPainelTrabalho(){
 async function criarLeque(){
   try{
     const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-    if(!anelAtivo) return;
+    if(!anelAtivo){
+      showToast('Selecione um anel ativo antes de criar um leque.');
+      return;
+    }
     const tipo = el('leque-tipo').value;
     const numero = normalizarNumero(el('leque-numero').value.trim());
-    if(!numero) return;
+    if(!numero){
+      showToast('Informe o número do leque.');
+      destacarCampoInvalido('leque-numero');
+      return;
+    }
     const duplicado = leques.some(l=>l.anelId===anelAtivo.id && l.tipo===tipo && l.numero===numero);
     if(duplicado){
       showToast(`Já existe ${PREFIXO[tipo]}${numero} neste anel.`);
+      destacarCampoInvalido('leque-numero');
       return;
     }
     const { data, error } = await db.from('leques').insert({
@@ -1230,20 +1268,35 @@ async function reabrirLeque(id){
 
 async function adicionarFuro(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  if(!anelAtivo) return;
+  if(!anelAtivo){
+    showToast('Selecione um anel ativo antes de adicionar furos.');
+    return;
+  }
   try{
     const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
-    if(!lequeAberto) return;
+    if(!lequeAberto){
+      showToast('Abra um leque antes de adicionar furos.');
+      return;
+    }
     const numero = normalizarNumero(el('furo-numero').value.trim());
-    if(!numero) return;
+    if(!numero){
+      showToast('Informe o número do furo.');
+      destacarCampoInvalido('furo-numero');
+      return;
+    }
     const duplicado = furos.some(f=>f.lequeId===lequeAberto.id && f.numero===numero);
     if(duplicado){
       showToast(`Já existe o furo ${lequeCode(lequeAberto)}F${numero} neste leque.`);
+      destacarCampoInvalido('furo-numero');
       return;
     }
     const metragemEsperada = parseFloat(el('furo-esperada').value);
     const metragemReal = parseFloat(el('furo-real').value);
-    if(isNaN(metragemEsperada) || isNaN(metragemReal)) return;
+    if(isNaN(metragemEsperada) || isNaN(metragemReal)){
+      showToast('Preencha a metragem esperada e a real.');
+      destacarCampoInvalido(isNaN(metragemEsperada) ? 'furo-esperada' : 'furo-real');
+      return;
+    }
 
     const { data, error } = await db.from('furos').insert({
       leque_id: lequeAberto.id,
