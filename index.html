@@ -129,6 +129,7 @@
     display:inline-flex; align-items:center; justify-content:center;
   }
   .chip:hover{ border-color:var(--amber); }
+  .chip:disabled:hover{ border-color:var(--line); }
   .chip.active{ background:var(--amber); color:#191231; border-color:var(--amber); }
   input[readonly]{ opacity:0.75; cursor:default; }
 
@@ -371,7 +372,7 @@
             <button type="button" class="chip" data-val="B">B</button>
             <button type="button" class="chip" data-val="C">C</button>
             <button type="button" class="chip" data-val="D">D</button>
-            <button type="button" class="chip" data-val="E">E</button>
+            <button type="button" class="chip" data-val="E" disabled title="temporariamente indisponível">E</button>
           </div>
         </div>
       </div>
@@ -386,7 +387,7 @@
       </div>
       <div class="field">
         <label for="turno-observacoes">Observações</label>
-        <textarea id="turno-observacoes" rows="3" placeholder="ex: chuva parou o serviço por 40min, equipamento X com defeito, etc."></textarea>
+        <textarea id="turno-observacoes" rows="3" placeholder="ex:Rampa interditada por 40min, equipamento X no espaço de trabalho, etc."></textarea>
       </div>
     </div>
   </details>
@@ -1446,14 +1447,30 @@ el('btn-csv').addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
+const EQUIPES_POR_LETRA = {
+  A: 'Francisco / Erbisson',
+  B: 'Alexandre / Graziel / Bruno',
+  C: 'Caíque / Jamerson',
+  D: 'Adeilsom / Atos'
+};
+
 ['data','tecnicos','local','status','observacoes'].forEach(k=>{
   const campo = document.getElementById('turno-'+k);
   if(campo) campo.addEventListener('input', saveTurnoInfo);
 });
-document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip').forEach(chip=>{
+document.querySelectorAll('#turno-numero-group .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
     chip.classList.add('active');
+    saveTurnoInfo();
+  });
+});
+document.querySelectorAll('#turno-letra-group .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
+    chip.classList.add('active');
+    const equipe = EQUIPES_POR_LETRA[chip.dataset.val];
+    if(equipe) el('turno-tecnicos').value = equipe;
     saveTurnoInfo();
   });
 });
