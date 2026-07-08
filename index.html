@@ -21,7 +21,6 @@
     --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
   *{ box-sizing:border-box; }
-  html{ -webkit-text-size-adjust:100%; }
   body{
     margin:0;
     background:
@@ -29,35 +28,25 @@
       var(--bg);
     color:var(--text);
     font-family:var(--sans);
-    padding:16px 10px 60px;
+    padding:24px 16px 60px;
     min-height:100vh;
-    overflow-x:hidden;
   }
   .wrap{ max-width:1020px; margin:0 auto; }
 
   header{
-    display:flex; justify-content:space-between; align-items:flex-start;
+    display:flex; justify-content:space-between; align-items:flex-end;
     border-bottom:1px solid var(--line);
-    padding-bottom:14px; margin-bottom:16px; gap:12px; flex-wrap:wrap;
+    padding-bottom:16px; margin-bottom:20px; gap:16px; flex-wrap:wrap;
   }
-  header h1{ font-size:17px; letter-spacing:1.5px; text-transform:uppercase; margin:0; font-weight:700; }
+  header h1{ font-size:20px; letter-spacing:2.5px; text-transform:uppercase; margin:0; font-weight:700; }
   header h1 span{ color:var(--amber); }
-  header .sub{ font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.4px; }
-  .readout{
-    font-family:var(--mono); font-size:11px; color:var(--muted);
-    display:grid; grid-template-columns:repeat(3, auto); gap:10px 14px;
-    text-align:left; justify-content:end;
-  }
-  .readout-label{ font-family:var(--mono); font-size:10px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
-  .readout b{ display:block; color:var(--text); font-size:14px; font-weight:600; white-space:nowrap; }
+  header .sub{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; letter-spacing:0.5px; }
+  .readout{ font-family:var(--mono); font-size:12px; color:var(--muted); display:flex; gap:18px; text-align:right; }
+  .readout-label{ font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
+  .readout b{ display:block; color:var(--text); font-size:16px; font-weight:600; }
   .readout .alert b{ color:var(--rust); }
   .readout .neg b{ color:var(--rust); }
   .readout .pos b{ color:var(--moss); }
-  @media (max-width:480px){
-    header{ flex-direction:column; align-items:stretch; }
-    .readout{ grid-template-columns:repeat(2, auto); justify-content:start; text-align:left; }
-    .readout-label{ text-align:left; }
-  }
 
   details.anel-menu{
     border:1px solid var(--steel); border-radius:6px; margin-bottom:18px;
@@ -65,8 +54,7 @@
   }
   details.anel-menu summary{
     cursor:pointer; padding:12px 16px; list-style:none;
-    display:flex; align-items:center; gap:8px 10px; user-select:none;
-    flex-wrap:wrap;
+    display:flex; align-items:center; gap:10px; user-select:none;
   }
   details.anel-menu summary::-webkit-details-marker{ display:none; }
   details.anel-menu summary .caret{ color:var(--steel); font-family:var(--mono); font-size:12px; }
@@ -77,20 +65,15 @@
     font-size:9px; background:var(--surface-2); border:1px solid var(--line);
     padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
   }
-  details.anel-menu summary .current{ margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--text); white-space:nowrap; }
-  @media (max-width:480px){
-    details.anel-menu summary .current{ margin-left:0; flex-basis:100%; }
-  }
+  details.anel-menu summary .current{ margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--text); }
   .anel-body{ padding:14px 16px; border-top:1px solid var(--line); }
   .anel-form{ display:flex; gap:8px; margin-bottom:12px; }
   .anel-form input{ flex:1; }
   .anel-list{ display:flex; flex-direction:column; gap:6px; }
   .anel-row{
-    display:flex; align-items:center; gap:8px 10px; padding:8px 10px;
+    display:flex; align-items:center; gap:10px; padding:8px 10px;
     border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
-    flex-wrap:wrap;
   }
-  .anel-row .nome{ word-break:break-word; }
   .anel-row.ativo{ border-color:var(--steel); }
   .anel-row .nome{ font-family:var(--mono); font-size:13px; }
   .anel-row .badge-ativo{
@@ -104,8 +87,7 @@
   }
   details.turno-menu summary{
     cursor:pointer; padding:12px 16px; list-style:none;
-    display:flex; align-items:center; gap:8px 10px; user-select:none;
-    flex-wrap:wrap;
+    display:flex; align-items:center; gap:10px; user-select:none;
   }
   details.turno-menu summary::-webkit-details-marker{ display:none; }
   details.turno-menu summary .caret{ color:var(--amber); font-family:var(--mono); font-size:12px; }
@@ -149,7 +131,6 @@
   .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
   @media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr 1fr; } }
-  @media (max-width:420px){ .grid-3, .grid-4{ grid-template-columns:1fr; } }
 
   .field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
   .field label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
@@ -187,13 +168,8 @@
   .leque-atual .spacer{ flex:1; }
 
   .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-  .filters select, .filters input{ width:auto; min-width:120px; flex:1 1 130px; }
-  .filters .spacer{ flex:1; display:none; }
-  .filters #btn-csv{ flex:1 1 100%; }
-  @media (min-width:641px){
-    .filters .spacer{ display:block; }
-    .filters #btn-csv{ flex:0 0 auto; }
-  }
+  .filters select, .filters input{ width:auto; min-width:120px; }
+  .filters .spacer{ flex:1; }
 
   .anel-section{ margin-bottom:20px; }
   .anel-section-head{ font-family:var(--mono); font-size:13px; color:var(--muted); margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
@@ -206,10 +182,9 @@
     background:rgba(255,67,29,0.05);
   }
   .leque-head{
-    display:flex; align-items:center; gap:8px; padding:9px 10px;
+    display:flex; align-items:center; gap:8px; padding:9px 12px;
     background:var(--surface-2); border-bottom:1px solid var(--line);
     flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
-    scrollbar-width:thin;
   }
   .leque-group.aberto .leque-head{ background:rgba(255,67,29,0.12); border-bottom-color:rgba(255,67,29,0.25); }
   .leque-head .fan{ flex-shrink:0; }
@@ -232,16 +207,11 @@
   .leque-head .stats .pos b{ color:var(--moss); }
   .leque-head .stats button.icon{ min-width:32px; min-height:32px; padding:4px 6px; font-size:12px; }
 
-  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table{ width:100%; min-width:560px; border-collapse:collapse; }
-  th, td{ text-align:left; padding:7px 12px; font-size:13px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table{ width:100%; border-collapse:collapse; }
+  th, td{ text-align:left; padding:7px 12px; font-size:13px; border-bottom:1px solid var(--line); }
   th{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:600; }
   td{ font-family:var(--mono); }
   tr:last-child td{ border-bottom:none; }
-  @media (max-width:480px){
-    table{ min-width:520px; }
-    th, td{ padding:7px 8px; font-size:12px; }
-  }
   .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
   .status-dot.livre{ background:var(--moss); }
   .status-dot.obstruido{ background:var(--amber); }
@@ -1196,10 +1166,10 @@ function render(){
               <button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>
             </div>
           </div>
-          ${colapsado ? '' : (furosDoLeque.length ? `<div class="table-scroll"><table>
+          ${colapsado ? '' : (furosDoLeque.length ? `<table>
             <thead><tr><th>Furo</th><th>Esperada</th><th>Real</th><th>Variação</th><th>Situação</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
-          </table></div>` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
+          </table>` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
         </div>
       `;
     }).join('');
