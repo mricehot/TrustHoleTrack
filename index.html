@@ -21,6 +21,7 @@
     --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
   *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
   body{
     margin:0;
     background:
@@ -28,25 +29,35 @@
       var(--bg);
     color:var(--text);
     font-family:var(--sans);
-    padding:24px 16px 60px;
+    padding:16px 10px 90px;
     min-height:100vh;
+    overflow-x:hidden;
   }
   .wrap{ max-width:1020px; margin:0 auto; }
 
   header{
-    display:flex; justify-content:space-between; align-items:flex-end;
+    display:flex; justify-content:space-between; align-items:flex-start;
     border-bottom:1px solid var(--line);
-    padding-bottom:16px; margin-bottom:20px; gap:16px; flex-wrap:wrap;
+    padding-bottom:14px; margin-bottom:16px; gap:12px; flex-wrap:wrap;
   }
-  header h1{ font-size:20px; letter-spacing:2.5px; text-transform:uppercase; margin:0; font-weight:700; }
+  header h1{ font-size:17px; letter-spacing:1.5px; text-transform:uppercase; margin:0; font-weight:700; }
   header h1 span{ color:var(--amber); }
-  header .sub{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; letter-spacing:0.5px; }
-  .readout{ font-family:var(--mono); font-size:12px; color:var(--muted); display:flex; gap:18px; text-align:right; }
-  .readout-label{ font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
-  .readout b{ display:block; color:var(--text); font-size:16px; font-weight:600; }
+  header .sub{ font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:4px; letter-spacing:0.4px; }
+  .readout{
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    display:grid; grid-template-columns:repeat(3, auto); gap:10px 14px;
+    text-align:left; justify-content:end;
+  }
+  .readout-label{ font-family:var(--mono); font-size:10px; color:var(--muted); text-align:right; margin-bottom:6px; letter-spacing:0.3px; }
+  .readout b{ display:block; color:var(--text); font-size:14px; font-weight:600; white-space:nowrap; }
   .readout .alert b{ color:var(--rust); }
   .readout .neg b{ color:var(--rust); }
   .readout .pos b{ color:var(--moss); }
+  @media (max-width:480px){
+    header{ flex-direction:column; align-items:stretch; }
+    .readout{ grid-template-columns:repeat(2, auto); justify-content:start; text-align:left; }
+    .readout-label{ text-align:left; }
+  }
 
   details.anel-menu{
     border:1px solid var(--steel); border-radius:6px; margin-bottom:18px;
@@ -54,7 +65,8 @@
   }
   details.anel-menu summary{
     cursor:pointer; padding:12px 16px; list-style:none;
-    display:flex; align-items:center; gap:10px; user-select:none;
+    display:flex; align-items:center; gap:8px 10px; user-select:none;
+    flex-wrap:wrap;
   }
   details.anel-menu summary::-webkit-details-marker{ display:none; }
   details.anel-menu summary .caret{ color:var(--steel); font-family:var(--mono); font-size:12px; }
@@ -65,15 +77,20 @@
     font-size:9px; background:var(--surface-2); border:1px solid var(--line);
     padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
   }
-  details.anel-menu summary .current{ margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--text); }
+  details.anel-menu summary .current{ margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--text); white-space:nowrap; }
+  @media (max-width:480px){
+    details.anel-menu summary .current{ margin-left:0; flex-basis:100%; }
+  }
   .anel-body{ padding:14px 16px; border-top:1px solid var(--line); }
   .anel-form{ display:flex; gap:8px; margin-bottom:12px; }
   .anel-form input{ flex:1; }
   .anel-list{ display:flex; flex-direction:column; gap:6px; }
   .anel-row{
-    display:flex; align-items:center; gap:10px; padding:8px 10px;
+    display:flex; align-items:center; gap:8px 10px; padding:8px 10px;
     border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+    flex-wrap:wrap;
   }
+  .anel-row .nome{ word-break:break-word; }
   .anel-row.ativo{ border-color:var(--steel); }
   .anel-row .nome{ font-family:var(--mono); font-size:13px; }
   .anel-row .badge-ativo{
@@ -87,7 +104,8 @@
   }
   details.turno-menu summary{
     cursor:pointer; padding:12px 16px; list-style:none;
-    display:flex; align-items:center; gap:10px; user-select:none;
+    display:flex; align-items:center; gap:8px 10px; user-select:none;
+    flex-wrap:wrap;
   }
   details.turno-menu summary::-webkit-details-marker{ display:none; }
   details.turno-menu summary .caret{ color:var(--amber); font-family:var(--mono); font-size:12px; }
@@ -131,6 +149,7 @@
   .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
   @media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:420px){ .grid-3, .grid-4{ grid-template-columns:1fr; } }
 
   .field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
   .field label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
@@ -168,8 +187,13 @@
   .leque-atual .spacer{ flex:1; }
 
   .filters{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
-  .filters select, .filters input{ width:auto; min-width:120px; }
-  .filters .spacer{ flex:1; }
+  .filters select, .filters input{ width:auto; min-width:120px; flex:1 1 130px; }
+  .filters .spacer{ flex:1; display:none; }
+  .filters #btn-csv{ flex:1 1 100%; }
+  @media (min-width:641px){
+    .filters .spacer{ display:block; }
+    .filters #btn-csv{ flex:0 0 auto; }
+  }
 
   .anel-section{ margin-bottom:20px; }
   .anel-section-head{ font-family:var(--mono); font-size:13px; color:var(--muted); margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--line); }
@@ -181,10 +205,20 @@
     box-shadow:0 0 0 1px var(--amber);
     background:rgba(255,67,29,0.05);
   }
+  .leque-group.selecionado{
+    border-color:var(--steel);
+    box-shadow:0 0 0 1px var(--steel);
+  }
+  .leque-select-wrap{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:32px; height:32px; flex-shrink:0; cursor:pointer;
+  }
+  .leque-select-wrap input{ width:18px; height:18px; accent-color:var(--steel); cursor:pointer; }
   .leque-head{
-    display:flex; align-items:center; gap:8px; padding:9px 12px;
+    display:flex; align-items:center; gap:8px; padding:9px 10px;
     background:var(--surface-2); border-bottom:1px solid var(--line);
     flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
   }
   .leque-group.aberto .leque-head{ background:rgba(255,67,29,0.12); border-bottom-color:rgba(255,67,29,0.25); }
   .leque-head .fan{ flex-shrink:0; }
@@ -207,11 +241,16 @@
   .leque-head .stats .pos b{ color:var(--moss); }
   .leque-head .stats button.icon{ min-width:32px; min-height:32px; padding:4px 6px; font-size:12px; }
 
-  table{ width:100%; border-collapse:collapse; }
-  th, td{ text-align:left; padding:7px 12px; font-size:13px; border-bottom:1px solid var(--line); }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table{ width:100%; min-width:560px; border-collapse:collapse; }
+  th, td{ text-align:left; padding:7px 12px; font-size:13px; border-bottom:1px solid var(--line); white-space:nowrap; }
   th{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:600; }
   td{ font-family:var(--mono); }
   tr:last-child td{ border-bottom:none; }
+  @media (max-width:480px){
+    table{ min-width:520px; }
+    th, td{ padding:7px 8px; font-size:12px; }
+  }
   .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
   .status-dot.livre{ background:var(--moss); }
   .status-dot.obstruido{ background:var(--amber); }
@@ -229,8 +268,25 @@
     background:var(--surface-2); border:1px solid var(--amber); color:var(--text);
     padding:9px 16px; border-radius:5px; font-size:13px; font-family:var(--mono);
     opacity:0; transition:opacity 0.25s; pointer-events:none;
+    z-index:300;
   }
   .toast.show{ opacity:1; }
+
+  .export-bar{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    width:calc(100% - 24px); max-width:640px;
+    display:none; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--navy); color:#ffffff;
+    padding:10px 14px; border-radius:10px;
+    box-shadow:0 8px 24px rgba(25,18,49,0.35);
+    z-index:200; font-family:var(--mono); font-size:12px;
+  }
+  .export-bar span{ flex:1 1 100%; word-break:break-word; }
+  .export-bar .actions{ display:flex; gap:8px; margin-left:auto; }
+  .export-bar button{ min-height:38px; padding:8px 12px; font-size:12px; }
+  @media (min-width:560px){
+    .export-bar span{ flex:1 1 auto; }
+  }
 
   .modal-overlay{
     position:fixed; inset:0; background:rgba(25,18,49,0.45);
@@ -409,6 +465,13 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="export-bar" id="export-bar">
+  <span id="export-bar-count">0 leques selecionados</span>
+  <div class="actions">
+    <button class="ghost" type="button" id="btn-limpar-selecao">Limpar</button>
+    <button class="steel" type="button" id="btn-exportar-selecionados">Exportar PDF combinado</button>
+  </div>
+</div>
 <div id="modal-root"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -428,11 +491,45 @@ let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fe
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
 let lequesColapsados = new Set();
+let lequesSelecionados = new Set();
 
 function toggleLeque(id){
   if(lequesColapsados.has(id)) lequesColapsados.delete(id);
   else lequesColapsados.add(id);
   render();
+}
+
+function toggleSelecaoLeque(id, marcado){
+  if(marcado) lequesSelecionados.add(id);
+  else lequesSelecionados.delete(id);
+  renderExportBar();
+  // reflete o destaque visual do card sem precisar re-renderizar a lista inteira
+  document.querySelectorAll('.leque-group[data-leque-id="'+id+'"]').forEach(elGroup=>{
+    elGroup.classList.toggle('selecionado', marcado);
+  });
+}
+
+function limparSelecaoLeques(){
+  lequesSelecionados.clear();
+  renderExportBar();
+  render();
+}
+
+function renderExportBar(){
+  const idsValidos = new Set(leques.map(l=>l.id));
+  Array.from(lequesSelecionados).forEach(id=>{ if(!idsValidos.has(id)) lequesSelecionados.delete(id); });
+
+  const bar = el('export-bar');
+  const n = lequesSelecionados.size;
+  if(n === 0){
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  const codigos = leques.filter(l=>lequesSelecionados.has(l.id))
+    .sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}))
+    .map(l=>lequeCode(l)).join(', ');
+  el('export-bar-count').textContent = (n===1 ? '1 leque selecionado: ' : n+' leques selecionados: ') + codigos;
 }
 
 const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL' };
@@ -523,17 +620,7 @@ function drawHeaderTabelaPDF(doc, y){
   return y+7;
 }
 
-function exportarLequePDF(id){
-  const l = leques.find(x=>x.id===id);
-  if(!l) return;
-  const a = aneis.find(x=>x.id===l.anelId);
-  let furosDoLeque = furos.filter(f=>f.lequeId===id);
-  furosDoLeque = [...furosDoLeque].sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, {numeric:true}));
-
-  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
+function desenharCabecalhoTurnoPDF(doc){
   try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
 
   doc.setFontSize(12); doc.setFont(undefined,'bold');
@@ -564,6 +651,21 @@ function exportarLequePDF(id){
 
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
+  return y;
+}
+
+function exportarLequePDF(id){
+  const l = leques.find(x=>x.id===id);
+  if(!l) return;
+  const a = aneis.find(x=>x.id===l.anelId);
+  let furosDoLeque = furos.filter(f=>f.lequeId===id);
+  furosDoLeque = [...furosDoLeque].sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, {numeric:true}));
+
+  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = desenharCabecalhoTurnoPDF(doc);
 
   doc.setFontSize(11); doc.setFont(undefined,'bold');
   doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 6;
@@ -605,6 +707,100 @@ function exportarLequePDF(id){
   document.body.removeChild(link);
   setTimeout(()=> URL.revokeObjectURL(url), 1000);
   showToast('PDF de ' + lequeCode(l) + ' exportado.');
+}
+
+function exportarLequesPDF(ids){
+  if(!ids || ids.length === 0){ showToast('Selecione ao menos um leque para exportar.'); return; }
+  let selecionados = leques.filter(l=>ids.includes(l.id));
+  if(selecionados.length === 0){ showToast('Nenhum leque válido selecionado.'); return; }
+  selecionados = [...selecionados].sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}));
+
+  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = desenharCabecalhoTurnoPDF(doc);
+
+  doc.setFontSize(10); doc.setFont(undefined,'bold');
+  const linhasInclusos = doc.splitTextToSize(
+    'Leques inclusos (' + selecionados.length + '): ' + selecionados.map(l=>lequeCode(l)).join(', '),
+    180
+  );
+  doc.text(linhasInclusos, 15, y);
+  y += linhasInclusos.length * 6 + 6;
+
+  let totalGeralEsp = 0, totalGeralReal = 0, totalGeralFuros = 0, alertasGeral = 0;
+
+  selecionados.forEach((l, idx)=>{
+    const a = aneis.find(x=>x.id===l.anelId);
+    let furosDoLeque = furos.filter(f=>f.lequeId===l.id);
+    furosDoLeque = [...furosDoLeque].sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, {numeric:true}));
+
+    if(y > 250){ doc.addPage(); y = 20; }
+
+    doc.setFontSize(11); doc.setFont(undefined,'bold');
+    doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 6;
+    doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
+
+    y = drawHeaderTabelaPDF(doc, y);
+    doc.setFont(undefined,'normal'); doc.setFontSize(9);
+
+    furosDoLeque.forEach(f=>{
+      if(y > 275){ doc.addPage(); y = 20; y = drawHeaderTabelaPDF(doc, y); doc.setFont(undefined,'normal'); doc.setFontSize(9); }
+      const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
+      doc.text(furoCode(l,f), 17, y);
+      doc.text(fmt1(Number(f.metragemEsperada))+' m', 62, y);
+      doc.text(fmt1(Number(f.metragemReal))+' m', 97, y);
+      doc.text(diffLabel(diff), 127, y);
+      doc.text(situacaoLabel(f.situacao), 162, y);
+      doc.setDrawColor(220); doc.line(15, y+2, 195, y+2);
+      y += 7;
+    });
+
+    const totalEsp = furosDoLeque.reduce((s,f)=>s+Number(f.metragemEsperada||0),0);
+    const totalReal = furosDoLeque.reduce((s,f)=>s+Number(f.metragemReal||0),0);
+    const varTotal = totalReal - totalEsp;
+    const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
+
+    totalGeralEsp += totalEsp;
+    totalGeralReal += totalReal;
+    totalGeralFuros += furosDoLeque.length;
+    alertasGeral += alertas;
+
+    y += 6;
+    if(y > 270){ doc.addPage(); y = 20; }
+    doc.setFont(undefined,'bold'); doc.setFontSize(10);
+    doc.text('Subtotal ' + lequeCode(l) + ': ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 15, y);
+    y += 10;
+
+    if(idx < selecionados.length - 1){
+      doc.setDrawColor(200); doc.line(15, y, 195, y);
+      y += 8;
+    }
+  });
+
+  if(y > 255){ doc.addPage(); y = 20; }
+  y += 2;
+  doc.setDrawColor(25,18,49); doc.setLineWidth(0.6); doc.line(15, y, 195, y); doc.setLineWidth(0.2); y += 9;
+  const varGeral = totalGeralReal - totalGeralEsp;
+  doc.setFontSize(11); doc.setFont(undefined,'bold');
+  const linhasTotal = doc.splitTextToSize(
+    'TOTAL GERAL (' + selecionados.length + ' leque(s)): ' + totalGeralFuros + ' furo(s)  |  Esperada: ' + fmt1(totalGeralEsp) + ' m  |  Real: ' + fmt1(totalGeralReal) + ' m  |  Variacao: ' + diffLabel(varGeral) + '  |  Alertas: ' + alertasGeral,
+    180
+  );
+  doc.text(linhasTotal, 15, y);
+
+  const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  showToast('PDF combinado com ' + selecionados.length + ' leque(s) exportado.');
 }
 
 
@@ -1145,10 +1341,14 @@ function render(){
       }).join('');
 
       const colapsado = lequesColapsados.has(l.id);
+      const selecionado = lequesSelecionados.has(l.id);
 
       return `
-        <div class="leque-group ${l.status === 'aberto' ? 'aberto' : ''}">
+        <div class="leque-group ${l.status === 'aberto' ? 'aberto' : ''} ${selecionado ? 'selecionado' : ''}" data-leque-id="${l.id}">
           <div class="leque-head">
+              <label class="leque-select-wrap" title="selecionar para exportação combinada">
+                <input type="checkbox" class="leque-select" data-id="${l.id}" ${selecionado ? 'checked' : ''}>
+              </label>
               <button class="icon toggle-leque" onclick="toggleLeque('${l.id}')" title="${colapsado ? 'expandir' : 'minimizar'}">${colapsado ? '▸' : '▾'}</button>
               <div class="fan">${fanSVG(furosDoLeque)}</div>
               <span class="code">${lequeCode(l)}</span>
@@ -1162,14 +1362,14 @@ function render(){
               <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
               ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
               ${l.status === 'fechado' ? `<button class="icon" onclick="reabrirLeque('${l.id}')" title="reabrir">↺ reabrir</button>` : ''}
-              <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF do relatório">⬇ PDF</button>
+              <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
               <button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>
             </div>
           </div>
-          ${colapsado ? '' : (furosDoLeque.length ? `<table>
+          ${colapsado ? '' : (furosDoLeque.length ? `<div class="table-scroll"><table>
             <thead><tr><th>Furo</th><th>Esperada</th><th>Real</th><th>Variação</th><th>Situação</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
-          </table>` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
+          </table></div>` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
         </div>
       `;
     }).join('');
@@ -1193,6 +1393,7 @@ function renderAll(){
   renderBreadcrumb();
   renderPainelTrabalho();
   render();
+  renderExportBar();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -1228,6 +1429,17 @@ document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip')
     saveTurnoInfo();
   });
 });
+el('lista').addEventListener('change', (e)=>{
+  const chk = e.target.closest('.leque-select');
+  if(!chk) return;
+  toggleSelecaoLeque(chk.dataset.id, chk.checked);
+});
+
+el('btn-limpar-selecao').addEventListener('click', limparSelecaoLeques);
+el('btn-exportar-selecionados').addEventListener('click', ()=>{
+  exportarLequesPDF(Array.from(lequesSelecionados));
+});
+
 loadTurnoInfo();
 loadData();
 </script>
