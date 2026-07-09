@@ -127,6 +127,41 @@
   }
   .turno-export-row .hint{ flex:1 1 220px; margin:0; }
   .turno-export-row button{ flex-shrink:0; }
+
+  details.historico-menu{
+    border:1px solid var(--line); border-radius:6px; margin-bottom:18px;
+    background:var(--surface); overflow:hidden;
+  }
+  details.historico-menu summary{
+    cursor:pointer; padding:12px 16px; list-style:none;
+    display:flex; align-items:center; gap:8px 10px; user-select:none; flex-wrap:wrap;
+  }
+  details.historico-menu summary::-webkit-details-marker{ display:none; }
+  details.historico-menu summary .caret{ color:var(--muted); font-family:var(--mono); font-size:12px; }
+  details.historico-menu summary .label{
+    font-size:11px; text-transform:uppercase; letter-spacing:1.8px; color:var(--muted); font-weight:700;
+  }
+  details.historico-menu summary .tag{
+    font-size:9px; background:var(--surface-2); border:1px solid var(--line);
+    padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
+  }
+  .historico-body{ padding:14px 16px; border-top:1px solid var(--line); }
+  .historico-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
+  .historico-row{
+    display:flex; align-items:center; gap:6px 10px; padding:8px 10px; flex-wrap:wrap;
+    border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+    font-family:var(--mono); font-size:12px;
+  }
+  .historico-row .quando{ color:var(--muted); white-space:nowrap; }
+  .historico-row .tipo{
+    font-size:9px; text-transform:uppercase; letter-spacing:0.5px; padding:2px 7px; border-radius:20px;
+    border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex-shrink:0;
+  }
+  .historico-row .tipo.turno{ color:var(--steel); border-color:var(--steel); }
+  .historico-row .tipo.leque{ color:var(--amber); border-color:var(--amber); }
+  .historico-row .tipo.combinado{ color:var(--moss); border-color:var(--moss); }
+  .historico-row .detalhe{ flex:1 1 100%; color:var(--text); word-break:break-word; }
+  .historico-row .arquivo{ font-size:11px; color:var(--muted); flex:1 1 100%; word-break:break-all; }
   .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
@@ -409,6 +444,18 @@
         <span class="hint">Use isto quando o turno não teve perfilagem de furos (ou quando só quiser registrar os dados do turno).</span>
         <button type="button" class="steel" id="btn-exportar-turno">Exportar apenas o turno</button>
       </div>
+    </div>
+  </details>
+
+  <details class="historico-menu" id="historico-menu">
+    <summary>
+      <span class="caret">▸</span>
+      <span class="label">Histórico de Exportações</span>
+      <span class="tag">com e sem perfilagem</span>
+    </summary>
+    <div class="historico-body">
+      <div class="hint" id="historico-vazio" style="display:none;">Nenhuma exportação registrada ainda.</div>
+      <div class="historico-list" id="historico-list"></div>
     </div>
   </details>
 
@@ -703,7 +750,102 @@ function desenharCabecalhoTurnoPDF(doc){
   return y;
 }
 
-function exportarTurnoPDF(){
+// Compartilha o PDF como arquivo de verdade (evita cair um link "blob:" no WhatsApp/redes sociais).
+// Quando o navegador suporta Web Share API com arquivos, abre o menu nativo de compartilhamento.
+// Caso contrário, cai no download tradicional (o arquivo vai para a pasta de Downloads do aparelho).
+async function baixarOuCompartilharPDF(doc, nomeArquivo){
+  const blob = doc.output('blob');
+
+  try{
+    const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+    if(navigator.canShare && navigator.canShare({ files: [arquivo] })){
+      await navigator.share({ files: [arquivo], title: nomeArquivo });
+      return;
+    }
+  }catch(err){
+    if(err && err.name === 'AbortError') return; // usuário cancelou o compartilhamento, não é erro
+    // se o compartilhamento falhar por outro motivo, cai no download normal abaixo
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
+
+let historicoExportacoes = [];
+let historicoTabelaIndisponivel = false;
+
+async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArquivo }){
+  try{
+    const { error } = await db.from('export_historico').insert({
+      tipo,
+      turno_data: turnoInfo.data,
+      turno_numero: turnoInfo.turnoNumero,
+      turno_letra: turnoInfo.turnoLetra,
+      leques: leques || null,
+      qtd_leques: qtdLeques || 0,
+      qtd_furos: qtdFuros || 0,
+      nome_arquivo: nomeArquivo
+    });
+    if(error) throw error;
+    await loadHistoricoExportacoes();
+  }catch(e){
+    // histórico é auxiliar: se a tabela ainda não existe no Supabase, avisa uma vez e segue sem travar a exportação
+    if(!historicoTabelaIndisponivel){
+      historicoTabelaIndisponivel = true;
+      showToast('Exportação concluída, mas o histórico não pôde ser salvo (verifique a tabela export_historico).');
+    }
+  }
+}
+
+async function loadHistoricoExportacoes(){
+  try{
+    const { data, error } = await db.from('export_historico').select('*').order('criado_em', { ascending:false }).limit(50);
+    if(error) throw error;
+    historicoExportacoes = data || [];
+  }catch(e){
+    historicoExportacoes = [];
+  }
+  renderHistoricoExportacoes();
+}
+
+function renderHistoricoExportacoes(){
+  const lista = el('historico-list');
+  const vazio = el('historico-vazio');
+  if(!lista) return;
+  if(historicoExportacoes.length === 0){
+    lista.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+
+  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado' };
+
+  lista.innerHTML = historicoExportacoes.map(reg=>{
+    const quando = reg.criado_em ? new Date(reg.criado_em).toLocaleString('pt-BR') : '-';
+    const turnoLabelReg = [reg.turno_numero, reg.turno_letra].filter(Boolean).join('');
+    const detalhe = reg.tipo === 'turno'
+      ? 'Sem perfilagem de furos'
+      : `${reg.leques || '-'} · ${reg.qtd_furos || 0} furo(s)`;
+    return `
+      <div class="historico-row">
+        <span class="quando">${quando}</span>
+        <span class="tipo ${reg.tipo}">${TIPO_LABEL[reg.tipo] || reg.tipo}</span>
+        <span>${reg.turno_data || '-'}${turnoLabelReg ? ' · Turno '+turnoLabelReg : ''}</span>
+        <span class="detalhe">${detalhe}</span>
+        <span class="arquivo">${reg.nome_arquivo || ''}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+async function exportarTurnoPDF(){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -714,25 +856,18 @@ function exportarTurnoPDF(){
   doc.text('Nenhuma perfilagem de furos vinculada a este relatório.', 15, y);
   doc.setTextColor(0); doc.setFont(undefined,'normal');
 
+  const dataArquivo = (turnoInfo.data || '').replace(/\//g,'-') || 'sem-data';
   const sufixoTurno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra)
     ? `_${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`
     : '';
-  const sufixoData = (turnoInfo.data || '').replace(/[^0-9]/g,'-').replace(/^-+|-+$/g,'');
-  const nomeArquivo = ('Turno' + sufixoData + sufixoTurno).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+  const nomeArquivo = ('Turno_' + dataArquivo + sufixoTurno).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
 
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  await baixarOuCompartilharPDF(doc, nomeArquivo);
+  await registrarExportacao({ tipo:'turno', leques:null, qtdLeques:0, qtdFuros:0, nomeArquivo });
   showToast('PDF do turno exportado.');
 }
 
-function exportarLequePDF(id){
+async function exportarLequePDF(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
   const a = aneis.find(x=>x.id===l.anelId);
@@ -775,19 +910,12 @@ function exportarLequePDF(id){
   doc.text('Total: ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 15, y);
 
   const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'anel')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  await baixarOuCompartilharPDF(doc, nomeArquivo);
+  await registrarExportacao({ tipo:'leque', leques: lequeCode(l), qtdLeques:1, qtdFuros: furosDoLeque.length, nomeArquivo });
   showToast('PDF de ' + lequeCode(l) + ' exportado.');
 }
 
-function exportarLequesPDF(ids){
+async function exportarLequesPDF(ids){
   if(!ids || ids.length === 0){ showToast('Selecione ao menos um leque para exportar.'); return; }
   let selecionados = leques.filter(l=>ids.includes(l.id));
   if(selecionados.length === 0){ showToast('Nenhum leque válido selecionado.'); return; }
@@ -869,15 +997,14 @@ function exportarLequesPDF(ids){
   doc.text(linhasTotal, 15, y);
 
   const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = nomeArquivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  await baixarOuCompartilharPDF(doc, nomeArquivo);
+  await registrarExportacao({
+    tipo:'combinado',
+    leques: selecionados.map(l=>lequeCode(l)).join(', '),
+    qtdLeques: selecionados.length,
+    qtdFuros: totalGeralFuros,
+    nomeArquivo
+  });
   showToast('PDF combinado com ' + selecionados.length + ' leque(s) exportado.');
 }
 
@@ -1580,7 +1707,7 @@ el('btn-exportar-turno').addEventListener('click', exportarTurnoPDF);
 
 loadTurnoInfo();
 loadData();
+loadHistoricoExportacoes();
 </script>
 </body>
 </html>
-
