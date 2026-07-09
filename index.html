@@ -121,6 +121,12 @@
     padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
   }
   .turno-body{ padding:14px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .turno-export-row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding-top:6px; border-top:1px dashed var(--line);
+  }
+  .turno-export-row .hint{ flex:1 1 220px; margin:0; }
+  .turno-export-row button{ flex-shrink:0; }
   .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
@@ -398,6 +404,10 @@
       <div class="field">
         <label for="turno-observacoes">Observações</label>
         <textarea id="turno-observacoes" rows="3" placeholder="ex: chuva parou o serviço por 40min, equipamento X com defeito, etc."></textarea>
+      </div>
+      <div class="turno-export-row">
+        <span class="hint">Use isto quando o turno não teve perfilagem de furos (ou quando só quiser registrar os dados do turno).</span>
+        <button type="button" class="steel" id="btn-exportar-turno">Exportar apenas o turno</button>
       </div>
     </div>
   </details>
@@ -691,6 +701,35 @@ function desenharCabecalhoTurnoPDF(doc){
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
   return y;
+}
+
+function exportarTurnoPDF(){
+  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  let y = desenharCabecalhoTurnoPDF(doc);
+
+  doc.setFontSize(10); doc.setFont(undefined,'italic'); doc.setTextColor(120);
+  doc.text('Nenhuma perfilagem de furos vinculada a este relatório.', 15, y);
+  doc.setTextColor(0); doc.setFont(undefined,'normal');
+
+  const sufixoTurno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra)
+    ? `_${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`
+    : '';
+  const sufixoData = (turnoInfo.data || '').replace(/[^0-9]/g,'-').replace(/^-+|-+$/g,'');
+  const nomeArquivo = ('Turno' + sufixoData + sufixoTurno).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  showToast('PDF do turno exportado.');
 }
 
 function exportarLequePDF(id){
@@ -1537,6 +1576,7 @@ el('btn-limpar-selecao').addEventListener('click', limparSelecaoLeques);
 el('btn-exportar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados));
 });
+el('btn-exportar-turno').addEventListener('click', exportarTurnoPDF);
 
 loadTurnoInfo();
 loadData();
