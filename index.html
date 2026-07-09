@@ -778,7 +778,6 @@ async function baixarOuCompartilharPDF(doc, nomeArquivo){
 }
 
 let historicoExportacoes = [];
-let historicoTabelaIndisponivel = false;
 
 async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArquivo }){
   try{
@@ -794,12 +793,11 @@ async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArqu
     });
     if(error) throw error;
     await loadHistoricoExportacoes();
+    return true;
   }catch(e){
-    // histórico é auxiliar: se a tabela ainda não existe no Supabase, avisa uma vez e segue sem travar a exportação
-    if(!historicoTabelaIndisponivel){
-      historicoTabelaIndisponivel = true;
-      showToast('Exportação concluída, mas o histórico não pôde ser salvo (verifique a tabela export_historico).');
-    }
+    // histórico é auxiliar: não trava a exportação, mas registra o erro real no console para diagnóstico
+    console.error('Falha ao registrar no histórico de exportações:', e);
+    return false;
   }
 }
 
@@ -863,8 +861,10 @@ async function exportarTurnoPDF(){
   const nomeArquivo = ('Turno_' + dataArquivo + sufixoTurno).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
 
   await baixarOuCompartilharPDF(doc, nomeArquivo);
-  await registrarExportacao({ tipo:'turno', leques:null, qtdLeques:0, qtdFuros:0, nomeArquivo });
-  showToast('PDF do turno exportado.');
+  const salvoNoHistorico = await registrarExportacao({ tipo:'turno', leques:null, qtdLeques:0, qtdFuros:0, nomeArquivo });
+  showToast(salvoNoHistorico
+    ? 'PDF do turno exportado.'
+    : 'PDF do turno exportado, mas não entrou no histórico (crie a tabela export_historico no Supabase).');
 }
 
 async function exportarLequePDF(id){
@@ -911,8 +911,10 @@ async function exportarLequePDF(id){
 
   const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'anel')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
-  await registrarExportacao({ tipo:'leque', leques: lequeCode(l), qtdLeques:1, qtdFuros: furosDoLeque.length, nomeArquivo });
-  showToast('PDF de ' + lequeCode(l) + ' exportado.');
+  const salvoNoHistorico = await registrarExportacao({ tipo:'leque', leques: lequeCode(l), qtdLeques:1, qtdFuros: furosDoLeque.length, nomeArquivo });
+  showToast(salvoNoHistorico
+    ? 'PDF de ' + lequeCode(l) + ' exportado.'
+    : 'PDF de ' + lequeCode(l) + ' exportado, mas não entrou no histórico (crie a tabela export_historico no Supabase).');
 }
 
 async function exportarLequesPDF(ids){
@@ -998,14 +1000,16 @@ async function exportarLequesPDF(ids){
 
   const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
-  await registrarExportacao({
+  const salvoNoHistorico = await registrarExportacao({
     tipo:'combinado',
     leques: selecionados.map(l=>lequeCode(l)).join(', '),
     qtdLeques: selecionados.length,
     qtdFuros: totalGeralFuros,
     nomeArquivo
   });
-  showToast('PDF combinado com ' + selecionados.length + ' leque(s) exportado.');
+  showToast(salvoNoHistorico
+    ? 'PDF combinado com ' + selecionados.length + ' leque(s) exportado.'
+    : 'PDF combinado exportado, mas não entrou no histórico (crie a tabela export_historico no Supabase).');
 }
 
 
