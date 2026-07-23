@@ -33,6 +33,13 @@
     min-height:100vh;
   }
   .wrap{ max-width:1020px; margin:0 auto; }
+.grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
+@media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr 1fr; } }
+
+/* Criar Medição e Adicionar Furo: sempre em coluna única (foco mobile) */
+#form-leque .grid-3,
+#form-furo .grid-4{ grid-template-columns:1fr; }
 
   header{
     display:flex; justify-content:space-between; align-items:flex-end;
