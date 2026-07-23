@@ -32,6 +32,7 @@
     padding:24px 16px 60px;
     min-height:100vh;
   }
+.tabela-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .wrap{ max-width:1020px; margin:0 auto; }
 .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
@@ -217,6 +218,15 @@
     background:var(--surface-2); border-bottom:1px solid var(--line);
     flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
   }
+@media (max-width:480px){
+  .anel-form{ flex-direction:column; }
+}
+.leque-head{ position:relative; }
+.leque-head::after{
+  content:''; position:absolute; right:0; top:0; bottom:0; width:24px;
+  background:linear-gradient(to right, transparent, var(--surface-2));
+  pointer-events:none;
+}
   .leque-group.aberto .leque-head{ background:rgba(255,67,29,0.12); border-bottom-color:rgba(255,67,29,0.25); }
   .leque-head .fan{ flex-shrink:0; }
   .toggle-leque{
@@ -1430,10 +1440,12 @@ function render(){
               <button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>
             </div>
           </div>
-          ${colapsado ? '' : (furosDoLeque.length ? `<table>
+          ${colapsado ? '' : (furosDoLeque.length ? `
+<div class="tabela-wrap">
+<table>
             <thead><tr><th>Furo</th><th>Esperada</th><th>Real</th><th>Variação</th><th>Situação</th><th></th></tr></thead>
             <tbody>${rows}</tbody>
-          </table>` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
+          </table></table> ` : `<div class="sem-furos">Nenhum furo registrado neste leque ainda.</div>`)}
         </div>
       `;
     }).join('');
