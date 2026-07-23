@@ -297,8 +297,9 @@
       <div class="readout-label" id="readout-label">anel ativo: —</div>
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div style="margin-bottom:8px; text-align:right;">
-        <button type="button" id="btn-enviar" class="steel">📤 Enviar Medições</button>
-      </div>
+  <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar do servidor</button>
+  <button type="button" id="btn-enviar" class="steel">📤 Enviar Medições</button>
+</div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
         <div><span>furos</span><b id="stat-furos">0</b></div>
@@ -821,6 +822,49 @@ function editarFuro(id){
     showToast('Furo atualizado.');
   });
 }
+
+async function atualizarDoServidor(){
+  if(!navigator.onLine || filaEnvio.length > 0) return false;
+  try{
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }] = await Promise.all([
+      db.from('aneis').select('*').order('criado_em'),
+      db.from('leques').select('*').order('criado_em'),
+      db.from('furos').select('*').order('criado_em')
+    ]);
+    if(e1 || e2 || e3) throw (e1 || e2 || e3);
+    aneis = (aneisData || []).map(mapAnel);
+    leques = (lequesData || []).map(mapLeque);
+    furos = (furosData || []).map(mapFuro);
+    const ativo = aneis.find(a=>a.ativo);
+    anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
+    salvarLocal();
+    renderAll();
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function sincronizarDoServidor(){
+  if(!navigator.onLine){
+    showToast('Sem conexão agora. Tente de novo quando tiver sinal.');
+    return;
+  }
+  if(filaEnvio.length > 0){
+    showToast('Você tem alterações pendentes para enviar. Envie-as antes de atualizar, pra não perder nada.');
+    return;
+  }
+  const btn = el('btn-atualizar');
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = '🔄 Atualizando...';
+  const ok = await atualizarDoServidor();
+  btn.disabled = false;
+  btn.textContent = textoOriginal;
+  showToast(ok ? 'Dados atualizados a partir do servidor.' : 'Não foi possível atualizar agora. Tente de novo.');
+}
+
+el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
 
 function fanSVG(furosDoLeque){
   const n = Math.max(furosDoLeque.length, 1);
