@@ -16,7 +16,7 @@ function normalizarNumero(str){
   if(/^\d$/.test(trimmed)) return '0' + trimmed;
   return trimmed;
 }
-<script>
+
   const prefereReduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---------- nav compacta ao rolar ----------
@@ -88,7 +88,7 @@ function normalizarNumero(str){
   } else {
     document.querySelectorAll('.trail, .steps-grid, .cards-grid').forEach(g => g.classList.add('in'));
   }
-</script>
+
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
 function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'CR' }[t] || t; }
