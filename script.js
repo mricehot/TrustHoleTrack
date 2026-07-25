@@ -607,9 +607,17 @@ function criarLeque(){
   }
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
-  const novoLeque = { id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto' };
+  // Retrato do turno ativo no momento da criação — grava uma vez e não muda depois,
+  // mesmo que o turno na tela seja alterado enquanto o leque continua aberto.
+  const novoLeque = {
+    id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto',
+    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null
+  };
   leques.push(novoLeque);
-  enfileirar('leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto' });
+  enfileirar('leques', 'insert', {
+    id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto',
+    turno_numero: turnoInfo.turnoNumero || null, turno_letra: turnoInfo.turnoLetra || null
+  });
   el('leque-numero').value = '';
   el('leque-nome').value = '';
   salvarLocal();
@@ -713,7 +721,7 @@ async function removerLeque(id){
 }
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
-function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status }; }
+function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
@@ -975,9 +983,67 @@ function renderHistoricoExportacoes(){
   }).join('');
 }
 
+// Mostra os leques que batem com o turno ativo (mesmo número + letra) e deixa o usuário
+// escolher quais entram no PDF do turno. Resolve com um array de ids (pode ser vazio, se
+// o usuário optar por "só o turno"), ou null se ele cancelar a exportação inteira.
+function selecionarLequesDoTurnoModal(matches){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    const linhas = matches.map(l=>{
+      const a = aneis.find(x=>x.id===l.anelId);
+      const qtdFuros = furos.filter(f=>f.lequeId===l.id).length;
+      return `
+        <label class="modal-leque-linha" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
+          <input type="checkbox" class="modal-leque-check" data-id="${l.id}" checked>
+          <span style="flex:1;">
+            <b>${lequeCode(l)}</b> <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''}</span><br>
+            <span class="hint">${a ? a.nome : 'anel removido'} · ${qtdFuros} furo(s)</span>
+          </span>
+        </label>`;
+    }).join('');
+
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Este turno perfilou ${matches.length} leque${matches.length>1?'s':''}</p>
+          <p class="hint" style="margin-bottom:12px;">Marque os que devem entrar junto no PDF do turno.</p>
+          <div style="max-height:260px; overflow-y:auto; margin-bottom:16px;">${linhas}</div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-so-turno">Só o turno, sem leques</button>
+            <button class="steel" id="modal-incluir-leques">Incluir selecionados</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-so-turno').addEventListener('click', ()=> fechar([]));
+    el('modal-incluir-leques').addEventListener('click', ()=>{
+      const ids = Array.from(document.querySelectorAll('.modal-leque-check:checked')).map(c=>c.dataset.id);
+      fechar(ids);
+    });
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+  });
+}
+
 // ---------- Exportação de PDF: turno só, leque único, e combinado ----------
 async function exportarTurnoPDF(){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+
+  // Leques abertos automaticamente com o mesmo número+letra do turno ativo — candidatos
+  // a entrar junto no relatório, em vez de precisar exportar por fora depois.
+  const matches = (turnoInfo.turnoNumero && turnoInfo.turnoLetra)
+    ? leques.filter(l => l.turnoNumero === turnoInfo.turnoNumero && l.turnoLetra === turnoInfo.turnoLetra)
+    : [];
+
+  if(matches.length > 0){
+    const idsEscolhidos = await selecionarLequesDoTurnoModal(matches);
+    if(idsEscolhidos === null) return; // cancelou a exportação inteira
+    if(idsEscolhidos.length > 0){
+      await exportarLequesPDF(idsEscolhidos);
+      return;
+    }
+  }
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
@@ -1235,6 +1301,7 @@ function render(){
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
+              ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
             <div class="stats">
               <div><b>${furosDoLeque.length}</b> furos</div>
               <div><b>${fmt1(totalEspL)}</b> m esp.</div>
