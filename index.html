@@ -248,6 +248,7 @@
   .pdf-head{ padding:16px 20px 12px; border-bottom:1px solid var(--line); }
   .pdf-head .title{ font-family:var(--display); font-size:15px; font-weight:600; }
   .pdf-head .meta{ font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .pdf-head .meta.pdf-obs{ font-style:italic; margin-top:6px; }
   .pdf-table{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px; }
   .pdf-table thead th{ background:var(--ink); color:#fff; text-align:left; padding:8px 14px; font-weight:500; }
   .pdf-table td{ padding:8px 14px; border-bottom:1px solid var(--line); }
@@ -350,6 +351,74 @@
   .auth-note.show{ display:block; }
   @media (max-width:480px){
     .auth-modal{ padding:26px 20px 22px; }
+  }
+
+  /* ================= MOVIMENTOS MINIMALISTAS ================= */
+
+  /* ---------- nav: sublinhado no hover + compactação ao rolar ---------- */
+  .nav-links a{ position:relative; }
+  .nav-links a::after{
+    content:''; position:absolute; left:0; right:100%; bottom:-4px; height:1.5px;
+    background:var(--blast); transition:right .2s ease;
+  }
+  .nav-links a:hover::after{ right:0; }
+  .nav .wrap{ transition:padding .2s ease; }
+  .nav.scrolled{ box-shadow:0 1px 0 var(--line), 0 8px 20px rgba(25,18,49,0.05); }
+  .nav.scrolled .wrap{ padding-top:11px; padding-bottom:11px; }
+
+  /* ---------- botões: feedback de toque ---------- */
+  .btn-primary:active, .btn-ghost:active, .nav-btn:active, .mock-btn:active{
+    transform:scale(0.96);
+  }
+
+  /* ---------- cards de funcionalidades: leve elevação no hover ---------- */
+  .card{ transition:transform .22s ease, box-shadow .22s ease; }
+  .card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 14px 28px rgba(25,18,49,0.08);
+    position:relative; z-index:1;
+  }
+
+  /* ---------- entrada em cascata ---------- */
+  @keyframes revealUp{
+    from{ opacity:0; transform:translateY(12px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .trail:not(.in) .trail-step{ opacity:0; }
+  .trail.in .trail-step{ animation:revealUp .5s ease both; }
+  .trail.in .trail-step:nth-child(3){ animation-delay:.12s; }
+  .trail.in .trail-step:nth-child(5){ animation-delay:.24s; }
+
+  .steps-grid:not(.in) .step{ opacity:0; }
+  .steps-grid.in .step{ animation:revealUp .5s ease both; }
+  .steps-grid.in .step:nth-child(2){ animation-delay:.1s; }
+  .steps-grid.in .step:nth-child(3){ animation-delay:.2s; }
+  .steps-grid.in .step:nth-child(4){ animation-delay:.3s; }
+
+  .cards-grid:not(.in) .card{ opacity:0; }
+  .cards-grid.in .card{ animation:revealUp .5s ease both; }
+  .cards-grid.in .card:nth-child(2){ animation-delay:.08s; }
+  .cards-grid.in .card:nth-child(3){ animation-delay:.16s; }
+  .cards-grid.in .card:nth-child(4){ animation-delay:.24s; }
+  .cards-grid.in .card:nth-child(5){ animation-delay:.32s; }
+  .cards-grid.in .card:nth-child(6){ animation-delay:.40s; }
+
+  /* ---------- diagrama do leque (hero): furo com alerta pulsando ---------- */
+  @keyframes pulseFuro{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+  .hero-diagram svg .furo-alerta{ animation:pulseFuro 2.2s ease-in-out infinite; }
+
+  /* ---------- barra de variação: preenche ao entrar na tela ---------- */
+  .scale .bar-fill{ transition:width 900ms cubic-bezier(.22,.9,.32,1); }
+
+  /* ---------- reduced motion sempre desliga tudo isso ---------- */
+  @media (prefers-reduced-motion:reduce){
+    .nav-links a::after, .nav .wrap,
+    .btn-primary, .btn-ghost, .nav-btn, .mock-btn,
+    .card, .trail-step, .step, .cards-grid .card,
+    .hero-diagram svg .furo-alerta, .scale .bar-fill{
+      animation:none !important; transition:none !important; transform:none !important;
+    }
+    .trail-step, .step, .cards-grid .card{ opacity:1 !important; }
   }
 </style>
 </head>
@@ -463,8 +532,8 @@
       </div>
       <div class="trail-arrow">→</div>
       <div class="trail-step">
-        <span class="tag">LEQUE / SLOT / FACE LIVRE</span>
-        <h3>LQ · SL · FL</h3>
+        <span class="tag">LEQUE / SLOT / FACE LIVRE / CR</span>
+        <h3>LQ · SL · FL · CR</h3>
         <p>Um leque por vez fica aberto em cada anel — número e observação, pronto pra receber furos.</p>
       </div>
       <div class="trail-arrow">→</div>
@@ -524,8 +593,8 @@
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v9"/><path d="M12 11l7 3"/><path d="M12 11l-7 3"/><path d="M12 11l4 8"/><path d="M12 11l-4 8"/><circle cx="12" cy="11" r="1.6" fill="currentColor" stroke="none"/></svg>
-        <h3>Leques, slots e faces livres</h3>
-        <p>Três tipos de medição — LQ, SL, FL — com número e observação. Apenas um leque fica aberto por anel a cada momento.</p>
+        <h3>Leques, slots, faces livres e CR</h3>
+        <p>Quatro tipos de medição — LQ, SL, FL, CR — com número e observação. Apenas um leque fica aberto por anel a cada momento.</p>
       </div>
 
       <div class="card">
@@ -537,7 +606,7 @@
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         <h3>Dados do turno</h3>
-        <p>Data, número e letra do turno, técnicos, supervisor e local — preenchidos uma vez e usados em todo relatório gerado.</p>
+        <p>Data, número e letra do turno, técnicos, supervisor, local e observações — preenchidos uma vez e usados em todo relatório gerado.</p>
       </div>
 
       <div class="card">
@@ -613,6 +682,7 @@
       <div class="pdf-head">
         <div class="title">Anel: Galeria N3-Leste — LQ04</div>
         <div class="meta">Turno 2B · Técnicos: Marcos/Bruno/Lucas · Gerado em 23/07/2026</div>
+        <div class="meta pdf-obs">Observações: atraso na perfuração por infiltração de água no LQ04F05</div>
       </div>
       <table class="pdf-table">
         <thead>
@@ -791,6 +861,80 @@
     targets.forEach(t=> io.observe(t));
   } else {
     document.querySelectorAll('.reveal').forEach(t=> t.classList.add('in'));
+  }
+</script>
+
+<script>
+  const prefereReduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- nav compacta ao rolar ----------
+  (function(){
+    const nav = document.querySelector('.nav');
+    if(!nav) return;
+    const aoRolar = ()=> nav.classList.toggle('scrolled', window.scrollY > 8);
+    aoRolar();
+    window.addEventListener('scroll', aoRolar, { passive:true });
+  })();
+
+  if(!prefereReduzido){
+
+    // ---------- cascata: adiciona .in nos grupos (trilha, passos, cards) ----------
+    const grupos = document.querySelectorAll('.trail, .steps-grid, .cards-grid');
+    const ioGrupos = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); ioGrupos.unobserve(e.target); }
+      });
+    }, { threshold:0.15 });
+    grupos.forEach(g=> ioGrupos.observe(g));
+
+    // ---------- diagrama do leque: linhas "desenhando" + furo de alerta pulsando ----------
+    const diagrama = document.querySelector('.hero-diagram svg');
+    if(diagrama){
+      const linhasFuro = diagrama.querySelectorAll('g[stroke-linecap="round"] > line');
+      linhasFuro.forEach(linha=>{
+        const comprimento = linha.getTotalLength ? linha.getTotalLength() : 200;
+        linha.style.strokeDasharray = comprimento;
+        linha.style.strokeDashoffset = comprimento;
+        linha.style.transition = 'stroke-dashoffset 1s ease';
+      });
+
+      const ioDiagrama = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){
+            linhasFuro.forEach((linha, i)=>{
+              setTimeout(()=>{ linha.style.strokeDashoffset = '0'; }, i * 70);
+            });
+            ioDiagrama.unobserve(e.target);
+          }
+        });
+      }, { threshold:0.3 });
+      ioDiagrama.observe(diagrama);
+
+      // marca os furos obstruído (laranja) e varado (azul) pra pulsar sutilmente
+      diagrama.querySelectorAll('circle[fill="#ff431d"], circle[fill="#2f6690"]')
+        .forEach(c => c.classList.add('furo-alerta'));
+    }
+
+    // ---------- barra de variação esperada × real: preenche ao entrar na tela ----------
+    const escala = document.querySelector('.scale');
+    if(escala){
+      const barras = escala.querySelectorAll('.bar-fill');
+      const largurasFinais = Array.from(barras).map(b => getComputedStyle(b).width);
+      barras.forEach(b => b.style.width = '0');
+
+      const ioEscala = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){
+            barras.forEach((b, i) => { b.style.width = largurasFinais[i]; });
+            ioEscala.unobserve(e.target);
+          }
+        });
+      }, { threshold:0.3 });
+      ioEscala.observe(escala);
+    }
+
+  } else {
+    document.querySelectorAll('.trail, .steps-grid, .cards-grid').forEach(g => g.classList.add('in'));
   }
 </script>
 </body>
