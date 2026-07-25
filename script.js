@@ -728,6 +728,26 @@ function selecionarChip(grupoId, valor){
   });
 }
 
+// Converte "DD/MM/AAAA" (formato exibido em tela) para "AAAA-MM-DD" (formato que o
+// Postgres/Supabase espera numa coluna `date`). Sem essa conversão, o Postgres tenta
+// ler como MM/DD/AAAA e quebra em qualquer dia acima de 12.
+function dataBRParaISO(dataBR){
+  if(!dataBR) return null;
+  const partes = dataBR.split('/');
+  if(partes.length !== 3) return null;
+  const [dia, mes, ano] = partes;
+  return `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+}
+
+// Exibe a data sempre como DD/MM/AAAA, aceitando tanto o formato ISO (novos registros)
+// quanto o formato BR (registros antigos, salvos antes desta correção).
+function dataParaExibicao(data){
+  if(!data) return '-';
+  const isoMatch = String(data).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  return data;
+}
+
 function carregarTurnoLocal(){
   try{
     const raw = localStorage.getItem(TURNO_LOCAL_KEY);
@@ -787,7 +807,7 @@ function saveTurnoInfo(){
   salvarTurnoLocal();
   enfileirar('turno_info', 'upsert', {
     id: TURNO_ROW_ID,
-    data: turnoInfo.data,
+    data: dataBRParaISO(turnoInfo.data),
     turno_numero: turnoInfo.turnoNumero,
     turno_letra: turnoInfo.turnoLetra,
     tecnicos: turnoInfo.tecnicos,
@@ -891,7 +911,7 @@ async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArqu
   try{
     const { error } = await db.from('export_historico').insert({
       tipo,
-      turno_data: turnoInfo.data,
+      turno_data: dataBRParaISO(turnoInfo.data),
       turno_numero: turnoInfo.turnoNumero,
       turno_letra: turnoInfo.turnoLetra,
       leques: leques || null,
@@ -944,7 +964,7 @@ function renderHistoricoExportacoes(){
       <div class="historico-row">
         <span class="quando">${quando}</span>
         <span class="tipo ${reg.tipo}">${TIPO_LABEL[reg.tipo] || reg.tipo}</span>
-        <span>${reg.turno_data || '-'}${turnoLabelReg ? ' · Turno '+turnoLabelReg : ''}</span>
+        <span>${dataParaExibicao(reg.turno_data)}${turnoLabelReg ? ' · Turno '+turnoLabelReg : ''}</span>
         <span class="detalhe">${detalhe}</span>
         <span class="arquivo">${reg.nome_arquivo || ''}</span>
       </div>
