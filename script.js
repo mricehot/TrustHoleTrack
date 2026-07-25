@@ -18,14 +18,14 @@ function normalizarNumero(str){
 }
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
-function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre' }[t] || t; }
-function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre' }[t] || 'Criar Medição'; }
+function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'CR' }[t] || t; }
+function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar CR' }[t] || 'Criar Medição'; }
 function diffClass(diff){ if(diff >= 0) return 'ok'; if(diff >= -0.5) return 'warn'; return 'bad'; }
 function diffLabel(diff){ return (diff > 0 ? '+' : '') + fmt1(diff) + ' m'; }
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
-const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL' };
+const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR' };
 
 // ---------- Tamanhos de fonte usados na geração dos PDFs ----------
 // Ajuste os valores abaixo (em pt) para controlar o tamanho das letras nos PDFs exportados.
