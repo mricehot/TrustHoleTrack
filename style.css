@@ -13,6 +13,81 @@
     --mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace;
     --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
+/* ================= MOVIMENTOS MINIMALISTAS ================= */
+
+/* ---------- nav: sublinhado no hover + compactação ao rolar ---------- */
+.nav-links a{ position:relative; }
+.nav-links a::after{
+  content:''; position:absolute; left:0; right:100%; bottom:-4px; height:1.5px;
+  background:var(--blast); transition:right .2s ease;
+}
+.nav-links a:hover::after{ right:0; }
+
+.nav .wrap{ transition:padding .2s ease; }
+.nav.scrolled{ box-shadow:0 1px 0 var(--line), 0 8px 20px rgba(25,18,49,0.05); }
+.nav.scrolled .wrap{ padding-top:11px; padding-bottom:11px; }
+
+/* ---------- botões: feedback de toque ---------- */
+.btn-primary:active, .btn-ghost:active, .nav-btn:active, .mock-btn:active{
+  transform:scale(0.96);
+}
+
+/* ---------- cards de funcionalidades: leve elevação no hover ---------- */
+.card{ transition:transform .22s ease, box-shadow .22s ease; }
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 14px 28px rgba(25,18,49,0.08);
+  position:relative; z-index:1;
+}
+
+/* ---------- entrada em cascata: trilha Anel→Leque→Furo ---------- */
+@keyframes revealUp{
+  from{ opacity:0; transform:translateY(12px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.trail:not(.in) .trail-step{ opacity:0; }
+.trail.in .trail-step{ animation:revealUp .5s ease both; }
+.trail.in .trail-step:nth-child(3){ animation-delay:.12s; }
+.trail.in .trail-step:nth-child(5){ animation-delay:.24s; }
+
+/* ---------- entrada em cascata: como funciona (4 passos) ---------- */
+.steps-grid:not(.in) .step{ opacity:0; }
+.steps-grid.in .step{ animation:revealUp .5s ease both; }
+.steps-grid.in .step:nth-child(2){ animation-delay:.1s; }
+.steps-grid.in .step:nth-child(3){ animation-delay:.2s; }
+.steps-grid.in .step:nth-child(4){ animation-delay:.3s; }
+
+/* ---------- entrada em cascata: cards de funcionalidades ---------- */
+.cards-grid:not(.in) .card{ opacity:0; }
+.cards-grid.in .card{ animation:revealUp .5s ease both; }
+.cards-grid.in .card:nth-child(2){ animation-delay:.08s; }
+.cards-grid.in .card:nth-child(3){ animation-delay:.16s; }
+.cards-grid.in .card:nth-child(4){ animation-delay:.24s; }
+.cards-grid.in .card:nth-child(5){ animation-delay:.32s; }
+.cards-grid.in .card:nth-child(6){ animation-delay:.40s; }
+
+/* ---------- diagrama do leque (hero): furo com alerta pulsando ---------- */
+@keyframes pulseFuro{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+.hero-diagram svg .furo-alerta{ animation:pulseFuro 2.2s ease-in-out infinite; }
+
+/* ---------- barra de variação: preenche ao entrar na tela ---------- */
+.scale .bar-fill{ transition:width 900ms cubic-bezier(.22,.9,.32,1); }
+
+/* ---------- interruptor geral: reduced motion sempre desliga tudo isso ---------- */
+@media (prefers-reduced-motion:reduce){
+  .nav-links a::after,
+  .nav .wrap,
+  .btn-primary, .btn-ghost, .nav-btn, .mock-btn,
+  .card,
+  .trail-step, .step, .cards-grid .card,
+  .hero-diagram svg .furo-alerta,
+  .scale .bar-fill{
+    animation:none !important;
+    transition:none !important;
+    transform:none !important;
+  }
+  .trail-step, .step, .cards-grid .card{ opacity:1 !important; }
+}
   *{ box-sizing:border-box; }
   body{
     margin:0;
