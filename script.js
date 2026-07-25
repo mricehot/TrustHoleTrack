@@ -16,6 +16,79 @@ function normalizarNumero(str){
   if(/^\d$/.test(trimmed)) return '0' + trimmed;
   return trimmed;
 }
+<script>
+  const prefereReduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- nav compacta ao rolar ----------
+  (function(){
+    const nav = document.querySelector('.nav');
+    if(!nav) return;
+    const aoRolar = ()=> nav.classList.toggle('scrolled', window.scrollY > 8);
+    aoRolar();
+    window.addEventListener('scroll', aoRolar, { passive:true });
+  })();
+
+  if(!prefereReduzido){
+
+    // ---------- cascata: adiciona .in nos grupos (trilha, passos, cards) ----------
+    const grupos = document.querySelectorAll('.trail, .steps-grid, .cards-grid');
+    const ioGrupos = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){ e.target.classList.add('in'); ioGrupos.unobserve(e.target); }
+      });
+    }, { threshold:0.15 });
+    grupos.forEach(g=> ioGrupos.observe(g));
+
+    // ---------- diagrama do leque: linhas "desenhando" + furo de alerta pulsando ----------
+    const diagrama = document.querySelector('.hero-diagram svg');
+    if(diagrama){
+      const linhasFuro = diagrama.querySelectorAll('g[stroke-linecap="round"] > line');
+      linhasFuro.forEach(linha=>{
+        const comprimento = linha.getTotalLength ? linha.getTotalLength() : 200;
+        linha.style.strokeDasharray = comprimento;
+        linha.style.strokeDashoffset = comprimento;
+        linha.style.transition = 'stroke-dashoffset 1s ease';
+      });
+
+      const ioDiagrama = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){
+            linhasFuro.forEach((linha, i)=>{
+              setTimeout(()=>{ linha.style.strokeDashoffset = '0'; }, i * 70);
+            });
+            ioDiagrama.unobserve(e.target);
+          }
+        });
+      }, { threshold:0.3 });
+      ioDiagrama.observe(diagrama);
+
+      // marca os furos obstruído (laranja) e varado (azul) pra pulsar sutilmente
+      diagrama.querySelectorAll('circle[fill="#ff431d"], circle[fill="#2f6690"]')
+        .forEach(c => c.classList.add('furo-alerta'));
+    }
+
+    // ---------- barra de variação esperada × real: preenche ao entrar na tela ----------
+    const escala = document.querySelector('.scale');
+    if(escala){
+      const barras = escala.querySelectorAll('.bar-fill');
+      const largurasFinais = Array.from(barras).map(b => getComputedStyle(b).width);
+      barras.forEach(b => b.style.width = '0');
+
+      const ioEscala = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if(e.isIntersecting){
+            barras.forEach((b, i) => { b.style.width = largurasFinais[i]; });
+            ioEscala.unobserve(e.target);
+          }
+        });
+      }, { threshold:0.3 });
+      ioEscala.observe(escala);
+    }
+
+  } else {
+    document.querySelectorAll('.trail, .steps-grid, .cards-grid').forEach(g => g.classList.add('in'));
+  }
+</script>
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
 function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'CR' }[t] || t; }
