@@ -717,7 +717,10 @@ function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
-const TURNO_ROW_ID = 'current';
+// A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
+// é do tipo uuid, então precisa ser um UUID de verdade — não pode ser um texto livre
+// como 'current', senão o Postgres rejeita com "invalid input syntax for type uuid".
+const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
 let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', observacoes:'' };
