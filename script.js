@@ -720,7 +720,7 @@ function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.n
 const TURNO_ROW_ID = 'current';
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', observacoes:'' };
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -750,6 +750,7 @@ async function loadTurnoInfo(){
         turnoInfo.local = data.local || '';
         turnoInfo.turnoNumero = data.turno_numero || '';
         turnoInfo.turnoLetra = data.turno_letra || '';
+        turnoInfo.observacoes = data.observacoes || '';
       }
     }catch(e){
       // sem sinal — segue com o que já está salvo localmente
@@ -763,6 +764,7 @@ async function loadTurnoInfo(){
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
+  el('turno-observacoes').value = turnoInfo.observacoes || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
   el('turno-projeto').value = turnoInfo.projeto;
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
@@ -775,6 +777,7 @@ function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
+  turnoInfo.observacoes = el('turno-observacoes').value;
   turnoInfo.supervisor = SUPERVISOR_CONST;
   turnoInfo.projeto = PROJETO_CONST;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
@@ -790,7 +793,8 @@ function saveTurnoInfo(){
     tecnicos: turnoInfo.tecnicos,
     supervisor: turnoInfo.supervisor,
     projeto: turnoInfo.projeto,
-    local: turnoInfo.local
+    local: turnoInfo.local,
+    observacoes: turnoInfo.observacoes
   });
 }
 
@@ -838,6 +842,15 @@ function desenharCabecalhoTurnoPDF(doc){
     doc.setFont(undefined,'normal'); doc.text(String(val||'-'), 42, y);
     y += 7;
   });
+
+  if(turnoInfo.observacoes && turnoInfo.observacoes.trim()){
+    y += 2;
+    doc.setFont(undefined,'bold'); doc.text('Observações:', 15, y); y += 6;
+    doc.setFont(undefined,'normal');
+    const linhasObs = doc.splitTextToSize(turnoInfo.observacoes, 175);
+    doc.text(linhasObs, 15, y);
+    y += linhasObs.length * 6;
+  }
 
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
