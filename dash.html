@@ -114,6 +114,18 @@
         <div class="obs-list" id="obs-list"></div>
         <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
       </div>
+      <div class="field">
+        <label>Incluir leques neste relatório?</label>
+        <div class="chip-group" id="turno-incluir-leques-group">
+          <button type="button" class="chip active" data-val="nao">Não</button>
+          <button type="button" class="chip" data-val="sim">Sim</button>
+        </div>
+        <div class="hint">Se marcar "Sim", escolha abaixo quais leques do anel ativo entram junto no PDF.</div>
+      </div>
+      <div id="turno-leques-wrap" style="display:none;">
+        <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste anel ainda.</div>
+        <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
+      </div>
 <button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
     </div>
 

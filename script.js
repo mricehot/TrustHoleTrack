@@ -120,6 +120,9 @@ function toggleSelecaoLeque(id, marcado){
   document.querySelectorAll('.leque-group[data-leque-id="'+id+'"]').forEach(elGroup=>{
     elGroup.classList.toggle('selecionado', marcado);
   });
+  // mantém em sincronia com a checklist da seção "Exportar turno" (mesma seleção, dois lugares)
+  const chkTurno = document.querySelector('#turno-leques-checklist .turno-leque-check[data-id="'+id+'"]');
+  if(chkTurno) chkTurno.checked = marcado;
 }
 
 function limparSelecaoLeques(){
@@ -143,6 +146,48 @@ function renderExportBar(){
     .sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}))
     .map(l=>lequeCode(l)).join(', ');
   el('export-bar-count').textContent = (n===1 ? '1 leque selecionado: ' : n+' leques selecionados: ') + codigos;
+}
+
+// Lista, dentro da seção "Exportar turno", os leques do anel ativo pra marcar quais
+// entram junto no PDF — só aparece quando o técnico responde "Sim" à pergunta acima.
+// Usa o mesmo Set (lequesSelecionados) da seleção da lista principal, então marcar
+// aqui ou lá embaixo dá no mesmo.
+function renderTurnoLequesChecklist(){
+  const wrap = el('turno-leques-wrap');
+  const lista = el('turno-leques-checklist');
+  const vazio = el('turno-leques-vazio');
+  if(!wrap || !lista || !vazio) return;
+
+  const grupo = el('turno-incluir-leques-group');
+  const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
+  const incluir = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
+  wrap.style.display = incluir ? '' : 'none';
+  if(!incluir) return;
+
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  const lequesDoAnel = anelAtivo ? leques.filter(l=>l.anelId===anelAtivo.id) : [];
+  const ordenados = [...lequesDoAnel].sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}));
+
+  if(ordenados.length === 0){
+    lista.innerHTML = '';
+    vazio.style.display = 'block';
+    return;
+  }
+  vazio.style.display = 'none';
+
+  lista.innerHTML = ordenados.map(l=>{
+    const qtdFuros = furos.filter(f=>f.lequeId===l.id).length;
+    const marcado = lequesSelecionados.has(l.id);
+    return `
+      <label class="turno-leque-item">
+        <input type="checkbox" class="turno-leque-check" data-id="${l.id}" ${marcado ? 'checked' : ''}>
+        <span class="info">
+          <span class="code">${lequeCode(l)}</span>
+          <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''} · ${qtdFuros} furo(s)</span>
+        </span>
+      </label>
+    `;
+  }).join('');
 }
 
 function uuidv4(){
@@ -706,46 +751,7 @@ function renderPainelTrabalho(){
   el('furo-hint').style.display = semLeque ? 'block' : 'none';
 }
 
-// Pergunta explicitamente qual letra (A-E) está abrindo este leque, em vez de confiar
-// silenciosamente no chip selecionado lá em "Dados do Turno" — evita leque salvo com a
-// letra errada se alguém esqueceu de trocar o chip ao render de turno.
-function perguntarLetraModal(letraSugerida){
-  return new Promise(resolve=>{
-    const letras = ['A','B','C','D','E'];
-    const root = el('modal-root');
-    root.innerHTML = `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
-          <p style="font-weight:700;">Qual letra está abrindo este leque?</p>
-          <div class="chip-group" id="modal-letra-group" style="margin-bottom:18px;">
-            ${letras.map(l=>`<button type="button" class="chip${l===letraSugerida?' active':''}" data-val="${l}">${l}</button>`).join('')}
-          </div>
-          <div class="modal-actions">
-            <button class="ghost" id="modal-cancelar">Cancelar</button>
-            <button class="steel" id="modal-confirmar-letra">Confirmar</button>
-          </div>
-        </div>
-      </div>
-    `;
-    let selecionada = letraSugerida || null;
-    root.querySelectorAll('#modal-letra-group .chip').forEach(chip=>{
-      chip.addEventListener('click', ()=>{
-        root.querySelectorAll('#modal-letra-group .chip').forEach(c=> c.classList.remove('active'));
-        chip.classList.add('active');
-        selecionada = chip.dataset.val;
-      });
-    });
-    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
-    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
-    el('modal-confirmar-letra').addEventListener('click', ()=>{
-      if(!selecionada){ showToast('Selecione uma letra.'); return; }
-      fechar(selecionada);
-    });
-    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
-  });
-}
-
-async function criarLeque(){
+function criarLeque(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo) return;
   const tipo = el('leque-tipo').value;
@@ -756,22 +762,16 @@ async function criarLeque(){
     showToast(`Já existe ${PREFIXO[tipo]}${numero} neste anel.`);
     return;
   }
-
-  const letra = await perguntarLetraModal(turnoInfo.turnoLetra);
-  if(!letra) return; // cancelou — número e observação continuam preenchidos no formulário
-
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
-  // Retrato do turno ativo no momento da criação — grava uma vez e não muda depois,
-  // mesmo que o turno na tela seja alterado enquanto o leque continua aberto.
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto',
-    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: letra
+    turnoNumero: null, turnoLetra: null
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto',
-    turno_numero: turnoInfo.turnoNumero || null, turno_letra: letra
+    turno_numero: null, turno_letra: null
   });
   el('leque-numero').value = '';
   el('leque-nome').value = '';
@@ -1227,66 +1227,9 @@ function renderHistoricoExportacoes(){
   }).join('');
 }
 
-// Mostra os leques que batem com o turno ativo (mesmo número + letra) e deixa o usuário
-// escolher quais entram no PDF do turno. Resolve com um array de ids (pode ser vazio, se
-// o usuário optar por "só o turno"), ou null se ele cancelar a exportação inteira.
-function selecionarLequesDoTurnoModal(matches){
-  return new Promise(resolve=>{
-    const root = el('modal-root');
-    const linhas = matches.map(l=>{
-      const a = aneis.find(x=>x.id===l.anelId);
-      const qtdFuros = furos.filter(f=>f.lequeId===l.id).length;
-      return `
-        <label class="modal-leque-linha" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line);">
-          <input type="checkbox" class="modal-leque-check" data-id="${l.id}" checked>
-          <span style="flex:1;">
-            <b>${lequeCode(l)}</b> <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''}</span><br>
-            <span class="hint">${a ? a.nome : 'anel removido'} · ${qtdFuros} furo(s)</span>
-          </span>
-        </label>`;
-    }).join('');
-
-    root.innerHTML = `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
-          <p style="font-weight:700;">Este turno perfilou ${matches.length} leque${matches.length>1?'s':''}</p>
-          <p class="hint" style="margin-bottom:12px;">Marque os que devem entrar junto no PDF do turno.</p>
-          <div style="max-height:260px; overflow-y:auto; margin-bottom:16px;">${linhas}</div>
-          <div class="modal-actions">
-            <button class="ghost" id="modal-so-turno">Só o turno, sem leques</button>
-            <button class="steel" id="modal-incluir-leques">Incluir selecionados</button>
-          </div>
-        </div>
-      </div>
-    `;
-    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
-    el('modal-so-turno').addEventListener('click', ()=> fechar([]));
-    el('modal-incluir-leques').addEventListener('click', ()=>{
-      const ids = Array.from(document.querySelectorAll('.modal-leque-check:checked')).map(c=>c.dataset.id);
-      fechar(ids);
-    });
-    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
-  });
-}
-
 // ---------- Exportação de PDF: turno só, leque único, e combinado ----------
 async function exportarTurnoPDF(){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-
-  // Leques abertos automaticamente com o mesmo número+letra do turno ativo — candidatos
-  // a entrar junto no relatório, em vez de precisar exportar por fora depois.
-  const matches = (turnoInfo.turnoNumero && turnoInfo.turnoLetra)
-    ? leques.filter(l => l.turnoNumero === turnoInfo.turnoNumero && l.turnoLetra === turnoInfo.turnoLetra)
-    : [];
-
-  if(matches.length > 0){
-    const idsEscolhidos = await selecionarLequesDoTurnoModal(matches);
-    if(idsEscolhidos === null) return; // cancelou a exportação inteira
-    if(idsEscolhidos.length > 0){
-      await exportarLequesPDF(idsEscolhidos);
-      return;
-    }
-  }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -1616,6 +1559,7 @@ function renderAll(){
   render();
   atualizarBotaoEnviar();
   renderExportBar();
+  renderTurnoLequesChecklist();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -1661,7 +1605,37 @@ el('btn-limpar-selecao').addEventListener('click', limparSelecaoLeques);
 el('btn-exportar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados));
 });
-el('btn-exportar-turno').addEventListener('click', exportarTurnoPDF);
+document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(c=> c.classList.remove('active'));
+    chip.classList.add('active');
+    renderTurnoLequesChecklist();
+  });
+});
+
+el('turno-leques-checklist').addEventListener('change', (e)=>{
+  const chk = e.target.closest('.turno-leque-check');
+  if(!chk) return;
+  toggleSelecaoLeque(chk.dataset.id, chk.checked);
+});
+
+function exportarTurnoOuCombinado(){
+  const grupo = el('turno-incluir-leques-group');
+  const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
+  const incluirLeques = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
+
+  if(incluirLeques){
+    const idsMarcados = Array.from(document.querySelectorAll('#turno-leques-checklist .turno-leque-check:checked')).map(c=>c.dataset.id);
+    if(idsMarcados.length === 0){
+      showToast('Marque ao menos um leque, ou escolha "Não" pra exportar só o turno.');
+      return;
+    }
+    exportarLequesPDF(idsMarcados);
+    return;
+  }
+  exportarTurnoPDF();
+}
+el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
 loadTurnoInfo();
 loadData();

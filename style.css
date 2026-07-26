@@ -229,6 +229,17 @@ details.historico-menu summary .tag{
 .obs-item .icon{ flex-shrink:0; }
 #obs-vazio{ display:none; margin-top:8px; }
 
+.turno-leques-checklist{ display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto; margin-top:8px; }
+.turno-leque-item{
+  display:flex; align-items:center; gap:10px; padding:8px 10px; cursor:pointer;
+  border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+  font-family:var(--mono); font-size:12px;
+}
+.turno-leque-item input{ width:18px; height:18px; accent-color:var(--steel); flex-shrink:0; cursor:pointer; }
+.turno-leque-item .code{ font-weight:700; color:var(--text); }
+.turno-leque-item .info{ display:flex; flex-direction:column; gap:2px; }
+#turno-leques-vazio{ display:none; margin-top:8px; }
+
   details.anel-menu{
     border:1px solid var(--steel); border-radius:6px; margin-bottom:18px;
     background:var(--surface); overflow:hidden;
