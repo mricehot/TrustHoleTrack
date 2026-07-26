@@ -15,6 +15,7 @@
     --blast:#ff431d;
     --steel:#2f6690;
     --moss:#4f7a3f;
+    --rust:#c23b2f;
     --line:#dcdce3;
     --muted:#6c6c7d;
     --sans:"IBM Plex Sans", system-ui, sans-serif;
@@ -186,8 +187,8 @@
   .ok .value{ color:var(--moss); }
   .warn .bar-fill{ background:var(--blast); width:58%; }
   .warn .value{ color:var(--blast); }
-  .bad .bar-fill{ background:var(--steel); width:30%; }
-  .bad .value{ color:var(--steel); }
+  .bad .bar-fill{ background:var(--rust); width:30%; }
+  .bad .value{ color:var(--rust); }
   @media (max-width:860px){ .variacao .wrap{ grid-template-columns:1fr; gap:32px; } }
   @media (max-width:480px){
     .variacao{ padding:4px 0 52px; }
@@ -203,15 +204,15 @@
   .export-section h2{ font-size:27px; font-weight:600; margin:10px 0 14px; }
   .mock{ background:var(--ink); border-radius:10px; padding:22px; color:#fff; }
   .mock-row{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12px; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.12); }
-  .mock-row input{ accent-color:var(--blast); }
-  .mock-row.selected{ color:var(--blast); }
+  .mock-row input{ accent-color:var(--steel); }
+  .mock-row.selected{ color:var(--steel); }
   .mock-bar{
     margin-top:16px; display:flex; align-items:center; justify-content:space-between;
     background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:7px; padding:12px 14px;
     flex-wrap:wrap; gap:10px;
   }
   .mock-bar span{ font-family:var(--mono); font-size:12px; color:#cfcfe6; }
-  .mock-btn{ background:var(--blast); color:#fff; font-family:var(--sans); font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:5px; }
+  .mock-btn{ background:var(--steel); color:#fff; font-family:var(--sans); font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:5px; }
   @media (max-width:860px){ .export-section .wrap{ grid-template-columns:1fr; gap:32px; } }
   @media (max-width:480px){
     .export-section{ padding:4px 0 60px; }
@@ -255,7 +256,7 @@
   .pdf-table tr:last-child td{ border-bottom:none; }
   .pdf-table .tx-ok{ color:var(--moss); }
   .pdf-table .tx-warn{ color:var(--blast); }
-  .pdf-table .tx-bad{ color:var(--steel); }
+  .pdf-table .tx-bad{ color:var(--rust); }
   .pdf-total{ padding:10px 14px; font-family:var(--mono); font-size:10.8px; color:var(--muted); background:var(--paper); border-top:1px solid var(--line); }
   @media (max-width:860px){ .example-section .wrap{ grid-template-columns:1fr; gap:32px; } }
   @media (max-width:480px){
