@@ -103,7 +103,7 @@
   .wrap{ max-width:1020px; margin:0 auto; }
 .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
-@media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr 1fr; } }
+@media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr; } }
 
 /* Criar Medição e Adicionar Furo: sempre em coluna única (foco mobile) */
 #form-leque .grid-3,
@@ -171,8 +171,6 @@
 .export-bar button{ min-height:38px; padding:8px 12px; font-size:12px; }
 @media (min-width:560px){ .export-bar span{ flex:1 1 auto; } }
 
-.turno-export-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px; }
-.turno-export-row .hint{ flex:1; }
 
 details.historico-menu{
   border:1px solid var(--line); border-radius:6px; margin-bottom:18px;
@@ -304,7 +302,7 @@ details.historico-menu summary .tag{
   form{ display:grid; gap:10px; }
   .grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .grid-4{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
-  @media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:640px){ .grid-3, .grid-4{ grid-template-columns:1fr; } }
 
   .field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
   .field label{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
@@ -363,6 +361,8 @@ details.historico-menu summary .tag{
   }
 @media (max-width:480px){
   .anel-form{ flex-direction:column; }
+  .obs-add-row{ flex-direction:column; }
+  .obs-add-row button{ width:100%; }
 }
 .leque-head{ position:relative; }
 .leque-head::after{
