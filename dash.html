@@ -109,8 +109,14 @@
         <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
       </div>
       <div class="field">
-        <label for="turno-observacoes">Observações do turno</label>
-        <textarea id="turno-observacoes" rows="3" placeholder="ex: atraso na perfuração por infiltração de água no LQ04F05"></textarea>
+        <label for="turno-obs-input">Observações do turno</label>
+        <div class="obs-add-row">
+          <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por infiltração de água no LQ04F05" maxlength="300">
+          <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
+        </div>
+        <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
+        <div class="obs-list" id="obs-list"></div>
+        <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
       </div>
 <button type="button" class="steel" id="btn-exportar-turno">Exportar apenas o turno</button>
     </div>
