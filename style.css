@@ -209,6 +209,19 @@ details.historico-menu summary .tag{
 .historico-row .detalhe{ flex:1 1 100%; color:var(--text); word-break:break-word; }
 .historico-row .arquivo{ font-size:11px; color:var(--muted); flex:1 1 100%; word-break:break-all; }
 
+.obs-add-row{ display:flex; gap:8px; }
+.obs-add-row input{ flex:1; }
+.obs-add-row button{ flex-shrink:0; white-space:nowrap; }
+.obs-list{ display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; margin-top:10px; }
+.obs-item{
+  display:flex; align-items:flex-start; gap:8px; padding:8px 10px;
+  border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+  font-family:var(--mono); font-size:12px;
+}
+.obs-item .texto{ flex:1; color:var(--text); word-break:break-word; font-family:var(--sans); font-size:13px; }
+.obs-item .icon{ flex-shrink:0; }
+#obs-vazio{ display:none; margin-top:8px; }
+
   details.anel-menu{
     border:1px solid var(--steel); border-radius:6px; margin-bottom:18px;
     background:var(--surface); overflow:hidden;

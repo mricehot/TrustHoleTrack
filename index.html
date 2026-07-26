@@ -249,7 +249,9 @@
   .pdf-head{ padding:16px 20px 12px; border-bottom:1px solid var(--line); }
   .pdf-head .title{ font-family:var(--display); font-size:15px; font-weight:600; }
   .pdf-head .meta{ font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:3px; }
-  .pdf-head .meta.pdf-obs{ font-style:italic; margin-top:6px; }
+  .pdf-obs-list{ margin-top:8px; display:flex; flex-direction:column; gap:3px; }
+  .pdf-obs-title{ font-family:var(--mono); font-size:10.5px; color:var(--muted); font-weight:600; }
+  .pdf-obs-item{ font-family:var(--mono); font-size:10.5px; color:var(--muted); font-style:italic; padding-left:6px; }
   .pdf-table{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px; }
   .pdf-table thead th{ background:var(--ink); color:#fff; text-align:left; padding:8px 14px; font-weight:500; }
   .pdf-table td{ padding:8px 14px; border-bottom:1px solid var(--line); }
@@ -607,7 +609,7 @@
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         <h3>Dados do turno</h3>
-        <p>Data, número e letra do turno, técnicos, supervisor, local e observações — preenchidos uma vez e usados em todo relatório gerado.</p>
+        <p>Data, número e letra do turno, técnicos, supervisor e local — preenchidos uma vez. Observações são lançadas uma a uma, na hora que acontecem, e entram como lista no relatório.</p>
       </div>
 
       <div class="card">
@@ -683,7 +685,11 @@
       <div class="pdf-head">
         <div class="title">Anel: Galeria N3-Leste — LQ04</div>
         <div class="meta">Turno 2B · Técnicos: Marcos/Bruno/Lucas · Gerado em 23/07/2026</div>
-        <div class="meta pdf-obs">Observações: atraso na perfuração por infiltração de água no LQ04F05</div>
+        <div class="pdf-obs-list">
+          <span class="pdf-obs-title">Observações:</span>
+          <span class="pdf-obs-item">• Atraso na perfuração por infiltração de água no LQ04F05</span>
+          <span class="pdf-obs-item">• Troca de haste no LQ04F07 antes de continuar</span>
+        </div>
       </div>
       <table class="pdf-table">
         <thead>

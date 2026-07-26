@@ -82,6 +82,7 @@ atualizarStatusConexao();
 const LOCAL_KEY = 'perfilagem-local-v1';
 const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
+const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado' }
@@ -271,19 +272,23 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
-      db.from('furos').select('*').order('criado_em')
+      db.from('furos').select('*').order('criado_em'),
+      db.from('turno_observacoes').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3) throw (e1 || e2 || e3);
+    if(e1 || e2 || e3 || e4) throw (e1 || e2 || e3 || e4);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
+    turnoObservacoes = (obsData || []).map(mapObservacao);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     salvarLocal();
+    salvarObsLocal();
     renderAll();
+    renderObservacoesTurno();
     return true;
   }catch(e){
     return false;
@@ -731,7 +736,8 @@ function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.n
 const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'', observacoes:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'' };
+let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -759,6 +765,77 @@ function dataParaExibicao(data){
   return data;
 }
 
+function mapObservacao(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, texto: row.texto, ts: row.criado_em }; }
+
+function carregarObsLocal(){
+  try{
+    const raw = localStorage.getItem(OBS_LOCAL_KEY);
+    turnoObservacoes = raw ? JSON.parse(raw) : [];
+  }catch(e){ turnoObservacoes = []; }
+}
+function salvarObsLocal(){
+  try{ localStorage.setItem(OBS_LOCAL_KEY, JSON.stringify(turnoObservacoes)); }catch(e){}
+}
+
+// Observações são por turno (mesma data + número + letra) — assim um turno não
+// mistura anotações com o turno seguinte, mesmo que o app fique aberto o dia todo.
+function observacoesDoTurnoAtual(){
+  const dataISO = dataBRParaISO(turnoInfo.data);
+  return turnoObservacoes
+    .filter(o => o.data === dataISO && o.turnoNumero === turnoInfo.turnoNumero && o.turnoLetra === turnoInfo.turnoLetra)
+    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+}
+
+function renderObservacoesTurno(){
+  const lista = el('obs-list');
+  const vazio = el('obs-vazio');
+  if(!lista) return;
+  const obs = observacoesDoTurnoAtual();
+  if(obs.length === 0){
+    lista.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  lista.innerHTML = obs.map(o=>{
+    return `
+      <div class="obs-item">
+        <span class="texto">${o.texto}</span>
+        <button class="icon" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function adicionarObservacaoTurno(){
+  const campo = el('turno-obs-input');
+  const texto = campo.value.trim();
+  if(!texto) return;
+  const dataISO = dataBRParaISO(turnoInfo.data) || new Date().toISOString().slice(0,10);
+  const novoId = uuidv4();
+  const novaObs = { id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra, texto, ts: new Date().toISOString() };
+  turnoObservacoes.push(novaObs);
+  enfileirar('turno_observacoes', 'insert', {
+    id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra, texto
+  });
+  campo.value = '';
+  campo.focus();
+  salvarObsLocal();
+  renderObservacoesTurno();
+  showToast('Observação adicionada.');
+}
+
+function removerObservacaoTurno(id){
+  turnoObservacoes = turnoObservacoes.filter(o=>o.id!==id);
+  enfileirar('turno_observacoes', 'delete', { id });
+  salvarObsLocal();
+  renderObservacoesTurno();
+  showToast('Observação removida.');
+}
+
+el('btn-add-obs').addEventListener('click', adicionarObservacaoTurno);
+el('turno-obs-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarObservacaoTurno(); } });
+
 function carregarTurnoLocal(){
   try{
     const raw = localStorage.getItem(TURNO_LOCAL_KEY);
@@ -771,6 +848,7 @@ function salvarTurnoLocal(){
 
 async function loadTurnoInfo(){
   carregarTurnoLocal();
+  carregarObsLocal();
 
   if(navigator.onLine && !filaEnvio.some(item=>item.tabela==='turno_info')){
     try{
@@ -781,7 +859,6 @@ async function loadTurnoInfo(){
         turnoInfo.local = data.local || '';
         turnoInfo.turnoNumero = data.turno_numero || '';
         turnoInfo.turnoLetra = data.turno_letra || '';
-        turnoInfo.observacoes = data.observacoes || '';
       }
     }catch(e){
       // sem sinal — segue com o que já está salvo localmente
@@ -795,11 +872,11 @@ async function loadTurnoInfo(){
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
-  el('turno-observacoes').value = turnoInfo.observacoes || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
   el('turno-projeto').value = turnoInfo.projeto;
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
   selecionarChip('turno-letra-group', turnoInfo.turnoLetra);
+  renderObservacoesTurno();
 
   salvarTurnoLocal();
 }
@@ -808,7 +885,6 @@ function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
-  turnoInfo.observacoes = el('turno-observacoes').value;
   turnoInfo.supervisor = SUPERVISOR_CONST;
   turnoInfo.projeto = PROJETO_CONST;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
@@ -824,9 +900,9 @@ function saveTurnoInfo(){
     tecnicos: turnoInfo.tecnicos,
     supervisor: turnoInfo.supervisor,
     projeto: turnoInfo.projeto,
-    local: turnoInfo.local,
-    observacoes: turnoInfo.observacoes
+    local: turnoInfo.local
   });
+  renderObservacoesTurno();
 }
 
 function drawHeaderTabelaPDF(doc, y){
@@ -874,13 +950,17 @@ function desenharCabecalhoTurnoPDF(doc){
     y += 7;
   });
 
-  if(turnoInfo.observacoes && turnoInfo.observacoes.trim()){
+  const obsAtuais = observacoesDoTurnoAtual();
+  if(obsAtuais.length > 0){
     y += 2;
     doc.setFont(undefined,'bold'); doc.text('Observações:', 15, y); y += 6;
     doc.setFont(undefined,'normal');
-    const linhasObs = doc.splitTextToSize(turnoInfo.observacoes, 175);
-    doc.text(linhasObs, 15, y);
-    y += linhasObs.length * 6;
+    obsAtuais.forEach(o=>{
+      const linhasObs = doc.splitTextToSize(`• ${o.texto}`, 172);
+      if(y > 270){ doc.addPage(); y = 20; }
+      doc.text(linhasObs, 18, y);
+      y += linhasObs.length * 6;
+    });
   }
 
   y += 4;
