@@ -22,6 +22,20 @@ function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', c
 function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar Corte de Recuo' }[t] || 'Criar Medição'; }
 function diffClass(diff){ if(diff >= 0) return 'ok'; if(diff >= -0.5) return 'warn'; return 'bad'; }
 function diffLabel(diff){ return (diff > 0 ? '+' : '') + fmt1(diff) + ' m'; }
+
+// Mesma paleta de cores usada na tela (var(--moss)/var(--amber)/var(--rust)/var(--steel)),
+// convertida pra RGB porque o jsPDF não lê variáveis CSS.
+function corRGBDiferenca(diff){
+  const classe = diffClass(diff);
+  if(classe === 'ok') return [79,122,63];    // moss
+  if(classe === 'warn') return [255,67,29];  // amber/blast
+  return [194,59,47];                        // rust
+}
+function corRGBSituacao(situacao){
+  if(situacao === 'obstruido') return [255,67,29]; // amber
+  if(situacao === 'varado') return [47,102,144];   // steel
+  return [79,122,63];                              // moss (livre)
+}
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
@@ -911,12 +925,25 @@ function drawHeaderTabelaPDF(doc, y){
   doc.setTextColor(255,255,255);
   doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
   doc.text('Furo', 17, y);
-  doc.text('Esperada', 62, y);
-  doc.text('Real', 97, y);
-  doc.text('Diferenca', 127, y);
+  doc.text('Esperada', 90, y, { align:'right' });
+  doc.text('Real', 122, y, { align:'right' });
+  doc.text('Diferenca', 157, y, { align:'right' });
   doc.text('Situacao', 162, y);
   doc.setTextColor(0,0,0);
   return y+8;
+}
+
+// Numera todas as páginas do documento no formato "Página X de Y" — só pode
+// ser chamada no final, depois que todas as páginas já foram criadas.
+function adicionarNumeracaoPaginas(doc){
+  const totalPaginas = doc.internal.getNumberOfPages();
+  if(totalPaginas <= 1) return;
+  for(let i = 1; i <= totalPaginas; i++){
+    doc.setPage(i);
+    doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120);
+    doc.text(`Página ${i} de ${totalPaginas}`, 195, 289, { align:'right' });
+    doc.setTextColor(0);
+  }
 }
 
 // Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + dados do turno).
@@ -944,9 +971,10 @@ function desenharCabecalhoTurnoPDF(doc){
     ['Projeto:', turnoInfo.projeto],
     ['Local:', turnoInfo.local],
   ];
+  doc.setFont(undefined,'normal');
   campos.forEach(([label,val])=>{
-    doc.setFont(undefined,'bold'); doc.text(label, 15, y);
-    doc.setFont(undefined,'normal'); doc.text(String(val||'-'), 42, y);
+    doc.text(label, 15, y);
+    doc.text(String(val||'-'), 42, y);
     y += 7;
   });
 
@@ -1133,6 +1161,8 @@ async function exportarTurnoPDF(){
   doc.text('Nenhuma perfilagem de furos vinculada a este relatório.', 15, y);
   doc.setTextColor(0); doc.setFont(undefined,'normal');
 
+  adicionarNumeracaoPaginas(doc);
+
   const dataArquivo = (turnoInfo.data || '').replace(/\//g,'-') || 'sem-data';
   const sufixoTurno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra)
     ? `_${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`
@@ -1169,11 +1199,15 @@ async function exportarLequePDF(id){
   furosDoLeque.forEach(f=>{
     if(y > 273){ doc.addPage(); y = 20; y = drawHeaderTabelaPDF(doc, y); doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); }
     const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
+    doc.setTextColor(0,0,0);
     doc.text(furoCode(l,f), 17, y);
-    doc.text(fmt1(Number(f.metragemEsperada))+' m', 62, y);
-    doc.text(fmt1(Number(f.metragemReal))+' m', 97, y);
-    doc.text(diffLabel(diff), 127, y);
+    doc.text(fmt1(Number(f.metragemEsperada))+' m', 90, y, { align:'right' });
+    doc.text(fmt1(Number(f.metragemReal))+' m', 122, y, { align:'right' });
+    doc.setTextColor(...corRGBDiferenca(diff));
+    doc.text(diffLabel(diff), 157, y, { align:'right' });
+    doc.setTextColor(...corRGBSituacao(f.situacao));
     doc.text(situacaoLabel(f.situacao), 162, y);
+    doc.setTextColor(0,0,0);
     doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
     y += 8;
   });
@@ -1185,8 +1219,14 @@ async function exportarLequePDF(id){
   const varTotal = totalReal - totalEsp;
   const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
 
+  doc.setFillColor(25,18,49);
+  doc.rect(15, y-5, 180, 8, 'F');
+  doc.setTextColor(255,255,255);
   doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
-  doc.text('Total: ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 15, y);
+  doc.text('Total: ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 17, y);
+  doc.setTextColor(0,0,0);
+
+  adicionarNumeracaoPaginas(doc);
 
   const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'anel')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
@@ -1208,7 +1248,7 @@ async function exportarLequesPDF(ids){
 
   let y = desenharCabecalhoTurnoPDF(doc);
 
-  doc.setFontSize(PDF_FONT_AVISO); doc.setFont(undefined,'bold');
+  doc.setFontSize(PDF_FONT_AVISO); doc.setFont(undefined,'normal');
   const linhasInclusos = doc.splitTextToSize(
     'Leques inclusos (' + selecionados.length + '): ' + selecionados.map(l=>lequeCode(l)).join(', '),
     180
@@ -1235,11 +1275,15 @@ async function exportarLequesPDF(ids){
     furosDoLeque.forEach(f=>{
       if(y > 273){ doc.addPage(); y = 20; y = drawHeaderTabelaPDF(doc, y); doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); }
       const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
+      doc.setTextColor(0,0,0);
       doc.text(furoCode(l,f), 17, y);
-      doc.text(fmt1(Number(f.metragemEsperada))+' m', 62, y);
-      doc.text(fmt1(Number(f.metragemReal))+' m', 97, y);
-      doc.text(diffLabel(diff), 127, y);
+      doc.text(fmt1(Number(f.metragemEsperada))+' m', 90, y, { align:'right' });
+      doc.text(fmt1(Number(f.metragemReal))+' m', 122, y, { align:'right' });
+      doc.setTextColor(...corRGBDiferenca(diff));
+      doc.text(diffLabel(diff), 157, y, { align:'right' });
+      doc.setTextColor(...corRGBSituacao(f.situacao));
       doc.text(situacaoLabel(f.situacao), 162, y);
+      doc.setTextColor(0,0,0);
       doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
       y += 8;
     });
@@ -1270,12 +1314,23 @@ async function exportarLequesPDF(ids){
   y += 2;
   doc.setDrawColor(25,18,49); doc.setLineWidth(0.6); doc.line(15, y, 195, y); doc.setLineWidth(0.2); y += 9;
   const varGeral = totalGeralReal - totalGeralEsp;
-  doc.setFontSize(PDF_FONT_TOTAL_GERAL); doc.setFont(undefined,'bold');
-  const linhasTotal = doc.splitTextToSize(
-    'TOTAL GERAL (' + selecionados.length + ' leque(s)): ' + totalGeralFuros + ' furo(s)  |  Esperada: ' + fmt1(totalGeralEsp) + ' m  |  Real: ' + fmt1(totalGeralReal) + ' m  |  Variacao: ' + diffLabel(varGeral) + '  |  Alertas: ' + alertasGeral,
-    180
-  );
+  doc.setFont(undefined,'bold');
+  const textoTotalGeral = 'TOTAL GERAL (' + selecionados.length + ' leque(s)): ' + totalGeralFuros + ' furo(s)  |  Esperada: ' + fmt1(totalGeralEsp) + ' m  |  Real: ' + fmt1(totalGeralReal) + ' m  |  Variacao: ' + diffLabel(varGeral) + '  |  Alertas: ' + alertasGeral;
+
+  // Encolhe a fonte só o suficiente pra caber numa linha só (até um piso legível de 8.5pt).
+  // Só quebra em duas linhas se, mesmo no menor tamanho, o texto ainda não couber.
+  let fonteTotalGeral = PDF_FONT_TOTAL;
+  doc.setFontSize(fonteTotalGeral);
+  while(doc.getTextWidth(textoTotalGeral) > 180 && fonteTotalGeral > 8.5){
+    fonteTotalGeral -= 0.5;
+    doc.setFontSize(fonteTotalGeral);
+  }
+
+  const linhasTotal = doc.splitTextToSize(textoTotalGeral, 180);
+  if(y + linhasTotal.length * 6 > 285){ doc.addPage(); y = 20; }
   doc.text(linhasTotal, 15, y);
+
+  adicionarNumeracaoPaginas(doc);
 
   const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
