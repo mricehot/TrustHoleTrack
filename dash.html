@@ -14,7 +14,7 @@
 
   <header>
     <div class="brand">
-      <svg class="brand-icon" viewBox="0 0 100 100" width="30" height="30">
+      <svg class="brand-icon" viewBox="0 0 100 100" width="38" height="38">
         <circle cx="50" cy="50" r="9" fill="var(--amber)"/>
         <g stroke="var(--amber)" stroke-width="6" stroke-linecap="round">
           <line x1="50" y1="50" x2="50" y2="12"/>
@@ -27,17 +27,17 @@
         </g>
       </svg>
       <div>
-        <h1>Blast<span>Hole</span> Manager</h1>
+        <h1><span class="line1">Blast<span class="accent">Hole</span></span><span class="line2">Manager</span></h1>
         <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL &middot; esperada &times; real</div>
       </div>
     </div>
-    <div>
+    <div class="header-right">
       <div class="readout-label" id="readout-label">anel ativo: —</div>
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
-      <div style="margin-bottom:8px; text-align:right;">
-  <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar do servidor</button>
-  <button type="button" id="btn-enviar" class="steel">📤 Enviar Medições</button>
-</div>
+      <div class="header-actions">
+        <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar do servidor</button>
+        <button type="button" id="btn-enviar" class="steel">📤 Enviar Medições</button>
+      </div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
         <div><span>furos</span><b id="stat-furos">0</b></div>

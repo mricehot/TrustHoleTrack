@@ -450,6 +450,99 @@ function editarFuro(id){
   });
 }
 
+function editLequeModal(leque){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    const letras = ['A','B','C','D','E'];
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Editar leque</p>
+          <div class="grid-3" style="margin-bottom:14px;">
+            <div class="field">
+              <label for="edit-leque-tipo">Tipo</label>
+              <select id="edit-leque-tipo">
+                <option value="leque" ${leque.tipo==='leque'?'selected':''}>Leque (LQ)</option>
+                <option value="slot" ${leque.tipo==='slot'?'selected':''}>Slot (SL)</option>
+                <option value="fill" ${leque.tipo==='fill'?'selected':''}>Face Livre (FL)</option>
+                <option value="cr" ${leque.tipo==='cr'?'selected':''}>Corte de Recuo (CR)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="edit-leque-numero">Número</label>
+              <input id="edit-leque-numero" type="text" value="${leque.numero}">
+            </div>
+            <div class="field">
+              <label for="edit-leque-nome">Observação (opcional)</label>
+              <input id="edit-leque-nome" type="text" value="${leque.nome || ''}">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label>Letra do turno que abriu</label>
+            <div class="chip-group" id="edit-leque-letra-group">
+              ${letras.map(l=>`<button type="button" class="chip${l===leque.turnoLetra?' active':''}" data-val="${l}">${l}</button>`).join('')}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    let letraSelecionada = leque.turnoLetra || null;
+    root.querySelectorAll('#edit-leque-letra-group .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        root.querySelectorAll('#edit-leque-letra-group .chip').forEach(c=> c.classList.remove('active'));
+        chip.classList.add('active');
+        letraSelecionada = chip.dataset.val;
+      });
+    });
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=>{
+      const tipo = el('edit-leque-tipo').value;
+      const numero = normalizarNumero(el('edit-leque-numero').value.trim());
+      const nome = el('edit-leque-nome').value.trim() || null;
+      if(!numero){
+        showToast('Preencha o número do leque.');
+        return;
+      }
+      fechar({ tipo, numero, nome, turnoLetra: letraSelecionada });
+    };
+    el('modal-salvar').addEventListener('click', salvar);
+    ['edit-leque-numero','edit-leque-nome'].forEach(id=>{
+      el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    });
+  });
+}
+
+function editarLeque(id){
+  const l = leques.find(x=>x.id===id);
+  if(!l) return;
+  editLequeModal(l).then(resultado=>{
+    if(!resultado) return;
+    if(resultado.tipo !== l.tipo || resultado.numero !== l.numero){
+      const duplicado = leques.some(x=>x.anelId===l.anelId && x.tipo===resultado.tipo && x.numero===resultado.numero && x.id!==l.id);
+      if(duplicado){
+        showToast(`Já existe ${PREFIXO[resultado.tipo]}${resultado.numero} neste anel.`);
+        return;
+      }
+    }
+    l.tipo = resultado.tipo;
+    l.numero = resultado.numero;
+    l.nome = resultado.nome;
+    l.turnoLetra = resultado.turnoLetra;
+    enfileirar('leques', 'update', {
+      id: l.id, tipo: l.tipo, numero: l.numero, nome: l.nome, turno_letra: l.turnoLetra
+    });
+    salvarLocal();
+    renderAll();
+    showToast(`Leque ${lequeCode(l)} atualizado.`);
+  });
+}
+
 function fanSVG(furosDoLeque){
   const n = Math.max(furosDoLeque.length, 1);
   const w = 34, h = 26, cx = 6, cy = h - 3;
@@ -613,7 +706,46 @@ function renderPainelTrabalho(){
   el('furo-hint').style.display = semLeque ? 'block' : 'none';
 }
 
-function criarLeque(){
+// Pergunta explicitamente qual letra (A-E) está abrindo este leque, em vez de confiar
+// silenciosamente no chip selecionado lá em "Dados do Turno" — evita leque salvo com a
+// letra errada se alguém esqueceu de trocar o chip ao render de turno.
+function perguntarLetraModal(letraSugerida){
+  return new Promise(resolve=>{
+    const letras = ['A','B','C','D','E'];
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Qual letra está abrindo este leque?</p>
+          <div class="chip-group" id="modal-letra-group" style="margin-bottom:18px;">
+            ${letras.map(l=>`<button type="button" class="chip${l===letraSugerida?' active':''}" data-val="${l}">${l}</button>`).join('')}
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-confirmar-letra">Confirmar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    let selecionada = letraSugerida || null;
+    root.querySelectorAll('#modal-letra-group .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        root.querySelectorAll('#modal-letra-group .chip').forEach(c=> c.classList.remove('active'));
+        chip.classList.add('active');
+        selecionada = chip.dataset.val;
+      });
+    });
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-confirmar-letra').addEventListener('click', ()=>{
+      if(!selecionada){ showToast('Selecione uma letra.'); return; }
+      fechar(selecionada);
+    });
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+  });
+}
+
+async function criarLeque(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo) return;
   const tipo = el('leque-tipo').value;
@@ -624,18 +756,22 @@ function criarLeque(){
     showToast(`Já existe ${PREFIXO[tipo]}${numero} neste anel.`);
     return;
   }
+
+  const letra = await perguntarLetraModal(turnoInfo.turnoLetra);
+  if(!letra) return; // cancelou — número e observação continuam preenchidos no formulário
+
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
   // Retrato do turno ativo no momento da criação — grava uma vez e não muda depois,
   // mesmo que o turno na tela seja alterado enquanto o leque continua aberto.
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto',
-    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null
+    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: letra
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto',
-    turno_numero: turnoInfo.turnoNumero || null, turno_letra: turnoInfo.turnoLetra || null
+    turno_numero: turnoInfo.turnoNumero || null, turno_letra: letra
   });
   el('leque-numero').value = '';
   el('leque-nome').value = '';
@@ -1443,6 +1579,7 @@ function render(){
               <div><b>${fmt1(totalRealL)}</b> m real</div>
               <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
               ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
+              <button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎</button>
               ${l.status === 'fechado' ? `<button class="icon" onclick="reabrirLeque('${l.id}')" title="reabrir">↺ reabrir</button>` : ''}
               <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
               <button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>
