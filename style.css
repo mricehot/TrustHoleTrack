@@ -240,6 +240,22 @@ details.historico-menu summary .tag{
 .turno-leque-item .info{ display:flex; flex-direction:column; gap:2px; }
 #turno-leques-vazio{ display:none; margin-top:8px; }
 
+.fila-lista{ display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; margin:12px 0; }
+.fila-item{
+  display:flex; align-items:center; gap:8px; padding:8px 10px; flex-wrap:wrap;
+  border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+  font-family:var(--mono); font-size:12px;
+}
+.fila-item .tabela{ font-weight:700; color:var(--text); white-space:nowrap; }
+.fila-item .acao{
+  font-size:9px; text-transform:uppercase; letter-spacing:0.5px; padding:2px 7px; border-radius:20px;
+  border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex-shrink:0;
+}
+.fila-item .acao.insert{ color:var(--moss); border-color:var(--moss); }
+.fila-item .acao.update, .fila-item .acao.upsert{ color:var(--steel); border-color:var(--steel); }
+.fila-item .acao.delete{ color:var(--rust); border-color:var(--rust); }
+.fila-item .desc{ flex:1 1 100%; color:var(--text); word-break:break-word; }
+
   details.anel-menu{
     border:1px solid var(--steel); border-radius:6px; margin-bottom:18px;
     background:var(--surface); overflow:hidden;

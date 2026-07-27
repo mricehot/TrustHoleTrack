@@ -238,7 +238,85 @@ function atualizarBotaoEnviar(){
     btn.classList.remove('ghost');
     btn.classList.add('steel');
   }
+
+  const btnVerFila = document.getElementById('btn-ver-fila');
+  if(btnVerFila) btnVerFila.textContent = n === 0 ? '👁 Ver pendências' : `👁 Ver pendências (${n})`;
 }
+
+// Nomes amigáveis pra tabela e pro tipo de ação, usados na lista de pendências.
+const NOME_TABELA_FILA = {
+  aneis: 'Anel', leques: 'Leque', furos: 'Furo',
+  turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno'
+};
+const NOME_ACAO_FILA = { insert: 'novo', update: 'atualização', upsert: 'atualização', delete: 'remoção' };
+
+// Descreve um item da fila de forma legível — usado na lista de pendências, pra quem
+// não sabe (e não precisa saber) o nome das colunas no banco.
+function descreverItemFila({ tabela, registro }){
+  if(tabela === 'aneis'){
+    return registro.nome ? `Anel "${registro.nome}"` : 'Anel';
+  }
+  if(tabela === 'leques'){
+    const prefixo = PREFIXO[registro.tipo] || '';
+    return registro.numero ? `Leque ${prefixo}${registro.numero}` : 'Leque';
+  }
+  if(tabela === 'furos'){
+    return registro.numero !== undefined ? `Furo nº ${registro.numero}` : 'Furo';
+  }
+  if(tabela === 'turno_info'){
+    return 'Data, técnicos, local etc.';
+  }
+  if(tabela === 'turno_observacoes'){
+    if(!registro.texto) return 'Observação do turno';
+    const texto = registro.texto.length > 50 ? registro.texto.slice(0,50)+'...' : registro.texto;
+    return `"${texto}"`;
+  }
+  return tabela;
+}
+
+// Modal só de leitura mostrando tudo que está esperando pra ser enviado ao servidor —
+// útil pra conferir se algo digitado em campo (sem sinal) realmente entrou na fila.
+function abrirModalFila(){
+  const root = el('modal-root');
+  if(filaEnvio.length === 0){
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Nada pendente</p>
+          <p class="hint">Tudo que foi criado ou editado já está sincronizado com o servidor.</p>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-fechar">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }else{
+    const linhas = filaEnvio.map(item=>`
+      <div class="fila-item">
+        <span class="tabela">${NOME_TABELA_FILA[item.tabela] || item.tabela}</span>
+        <span class="acao ${item.acao}">${NOME_ACAO_FILA[item.acao] || item.acao}</span>
+        <span class="desc">${descreverItemFila(item)}</span>
+      </div>
+    `).join('');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">${filaEnvio.length} ${filaEnvio.length>1?'alterações':'alteração'} pendente${filaEnvio.length>1?'s':''} de envio</p>
+          <p class="hint">Isso só vai pro servidor quando você tocar em "Enviar Medições".</p>
+          <div class="fila-lista">${linhas}</div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-fechar">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('modal-fechar').addEventListener('click', fechar);
+  el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(); });
+}
+el('btn-ver-fila').addEventListener('click', abrirModalFila);
+
 
 // Remove qualquer entrada pendente pra esse registro nessa tabela (usado antes de
 // enfileirar algo novo, pra fila nunca acumular ações redundantes/contraditórias).
@@ -1101,6 +1179,47 @@ function adicionarMarcaDaguaPDF(doc){
   }
 }
 
+// Caixa de resumo no topo do relatório combinado — dá a visão geral (quantos leques,
+// furos, metros, aproveitamento e qual leque merece mais atenção) sem precisar rolar
+// até o fim pra achar o TOTAL GERAL. Devolve o Y logo depois da caixa.
+function desenharResumoPDF(doc, y, stats){
+  const alturaBox = 34;
+  if(y + alturaBox > 275){ doc.addPage(); y = 20; }
+
+  const aproveitamento = stats.totalEsp > 0 ? (stats.totalReal / stats.totalEsp * 100) : 0;
+  doc.setDrawColor(200); doc.setLineWidth(0.3);
+  doc.rect(15, y, 180, alturaBox);
+  doc.setFont(undefined,'bold'); doc.setFontSize(11);
+  doc.text('RESUMO DO TURNO', 20, y+8);
+  doc.setFont(undefined,'normal'); doc.setFontSize(10);
+
+  const col1 = 20, col2 = 78, col3 = 138;
+  doc.text(`Leques perfilados: ${stats.qtdLeques}`, col1, y+17);
+  doc.text(`Furos registrados: ${stats.totalFuros}`, col1, y+24);
+  doc.text(`Esperada: ${fmt1(stats.totalEsp)} m`, col2, y+17);
+  doc.text(`Real: ${fmt1(stats.totalReal)} m`, col2, y+24);
+
+  const varGeral = stats.totalReal - stats.totalEsp;
+  doc.setTextColor(...corRGBDiferenca(varGeral));
+  doc.text(`Variação: ${diffLabel(varGeral)}`, col3, y+17);
+  doc.setTextColor(0,0,0);
+  doc.text(`Alertas: ${stats.alertas}`, col3, y+24);
+
+  doc.setFont(undefined,'bold');
+  doc.text(`Aproveitamento: ${aproveitamento.toFixed(1)}%`, col1, y+31);
+  if(stats.piorLeque){
+    doc.setFont(undefined,'normal');
+    doc.setTextColor(...corRGBDiferenca(stats.piorLeque.diff));
+    const linhaAtencao = doc.splitTextToSize(
+      `Leque que mais precisa de atenção: ${stats.piorLeque.codigo} (${diffLabel(stats.piorLeque.diff)}, ${stats.piorLeque.alertas} alerta(s))`,
+      108
+    );
+    doc.text(linhaAtencao, col2, y+31);
+    doc.setTextColor(0,0,0);
+  }
+  return y + alturaBox + 8;
+}
+
 // Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + dados do turno).
 // Devolve a coordenada Y onde o conteúdo específico do relatório deve começar.
 function desenharCabecalhoTurnoPDF(doc){
@@ -1356,12 +1475,36 @@ async function exportarLequesPDF(ids){
   doc.text(linhasInclusos, 15, y);
   y += linhasInclusos.length * 7 + 6;
 
-  let totalGeralEsp = 0, totalGeralReal = 0, totalGeralFuros = 0, alertasGeral = 0;
-
-  selecionados.forEach((l, idx)=>{
-    const a = aneis.find(x=>x.id===l.anelId);
+  // Pré-calcula os furos e totais de cada leque uma única vez — usado tanto no
+  // resumo do topo quanto nas tabelas individuais, sem recalcular duas vezes.
+  const statsLeques = selecionados.map(l=>{
     let furosDoLeque = furos.filter(f=>f.lequeId===l.id);
     furosDoLeque = [...furosDoLeque].sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, {numeric:true}));
+    const totalEsp = furosDoLeque.reduce((s,f)=>s+Number(f.metragemEsperada||0),0);
+    const totalReal = furosDoLeque.reduce((s,f)=>s+Number(f.metragemReal||0),0);
+    const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
+    return { leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal: totalReal - totalEsp };
+  });
+
+  let totalGeralEsp = 0, totalGeralReal = 0, totalGeralFuros = 0, alertasGeral = 0;
+  let piorLeque = null;
+  statsLeques.forEach(s=>{
+    totalGeralEsp += s.totalEsp;
+    totalGeralReal += s.totalReal;
+    totalGeralFuros += s.furosDoLeque.length;
+    alertasGeral += s.alertas;
+    if(!piorLeque || s.varTotal < piorLeque.diff){
+      piorLeque = { codigo: lequeCode(s.leque), diff: s.varTotal, alertas: s.alertas };
+    }
+  });
+
+  y = desenharResumoPDF(doc, y, {
+    qtdLeques: selecionados.length, totalFuros: totalGeralFuros,
+    totalEsp: totalGeralEsp, totalReal: totalGeralReal, alertas: alertasGeral, piorLeque
+  });
+
+  statsLeques.forEach(({ leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal }, idx)=>{
+    const a = aneis.find(x=>x.id===l.anelId);
 
     if(y > 250){ doc.addPage(); y = 20; }
 
@@ -1387,16 +1530,6 @@ async function exportarLequesPDF(ids){
       doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
       y += 8;
     });
-
-    const totalEsp = furosDoLeque.reduce((s,f)=>s+Number(f.metragemEsperada||0),0);
-    const totalReal = furosDoLeque.reduce((s,f)=>s+Number(f.metragemReal||0),0);
-    const varTotal = totalReal - totalEsp;
-    const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
-
-    totalGeralEsp += totalEsp;
-    totalGeralReal += totalReal;
-    totalGeralFuros += furosDoLeque.length;
-    alertasGeral += alertas;
 
     y += 6;
     if(y > 268){ doc.addPage(); y = 20; }
