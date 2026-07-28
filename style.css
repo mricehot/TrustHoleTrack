@@ -108,6 +108,8 @@
 /* Criar Medição e Adicionar Furo: sempre em coluna única (foco mobile) */
 #form-leque .grid-3,
 #form-furo .grid-4{ grid-template-columns:1fr; }
+#btn-add-leque{ margin-top:14px; }
+.furo-actions{ margin-top:14px; }
 
   header{
     display:flex; justify-content:space-between; align-items:flex-start;
