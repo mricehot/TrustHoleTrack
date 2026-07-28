@@ -324,7 +324,10 @@ details.historico-menu summary .tag{
   }
   .chip:hover{ border-color:var(--amber); }
   .chip.active{ background:var(--amber); color:#191231; border-color:var(--amber); }
-  .chip-wide{ width:auto; padding:10px 16px; font-family:var(--sans); font-size:13px; white-space:nowrap; }
+  .chip-wide{
+    width:auto; flex:1; min-height:48px; padding:12px 16px;
+    font-family:var(--sans); font-size:14px; font-weight:700; white-space:nowrap;
+  }
   input[readonly]{ opacity:0.75; cursor:default; }
 
 
