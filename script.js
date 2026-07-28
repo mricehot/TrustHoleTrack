@@ -608,8 +608,8 @@ function editLequeModal(leque){
           <div class="field" style="margin-bottom:14px;">
             <label>Orientação</label>
             <div class="chip-group" id="edit-leque-orientacao-group">
-              <button type="button" class="chip${leque.orientacao!=='descendente'?' active':''}" data-val="ascendente">↑ Ascendente</button>
-              <button type="button" class="chip${leque.orientacao==='descendente'?' active':''}" data-val="descendente">↓ Descendente</button>
+              <button type="button" class="chip chip-wide${leque.orientacao!=='descendente'?' active':''}" data-val="ascendente">↑ Ascendente</button>
+              <button type="button" class="chip chip-wide${leque.orientacao==='descendente'?' active':''}" data-val="descendente">↓ Descendente</button>
             </div>
           </div>
           <div class="field" style="margin-bottom:16px;">
