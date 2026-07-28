@@ -36,8 +36,8 @@
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="header-actions">
         <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar do servidor</button>
-        <button type="button" id="btn-ver-fila" class="ghost">👁 Ver pendências</button>
-        <button type="button" id="btn-enviar" class="steel">📤 Enviar Medições</button>
+        <button type="button" id="btn-ver-fila" class="ghost"><span class="label">👁 Ver pendências</span><span class="count-badge" id="count-fila"></span></button>
+        <button type="button" id="btn-enviar" class="steel"><span class="label" id="label-enviar">📤 Enviar Medições</span><span class="count-badge" id="count-enviar"></span></button>
       </div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
@@ -158,6 +158,13 @@
               <option value="fill">Face Livre (FL)</option>
               <option value="cr">Corte de Recuo (CR)</option>
             </select>
+          </div>
+          <div class="field">
+            <label>Orientação</label>
+            <div class="chip-group" id="leque-orientacao-group">
+              <button type="button" class="chip active" data-val="ascendente">↑ Ascendente</button>
+              <button type="button" class="chip" data-val="descendente">↓ Descendente</button>
+            </div>
           </div>
           <div class="field">
             <label for="leque-numero">Número</label>

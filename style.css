@@ -124,6 +124,14 @@
   header .sub{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:6px; letter-spacing:0.5px; }
   .header-right{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
   .header-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .count-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px; margin-left:6px;
+    border-radius:20px; background:rgba(0,0,0,0.18); font-size:11px; font-weight:700;
+    vertical-align:middle;
+  }
+  button.ghost .count-badge{ background:var(--surface-2); border:1px solid var(--line); color:var(--text); }
+  .count-badge:empty{ display:none; margin-left:0; }
   @media (max-width:480px){
     .header-actions{ align-self:stretch; flex-direction:column; }
     .header-actions button{ width:100%; }
@@ -419,6 +427,8 @@ details.historico-menu summary .tag{
   .leque-head .badge-tipo.slot{ color:var(--steel); border-color:var(--steel); }
   .leque-head .badge-tipo.fill{ color:var(--moss); border-color:var(--moss); }
   .leque-head .badge-tipo.cr{ color:var(--navy); border-color:var(--navy); }
+  .leque-head .badge-orientacao{ font-size:9px; text-transform:uppercase; letter-spacing:0.5px; padding:2px 6px; border-radius:20px; border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex-shrink:0; }
+  .leque-head .badge-orientacao.descendente{ color:var(--rust); border-color:var(--rust); }
   .leque-head .status{ font-size:9px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); padding:2px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
   .leque-head .status.aberto{ color:#fff; background:var(--amber); font-weight:700; }
   .leque-head .stats{ font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:9px; align-items:center; flex-wrap:nowrap; flex-shrink:0; margin-left:auto; padding-left:12px; }

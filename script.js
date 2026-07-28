@@ -229,18 +229,22 @@ function atualizarBotaoEnviar(){
   const btn = document.getElementById('btn-enviar');
   if(!btn) return;
   const n = filaEnvio.length;
+  const labelEnviar = document.getElementById('label-enviar');
+  const badgeEnviar = document.getElementById('count-enviar');
   if(n === 0){
-    btn.textContent = '✓ Tudo sincronizado';
+    if(labelEnviar) labelEnviar.textContent = '✓ Tudo sincronizado';
+    if(badgeEnviar) badgeEnviar.textContent = '';
     btn.classList.add('ghost');
     btn.classList.remove('steel');
   }else{
-    btn.textContent = `📤 Enviar Medições (${n} pendente${n>1?'s':''})`;
+    if(labelEnviar) labelEnviar.textContent = '📤 Enviar Medições';
+    if(badgeEnviar) badgeEnviar.textContent = n;
     btn.classList.remove('ghost');
     btn.classList.add('steel');
   }
 
-  const btnVerFila = document.getElementById('btn-ver-fila');
-  if(btnVerFila) btnVerFila.textContent = n === 0 ? '👁 Ver pendências' : `👁 Ver pendências (${n})`;
+  const badgeFila = document.getElementById('count-fila');
+  if(badgeFila) badgeFila.textContent = n === 0 ? '' : n;
 }
 
 // Nomes amigáveis pra tabela e pro tipo de ação, usados na lista de pendências.
@@ -601,6 +605,13 @@ function editLequeModal(leque){
               <input id="edit-leque-nome" type="text" value="${leque.nome || ''}">
             </div>
           </div>
+          <div class="field" style="margin-bottom:14px;">
+            <label>Orientação</label>
+            <div class="chip-group" id="edit-leque-orientacao-group">
+              <button type="button" class="chip${leque.orientacao!=='descendente'?' active':''}" data-val="ascendente">↑ Ascendente</button>
+              <button type="button" class="chip${leque.orientacao==='descendente'?' active':''}" data-val="descendente">↓ Descendente</button>
+            </div>
+          </div>
           <div class="field" style="margin-bottom:16px;">
             <label>Letra do turno que abriu</label>
             <div class="chip-group" id="edit-leque-letra-group">
@@ -615,6 +626,14 @@ function editLequeModal(leque){
       </div>
     `;
     let letraSelecionada = leque.turnoLetra || null;
+    let orientacaoSelecionada = leque.orientacao === 'descendente' ? 'descendente' : 'ascendente';
+    root.querySelectorAll('#edit-leque-orientacao-group .chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        root.querySelectorAll('#edit-leque-orientacao-group .chip').forEach(c=> c.classList.remove('active'));
+        chip.classList.add('active');
+        orientacaoSelecionada = chip.dataset.val;
+      });
+    });
     root.querySelectorAll('#edit-leque-letra-group .chip').forEach(chip=>{
       chip.addEventListener('click', ()=>{
         root.querySelectorAll('#edit-leque-letra-group .chip').forEach(c=> c.classList.remove('active'));
@@ -633,7 +652,7 @@ function editLequeModal(leque){
         showToast('Preencha o número do leque.');
         return;
       }
-      fechar({ tipo, numero, nome, turnoLetra: letraSelecionada });
+      fechar({ tipo, numero, nome, orientacao: orientacaoSelecionada, turnoLetra: letraSelecionada });
     };
     el('modal-salvar').addEventListener('click', salvar);
     ['edit-leque-numero','edit-leque-nome'].forEach(id=>{
@@ -657,9 +676,10 @@ function editarLeque(id){
     l.tipo = resultado.tipo;
     l.numero = resultado.numero;
     l.nome = resultado.nome;
+    l.orientacao = resultado.orientacao;
     l.turnoLetra = resultado.turnoLetra;
     enfileirar('leques', 'update', {
-      id: l.id, tipo: l.tipo, numero: l.numero, nome: l.nome, turno_letra: l.turnoLetra
+      id: l.id, tipo: l.tipo, numero: l.numero, nome: l.nome, orientacao: l.orientacao, turno_letra: l.turnoLetra
     });
     salvarLocal();
     renderAll();
@@ -667,11 +687,13 @@ function editarLeque(id){
   });
 }
 
-function fanSVG(furosDoLeque){
+function fanSVG(furosDoLeque, orientacao){
+  const descendente = orientacao === 'descendente';
   const n = Math.max(furosDoLeque.length, 1);
-  const w = 34, h = 26, cx = 6, cy = h - 3;
+  const w = 34, h = 26, cx = 6, cy = descendente ? 3 : h - 3;
   const spread = Math.PI * 0.62;
-  const start = -Math.PI/2 - spread/2;
+  const centro = descendente ? Math.PI/2 : -Math.PI/2;
+  const start = centro - spread/2;
   let lines = '';
   furosDoLeque.forEach((f, i) => {
     const t = n === 1 ? 0.5 : i/(n-1);
@@ -841,15 +863,17 @@ function criarLeque(){
     showToast(`Já existe ${PREFIXO[tipo]}${numero} neste anel.`);
     return;
   }
+  const chipOrientacao = document.querySelector('#leque-orientacao-group .chip.active');
+  const orientacao = chipOrientacao ? chipOrientacao.dataset.val : 'ascendente';
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
   const novoLeque = {
-    id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto',
+    id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
     turnoNumero: null, turnoLetra: null
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
-    id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto',
+    id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
     turno_numero: null, turno_letra: null
   });
   el('leque-numero').value = '';
@@ -860,6 +884,12 @@ function criarLeque(){
 }
 el('btn-add-leque').addEventListener('click', criarLeque);
 el('leque-tipo').addEventListener('change', ()=>{ el('btn-add-leque').textContent = tipoBotaoLabel(el('leque-tipo').value); });
+document.querySelectorAll('#leque-orientacao-group .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('#leque-orientacao-group .chip').forEach(c=> c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
 ['leque-numero','leque-nome'].forEach(id=>{
   el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarLeque(); } });
 });
@@ -955,7 +985,7 @@ async function removerLeque(id){
 }
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
-function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra }; }
+function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
@@ -1665,9 +1695,10 @@ function render(){
                 <input type="checkbox" class="leque-select" data-id="${l.id}" ${selecionado ? 'checked' : ''}>
               </label>
               <button class="icon toggle-leque" onclick="toggleLeque('${l.id}')" title="${colapsado ? 'expandir' : 'minimizar'}">${colapsado ? '▸' : '▾'}</button>
-              <div class="fan">${fanSVG(furosDoLeque)}</div>
+              <div class="fan">${fanSVG(furosDoLeque, l.orientacao)}</div>
               <span class="code">${lequeCode(l)}</span>
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
+              <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
