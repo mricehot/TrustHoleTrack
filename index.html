@@ -259,6 +259,9 @@
   .pdf-table .tx-ok{ color:var(--moss); }
   .pdf-table .tx-warn{ color:var(--blast); }
   .pdf-table .tx-bad{ color:var(--rust); }
+  .pdf-table .st-livre{ color:var(--moss); }
+  .pdf-table .st-obstruido{ color:var(--blast); }
+  .pdf-table .st-varado{ color:var(--steel); }
   .pdf-total{ padding:10px 14px; font-family:var(--mono); font-size:10.8px; color:var(--muted); background:var(--paper); border-top:1px solid var(--line); }
   @media (max-width:860px){ .example-section .wrap{ grid-template-columns:1fr; gap:32px; } }
   @media (max-width:480px){
@@ -405,6 +408,8 @@
   .cards-grid.in .card:nth-child(4){ animation-delay:.24s; }
   .cards-grid.in .card:nth-child(5){ animation-delay:.32s; }
   .cards-grid.in .card:nth-child(6){ animation-delay:.40s; }
+  .cards-grid.in .card:nth-child(7){ animation-delay:.48s; }
+  .cards-grid.in .card:nth-child(8){ animation-delay:.56s; }
 
   /* ---------- diagrama do leque (hero): furo com alerta pulsando ---------- */
   @keyframes pulseFuro{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
@@ -615,13 +620,25 @@
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
         <h3>PDF sob controle</h3>
-        <p>Exporte um leque, o turno inteiro, ou vários leques combinados num único relatório com totais e variação por leque.</p>
+        <p>Exporte um leque, o turno inteiro, ou vários leques combinados — com cores por situação e variação, resumo com aproveitamento no topo, numeração de página e marca d'água da empresa.</p>
       </div>
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a10 10 0 1 0 7.07 2.93"/><path d="M12 7v5l3 2"/><path d="M20 2v5h-5"/></svg>
         <h3>Histórico e sincronização</h3>
         <p>Todo PDF gerado entra no histórico de exportações. Os dados sincronizam mesmo quando a conexão cai no meio do turno.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <h3>Fila de envio visível</h3>
+        <p>Antes de mandar pro servidor, veja exatamente o que está pendente — cada anel, leque, furo ou observação lançado offline, esperando conexão.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <h3>Editar sem refazer</h3>
+        <p>Errou o número, o tipo ou a letra do turno ao abrir um leque? Corrige direto — sem apagar e lançar tudo de novo. Furo já dava pra editar; leque também dá.</p>
       </div>
 
     </div>
@@ -679,7 +696,7 @@
     <div class="reveal">
       <p class="eyebrow">EXEMPLO DE RELATÓRIO</p>
       <h2>O PDF sai assim — sem montar de novo em outro programa.</h2>
-      <p class="lead">Mesma tabela que você monta no papel, só que com a variação já calculada e o total do leque na última linha.</p>
+      <p class="lead">Mesma tabela que você monta no papel, só que com a variação e a situação já coloridas, o total do leque na última linha — e, no relatório combinado, um resumo com o aproveitamento do turno logo no topo.</p>
     </div>
     <div class="pdf-mock reveal">
       <div class="pdf-head">
@@ -696,9 +713,9 @@
           <tr><th>Furo</th><th>Esperada</th><th>Real</th><th>Diferença</th><th>Situação</th></tr>
         </thead>
         <tbody>
-          <tr><td>LQ04F03</td><td>9.0 m</td><td>9.1 m</td><td class="tx-ok">+0.1 m</td><td>Livre</td></tr>
-          <tr><td>LQ04F05</td><td>8.0 m</td><td>7.4 m</td><td class="tx-warn">-0.6 m</td><td>Obstruído</td></tr>
-          <tr><td>LQ04F07</td><td>9.1 m</td><td>7.8 m</td><td class="tx-bad">-2.3 m</td><td>Varado</td></tr>
+          <tr><td>LQ04F03</td><td>9.0 m</td><td>9.1 m</td><td class="tx-ok">+0.1 m</td><td class="st-livre">Livre</td></tr>
+          <tr><td>LQ04F05</td><td>8.0 m</td><td>7.4 m</td><td class="tx-warn">-0.6 m</td><td class="st-obstruido">Obstruído</td></tr>
+          <tr><td>LQ04F07</td><td>9.1 m</td><td>7.8 m</td><td class="tx-bad">-2.3 m</td><td class="st-varado">Varado</td></tr>
         </tbody>
       </table>
       <div class="pdf-total">Total: 8 furo(s)  |  Esperada: 66.4 m  |  Real: 61.7 m  |  Variação: -4.7 m  |  Alertas: 2</div>
