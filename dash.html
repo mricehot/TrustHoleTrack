@@ -49,240 +49,299 @@
     </div>
   </header>
 
-  <details class="anel-menu" id="anel-menu">
-    <summary>
-      <span class="caret">▸</span>
-      <span class="label">Anéis / Galerias</span>
-      <span class="tag">trocar só ao mudar de galeria</span>
-      <span class="current" id="anel-menu-current">nenhum anel ativo</span>
-    </summary>
-    <div class="anel-body">
-      <div class="anel-form" id="form-anel">
-        <input id="anel-nome" type="text" placeholder="nome do anel / galeria, ex: Galeria N3-Leste" required>
-        <button type="button" id="btn-criar-anel" class="steel">Criar anel</button>
-      </div>
-      <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
-      <div class="anel-list" id="anel-list"></div>
-    </div>
-  </details>
+  <div class="app-shell">
+    <nav class="sidebar" id="sidebar">
+      <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
+      <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
+      <button type="button" class="sidebar-item" data-view="turno">🕐 Dados do Turno</button>
+      <button type="button" class="sidebar-item" data-view="topografia">📐 Topografia</button>
+      <button type="button" class="sidebar-item" data-view="historico">📁 Histórico</button>
+    </nav>
 
-  <div class="breadcrumb" id="breadcrumb"></div>
-  <details class="turno-menu" id="turno-menu">
-    <summary>
-      <span class="caret">▸</span>
-      <span class="label">Dados do Turno</span>
-      <span class="tag">usado na exportação do relatório</span>
-    </summary>
-    <div class="turno-body">
-      <div class="grid-3">
-        <div class="field"><label for="turno-data">Data</label><input id="turno-data" type="text" placeholder="preenchido automaticamente"></div>
-        <div class="field">
-          <label>Turno</label>
-          <div class="chip-group" id="turno-numero-group">
-            <button type="button" class="chip" data-val="1">1</button>
-            <button type="button" class="chip" data-val="2">2</button>
-            <button type="button" class="chip" data-val="3">3</button>
-            <button type="button" class="chip" data-val="4">4</button>
-            <button type="button" class="chip" data-val="5">5</button>
+    <div class="main-content">
+      <div class="breadcrumb" id="breadcrumb"></div>
+
+      <section class="view active" id="view-perfilagem">
+        <div class="row-2" id="painel-trabalho">
+          <div class="panel" id="painel-leque">
+            <h2 id="leque-panel-title">Criar Medição</h2>
+            <div id="form-leque">
+              <div class="grid-3">
+                <div class="field">
+                  <label for="leque-tipo">Tipo</label>
+                  <select id="leque-tipo">
+                    <option value="leque">Leque (LQ)</option>
+                    <option value="slot">Slot (SL)</option>
+                    <option value="fill">Face Livre (FL)</option>
+                    <option value="cr">Corte de Recuo (CR)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Orientação</label>
+                  <div class="chip-group" id="leque-orientacao-group">
+                    <button type="button" class="chip chip-wide active" data-val="ascendente">↑ Ascendente</button>
+                    <button type="button" class="chip chip-wide" data-val="descendente">↓ Descendente</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="leque-numero">Número</label>
+                  <input id="leque-numero" type="text" placeholder="ex: 01 ou 05" required>
+                </div>
+                <div class="field">
+                  <label for="leque-nome">Observação (opcional)</label>
+                  <input id="leque-nome" type="text" placeholder="ex: fila de abertura">
+                </div>
+              </div>
+              <button type="button" id="btn-add-leque">Criar Leque</button>
+            </div>
+            <div id="leque-atual-box"></div>
           </div>
-        </div>
-        <div class="field">
-          <label>Letra</label>
-          <div class="chip-group" id="turno-letra-group">
-            <button type="button" class="chip" data-val="A">A</button>
-            <button type="button" class="chip" data-val="B">B</button>
-            <button type="button" class="chip" data-val="C">C</button>
-            <button type="button" class="chip" data-val="D">D</button>
-            <button type="button" class="chip" data-val="E">E</button>
-          </div>
-        </div>
-      </div>
-      <div class="grid-3">
-        <div class="field"><label for="turno-tecnicos">Técnicos</label><input id="turno-tecnicos" type="text" placeholder="ex: Graziel/Bruno/Alexandre"></div>
-        <div class="field"><label for="turno-supervisor">Supervisor</label><input id="turno-supervisor" type="text" readonly></div>
-        <div class="field"><label for="turno-projeto">Projeto</label><input id="turno-projeto" type="text" readonly></div>
-      </div>
-      <div class="grid-3">
-        <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
-      </div>
-      <div class="field">
-        <label for="turno-obs-input">Observações do turno</label>
-        <div class="obs-add-row">
-          <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por infiltração de água no LQ04F05" maxlength="300">
-          <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
-        </div>
-        <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
-        <div class="obs-list" id="obs-list"></div>
-        <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
-      </div>
-      <div class="field">
-        <label>Tipo de relatório</label>
-        <div class="chip-group" id="turno-tipo-relatorio-group">
-          <button type="button" class="chip chip-wide active" data-val="perfilagem">Perfilagem</button>
-          <button type="button" class="chip chip-wide" data-val="topografia">Topografia</button>
-        </div>
-        <div class="hint">Perfilagem: esperada × real, furo a furo. Topografia: pontos fixos e quais furos foram levantados.</div>
-      </div>
-      <div class="field" id="turno-incluir-leques-field">
-        <label>Incluir leques neste relatório?</label>
-        <div class="chip-group" id="turno-incluir-leques-group">
-          <button type="button" class="chip active" data-val="nao">Não</button>
-          <button type="button" class="chip" data-val="sim">Sim</button>
-        </div>
-        <div class="hint">Se marcar "Sim", escolha abaixo quais leques do anel ativo entram junto no PDF.</div>
-      </div>
-      <div id="turno-leques-wrap" style="display:none;">
-        <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste anel ainda.</div>
-        <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
-      </div>
-<button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
-    </div>
 
-  </details>
-
-  <details class="historico-menu" id="historico-menu">
-    <summary>
-      <span class="caret">▸</span>
-      <span class="label">Histórico de Exportações</span>
-      <span class="tag">com e sem perfilagem</span>
-    </summary>
-    <div class="historico-body">
-      <div class="hint" id="historico-vazio" style="display:none;">Nenhuma exportação registrada ainda.</div>
-      <div class="historico-list" id="historico-list"></div>
-    </div>
-  </details>
-
-  <details class="topografia-menu" id="topografia-menu">
-    <summary>
-      <span class="caret">▸</span>
-      <span class="label">Topografia</span>
-      <span class="tag">pontos fixos e furos levantados</span>
-    </summary>
-    <div class="topografia-body">
-
-      <h3 class="topografia-subtitulo">Pontos fixos</h3>
-      <div class="hint">Pontos de referência usados na topografia — nome/código e coordenadas.</div>
-      <div class="grid-4" style="margin-top:8px;">
-        <div class="field">
-          <label for="pf-nome">Nome / código</label>
-          <input id="pf-nome" type="text" placeholder="ex: PF-01">
-        </div>
-        <div class="field">
-          <label for="pf-x">Este (X)</label>
-          <input id="pf-x" type="number" step="any" placeholder="0.000">
-        </div>
-        <div class="field">
-          <label for="pf-y">Norte (Y)</label>
-          <input id="pf-y" type="number" step="any" placeholder="0.000">
-        </div>
-        <div class="field">
-          <label for="pf-z">Cota (Z)</label>
-          <input id="pf-z" type="number" step="any" placeholder="0.000">
-        </div>
-      </div>
-      <button type="button" id="btn-add-pf" class="steel" style="margin-top:14px;">+ Adicionar ponto fixo</button>
-      <div class="hint" id="pf-vazio" style="margin-top:10px;">Nenhum ponto fixo cadastrado ainda.</div>
-      <div class="pf-list" id="pf-list"></div>
-
-      <div class="topografia-divisor"></div>
-
-      <h3 class="topografia-subtitulo">Furos topografados</h3>
-      <div class="hint">Marque quais furos do anel ativo já tiveram a boca topografada. Só entra a marcação no relatório — não as coordenadas do furo.</div>
-      <div class="hint" id="topo-furos-vazio" style="margin-top:10px;">Nenhum furo lançado neste anel ainda.</div>
-      <div class="topo-furos-list" id="topo-furos-list"></div>
-
-    </div>
-  </details>
-
-
-  <div class="row-2" id="painel-trabalho">
-    <div class="panel" id="painel-leque">
-      <h2 id="leque-panel-title">Criar Medição</h2>
-      <div id="form-leque">
-        <div class="grid-3">
-          <div class="field">
-            <label for="leque-tipo">Tipo</label>
-            <select id="leque-tipo">
-              <option value="leque">Leque (LQ)</option>
-              <option value="slot">Slot (SL)</option>
-              <option value="fill">Face Livre (FL)</option>
-              <option value="cr">Corte de Recuo (CR)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Orientação</label>
-            <div class="chip-group" id="leque-orientacao-group">
-              <button type="button" class="chip chip-wide active" data-val="ascendente">↑ Ascendente</button>
-              <button type="button" class="chip chip-wide" data-val="descendente">↓ Descendente</button>
+          <div class="panel">
+            <h2>Adicionar furo <span class="tag">número manual, ao leque aberto</span></h2>
+            <div id="form-furo">
+              <div class="grid-4">
+                <div class="field">
+                  <label for="furo-numero">Número</label>
+                  <input id="furo-numero" type="text" placeholder="ex: 01 ou 07" required>
+                </div>
+                <div class="field">
+                  <label for="furo-esperada">Esperada (m)</label>
+                  <input id="furo-esperada" type="number" step="0.1" min="0" placeholder="0.0" required>
+                </div>
+                <div class="field">
+                  <label for="furo-real">Real (m)</label>
+                  <input id="furo-real" type="number" step="0.1" min="0" placeholder="0.0" required>
+                </div>
+                <div class="field">
+                  <label for="furo-situacao">Situação</label>
+                  <select id="furo-situacao">
+                    <option value="livre">Livre</option>
+                    <option value="obstruido">Obstruído</option>
+                    <option value="varado">Varado</option>
+                  </select>
+                </div>
+              </div>
+              <div class="furo-actions">
+                <button type="button" id="btn-add-furo">Adicionar furo</button>
+                <div class="hint" id="furo-hint">Crie ou abra um leque primeiro.</div>
+              </div>
             </div>
           </div>
-          <div class="field">
-            <label for="leque-numero">Número</label>
-            <input id="leque-numero" type="text" placeholder="ex: 01 ou 05" required>
-          </div>
-          <div class="field">
-            <label for="leque-nome">Observação (opcional)</label>
-            <input id="leque-nome" type="text" placeholder="ex: fila de abertura">
-          </div>
         </div>
-        <button type="button" id="btn-add-leque">Criar Leque</button>
-      </div>
-      <div id="leque-atual-box"></div>
-    </div>
 
-    <div class="panel">
-      <h2>Adicionar furo <span class="tag">número manual, ao leque aberto</span></h2>
-      <div id="form-furo">
-        <div class="grid-4">
-          <div class="field">
-            <label for="furo-numero">Número</label>
-            <input id="furo-numero" type="text" placeholder="ex: 01 ou 07" required>
+        <div class="filters">
+          <select id="f-tipo">
+            <option value="">Todos os tipos</option>
+            <option value="leque">Leque</option>
+            <option value="slot">Slot</option>
+            <option value="fill">Face Livre</option>
+            <option value="cr">Corte de Recuo</option>
+          </select>
+          <select id="f-situacao">
+            <option value="">Todas as situações</option>
+            <option value="livre">Livre</option>
+            <option value="obstruido">Obstruído</option>
+            <option value="varado">Varado</option>
+          </select>
+          <input id="f-busca" type="text" placeholder="buscar código, ex: LQ01F02">
+          <div class="spacer"></div>
+          <button class="ghost" id="btn-csv" type="button">Exportar CSV</button>
+        </div>
+
+        <div id="lista"></div>
+      </section>
+
+      <section class="view" id="view-aneis">
+        <div class="view-card accent-steel">
+          <div class="view-card-header">
+            <span class="view-card-label">Anéis / Galerias</span>
+            <span class="tag">trocar só ao mudar de galeria</span>
+            <span class="current" id="anel-menu-current">nenhum anel ativo</span>
           </div>
-          <div class="field">
-            <label for="furo-esperada">Esperada (m)</label>
-            <input id="furo-esperada" type="number" step="0.1" min="0" placeholder="0.0" required>
-          </div>
-          <div class="field">
-            <label for="furo-real">Real (m)</label>
-            <input id="furo-real" type="number" step="0.1" min="0" placeholder="0.0" required>
-          </div>
-          <div class="field">
-            <label for="furo-situacao">Situação</label>
-            <select id="furo-situacao">
-              <option value="livre">Livre</option>
-              <option value="obstruido">Obstruído</option>
-              <option value="varado">Varado</option>
-            </select>
+          <div class="anel-body">
+            <div class="anel-form" id="form-anel">
+              <input id="anel-nome" type="text" placeholder="nome do anel / galeria, ex: Galeria N3-Leste" required>
+              <button type="button" id="btn-criar-anel" class="steel">Criar anel</button>
+            </div>
+            <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
+            <div class="anel-list" id="anel-list"></div>
           </div>
         </div>
-        <div class="furo-actions">
-          <button type="button" id="btn-add-furo">Adicionar furo</button>
-          <div class="hint" id="furo-hint">Crie ou abra um leque primeiro.</div>
+      </section>
+
+      <section class="view" id="view-turno">
+        <div class="view-card accent-amber">
+          <div class="view-card-header">
+            <span class="view-card-label">Dados do Turno</span>
+            <span class="tag">usado na exportação do relatório</span>
+          </div>
+          <div class="turno-body">
+            <div class="grid-3">
+              <div class="field"><label for="turno-data">Data</label><input id="turno-data" type="text" placeholder="preenchido automaticamente"></div>
+              <div class="field">
+                <label>Turno</label>
+                <div class="chip-group" id="turno-numero-group">
+                  <button type="button" class="chip" data-val="1">1</button>
+                  <button type="button" class="chip" data-val="2">2</button>
+                  <button type="button" class="chip" data-val="3">3</button>
+                  <button type="button" class="chip" data-val="4">4</button>
+                  <button type="button" class="chip" data-val="5">5</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Letra</label>
+                <div class="chip-group" id="turno-letra-group">
+                  <button type="button" class="chip" data-val="A">A</button>
+                  <button type="button" class="chip" data-val="B">B</button>
+                  <button type="button" class="chip" data-val="C">C</button>
+                  <button type="button" class="chip" data-val="D">D</button>
+                  <button type="button" class="chip" data-val="E">E</button>
+                </div>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="field"><label for="turno-tecnicos">Técnicos</label><input id="turno-tecnicos" type="text" placeholder="ex: Graziel/Bruno/Alexandre"></div>
+              <div class="field"><label for="turno-supervisor">Supervisor</label><input id="turno-supervisor" type="text" readonly></div>
+              <div class="field"><label for="turno-projeto">Projeto</label><input id="turno-projeto" type="text" readonly></div>
+            </div>
+            <div class="grid-3">
+              <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
+            </div>
+            <div class="field">
+              <label for="turno-obs-input">Observações do turno</label>
+              <div class="obs-add-row">
+                <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por infiltração de água no LQ04F05" maxlength="300">
+                <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
+              </div>
+              <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
+              <div class="obs-list" id="obs-list"></div>
+              <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
+            </div>
+            <div class="field">
+              <label>Tipo de relatório</label>
+              <div class="chip-group" id="turno-tipo-relatorio-group">
+                <button type="button" class="chip chip-wide active" data-val="perfilagem">Perfilagem</button>
+                <button type="button" class="chip chip-wide" data-val="topografia">Topografia</button>
+              </div>
+              <div class="hint">Perfilagem: esperada × real, furo a furo. Topografia: pontos fixos e quais furos foram levantados.</div>
+            </div>
+            <div class="field" id="turno-incluir-leques-field">
+              <label>Incluir leques neste relatório?</label>
+              <div class="chip-group" id="turno-incluir-leques-group">
+                <button type="button" class="chip active" data-val="nao">Não</button>
+                <button type="button" class="chip" data-val="sim">Sim</button>
+              </div>
+              <div class="hint">Se marcar "Sim", escolha abaixo quais leques do anel ativo entram junto no PDF.</div>
+            </div>
+            <div id="turno-leques-wrap" style="display:none;">
+              <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste anel ainda.</div>
+              <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
+            </div>
+            <button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section class="view" id="view-topografia">
+        <div class="view-card accent-moss">
+          <div class="view-card-header">
+            <span class="view-card-label">Topografia</span>
+            <span class="tag">pontos fixos e furos levantados</span>
+          </div>
+          <div class="topografia-body">
+
+            <h3 class="topografia-subtitulo">Pontos fixos</h3>
+            <div class="hint">Pontos de referência usados na topografia — nome/código e coordenadas.</div>
+            <div class="grid-4" style="margin-top:8px;">
+              <div class="field">
+                <label for="pf-nome">Nome / código</label>
+                <input id="pf-nome" type="text" placeholder="ex: PF-01">
+              </div>
+              <div class="field">
+                <label for="pf-x">Este (X)</label>
+                <input id="pf-x" type="number" step="any" placeholder="0.000">
+              </div>
+              <div class="field">
+                <label for="pf-y">Norte (Y)</label>
+                <input id="pf-y" type="number" step="any" placeholder="0.000">
+              </div>
+              <div class="field">
+                <label for="pf-z">Cota (Z)</label>
+                <input id="pf-z" type="number" step="any" placeholder="0.000">
+              </div>
+            </div>
+            <button type="button" id="btn-add-pf" class="steel" style="margin-top:14px;">+ Adicionar ponto fixo</button>
+            <div class="hint" id="pf-vazio" style="margin-top:10px;">Nenhum ponto fixo cadastrado ainda.</div>
+            <div class="pf-list" id="pf-list"></div>
+
+            <div class="topografia-divisor"></div>
+
+            <h3 class="topografia-subtitulo">Furos topografados</h3>
+            <div class="hint">Marque quais furos do anel ativo já tiveram a boca topografada. Só entra a marcação no relatório — não as coordenadas do furo.</div>
+            <div class="hint" id="topo-furos-vazio" style="margin-top:10px;">Nenhum furo lançado neste anel ainda.</div>
+            <div class="topo-furos-list" id="topo-furos-list"></div>
+
+            <div class="topografia-divisor"></div>
+
+            <h3 class="topografia-subtitulo">Furo topografado sem perfilagem ainda</h3>
+            <div class="hint">Quando a topografia é feita antes da perfilagem — abra o leque manualmente e vá adicionando os furos topografados nele, um de cada vez.</div>
+
+            <div id="tm-form-leque" style="margin-top:8px;">
+              <div class="grid-3">
+                <div class="field">
+                  <label for="tm-tipo">Tipo</label>
+                  <select id="tm-tipo">
+                    <option value="leque">Leque (LQ)</option>
+                    <option value="slot">Slot (SL)</option>
+                    <option value="fill">Face Livre (FL)</option>
+                    <option value="cr">Corte de Recuo (CR)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="tm-leque-numero">Número do leque</label>
+                  <input id="tm-leque-numero" type="text" placeholder="ex: 04">
+                </div>
+              </div>
+              <button type="button" id="btn-abrir-leque-tm" class="steel" style="margin-top:14px;">Abrir leque</button>
+            </div>
+
+            <div id="tm-leque-atual-box" style="display:none; margin-top:8px;">
+              <div class="leque-atual">
+                <span class="code" id="tm-leque-atual-code"></span>
+                <span class="hint">recebendo furos topografados</span>
+                <span class="spacer"></span>
+                <button class="ghost" id="btn-trocar-leque-tm">Trocar leque</button>
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <label for="tm-furo-numero">Número do furo</label>
+                <input id="tm-furo-numero" type="text" placeholder="ex: 05">
+              </div>
+              <button type="button" id="btn-add-tm" class="steel" style="margin-top:14px;">+ Adicionar furo topografado</button>
+            </div>
+
+            <div class="hint" id="tm-vazio" style="margin-top:10px;">Nenhum furo lançado manualmente ainda.</div>
+            <div class="tm-list" id="tm-list"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-historico">
+        <div class="view-card">
+          <div class="view-card-header">
+            <span class="view-card-label">Histórico de Exportações</span>
+            <span class="tag">com e sem perfilagem</span>
+          </div>
+          <div class="historico-body">
+            <div class="hint" id="historico-vazio" style="display:none;">Nenhuma exportação registrada ainda.</div>
+            <div class="historico-list" id="historico-list"></div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
-
-  <div class="filters">
-    <select id="f-tipo">
-      <option value="">Todos os tipos</option>
-      <option value="leque">Leque</option>
-      <option value="slot">Slot</option>
-      <option value="fill">Face Livre</option>
-      <option value="cr">Corte de Recuo</option>
-    </select>
-    <select id="f-situacao">
-      <option value="">Todas as situações</option>
-      <option value="livre">Livre</option>
-      <option value="obstruido">Obstruído</option>
-      <option value="varado">Varado</option>
-    </select>
-    <input id="f-busca" type="text" placeholder="buscar código, ex: LQ01F02">
-    <div class="spacer"></div>
-    <button class="ghost" id="btn-csv" type="button">Exportar CSV</button>
-  </div>
-
-  <div id="lista"></div>
 
 </div>
 

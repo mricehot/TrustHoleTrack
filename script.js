@@ -109,11 +109,13 @@ const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
+const TM_LOCAL_KEY = 'perfilagem-topografia-manual-v1';
 
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, topografado, ts }
 let pontosFixos = [];  // { id, nome, x, y, z }
+let topografiaManual = []; // { id, tipoLeque, numeroLeque, numeroFuro, ts } — furo topografado sem perfilagem ainda
 let anelAtivoId = null;
 let lequesColapsados = new Set();
 let lequesSelecionados = new Set();
@@ -426,24 +428,27 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: pfData, error: e5 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: pfData, error: e5 }, { data: tmData, error: e6 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
       db.from('turno_observacoes').select('*').order('criado_em'),
-      db.from('pontos_fixos').select('*').order('criado_em')
+      db.from('pontos_fixos').select('*').order('criado_em'),
+      db.from('topografia_manual').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5) throw (e1 || e2 || e3 || e4 || e5);
+    if(e1 || e2 || e3 || e4 || e5 || e6) throw (e1 || e2 || e3 || e4 || e5 || e6);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
     turnoObservacoes = (obsData || []).map(mapObservacao);
     pontosFixos = (pfData || []).map(mapPontoFixo);
+    topografiaManual = (tmData || []).map(mapTopografiaManual);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     salvarLocal();
     salvarObsLocal();
     salvarPontosFixosLocal();
+    salvarTopografiaManualLocal();
     renderAll();
     renderObservacoesTurno();
     return true;
@@ -476,6 +481,7 @@ el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
 async function loadData(){
   carregarLocal();
   carregarPontosFixosLocal();
+  carregarTopografiaManualLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   renderAll();
   atualizarBotaoEnviar();
@@ -729,7 +735,6 @@ function lequeAbertoDoAnel(anelId){
 function renderAneisMenu(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   el('anel-menu-current').textContent = anelAtivo ? `ativo: ${anelAtivo.nome}` : 'nenhum anel ativo';
-  if(!anelAtivo) el('anel-menu').setAttribute('open', '');
 
   const lista = el('anel-list');
   if(aneis.length === 0){
@@ -755,7 +760,7 @@ function usarAnel(id){
   salvarLocal();
   renderAll();
   showToast('Anel ativo alterado.');
-  el('anel-menu').removeAttribute('open');
+  mostrarView('perfilagem');
 }
 
 async function removerAnel(id){
@@ -810,6 +815,7 @@ function criarAnel(){
   salvarLocal();
   renderAll();
   showToast('Anel criado e definido como ativo.');
+  mostrarView('perfilagem');
 }
 el('btn-criar-anel').addEventListener('click', criarAnel);
 el('anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarAnel(); } });
@@ -819,7 +825,7 @@ function renderBreadcrumb(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   const bc = el('breadcrumb');
   if(!anelAtivo){
-    bc.innerHTML = `<span class="warn">Nenhum anel ativo — abra o menu "Anéis / Galerias" acima e crie ou selecione um.</span>`;
+    bc.innerHTML = `<span class="warn">Nenhum anel ativo — clique em "Anéis / Galerias" no menu lateral e crie ou selecione um.</span>`;
     return;
   }
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
@@ -1167,6 +1173,148 @@ el('topo-furos-list').addEventListener('change', (e)=>{
   if(!chk) return;
   toggleTopografado(chk.dataset.id, chk.checked);
 });
+
+// ---------- Furo topografado sem perfilagem ainda (leque + furo lançados manualmente) ----------
+const TM_LEQUE_ATUAL_KEY = 'perfilagem-topografia-leque-atual-v1';
+let lequeTopoAtual = null; // { tipo, numero } — leque manual "aberto" recebendo furos agora
+
+function carregarTopografiaManualLocal(){
+  try{
+    const raw = localStorage.getItem(TM_LOCAL_KEY);
+    topografiaManual = raw ? JSON.parse(raw) : [];
+  }catch(e){ topografiaManual = []; }
+  try{
+    const rawAtual = localStorage.getItem(TM_LEQUE_ATUAL_KEY);
+    lequeTopoAtual = rawAtual ? JSON.parse(rawAtual) : null;
+  }catch(e){ lequeTopoAtual = null; }
+}
+function salvarTopografiaManualLocal(){
+  try{ localStorage.setItem(TM_LOCAL_KEY, JSON.stringify(topografiaManual)); }catch(e){}
+}
+function salvarLequeTopoAtualLocal(){
+  try{
+    if(lequeTopoAtual) localStorage.setItem(TM_LEQUE_ATUAL_KEY, JSON.stringify(lequeTopoAtual));
+    else localStorage.removeItem(TM_LEQUE_ATUAL_KEY);
+  }catch(e){}
+}
+function mapTopografiaManual(row){
+  return { id: row.id, tipoLeque: row.tipo_leque, numeroLeque: row.numero_leque, numeroFuro: row.numero_furo, ts: row.criado_em };
+}
+// Mesmo formato de código dos furos perfilados (LQ04F05), só que montado a partir de
+// texto digitado à mão, sem precisar existir um leque/furo real por trás.
+function codigoTopoManual(item){
+  return (PREFIXO[item.tipoLeque] || '') + item.numeroLeque + 'F' + item.numeroFuro;
+}
+function lequeTopoCodigo(){
+  if(!lequeTopoAtual) return '';
+  return (PREFIXO[lequeTopoAtual.tipo] || '') + lequeTopoAtual.numero;
+}
+
+function renderPainelTopografiaManual(){
+  const formLeque = el('tm-form-leque');
+  const boxAtual = el('tm-leque-atual-box');
+  if(!formLeque || !boxAtual) return;
+  if(lequeTopoAtual){
+    formLeque.style.display = 'none';
+    boxAtual.style.display = '';
+    el('tm-leque-atual-code').textContent = lequeTopoCodigo();
+  }else{
+    formLeque.style.display = '';
+    boxAtual.style.display = 'none';
+  }
+}
+
+function abrirLequeTopografico(){
+  const tipo = el('tm-tipo').value;
+  const numero = normalizarNumero(el('tm-leque-numero').value.trim());
+  if(!numero){ showToast('Preencha o número do leque.'); return; }
+  lequeTopoAtual = { tipo, numero };
+  salvarLequeTopoAtualLocal();
+  renderPainelTopografiaManual();
+  el('tm-furo-numero').focus();
+}
+
+function trocarLequeTopografico(){
+  lequeTopoAtual = null;
+  salvarLequeTopoAtualLocal();
+  el('tm-leque-numero').value = '';
+  renderPainelTopografiaManual();
+}
+
+// Agrupa os furos manuais por leque (LQ04: F01, F05...), igual à lista de furos de
+// verdade agrupa por leque — mais fácil de ver o conjunto do que uma lista solta.
+function renderTopografiaManual(){
+  const lista = el('tm-list');
+  const vazio = el('tm-vazio');
+  if(!lista || !vazio) return;
+  if(topografiaManual.length === 0){
+    lista.innerHTML = '';
+    vazio.style.display = 'block';
+    return;
+  }
+  vazio.style.display = 'none';
+
+  const grupos = new Map();
+  topografiaManual.forEach(item=>{
+    const chave = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
+    if(!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(item);
+  });
+  const chavesOrdenadas = [...grupos.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+
+  lista.innerHTML = chavesOrdenadas.map(chave=>{
+    const itens = [...grupos.get(chave)].sort((a,b)=> String(a.numeroFuro).localeCompare(String(b.numeroFuro), undefined, {numeric:true}));
+    const furosHTML = itens.map(item=>`
+      <span class="tm-furo-chip">
+        F${item.numeroFuro}
+        <button class="icon" onclick="removerTopografiaManual('${item.id}')" title="remover">✕</button>
+      </span>
+    `).join('');
+    return `
+      <div class="tm-row">
+        <span class="code">${chave}</span>
+        <div class="tm-furos">${furosHTML}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function criarTopografiaManual(){
+  if(!lequeTopoAtual){ showToast('Abra um leque primeiro.'); return; }
+  const numeroFuro = normalizarNumero(el('tm-furo-numero').value.trim());
+  if(!numeroFuro){ showToast('Preencha o número do furo.'); return; }
+  const { tipo: tipoLeque, numero: numeroLeque } = lequeTopoAtual;
+  const duplicado = topografiaManual.some(t=> t.tipoLeque===tipoLeque && t.numeroLeque===numeroLeque && t.numeroFuro===numeroFuro);
+  if(duplicado){
+    showToast(`Já existe ${PREFIXO[tipoLeque]}${numeroLeque}F${numeroFuro} nessa lista.`);
+    return;
+  }
+  const novoId = uuidv4();
+  const novoItem = { id: novoId, tipoLeque, numeroLeque, numeroFuro, ts: new Date().toISOString() };
+  topografiaManual.push(novoItem);
+  enfileirar('topografia_manual', 'insert', {
+    id: novoId, tipo_leque: tipoLeque, numero_leque: numeroLeque, numero_furo: numeroFuro
+  });
+  el('tm-furo-numero').value = '';
+  el('tm-furo-numero').focus();
+  salvarTopografiaManualLocal();
+  renderTopografiaManual();
+  showToast(`${codigoTopoManual(novoItem)} adicionado como topografado.`);
+}
+
+function removerTopografiaManual(id){
+  topografiaManual = topografiaManual.filter(t=>t.id!==id);
+  enfileirar('topografia_manual', 'delete', { id });
+  salvarTopografiaManualLocal();
+  renderTopografiaManual();
+  showToast('Removido da lista.');
+}
+
+el('btn-abrir-leque-tm').addEventListener('click', abrirLequeTopografico);
+el('btn-trocar-leque-tm').addEventListener('click', trocarLequeTopografico);
+el('tm-leque-numero').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); abrirLequeTopografico(); } });
+el('btn-add-tm').addEventListener('click', criarTopografiaManual);
+el('tm-furo-numero').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarTopografiaManual(); } });
 
 // Observações são por turno (mesma data + número + letra) — assim um turno não
 // mistura anotações com o turno seguinte, mesmo que o app fique aberto o dia todo.
@@ -1683,6 +1831,42 @@ async function exportarTopografiaPDF(){
     y += 10;
   });
 
+  // ---- Furos topografados sem perfilagem ainda (lançados manualmente) ----
+  if(topografiaManual.length > 0){
+    if(y > 250){ doc.addPage(); y = 20; }
+    doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
+    doc.text('Furos topografados sem perfilagem ainda', 15, y); y += 9;
+
+    doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
+    doc.text('Furo', 17, y);
+    doc.text('Topografado', 193, y, { align:'right' });
+    doc.setTextColor(0,0,0); y += 8;
+    doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
+
+    const tmOrdenados = [...topografiaManual].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
+    tmOrdenados.forEach(item=>{
+      if(y > 273){
+        doc.addPage(); y = 20;
+        doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
+        doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
+        doc.text('Furo', 17, y); doc.text('Topografado', 193, y, { align:'right' });
+        doc.setTextColor(0,0,0); y += 8;
+        doc.setFont(undefined,'normal');
+      }
+      doc.text(codigoTopoManual(item), 17, y);
+      doc.setFont(undefined,'bold'); doc.setTextColor(79,122,63);
+      doc.text('Sim', 193, y, { align:'right' });
+      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
+      doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
+      y += 8;
+
+      totalFurosGeral++;
+      totalTopografadosGeral++;
+    });
+    y += 6;
+  }
+
   if(totalFurosGeral > 0){
     if(y > 268){ doc.addPage(); y = 20; }
     y += 2;
@@ -1928,12 +2112,12 @@ function render(){
   const lista = el('lista');
 
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="empty">Nenhum anel criado ainda.<br>Abra o menu "Anéis / Galerias" no topo para começar.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum anel criado ainda.<br>Clique em "Anéis / Galerias" no menu lateral para começar.</div>`;
     return;
   }
 
   if(!anelAtivo){
-    lista.innerHTML = `<div class="empty">Nenhum anel ativo.<br>Abra o menu "Anéis / Galerias" no topo e selecione um.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum anel ativo.<br>Clique em "Anéis / Galerias" no menu lateral e selecione um.</div>`;
     return;
   }
 
@@ -2039,6 +2223,8 @@ function renderAll(){
   renderTurnoLequesChecklist();
   renderPontosFixos();
   renderFurosTopografia();
+  renderTopografiaManual();
+  renderPainelTopografiaManual();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -2137,6 +2323,15 @@ function exportarTurnoOuCombinado(){
   exportarTurnoPDF();
 }
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
+
+// ---------- Menu lateral: troca entre as "páginas" do app ----------
+function mostrarView(viewId){
+  document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
+  document.querySelectorAll('.sidebar-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
+}
+document.querySelectorAll('.sidebar-item').forEach(btn=>{
+  btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
+});
 
 loadTurnoInfo();
 loadData();
