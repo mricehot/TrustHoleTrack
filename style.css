@@ -223,6 +223,7 @@ details.historico-menu summary .tag{
 .historico-row .tipo.turno{ color:var(--steel); border-color:var(--steel); }
 .historico-row .tipo.leque{ color:var(--amber); border-color:var(--amber); }
 .historico-row .tipo.combinado{ color:var(--moss); border-color:var(--moss); }
+.historico-row .tipo.topografia{ color:var(--navy); border-color:var(--navy); }
 .historico-row .detalhe{ flex:1 1 100%; color:var(--text); word-break:break-word; }
 .historico-row .arquivo{ font-size:11px; color:var(--muted); flex:1 1 100%; word-break:break-all; }
 
@@ -317,6 +318,48 @@ details.historico-menu summary .tag{
     padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
   }
   .turno-body{ padding:14px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+
+  details.topografia-menu{
+    border:1px solid var(--moss); border-radius:6px; margin-bottom:18px;
+    background:var(--surface); overflow:hidden;
+  }
+  details.topografia-menu summary{
+    cursor:pointer; padding:12px 16px; list-style:none;
+    display:flex; align-items:center; gap:10px; user-select:none; flex-wrap:wrap;
+  }
+  details.topografia-menu summary::-webkit-details-marker{ display:none; }
+  details.topografia-menu summary .caret{ color:var(--moss); font-family:var(--mono); font-size:12px; }
+  details.topografia-menu summary .label{
+    font-size:11px; text-transform:uppercase; letter-spacing:1.8px; color:var(--moss); font-weight:700;
+  }
+  details.topografia-menu summary .tag{
+    font-size:9px; background:var(--surface-2); border:1px solid var(--line);
+    padding:2px 6px; border-radius:10px; letter-spacing:0.5px; color:var(--muted);
+  }
+  .topografia-body{ padding:14px 16px; border-top:1px solid var(--line); }
+  .topografia-subtitulo{ font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text); margin:0 0 4px 0; }
+  .topografia-divisor{ border-top:1px solid var(--line); margin:18px 0; }
+
+  .pf-list{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .pf-row{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; flex-wrap:wrap;
+    border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+    font-family:var(--mono); font-size:12px;
+  }
+  .pf-row .nome{ font-weight:700; color:var(--text); white-space:nowrap; }
+  .pf-row .coords{ color:var(--muted); flex:1; }
+  #pf-vazio, #topo-furos-vazio{ display:none; }
+
+  .topo-furos-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-top:10px; }
+  .topo-furo-item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; cursor:pointer;
+    border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
+    font-family:var(--mono); font-size:12px;
+  }
+  .topo-furo-item.marcado{ border-color:var(--moss); background:rgba(79,122,63,0.08); }
+  .topo-furo-item input{ width:18px; height:18px; accent-color:var(--moss); flex-shrink:0; cursor:pointer; }
+  .topo-furo-item .code{ font-weight:700; color:var(--text); white-space:nowrap; }
+  .topo-furo-item .info{ flex:1; color:var(--muted); }
   .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);

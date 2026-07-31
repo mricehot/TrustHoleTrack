@@ -116,6 +116,14 @@
         <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
       </div>
       <div class="field">
+        <label>Tipo de relatório</label>
+        <div class="chip-group" id="turno-tipo-relatorio-group">
+          <button type="button" class="chip chip-wide active" data-val="perfilagem">Perfilagem</button>
+          <button type="button" class="chip chip-wide" data-val="topografia">Topografia</button>
+        </div>
+        <div class="hint">Perfilagem: esperada × real, furo a furo. Topografia: pontos fixos e quais furos foram levantados.</div>
+      </div>
+      <div class="field" id="turno-incluir-leques-field">
         <label>Incluir leques neste relatório?</label>
         <div class="chip-group" id="turno-incluir-leques-group">
           <button type="button" class="chip active" data-val="nao">Não</button>
@@ -141,6 +149,48 @@
     <div class="historico-body">
       <div class="hint" id="historico-vazio" style="display:none;">Nenhuma exportação registrada ainda.</div>
       <div class="historico-list" id="historico-list"></div>
+    </div>
+  </details>
+
+  <details class="topografia-menu" id="topografia-menu">
+    <summary>
+      <span class="caret">▸</span>
+      <span class="label">Topografia</span>
+      <span class="tag">pontos fixos e furos levantados</span>
+    </summary>
+    <div class="topografia-body">
+
+      <h3 class="topografia-subtitulo">Pontos fixos</h3>
+      <div class="hint">Pontos de referência usados na topografia — nome/código e coordenadas.</div>
+      <div class="grid-4" style="margin-top:8px;">
+        <div class="field">
+          <label for="pf-nome">Nome / código</label>
+          <input id="pf-nome" type="text" placeholder="ex: PF-01">
+        </div>
+        <div class="field">
+          <label for="pf-x">Este (X)</label>
+          <input id="pf-x" type="number" step="any" placeholder="0.000">
+        </div>
+        <div class="field">
+          <label for="pf-y">Norte (Y)</label>
+          <input id="pf-y" type="number" step="any" placeholder="0.000">
+        </div>
+        <div class="field">
+          <label for="pf-z">Cota (Z)</label>
+          <input id="pf-z" type="number" step="any" placeholder="0.000">
+        </div>
+      </div>
+      <button type="button" id="btn-add-pf" class="steel" style="margin-top:14px;">+ Adicionar ponto fixo</button>
+      <div class="hint" id="pf-vazio" style="margin-top:10px;">Nenhum ponto fixo cadastrado ainda.</div>
+      <div class="pf-list" id="pf-list"></div>
+
+      <div class="topografia-divisor"></div>
+
+      <h3 class="topografia-subtitulo">Furos topografados</h3>
+      <div class="hint">Marque quais furos do anel ativo já tiveram a boca topografada. Só entra a marcação no relatório — não as coordenadas do furo.</div>
+      <div class="hint" id="topo-furos-vazio" style="margin-top:10px;">Nenhum furo lançado neste anel ainda.</div>
+      <div class="topo-furos-list" id="topo-furos-list"></div>
+
     </div>
   </details>
 
