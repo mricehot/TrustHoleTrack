@@ -255,16 +255,7 @@ function renderTurnoPontosChecklist(){
 // nunca furo a furo. Cada grupo usa uma chave "tipo:código" (ex: "real:LQ04",
 // "manual:LQ09") pra não confundir um leque real com um manual que tenha o mesmo código.
 function gruposFurosTopoParaExportar(){
-  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  const lequesDoAnel = anelAtivo ? leques.filter(l=>l.anelId===anelAtivo.id) : [];
-
   const grupos = [];
-  lequesDoAnel.forEach(l=>{
-    const furosDoLeque = furos.filter(f=>f.lequeId===l.id);
-    const topografados = furosDoLeque.filter(f=>f.topografado).length;
-    if(topografados === 0) return;
-    grupos.push({ chave: `real:${lequeCode(l)}`, codigo: lequeCode(l), qtd: topografados, tipo:'real' });
-  });
 
   const manuaisPorLeque = new Map();
   topografiaManual.forEach(item=>{
@@ -685,6 +676,10 @@ function editarFuro(id){
   const f = furos.find(x=>x.id===id);
   if(!f) return;
   const l = leques.find(x=>x.id===f.lequeId);
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode editar os furos dele.');
+    return;
+  }
   editFuroModal(f).then(resultado=>{
     if(!resultado) return;
     if(resultado.numero !== f.numero){
@@ -793,6 +788,10 @@ function editLequeModal(leque){
 function editarLeque(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode editá-lo.');
+    return;
+  }
   editLequeModal(l).then(resultado=>{
     if(!resultado) return;
     if(resultado.tipo !== l.tipo || resultado.numero !== l.numero){
@@ -960,13 +959,16 @@ function renderPainelTrabalho(){
     formLeque.style.display = 'none';
     el('leque-panel-title').textContent = 'Medição em andamento';
     const furosDoLeque = furos.filter(f=>f.lequeId===lequeAberto.id);
+    const podeFinalizar = souDonoDoLeque(lequeAberto);
     boxAtual.innerHTML = `
       <div class="leque-atual">
         <span class="code">${lequeCode(lequeAberto)}</span>
         <span>${tipoLabel(lequeAberto.tipo)}${lequeAberto.nome ? ' · '+lequeAberto.nome : ''}</span>
         <span class="hint">${furosDoLeque.length} furo(s) registrados</span>
         <span class="spacer"></span>
-        <button class="danger" onclick="finalizarLeque('${lequeAberto.id}')">Finalizar leque</button>
+        ${podeFinalizar
+          ? `<button class="danger" onclick="finalizarLeque('${lequeAberto.id}')">Finalizar leque</button>`
+          : `<span class="hint" title="só quem criou pode finalizar">🔒 criado por outro usuário</span>`}
       </div>
     `;
   }else{
@@ -996,14 +998,15 @@ function criarLeque(){
   const orientacao = chipOrientacao ? chipOrientacao.dataset.val : 'ascendente';
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
+  const criadoPor = usuarioAtual ? usuarioAtual.id : null;
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turnoNumero: null, turnoLetra: null
+    turnoNumero: null, turnoLetra: null, criadoPor
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turno_numero: null, turno_letra: null
+    turno_numero: null, turno_letra: null, criado_por: criadoPor
   });
   el('leque-numero').value = '';
   el('leque-nome').value = '';
@@ -1026,6 +1029,10 @@ document.querySelectorAll('#leque-orientacao-group .chip').forEach(chip=>{
 async function finalizarLeque(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode finalizá-lo.');
+    return;
+  }
   const qtd = furos.filter(f=>f.lequeId===id).length;
   if(!(await confirmDialog(`Finalizar o leque ${lequeCode(l)}${qtd ? ' com '+qtd+' furo(s)' : ' sem nenhum furo'}? Você poderá reabri-lo depois se precisar.`, 'Finalizar'))) return;
   l.status = 'fechado';
@@ -1038,6 +1045,10 @@ async function finalizarLeque(id){
 async function reabrirLeque(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode reabri-lo.');
+    return;
+  }
   const outroAberto = lequeAbertoDoAnel(l.anelId);
   if(outroAberto && outroAberto.id !== l.id){
     if(!(await confirmDialog(`O leque ${lequeCode(outroAberto)} está aberto neste anel. Finalizá-lo e reabrir ${lequeCode(l)}?`, 'Reabrir'))) return;
@@ -1089,6 +1100,12 @@ el('btn-add-furo').addEventListener('click', adicionarFuro);
 });
 
 function removerFuro(id){
+  const f = furos.find(x=>x.id===id);
+  const l = f ? leques.find(x=>x.id===f.lequeId) : null;
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode remover os furos dele.');
+    return;
+  }
   furos = furos.filter(f=>f.id!==id);
   enfileirar('furos', 'delete', { id });
   salvarLocal();
@@ -1099,6 +1116,10 @@ function removerFuro(id){
 async function removerLeque(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode removê-lo.');
+    return;
+  }
   const furosDoLeque = furos.filter(f=>f.lequeId===id);
   const qtd = furosDoLeque.length;
   if(!(await confirmDialog(`Remover o leque ${lequeCode(l)} e seus ${qtd} furo(s)?`, 'Remover'))) return;
@@ -1114,7 +1135,7 @@ async function removerLeque(id){
 }
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
-function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra }; }
+function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, topografado: !!row.topografado, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
@@ -1871,116 +1892,68 @@ async function exportarTopografiaPDF(){
     y += 6;
   }
 
-  // ---- Furos topografados, por leque do anel ativo ----
+  // ---- Furos topografados manualmente (sem perfilagem ainda), agrupados por leque ----
   if(y > 260){ doc.addPage(); y = 20; }
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
 
-  const lequesDoAnel = anelAtivo
-    ? [...leques.filter(l=>l.anelId===anelAtivo.id)].sort((x,y2)=> lequeCode(x).localeCompare(lequeCode(y2), undefined, {numeric:true}))
-    : [];
-
   let totalFurosGeral = 0, totalTopografadosGeral = 0;
+  const codigosLequesExportados = [];
 
-  if(lequesDoAnel.length === 0){
-    doc.setFont(undefined,'italic'); doc.setFontSize(PDF_FONT_AVISO); doc.setTextColor(120);
-    doc.text('Nenhum leque no anel ativo.', 15, y); y += 10;
-    doc.setFont(undefined,'normal'); doc.setTextColor(0);
-  }
-
-  lequesDoAnel.forEach(l=>{
-    let furosDoLeque = furos.filter(f=>f.lequeId===l.id);
-    if(furosDoLeque.length === 0) return;
-    // a escolha na checklist de exportação é sempre do leque inteiro — nunca furo a furo
-    if(furosTopoLequesExcluidos.has(`real:${lequeCode(l)}`)) return;
-    furosDoLeque = [...furosDoLeque].sort((x,y2)=> String(x.numero).localeCompare(String(y2.numero), undefined, {numeric:true}));
-
-    if(y > 250){ doc.addPage(); y = 20; }
-    doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-    doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 9;
-
-    doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
-    doc.text('Furo', 17, y);
-    doc.text('Situação', 130, y);
-    doc.text('Topografado', 193, y, { align:'right' });
-    doc.setTextColor(0,0,0); y += 8;
-    doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
-
-    furosDoLeque.forEach(f=>{
-      if(y > 273){
-        doc.addPage(); y = 20;
-        doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-        doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
-        doc.text('Furo', 17, y); doc.text('Situação', 130, y); doc.text('Topografado', 193, y, { align:'right' });
-        doc.setTextColor(0,0,0); y += 8;
-        doc.setFont(undefined,'normal');
-      }
-      doc.text(furoCode(l,f), 17, y);
-      doc.setTextColor(...corRGBSituacao(f.situacao));
-      doc.text(situacaoLabel(f.situacao), 130, y);
-      doc.setTextColor(0,0,0);
-      if(f.topografado){
-        doc.setFont(undefined,'bold'); doc.setTextColor(79,122,63);
-        doc.text('Sim', 193, y, { align:'right' });
-      }else{
-        doc.setTextColor(160);
-        doc.text('Não', 193, y, { align:'right' });
-      }
-      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
-      doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
-      y += 8;
-    });
-
-    totalFurosGeral += furosDoLeque.length;
-    totalTopografadosGeral += furosDoLeque.filter(f=>f.topografado).length;
-
-    const topDoLeque = furosDoLeque.filter(f=>f.topografado).length;
-    y += 6;
-    if(y > 268){ doc.addPage(); y = 20; }
-    doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
-    doc.text(`Subtotal ${lequeCode(l)}: ${topDoLeque}/${furosDoLeque.length} furo(s) topografado(s)`, 15, y);
-    y += 10;
-  });
-
-  // ---- Furos topografados sem perfilagem ainda (lançados manualmente) ----
   // mesma regra: a exclusão é por leque manual inteiro, não furo a furo.
   const manuaisParaExportar = topografiaManual.filter(item=>{
     const codigoLeque = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
     return !furosTopoLequesExcluidos.has(`manual:${codigoLeque}`);
   });
   if(manuaisParaExportar.length > 0){
-    if(y > 250){ doc.addPage(); y = 20; }
-    doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-    doc.text('Furos topografados sem perfilagem ainda', 15, y); y += 9;
-
-    doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
-    doc.text('Furo', 17, y);
-    doc.text('Topografado', 193, y, { align:'right' });
-    doc.setTextColor(0,0,0); y += 8;
-    doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
-
-    const tmOrdenados = [...manuaisParaExportar].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
-    tmOrdenados.forEach(item=>{
-      if(y > 273){
-        doc.addPage(); y = 20;
-        doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-        doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
-        doc.text('Furo', 17, y); doc.text('Topografado', 193, y, { align:'right' });
-        doc.setTextColor(0,0,0); y += 8;
-        doc.setFont(undefined,'normal');
-      }
-      doc.text(codigoTopoManual(item), 17, y);
-      doc.setFont(undefined,'bold'); doc.setTextColor(79,122,63);
-      doc.text('Sim', 193, y, { align:'right' });
-      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
-      doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
-      y += 8;
-
-      totalFurosGeral++;
-      totalTopografadosGeral++;
+    const manuaisAgrupados = new Map();
+    manuaisParaExportar.forEach(item=>{
+      const codigo = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
+      if(!manuaisAgrupados.has(codigo)) manuaisAgrupados.set(codigo, { tipoLeque: item.tipoLeque, itens: [] });
+      manuaisAgrupados.get(codigo).itens.push(item);
     });
-    y += 6;
+
+    [...manuaisAgrupados.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true})).forEach(codigo=>{
+      codigosLequesExportados.push(codigo);
+      const grupo = manuaisAgrupados.get(codigo);
+      const itensOrdenados = [...grupo.itens].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
+
+      if(y > 250){ doc.addPage(); y = 20; }
+      doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
+      doc.text(tipoLabel(grupo.tipoLeque) + ': ' + codigo, 15, y); y += 9;
+
+      doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
+      doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
+      doc.text('Furo', 17, y);
+      doc.setTextColor(0,0,0); y += 8;
+      doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
+
+      itensOrdenados.forEach(item=>{
+        if(y > 273){
+          doc.addPage(); y = 20;
+          doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
+          doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
+          doc.text('Furo', 17, y);
+          doc.setTextColor(0,0,0); y += 8;
+          doc.setFont(undefined,'normal');
+        }
+        doc.text('F' + item.numeroFuro, 17, y);
+        doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
+        y += 8;
+
+        totalFurosGeral++;
+        totalTopografadosGeral++;
+      });
+
+      y += 6;
+      if(y > 268){ doc.addPage(); y = 20; }
+      doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
+      doc.text(`Subtotal ${codigo}: ${itensOrdenados.length} furo(s) topografado(s)`, 15, y);
+      y += 10;
+    });
+  }else{
+    doc.setFont(undefined,'italic'); doc.setFontSize(PDF_FONT_AVISO); doc.setTextColor(120);
+    doc.text('Nenhum furo topografado ainda.', 15, y); y += 10;
+    doc.setFont(undefined,'normal'); doc.setTextColor(0);
   }
 
   if(totalFurosGeral > 0){
@@ -1988,7 +1961,7 @@ async function exportarTopografiaPDF(){
     y += 2;
     doc.setDrawColor(25,18,49); doc.setLineWidth(0.6); doc.line(15, y, 195, y); doc.setLineWidth(0.2); y += 9;
     doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL_GERAL);
-    doc.text(`TOTAL GERAL: ${totalTopografadosGeral}/${totalFurosGeral} furo(s) topografado(s)`, 15, y);
+    doc.text(`TOTAL GERAL: ${totalTopografadosGeral} furo(s) topografado(s)`, 15, y);
   }
 
   adicionarMarcaDaguaPDF(doc);
@@ -2000,8 +1973,8 @@ async function exportarTopografiaPDF(){
   await baixarOuCompartilharPDF(doc, nomeArquivo);
   const salvoNoHistorico = await registrarExportacao({
     tipo:'topografia',
-    leques: lequesDoAnel.map(l=>lequeCode(l)).join(', ') || null,
-    qtdLeques: lequesDoAnel.length,
+    leques: codigosLequesExportados.join(', ') || null,
+    qtdLeques: codigosLequesExportados.length,
     qtdFuros: totalFurosGeral,
     nomeArquivo
   });
@@ -2260,6 +2233,8 @@ function render(){
       const varL = totalRealL - totalEspL;
       const alertasL = furosDoLeque.filter(f=>f.situacao!=='livre').length;
 
+      const podeEditar = souDonoDoLeque(l);
+
       const rows = furosDoLeque.map(f=>{
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
@@ -2270,8 +2245,10 @@ function render(){
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
           <td>${situacaoLabel(f.situacao)}</td>
           <td class="actions">
+            ${podeEditar ? `
             <button class="icon" onclick="editarFuro('${f.id}')" title="editar">✎</button>
             <button class="icon" onclick="removerFuro('${f.id}')" title="remover">✕</button>
+            ` : `<span class="hint" title="só quem criou o leque pode editar">🔒</span>`}
           </td>
         </tr>`;
       }).join('');
@@ -2293,16 +2270,17 @@ function render(){
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
+              ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">🔒 de outro usuário</span>` : ''}
             <div class="stats">
               <div><b>${furosDoLeque.length}</b> furos</div>
               <div><b>${fmt1(totalEspL)}</b> m esp.</div>
               <div><b>${fmt1(totalRealL)}</b> m real</div>
               <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
               ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
-              <button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎</button>
-              ${l.status === 'fechado' ? `<button class="icon" onclick="reabrirLeque('${l.id}')" title="reabrir">↺ reabrir</button>` : ''}
+              ${podeEditar ? `<button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎</button>` : ''}
+              ${podeEditar && l.status === 'fechado' ? `<button class="icon" onclick="reabrirLeque('${l.id}')" title="reabrir">↺ reabrir</button>` : ''}
               <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
-              <button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>
+              ${podeEditar ? `<button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>` : ''}
             </div>
           </div>
           ${colapsado ? '' : (furosDoLeque.length ? `
@@ -2472,20 +2450,31 @@ document.querySelectorAll('.sidebar-item').forEach(btn=>{
 // criadas direto no painel do Supabase (Authentication → Users) — não tem cadastro
 // pelo próprio app, de propósito, pra não abrir conta pra qualquer um.
 let appJaIniciado = false;
+let usuarioAtual = null; // { id, email } — usado pra saber quem pode editar/apagar o quê
 
-function mostrarApp(email){
+function mostrarApp(user){
+  usuarioAtual = user ? { id: user.id, email: user.email } : null;
   el('login-screen').style.display = 'none';
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
-  if(labelUsuario) labelUsuario.textContent = email ? `logado: ${email}` : '';
+  if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.email}` : '';
 }
 
 function mostrarLogin(mensagemErro){
+  usuarioAtual = null;
   el('login-screen').style.display = 'flex';
   el('app-wrap').style.display = 'none';
   const erro = el('login-erro');
   if(erro) erro.textContent = mensagemErro || '';
   el('login-senha').value = '';
+}
+
+// Um leque sem dono (criado antes dessa funcionalidade existir) pode ser editado por
+// qualquer autenticado — só trava quando já tem um dono definido e não é o atual.
+function souDonoDoLeque(leque){
+  if(!leque) return false;
+  if(!leque.criadoPor) return true;
+  return !!usuarioAtual && leque.criadoPor === usuarioAtual.id;
 }
 
 // Só executa o carregamento de dados uma vez por sessão de página — evita duplicar
@@ -2516,7 +2505,7 @@ async function fazerLogin(){
     el('login-erro').textContent = 'E-mail ou senha incorretos.';
     return;
   }
-  mostrarApp(data.user ? data.user.email : email);
+  mostrarApp(data.user);
   iniciarApp();
 }
 
@@ -2539,7 +2528,7 @@ async function verificarSessaoInicial(){
   try{
     const { data } = await db.auth.getSession();
     if(data && data.session){
-      mostrarApp(data.session.user.email);
+      mostrarApp(data.session.user);
       iniciarApp();
     }else{
       mostrarLogin();
@@ -2554,7 +2543,7 @@ db.auth.onAuthStateChange((evento, session)=>{
   if(evento === 'SIGNED_OUT'){
     mostrarLogin();
   }else if(evento === 'SIGNED_IN' && session){
-    mostrarApp(session.user.email);
+    mostrarApp(session.user);
     iniciarApp();
   }
 });
