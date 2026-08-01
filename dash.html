@@ -9,8 +9,41 @@
 
 </head>
 <body>
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="login-brand">
+      <svg class="brand-icon" viewBox="0 0 100 100" width="32" height="32">
+        <circle cx="50" cy="50" r="9" fill="var(--amber)"/>
+        <g stroke="var(--amber)" stroke-width="6" stroke-linecap="round">
+          <line x1="50" y1="50" x2="50" y2="12"/>
+          <line x1="50" y1="50" x2="80" y2="28"/>
+          <line x1="50" y1="50" x2="88" y2="58"/>
+          <line x1="50" y1="50" x2="68" y2="84"/>
+          <line x1="50" y1="50" x2="32" y2="84"/>
+          <line x1="50" y1="50" x2="12" y2="58"/>
+          <line x1="50" y1="50" x2="20" y2="28"/>
+        </g>
+      </svg>
+      <div>
+        <h1 style="font-size:15px; letter-spacing:2px; margin:0;">Blast<span style="color:var(--amber);">Hole</span> Manager</h1>
+      </div>
+    </div>
+    <h2>Entrar</h2>
+    <div class="field">
+      <label for="login-email">E-mail</label>
+      <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="login-senha">Senha</label>
+      <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="hint" id="login-erro" style="color:var(--rust); min-height:16px; margin-bottom:10px;"></div>
+    <button type="button" id="btn-login" class="steel" style="width:100%;">Entrar</button>
+    <div class="hint" style="margin-top:14px; text-align:center;">Esqueceu a senha ou não tem conta? Fale com o supervisor.</div>
+  </div>
+</div>
 <div class="offline-banner" id="offline-banner">Sem conexão — verifique sua internet. As últimas alterações podem não ter sido salvas.</div>
-<div class="wrap">
+<div class="wrap" id="app-wrap" style="display:none;">
 
   <header>
     <div class="brand">
@@ -32,12 +65,14 @@
       </div>
     </div>
     <div class="header-right">
+      <div class="readout-label" id="usuario-logado-label" style="margin-bottom:2px;"></div>
       <div class="readout-label" id="readout-label">anel ativo: —</div>
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="header-actions">
         <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar do servidor</button>
         <button type="button" id="btn-ver-fila" class="ghost"><span class="label">👁 Ver pendências</span><span class="count-badge" id="count-fila"></span></button>
         <button type="button" id="btn-enviar" class="steel"><span class="label" id="label-enviar">📤 Enviar Medições</span><span class="count-badge" id="count-enviar"></span></button>
+        <button type="button" id="btn-logout" class="ghost">🚪 Sair</button>
       </div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>

@@ -191,6 +191,22 @@
 @media (min-width:560px){ .export-bar span{ flex:1 1 auto; } }
 
 
+.login-screen{
+  position:fixed; inset:0; z-index:3000; display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(255,67,29,0.05), transparent 45%),
+    var(--bg);
+}
+.login-box{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:32px; width:100%; max-width:360px;
+  box-shadow:0 10px 30px rgba(25,18,49,0.12);
+}
+.login-brand{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+.login-box h2{ margin:0 0 20px 0; font-size:16px; text-transform:uppercase; letter-spacing:1.8px; color:var(--muted); }
+.login-box .field{ margin-bottom:14px; }
+
 .app-shell{ display:flex; gap:20px; align-items:flex-start; }
 .sidebar{
   width:190px; flex-shrink:0; display:flex; flex-direction:column; gap:4px;

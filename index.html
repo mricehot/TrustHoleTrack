@@ -355,13 +355,14 @@
   .auth-switch a{ color:#ff9f8c; font-weight:600; }
   .auth-note{ margin-top:14px; font-size:11.5px; color:#8888a8; font-family:var(--mono); display:none; line-height:1.5; }
   .auth-note.show{ display:block; }
+  .auth-note.erro{ color:#ff9f8c; }
+  .auth-note.sucesso{ color:#9fd88f; }
   @media (max-width:480px){
     .auth-modal{ padding:26px 20px 22px; }
   }
 
   /* ================= MOVIMENTOS MINIMALISTAS ================= */
 
-  /* ---------- nav: sublinhado no hover + compactação ao rolar ---------- */
   .nav-links a{ position:relative; }
   .nav-links a::after{
     content:''; position:absolute; left:0; right:100%; bottom:-4px; height:1.5px;
@@ -372,12 +373,10 @@
   .nav.scrolled{ box-shadow:0 1px 0 var(--line), 0 8px 20px rgba(25,18,49,0.05); }
   .nav.scrolled .wrap{ padding-top:11px; padding-bottom:11px; }
 
-  /* ---------- botões: feedback de toque ---------- */
   .btn-primary:active, .btn-ghost:active, .nav-btn:active, .mock-btn:active{
     transform:scale(0.96);
   }
 
-  /* ---------- cards de funcionalidades: leve elevação no hover ---------- */
   .card{ transition:transform .22s ease, box-shadow .22s ease; }
   .card:hover{
     transform:translateY(-4px);
@@ -385,7 +384,6 @@
     position:relative; z-index:1;
   }
 
-  /* ---------- entrada em cascata ---------- */
   @keyframes revealUp{
     from{ opacity:0; transform:translateY(12px); }
     to{ opacity:1; transform:translateY(0); }
@@ -411,14 +409,11 @@
   .cards-grid.in .card:nth-child(7){ animation-delay:.48s; }
   .cards-grid.in .card:nth-child(8){ animation-delay:.56s; }
 
-  /* ---------- diagrama do leque (hero): furo com alerta pulsando ---------- */
   @keyframes pulseFuro{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
   .hero-diagram svg .furo-alerta{ animation:pulseFuro 2.2s ease-in-out infinite; }
 
-  /* ---------- barra de variação: preenche ao entrar na tela ---------- */
   .scale .bar-fill{ transition:width 900ms cubic-bezier(.22,.9,.32,1); }
 
-  /* ---------- reduced motion sempre desliga tudo isso ---------- */
   @media (prefers-reduced-motion:reduce){
     .nav-links a::after, .nav .wrap,
     .btn-primary, .btn-ghost, .nav-btn, .mock-btn,
@@ -449,7 +444,7 @@
       </div>
     </div>
     <div class="nav-actions">
-      <a href="dash.html" class="nav-btn ghost" data-auth="login">Entrar</a>
+      <a href="#login" class="nav-btn ghost" data-auth="login">Entrar</a>
       <a href="#registro" class="nav-btn primary" data-auth="registro">Criar conta</a>
     </div>
   </div>
@@ -474,11 +469,9 @@
 
     <div class="hero-diagram">
       <svg viewBox="0 0 460 380" xmlns="http://www.w3.org/2000/svg">
-        <!-- galeria / anel -->
         <line x1="40" y1="345" x2="420" y2="345" stroke="#dcdce3" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>
         <text x="40" y="365" font-family="IBM Plex Mono" font-size="10" fill="#6c6c7d">GALERIA N3-LESTE — ANEL 04</text>
 
-        <!-- furos do leque, radiando do colar -->
         <g stroke-linecap="round">
           <line x1="230" y1="345" x2="70" y2="70" stroke="#dcdce3" stroke-width="2"/>
           <line x1="230" y1="345" x2="120" y2="45" stroke="#dcdce3" stroke-width="2"/>
@@ -490,11 +483,9 @@
           <line x1="230" y1="345" x2="410" y2="110" stroke="#dcdce3" stroke-width="2"/>
         </g>
 
-        <!-- colar do leque -->
         <circle cx="230" cy="345" r="6" fill="#191231"/>
         <text x="230" y="345" text-anchor="middle" dy="22" font-family="IBM Plex Mono" font-size="10" fill="#191231" font-weight="500">LQ04</text>
 
-        <!-- marcadores de furo -->
         <circle cx="70" cy="70" r="4" fill="#4f7a3f"/>
         <circle cx="120" cy="45" r="4" fill="#4f7a3f"/>
         <circle cx="175" cy="30" r="4.5" fill="#4f7a3f"/>
@@ -504,7 +495,6 @@
         <circle cx="390" cy="70" r="4.5" fill="#2f6690"/>
         <circle cx="410" cy="110" r="4" fill="#4f7a3f"/>
 
-        <!-- callouts -->
         <text x="175" y="30" dx="10" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231">F03 · 9.1m</text>
         <text x="175" y="30" dx="10" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#4f7a3f">livre · +0.1m</text>
 
@@ -785,10 +775,10 @@
       <p class="auth-sub">Use as credenciais do seu turno para abrir o painel de perfilagem.</p>
       <form class="auth-form" data-form="login">
         <label>E-mail<input type="email" required placeholder="tecnico@empresa.com"></label>
-        <label>Senha<input type="password" required placeholder="••••••••"></label>
+        <label>Senha<input type="password" required placeholder="********"></label>
         <button type="submit" class="btn-primary full">Entrar</button>
       </form>
-      <p class="auth-note" data-note>Isso é uma demonstração — o formulário ainda não está conectado a um login real.</p>
+      <p class="auth-note" data-note></p>
       <p class="auth-switch">Ainda não tem conta? <a href="#registro" data-switch="registro">Criar conta</a></p>
     </div>
 
@@ -802,14 +792,13 @@
         <label>Senha<input type="password" required placeholder="mínimo 8 caracteres"></label>
         <button type="submit" class="btn-primary full">Criar conta</button>
       </form>
-      <p class="auth-note" data-note>Isso é uma demonstração — o formulário ainda não está conectado a um cadastro real.</p>
-      <p class="auth-switch">Já tem conta? <a href="index.html" data-switch="login">Entrar</a></p>
+      <p class="auth-note" data-note></p>
+      <p class="auth-switch">Já tem conta? <a href="#login" data-switch="login">Entrar</a></p>
     </div>
   </div>
 </div>
 
 <script>
-  // ---------- roteamento simples por hash (SPA): #login e #registro abrem o modal ----------
   const authOverlay = document.getElementById('auth-overlay');
   const viewLogin = document.getElementById('view-login');
   const viewRegistro = document.getElementById('view-registro');
@@ -866,14 +855,6 @@
   document.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape' && authOverlay.classList.contains('open')) closeAuth();
   });
-
-  authOverlay.querySelectorAll('form[data-form]').forEach(form=>{
-    form.addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const note = form.parentElement.querySelector('[data-note]');
-      if(note) note.classList.add('show');
-    });
-  });
 </script>
 
 <script>
@@ -891,7 +872,6 @@
 <script>
   const prefereReduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------- nav compacta ao rolar ----------
   (function(){
     const nav = document.querySelector('.nav');
     if(!nav) return;
@@ -902,7 +882,6 @@
 
   if(!prefereReduzido){
 
-    // ---------- cascata: adiciona .in nos grupos (trilha, passos, cards) ----------
     const grupos = document.querySelectorAll('.trail, .steps-grid, .cards-grid');
     const ioGrupos = new IntersectionObserver((entries)=>{
       entries.forEach(e=>{
@@ -911,7 +890,6 @@
     }, { threshold:0.15 });
     grupos.forEach(g=> ioGrupos.observe(g));
 
-    // ---------- diagrama do leque: linhas "desenhando" + furo de alerta pulsando ----------
     const diagrama = document.querySelector('.hero-diagram svg');
     if(diagrama){
       const linhasFuro = diagrama.querySelectorAll('g[stroke-linecap="round"] > line');
@@ -934,12 +912,10 @@
       }, { threshold:0.3 });
       ioDiagrama.observe(diagrama);
 
-      // marca os furos obstruído (laranja) e varado (azul) pra pulsar sutilmente
       diagrama.querySelectorAll('circle[fill="#ff431d"], circle[fill="#2f6690"]')
         .forEach(c => c.classList.add('furo-alerta'));
     }
 
-    // ---------- barra de variação esperada × real: preenche ao entrar na tela ----------
     const escala = document.querySelector('.scale');
     if(escala){
       const barras = escala.querySelectorAll('.bar-fill');
@@ -960,6 +936,99 @@
   } else {
     document.querySelectorAll('.trail, .steps-grid, .cards-grid').forEach(g => g.classList.add('in'));
   }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  var SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
+  var dbAuth = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { apikey: SUPABASE_ANON_KEY } }
+  });
+
+  function mostrarNota(form, texto, tipo){
+    var note = form.parentElement.querySelector('[data-note]');
+    if(!note) return;
+    note.textContent = texto;
+    note.classList.remove('erro', 'sucesso');
+    if(tipo) note.classList.add(tipo);
+    note.classList.add('show');
+  }
+
+  function traduzirErroAuth(msg, contexto){
+    if(!msg) return contexto === 'login' ? 'Nao foi possivel entrar. Tente de novo.' : 'Nao foi possivel criar a conta. Tente de novo.';
+    var m = msg.toLowerCase();
+    if(contexto === 'login'){
+      if(m.indexOf('invalid login credentials') !== -1) return 'E-mail ou senha incorretos.';
+      if(m.indexOf('email not confirmed') !== -1) return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada).';
+      return 'Nao foi possivel entrar. Tente de novo.';
+    }
+    if(m.indexOf('already registered') !== -1 || m.indexOf('already exists') !== -1 || m.indexOf('user already') !== -1) return 'Esse e-mail ja esta cadastrado. Tente entrar.';
+    if(m.indexOf('password') !== -1) return 'A senha precisa ter pelo menos 6 caracteres.';
+    return 'Nao foi possivel criar a conta. Tente de novo.';
+  }
+
+  var formLogin = document.querySelector('form[data-form="login"]');
+  formLogin.addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = formLogin.querySelector('input[type="email"]').value.trim();
+    var senha = formLogin.querySelector('input[type="password"]').value;
+    var btn = formLogin.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    var textoOriginal = btn.textContent;
+    btn.textContent = 'Entrando...';
+    dbAuth.auth.signInWithPassword({ email: email, password: senha }).then(function(resp){
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+      if(resp.error){
+        mostrarNota(formLogin, traduzirErroAuth(resp.error.message, 'login'), 'erro');
+        return;
+      }
+      window.location.href = 'dash.html';
+    });
+  });
+
+  var formRegistro = document.querySelector('form[data-form="registro"]');
+  formRegistro.addEventListener('submit', function(e){
+    e.preventDefault();
+    var nome = formRegistro.querySelector('input[type="text"]').value.trim();
+    var email = formRegistro.querySelector('input[type="email"]').value.trim();
+    var senha = formRegistro.querySelector('input[type="password"]').value;
+    if(senha.length < 8){
+      mostrarNota(formRegistro, 'A senha precisa ter pelo menos 8 caracteres.', 'erro');
+      return;
+    }
+    var btn = formRegistro.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    var textoOriginal = btn.textContent;
+    btn.textContent = 'Criando conta...';
+    dbAuth.auth.signUp({
+      email: email, password: senha, options:{ data:{ nome: nome } }
+    }).then(function(resp){
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+      if(resp.error){
+        mostrarNota(formRegistro, traduzirErroAuth(resp.error.message, 'registro'), 'erro');
+        return;
+      }
+      if(resp.data && resp.data.session){
+        window.location.href = 'dash.html';
+      }else{
+        mostrarNota(formRegistro, 'Conta criada! Verifique seu e-mail para confirmar antes de entrar.', 'sucesso');
+      }
+    });
+  });
+
+  dbAuth.auth.getSession().then(function(resp){
+    if(resp.data && resp.data.session){
+      document.querySelectorAll('a[data-auth="login"]').forEach(function(a){
+        a.textContent = 'Abrir painel';
+        a.removeAttribute('data-auth');
+        a.setAttribute('href', 'dash.html');
+        a.removeAttribute('data-close-not-needed');
+      });
+    }
+  });
 </script>
 </body>
 </html>

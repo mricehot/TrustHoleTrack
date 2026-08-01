@@ -2467,6 +2467,96 @@ document.querySelectorAll('.sidebar-item').forEach(btn=>{
   btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
 });
 
-loadTurnoInfo();
-loadData();
-loadHistoricoExportacoes();
+// ---------- Autenticação (Supabase Auth) ----------
+// O app fica travado na tela de login até existir uma sessão válida. As contas são
+// criadas direto no painel do Supabase (Authentication → Users) — não tem cadastro
+// pelo próprio app, de propósito, pra não abrir conta pra qualquer um.
+let appJaIniciado = false;
+
+function mostrarApp(email){
+  el('login-screen').style.display = 'none';
+  el('app-wrap').style.display = '';
+  const labelUsuario = el('usuario-logado-label');
+  if(labelUsuario) labelUsuario.textContent = email ? `logado: ${email}` : '';
+}
+
+function mostrarLogin(mensagemErro){
+  el('login-screen').style.display = 'flex';
+  el('app-wrap').style.display = 'none';
+  const erro = el('login-erro');
+  if(erro) erro.textContent = mensagemErro || '';
+  el('login-senha').value = '';
+}
+
+// Só executa o carregamento de dados uma vez por sessão de página — evita duplicar
+// listeners/chamadas se o usuário deslogar e logar de novo sem recarregar a aba.
+function iniciarApp(){
+  if(appJaIniciado) return;
+  appJaIniciado = true;
+  loadTurnoInfo();
+  loadData();
+  loadHistoricoExportacoes();
+}
+
+async function fazerLogin(){
+  const email = el('login-email').value.trim();
+  const senha = el('login-senha').value;
+  if(!email || !senha){
+    el('login-erro').textContent = 'Preencha e-mail e senha.';
+    return;
+  }
+  const btn = el('btn-login');
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Entrando...';
+  const { data, error } = await db.auth.signInWithPassword({ email, password: senha });
+  btn.disabled = false;
+  btn.textContent = textoOriginal;
+  if(error){
+    el('login-erro').textContent = 'E-mail ou senha incorretos.';
+    return;
+  }
+  mostrarApp(data.user ? data.user.email : email);
+  iniciarApp();
+}
+
+async function fazerLogout(){
+  if(!(await confirmDialog('Sair do BlastHole Manager?', 'Sair'))) return;
+  await db.auth.signOut();
+  mostrarLogin();
+}
+
+el('btn-login').addEventListener('click', fazerLogin);
+['login-email','login-senha'].forEach(id=>{
+  el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); fazerLogin(); } });
+});
+el('btn-logout').addEventListener('click', fazerLogout);
+
+// Ao carregar a página, confere se já existe uma sessão válida guardada (o próprio
+// Supabase persiste o token no localStorage) — se tiver, entra direto sem pedir login
+// de novo; se não tiver (ou expirou), mostra a tela de login.
+async function verificarSessaoInicial(){
+  try{
+    const { data } = await db.auth.getSession();
+    if(data && data.session){
+      mostrarApp(data.session.user.email);
+      iniciarApp();
+    }else{
+      mostrarLogin();
+    }
+  }catch(e){
+    mostrarLogin();
+  }
+}
+
+// Reage a mudanças de sessão (login em outra aba, token expirado, logout remoto etc.)
+db.auth.onAuthStateChange((evento, session)=>{
+  if(evento === 'SIGNED_OUT'){
+    mostrarLogin();
+  }else if(evento === 'SIGNED_IN' && session){
+    mostrarApp(session.user.email);
+    iniciarApp();
+  }
+});
+
+verificarSessaoInicial();
