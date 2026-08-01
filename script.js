@@ -135,6 +135,20 @@ function toggleLeque(id){
   render();
 }
 
+// Menu "⋮" com as ações menos usadas do leque (reabrir, remover) — mantém o
+// cabeçalho enxuto, só ✎ editar e ⬇ PDF ficam sempre visíveis.
+function toggleMenuLeque(evento, id){
+  evento.stopPropagation();
+  const menu = document.getElementById('menu-mais-' + id);
+  if(!menu) return;
+  const jaEstavaAberto = menu.classList.contains('open');
+  document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
+  if(!jaEstavaAberto) menu.classList.add('open');
+}
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
+});
+
 function toggleSelecaoLeque(id, marcado){
   if(marcado) lequesSelecionados.add(id);
   else lequesSelecionados.delete(id);
@@ -2259,6 +2273,7 @@ function render(){
       return `
         <div class="leque-group ${l.status === 'aberto' ? 'aberto' : ''} ${selecionado ? 'selecionado' : ''}" data-leque-id="${l.id}">
           <div class="leque-head">
+            <div class="leque-head-line1">
               <label class="leque-select-wrap" title="selecionar para exportação combinada">
                 <input type="checkbox" class="leque-select" data-id="${l.id}" ${selecionado ? 'checked' : ''}>
               </label>
@@ -2271,16 +2286,27 @@ function render(){
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
               ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">🔒 de outro usuário</span>` : ''}
-            <div class="stats">
-              <div><b>${furosDoLeque.length}</b> furos</div>
-              <div><b>${fmt1(totalEspL)}</b> m esp.</div>
-              <div><b>${fmt1(totalRealL)}</b> m real</div>
-              <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
-              ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
-              ${podeEditar ? `<button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎</button>` : ''}
-              ${podeEditar && l.status === 'fechado' ? `<button class="icon" onclick="reabrirLeque('${l.id}')" title="reabrir">↺ reabrir</button>` : ''}
-              <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
-              ${podeEditar ? `<button class="icon" onclick="removerLeque('${l.id}')" title="remover leque">✕</button>` : ''}
+            </div>
+            <div class="leque-head-line2">
+              <div class="stats">
+                <div><b>${furosDoLeque.length}</b> furos</div>
+                <div><b>${fmt1(totalEspL)}</b> m esp.</div>
+                <div><b>${fmt1(totalRealL)}</b> m real</div>
+                <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
+                ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
+              </div>
+              <div class="leque-actions">
+                ${podeEditar ? `<button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎ editar</button>` : ''}
+                <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
+                ${podeEditar ? `
+                <div class="menu-mais-wrap">
+                  <button class="icon" onclick="toggleMenuLeque(event, '${l.id}')" title="mais ações">⋮</button>
+                  <div class="menu-mais" id="menu-mais-${l.id}">
+                    ${l.status === 'fechado' ? `<button onclick="reabrirLeque('${l.id}')">↺ Reabrir leque</button>` : ''}
+                    <button class="perigo" onclick="removerLeque('${l.id}')">✕ Remover leque</button>
+                  </div>
+                </div>` : ''}
+              </div>
             </div>
           </div>
           ${colapsado ? '' : (furosDoLeque.length ? `
@@ -2441,8 +2467,29 @@ function mostrarView(viewId){
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.sidebar-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
 }
+
+// Menu deslizante (off-canvas) — some da tela por padrão, abre por cima do conteúdo
+// quando clica no ☰. Fecha ao escolher uma opção, clicar fora, no × ou apertar Esc.
+function abrirMenu(){
+  el('sidebar').classList.add('open');
+  el('menu-overlay').classList.add('active');
+}
+function fecharMenu(){
+  el('sidebar').classList.remove('open');
+  el('menu-overlay').classList.remove('active');
+}
+el('btn-abrir-menu').addEventListener('click', abrirMenu);
+el('btn-fechar-menu').addEventListener('click', fecharMenu);
+el('menu-overlay').addEventListener('click', fecharMenu);
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && el('sidebar').classList.contains('open')) fecharMenu();
+});
+
 document.querySelectorAll('.sidebar-item').forEach(btn=>{
-  btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
+  btn.addEventListener('click', ()=>{
+    mostrarView(btn.dataset.view);
+    fecharMenu();
+  });
 });
 
 // ---------- Autenticação (Supabase Auth) ----------

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='9' fill='%23ff431d'/%3E%3Cg stroke='%23ff431d' stroke-width='6' stroke-linecap='round'%3E%3Cline x1='50' y1='50' x2='50' y2='12'/%3E%3Cline x1='50' y1='50' x2='80' y2='28'/%3E%3Cline x1='50' y1='50' x2='88' y2='58'/%3E%3Cline x1='50' y1='50' x2='68' y2='84'/%3E%3Cline x1='50' y1='50' x2='32' y2='84'/%3E%3Cline x1='50' y1='50' x2='12' y2='58'/%3E%3Cline x1='50' y1='50' x2='20' y2='28'/%3E%3C/g%3E%3C/svg%3E">
 <title>BlastHole Manager</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260801d">
 
 </head>
 <body>
@@ -46,6 +46,7 @@
 <div class="wrap" id="app-wrap" style="display:none;">
 
   <header>
+    <button type="button" class="menu-open" id="btn-abrir-menu" title="Abrir menu" aria-label="Abrir menu">☰</button>
     <div class="brand">
       <svg class="brand-icon" viewBox="0 0 100 100" width="38" height="38">
         <circle cx="50" cy="50" r="9" fill="var(--amber)"/>
@@ -84,15 +85,18 @@
     </div>
   </header>
 
-  <div class="app-shell">
-    <nav class="sidebar" id="sidebar">
-      <button type="button" class="sidebar-item" data-view="turno">🕐 Dados do Turno</button>
-      <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
-      <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
-      <button type="button" class="sidebar-item" data-view="topografia">📐 Topografia</button>
-      <button type="button" class="sidebar-item" data-view="historico">📁 Histórico</button>
-    </nav>
+  <div class="menu-overlay" id="menu-overlay"></div>
 
+  <nav class="sidebar" id="sidebar">
+    <button type="button" class="menu-close" id="btn-fechar-menu" aria-label="Fechar menu">×</button>
+    <button type="button" class="sidebar-item" data-view="turno">🕐 Dados do Turno</button>
+    <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
+    <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
+    <button type="button" class="sidebar-item" data-view="topografia">📐 Topografia</button>
+    <button type="button" class="sidebar-item" data-view="historico">📁 Histórico</button>
+  </nav>
+
+  <div class="app-shell">
     <div class="main-content">
       <div class="breadcrumb" id="breadcrumb"></div>
 
@@ -404,6 +408,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js"></script>
+<script src="script.js?v=20260801d"></script>
 </body>
 </html>
