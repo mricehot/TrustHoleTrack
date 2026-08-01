@@ -1912,7 +1912,8 @@ async function exportarTopografiaPDF(){
       manuaisAgrupados.get(codigo).itens.push(item);
     });
 
-    [...manuaisAgrupados.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true})).forEach(codigo=>{
+    const codigosOrdenados = [...manuaisAgrupados.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+    codigosOrdenados.forEach((codigo, idx)=>{
       codigosLequesExportados.push(codigo);
       const grupo = manuaisAgrupados.get(codigo);
       const itensOrdenados = [...grupo.itens].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
@@ -1940,6 +1941,14 @@ async function exportarTopografiaPDF(){
       doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
       doc.text(`Subtotal ${codigo}: ${itensOrdenados.length} furo(s) topografado(s)`, 15, y);
       y += 10;
+
+      // linha separando um leque do próximo (não depois do último, pra não duplicar
+      // com a linha que já antecede o TOTAL GERAL)
+      if(idx < codigosOrdenados.length - 1){
+        if(y > 273){ doc.addPage(); y = 20; }
+        doc.setDrawColor(200); doc.line(15, y, 195, y);
+        y += 8;
+      }
     });
   }else{
     doc.setFont(undefined,'italic'); doc.setFontSize(PDF_FONT_AVISO); doc.setTextColor(120);
