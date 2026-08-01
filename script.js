@@ -353,12 +353,12 @@ function atualizarBotaoEnviar(){
   const labelEnviar = document.getElementById('label-enviar');
   const badgeEnviar = document.getElementById('count-enviar');
   if(n === 0){
-    if(labelEnviar) labelEnviar.textContent = '✓ Tudo sincronizado';
+    if(labelEnviar) labelEnviar.textContent = '✓ Sincronizado';
     if(badgeEnviar) badgeEnviar.textContent = '';
     btn.classList.add('ghost');
     btn.classList.remove('steel');
   }else{
-    if(labelEnviar) labelEnviar.textContent = '📤 Enviar Medições';
+    if(labelEnviar) labelEnviar.textContent = '📤 Enviar';
     if(badgeEnviar) badgeEnviar.textContent = n;
     btn.classList.remove('ghost');
     btn.classList.add('steel');
