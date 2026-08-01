@@ -51,9 +51,9 @@
 
   <div class="app-shell">
     <nav class="sidebar" id="sidebar">
-      <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
-      <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
       <button type="button" class="sidebar-item" data-view="turno">🕐 Dados do Turno</button>
+      <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
+      <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
       <button type="button" class="sidebar-item" data-view="topografia">📐 Topografia</button>
       <button type="button" class="sidebar-item" data-view="historico">📁 Histórico</button>
     </nav>
@@ -237,6 +237,18 @@
             <div id="turno-leques-wrap" style="display:none;">
               <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste anel ainda.</div>
               <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
+            </div>
+            <div class="field" id="turno-pontos-field" style="display:none;">
+              <label>Pontos fixos neste relatório</label>
+              <div class="hint">Desmarque os que não devem entrar no PDF de topografia. Por padrão, todos entram.</div>
+              <div class="hint" id="turno-pontos-vazio" style="display:none;">Nenhum ponto fixo cadastrado ainda.</div>
+              <div class="turno-leques-checklist" id="turno-pontos-checklist"></div>
+            </div>
+            <div class="field" id="turno-furos-topo-field" style="display:none;">
+              <label>Furos topografados neste relatório</label>
+              <div class="hint">Desmarque os furos já topografados que não devem entrar nesta exportação. Por padrão, todos entram.</div>
+              <div class="hint" id="turno-furos-topo-vazio" style="display:none;">Nenhum furo topografado ainda.</div>
+              <div class="turno-leques-checklist" id="turno-furos-topo-checklist"></div>
             </div>
             <button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
           </div>
