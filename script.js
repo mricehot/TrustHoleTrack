@@ -1917,34 +1917,25 @@ async function exportarTopografiaPDF(){
       const grupo = manuaisAgrupados.get(codigo);
       const itensOrdenados = [...grupo.itens].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
 
-      if(y > 250){ doc.addPage(); y = 20; }
+      if(y > 260){ doc.addPage(); y = 20; }
       doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
       doc.text(tipoLabel(grupo.tipoLeque) + ': ' + codigo, 15, y); y += 9;
 
-      doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-      doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
-      doc.text('Furo', 17, y);
-      doc.setTextColor(0,0,0); y += 8;
-      doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
-
-      itensOrdenados.forEach(item=>{
-        if(y > 273){
-          doc.addPage(); y = 20;
-          doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-          doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
-          doc.text('Furo', 17, y);
-          doc.setTextColor(0,0,0); y += 8;
-          doc.setFont(undefined,'normal');
-        }
-        doc.text('F' + item.numeroFuro, 17, y);
-        doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
-        y += 8;
-
-        totalFurosGeral++;
-        totalTopografadosGeral++;
+      // lista corrida em vez de tabela — bem mais compacto quando são só números de furo
+      doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); doc.setTextColor(60);
+      const listaFuros = itensOrdenados.map(item => 'F' + item.numeroFuro).join('   ');
+      const linhas = doc.splitTextToSize(listaFuros, 178);
+      linhas.forEach(linha=>{
+        if(y > 273){ doc.addPage(); y = 20; }
+        doc.text(linha, 17, y);
+        y += 6.5;
       });
+      doc.setTextColor(0);
 
-      y += 6;
+      totalFurosGeral += itensOrdenados.length;
+      totalTopografadosGeral += itensOrdenados.length;
+
+      y += 4;
       if(y > 268){ doc.addPage(); y = 20; }
       doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
       doc.text(`Subtotal ${codigo}: ${itensOrdenados.length} furo(s) topografado(s)`, 15, y);
