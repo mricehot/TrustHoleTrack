@@ -74,6 +74,41 @@ const LOGO_MARCA_DAGUA_B64 = "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAC8Kk
 
 
 // ---------- Feedback de rede / sincronização ----------
+const ULTIMA_SYNC_KEY = 'perfilagem-ultima-sync-v1';
+let ultimaSincronizacao = null; // timestamp (ms) da última vez que atualizarDoServidor() deu certo
+
+function carregarUltimaSincronizacaoLocal(){
+  try{
+    const raw = localStorage.getItem(ULTIMA_SYNC_KEY);
+    ultimaSincronizacao = raw ? Number(raw) : null;
+  }catch(e){ ultimaSincronizacao = null; }
+}
+
+function registrarSincronizacaoOk(){
+  ultimaSincronizacao = Date.now();
+  try{ localStorage.setItem(ULTIMA_SYNC_KEY, String(ultimaSincronizacao)); }catch(e){}
+  atualizarLabelUltimaSync();
+}
+
+// Texto relativo ("agora", "há 4 min", "há 2h") — atualizado a cada 30s por um
+// timer, pra não precisar de uma nova sincronização só pra refletir o tempo passando.
+function atualizarLabelUltimaSync(){
+  const label = el('ultima-sync-label');
+  if(!label) return;
+  if(!ultimaSincronizacao){
+    label.textContent = 'nunca sincronizado';
+    return;
+  }
+  const segundos = Math.floor((Date.now() - ultimaSincronizacao) / 1000);
+  let texto;
+  if(segundos < 10) texto = 'sincronizado agora';
+  else if(segundos < 60) texto = `sincronizado há ${segundos}s`;
+  else if(segundos < 3600) texto = `sincronizado há ${Math.floor(segundos/60)}min`;
+  else texto = `sincronizado há ${Math.floor(segundos/3600)}h`;
+  label.textContent = texto;
+}
+setInterval(atualizarLabelUltimaSync, 30000);
+
 let syncCounter = 0;
 let syncTimer = null;
 function syncStart(){
@@ -108,6 +143,25 @@ function atualizarStatusConexao(){
 window.addEventListener('online', atualizarStatusConexao);
 window.addEventListener('offline', atualizarStatusConexao);
 atualizarStatusConexao();
+
+// ---------- Tema claro/escuro ----------
+const TEMA_KEY = 'perfilagem-tema-v1';
+function aplicarTema(tema){
+  document.body.classList.toggle('dark-mode', tema === 'escuro');
+  const btn = el('btn-tema');
+  if(btn) btn.textContent = tema === 'escuro' ? '☀️' : '🌙';
+  try{ localStorage.setItem(TEMA_KEY, tema); }catch(e){}
+}
+function alternarTema(){
+  const atual = document.body.classList.contains('dark-mode') ? 'escuro' : 'claro';
+  aplicarTema(atual === 'escuro' ? 'claro' : 'escuro');
+}
+(function iniciarTema(){
+  let salvo = null;
+  try{ salvo = localStorage.getItem(TEMA_KEY); }catch(e){}
+  aplicarTema(salvo === 'escuro' ? 'escuro' : 'claro');
+})();
+el('btn-tema').addEventListener('click', alternarTema);
 
 // ---------- Armazenamento local (funciona 100% sem internet) ----------
 const LOCAL_KEY = 'perfilagem-local-v1';
@@ -241,14 +295,15 @@ function renderTurnoPontosChecklist(){
   campo.style.display = tipoRelatorio === 'topografia' ? '' : 'none';
   if(tipoRelatorio !== 'topografia') return;
 
-  if(pontosFixos.length === 0){
+  const doAnel = pontosFixosDoAnelAtivo();
+  if(doAnel.length === 0){
     lista.innerHTML = '';
     vazio.style.display = 'block';
     return;
   }
   vazio.style.display = 'none';
 
-  const ordenados = [...pontosFixos].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
+  const ordenados = [...doAnel].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
   lista.innerHTML = ordenados.map(pf=>{
     const marcado = !pontosFixosExcluidos.has(pf.id);
     return `
@@ -563,6 +618,7 @@ async function atualizarDoServidor(){
     salvarTopografiaManualLocal();
     renderAll();
     renderObservacoesTurno();
+    registrarSincronizacaoOk();
     return true;
   }catch(e){
     return false;
@@ -594,11 +650,15 @@ async function loadData(){
   carregarLocal();
   carregarPontosFixosLocal();
   carregarTopografiaManualLocal();
+  carregarUltimaSincronizacaoLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   renderAll();
   atualizarBotaoEnviar();
+  atualizarLabelUltimaSync();
   await atualizarDoServidor();
 }
+
+const historicoToasts = []; // { texto, ts } — últimos avisos, pra quem perdeu o toast na hora
 
 function showToast(msg){
   const t = el('toast');
@@ -606,7 +666,60 @@ function showToast(msg){
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
+
+  historicoToasts.unshift({ texto: msg, ts: Date.now() });
+  if(historicoToasts.length > 30) historicoToasts.length = 30;
 }
+
+function tempoRelativo(ts){
+  const segundos = Math.floor((Date.now() - ts) / 1000);
+  if(segundos < 10) return 'agora';
+  if(segundos < 60) return `há ${segundos}s`;
+  if(segundos < 3600) return `há ${Math.floor(segundos/60)}min`;
+  return `há ${Math.floor(segundos/3600)}h`;
+}
+
+// Lista os últimos avisos — útil pra quem estava olhando pra outro lado quando o
+// toast apareceu e quer conferir depois o que aconteceu.
+function abrirModalHistoricoToasts(){
+  const root = el('modal-root');
+  if(historicoToasts.length === 0){
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Nenhum aviso ainda</p>
+          <p class="hint">As mensagens que aparecem no canto da tela (furo adicionado, erro de envio, etc.) ficam listadas aqui.</p>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-fechar">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }else{
+    const linhas = historicoToasts.map(item=>`
+      <div class="fila-item">
+        <span class="hint" style="white-space:nowrap;">${tempoRelativo(item.ts)}</span>
+        <span class="desc">${item.texto}</span>
+      </div>
+    `).join('');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Últimos avisos</p>
+          <div class="fila-lista">${linhas}</div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-fechar">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('modal-fechar').addEventListener('click', fechar);
+  el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(); });
+}
+el('btn-historico-toast').addEventListener('click', abrirModalHistoricoToasts);
+
 
 function confirmDialog(mensagem, textoConfirmar){
   return new Promise(resolve=>{
@@ -869,7 +982,7 @@ function renderAneisMenu(){
         ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
         <span class="spacer"></span>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este anel</button>` : ''}
-        <button class="icon" onclick="removerAnel('${a.id}')" title="remover anel">✕</button>
+        <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover anel">✕</button>
       </div>
     `;
   }).join('');
@@ -1210,43 +1323,53 @@ function carregarPontosFixosLocal(){
 function salvarPontosFixosLocal(){
   try{ localStorage.setItem(PF_LOCAL_KEY, JSON.stringify(pontosFixos)); }catch(e){}
 }
-function mapPontoFixo(row){ return { id: row.id, nome: row.nome, x: row.x, y: row.y, z: row.z }; }
+function mapPontoFixo(row){ return { id: row.id, nome: row.nome, x: row.x, y: row.y, z: row.z, anelId: row.anel_id || null }; }
+
+// Pontos fixos são amarrados ao anel em que foram criados — os sem anel definido
+// (cadastrados antes dessa amarração existir) continuam aparecendo em qualquer
+// anel, pra não "perder" dado antigo; os novos só aparecem no anel certo.
+function pontosFixosDoAnelAtivo(){
+  return pontosFixos.filter(pf=> !pf.anelId || pf.anelId === anelAtivoId);
+}
 
 function renderPontosFixos(){
   const lista = el('pf-list');
   const vazio = el('pf-vazio');
   if(!lista || !vazio) return;
-  if(pontosFixos.length === 0){
+  const doAnel = pontosFixosDoAnelAtivo();
+  if(doAnel.length === 0){
     lista.innerHTML = '';
+    vazio.textContent = anelAtivoId ? 'Nenhum ponto fixo cadastrado neste anel ainda.' : 'Selecione um anel pra ver os pontos fixos dele.';
     vazio.style.display = 'block';
     return;
   }
   vazio.style.display = 'none';
-  const ordenados = [...pontosFixos].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
+  const ordenados = [...doAnel].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
   lista.innerHTML = ordenados.map(pf=>`
     <div class="pf-row">
       <span class="nome">${pf.nome}</span>
       <span class="coords">E: ${fmt3(pf.x)} · N: ${fmt3(pf.y)} · Z: ${fmt3(pf.z)}</span>
-      <button class="icon" onclick="removerPontoFixo('${pf.id}')" title="remover ponto fixo">✕</button>
+      <button class="icon icon-remover" onclick="removerPontoFixo('${pf.id}')" title="remover ponto fixo">✕</button>
     </div>
   `).join('');
 }
 
 function criarPontoFixo(){
+  if(!anelAtivoId){ showToast('Selecione um anel antes de cadastrar um ponto fixo.'); return; }
   const nome = el('pf-nome').value.trim();
   const x = parseFloat(el('pf-x').value);
   const y = parseFloat(el('pf-y').value);
   const z = parseFloat(el('pf-z').value);
   if(!nome){ showToast('Preencha o nome/código do ponto fixo.'); return; }
   if(isNaN(x) || isNaN(y) || isNaN(z)){ showToast('Preencha as três coordenadas (E, N, Z).'); return; }
-  if(pontosFixos.some(pf=>pf.nome.toLowerCase() === nome.toLowerCase())){
-    showToast(`Já existe um ponto fixo chamado "${nome}".`);
+  if(pontosFixos.some(pf=>pf.anelId===anelAtivoId && pf.nome.toLowerCase() === nome.toLowerCase())){
+    showToast(`Já existe um ponto fixo chamado "${nome}" neste anel.`);
     return;
   }
   const novoId = uuidv4();
-  const novoPF = { id: novoId, nome, x, y, z };
+  const novoPF = { id: novoId, nome, x, y, z, anelId: anelAtivoId };
   pontosFixos.push(novoPF);
-  enfileirar('pontos_fixos', 'insert', novoPF);
+  enfileirar('pontos_fixos', 'insert', { id: novoId, nome, x, y, z, anel_id: anelAtivoId });
   el('pf-nome').value = ''; el('pf-x').value = ''; el('pf-y').value = ''; el('pf-z').value = '';
   salvarPontosFixosLocal();
   renderPontosFixos();
@@ -1409,7 +1532,7 @@ function renderTopografiaManual(){
     const furosHTML = itens.map(item=>`
       <span class="tm-furo-chip">
         F${item.numeroFuro}
-        <button class="icon" onclick="removerTopografiaManual('${item.id}')" title="remover">✕</button>
+        <button class="icon icon-remover" onclick="removerTopografiaManual('${item.id}')" title="remover">✕</button>
       </span>
     `).join('');
     return `
@@ -1482,7 +1605,7 @@ function renderObservacoesTurno(){
     return `
       <div class="obs-item">
         <span class="texto">${o.texto}</span>
-        <button class="icon" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
+        <button class="icon icon-remover" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
       </div>
     `;
   }).join('');
@@ -1720,12 +1843,13 @@ function desenharCabecalhoTurnoPDF(doc, opcoes={}){
     });
   }
 
-  if(mostrarPontosFixos && pontosFixos.length > 0){
+  const pontosDoHeader = pontosFixosDoAnelAtivo();
+  if(mostrarPontosFixos && pontosDoHeader.length > 0){
     y += 2;
     if(y > 260){ doc.addPage(); y = 20; }
     doc.setFont(undefined,'bold'); doc.text('Pontos fixos:', 15, y); y += 6;
     doc.setFont(undefined,'normal');
-    const ordenados = [...pontosFixos].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
+    const ordenados = [...pontosDoHeader].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
     ordenados.forEach(pf=>{
       if(y > 273){ doc.addPage(); y = 20; }
       doc.text(`• ${pf.nome} — E: ${fmt3(pf.x)}  N: ${fmt3(pf.y)}  Z: ${fmt3(pf.z)}`, 18, y);
@@ -1874,7 +1998,7 @@ async function exportarTopografiaPDF(){
   let y = desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO DE TOPOGRAFIA', mostrarPontosFixos:false });
 
   // ---- Pontos fixos, como tabela (só os marcados na checklist) ----
-  const pontosParaExportar = pontosFixos.filter(pf=>!pontosFixosExcluidos.has(pf.id));
+  const pontosParaExportar = pontosFixosDoAnelAtivo().filter(pf=>!pontosFixosExcluidos.has(pf.id));
 
   doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
   doc.text('Pontos fixos', 15, y); y += 9;
@@ -2260,8 +2384,8 @@ function render(){
           <td>${situacaoLabel(f.situacao)}</td>
           <td class="actions">
             ${podeEditar ? `
-            <button class="icon" onclick="editarFuro('${f.id}')" title="editar">✎</button>
-            <button class="icon" onclick="removerFuro('${f.id}')" title="remover">✕</button>
+            <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
+            <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
             ` : `<span class="hint" title="só quem criou o leque pode editar">🔒</span>`}
           </td>
         </tr>`;
@@ -2296,7 +2420,7 @@ function render(){
                 ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
               </div>
               <div class="leque-actions">
-                ${podeEditar ? `<button class="icon" onclick="editarLeque('${l.id}')" title="editar leque">✎ editar</button>` : ''}
+                ${podeEditar ? `<button class="icon icon-editar" onclick="editarLeque('${l.id}')" title="editar leque">✎ editar</button>` : ''}
                 <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
                 ${podeEditar ? `
                 <div class="menu-mais-wrap">
@@ -2467,6 +2591,15 @@ function mostrarView(viewId){
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.sidebar-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
 }
+
+// ---------- Sub-abas dentro de Topografia (Pontos Fixos / Furos Topografados / Furo Manual) ----------
+function mostrarSubTopo(subId){
+  document.querySelectorAll('.topo-subview').forEach(v=> v.classList.toggle('active', v.id === 'topo-sub-'+subId));
+  document.querySelectorAll('.topo-subtab').forEach(b=> b.classList.toggle('active', b.dataset.sub === subId));
+}
+document.querySelectorAll('.topo-subtab').forEach(btn=>{
+  btn.addEventListener('click', ()=> mostrarSubTopo(btn.dataset.sub));
+});
 
 // Menu deslizante (off-canvas) — some da tela por padrão, abre por cima do conteúdo
 // quando clica no ☰. Fecha ao escolher uma opção, clicar fora, no × ou apertar Esc.

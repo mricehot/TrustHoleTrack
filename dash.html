@@ -68,12 +68,15 @@
     <div class="header-right">
       <div class="readout-label" id="usuario-logado-label" style="margin-bottom:2px;"></div>
       <div class="readout-label" id="readout-label">anel ativo: —</div>
+      <div class="readout-label" id="ultima-sync-label" style="margin-top:2px;"></div>
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="header-actions">
         <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar</button>
         <button type="button" id="btn-ver-fila" class="ghost"><span class="label">👁 Pendências</span><span class="count-badge" id="count-fila"></span></button>
         <button type="button" id="btn-enviar" class="steel"><span class="label" id="label-enviar">📤 Enviar</span><span class="count-badge" id="count-enviar"></span></button>
         <button type="button" id="btn-logout" class="ghost">🚪 Sair</button>
+        <button type="button" id="btn-historico-toast" class="ghost">🕘 Avisos</button>
+        <button type="button" id="btn-tema" class="ghost" title="Trocar tema claro/escuro">🌙</button>
       </div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>
@@ -257,6 +260,15 @@
               <div class="obs-list" id="obs-list"></div>
               <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
             </div>
+          </div>
+        </div>
+
+        <div class="view-card" style="margin-top:18px;">
+          <div class="view-card-header">
+            <span class="view-card-label">Exportar Relatório</span>
+            <span class="tag">gera o PDF a partir dos dados acima</span>
+          </div>
+          <div class="turno-body">
             <div class="field">
               <label>Tipo de relatório</label>
               <div class="chip-group" id="turno-tipo-relatorio-group">
@@ -300,79 +312,86 @@
             <span class="view-card-label">Topografia</span>
             <span class="tag">pontos fixos e furos levantados</span>
           </div>
+          <div class="topo-subtabs">
+            <button type="button" class="topo-subtab active" data-sub="pontos">Pontos Fixos</button>
+            <button type="button" class="topo-subtab" data-sub="furos">Furos Topografados</button>
+            <button type="button" class="topo-subtab" data-sub="manual">Furo Manual</button>
+          </div>
           <div class="topografia-body">
 
-            <h3 class="topografia-subtitulo">Pontos fixos</h3>
-            <div class="hint">Pontos de referência usados na topografia — nome/código e coordenadas.</div>
-            <div class="grid-4" style="margin-top:8px;">
-              <div class="field">
-                <label for="pf-nome">Nome / código</label>
-                <input id="pf-nome" type="text" placeholder="ex: PF-01">
-              </div>
-              <div class="field">
-                <label for="pf-x">Este (X)</label>
-                <input id="pf-x" type="number" step="any" placeholder="0.000">
-              </div>
-              <div class="field">
-                <label for="pf-y">Norte (Y)</label>
-                <input id="pf-y" type="number" step="any" placeholder="0.000">
-              </div>
-              <div class="field">
-                <label for="pf-z">Cota (Z)</label>
-                <input id="pf-z" type="number" step="any" placeholder="0.000">
-              </div>
-            </div>
-            <button type="button" id="btn-add-pf" class="steel" style="margin-top:14px;">+ Adicionar ponto fixo</button>
-            <div class="hint" id="pf-vazio" style="margin-top:10px;">Nenhum ponto fixo cadastrado ainda.</div>
-            <div class="pf-list" id="pf-list"></div>
-
-            <div class="topografia-divisor"></div>
-
-            <h3 class="topografia-subtitulo">Furos topografados</h3>
-            <div class="hint">Marque quais furos do anel ativo já tiveram a boca topografada. Só entra a marcação no relatório — não as coordenadas do furo.</div>
-            <div class="hint" id="topo-furos-vazio" style="margin-top:10px;">Nenhum furo lançado neste anel ainda.</div>
-            <div class="topo-furos-list" id="topo-furos-list"></div>
-
-            <div class="topografia-divisor"></div>
-
-            <h3 class="topografia-subtitulo">Furo topografado sem perfilagem ainda</h3>
-            <div class="hint">Quando a topografia é feita antes da perfilagem — abra o leque manualmente e vá adicionando os furos topografados nele, um de cada vez.</div>
-
-            <div id="tm-form-leque" style="margin-top:8px;">
-              <div class="grid-3">
+            <div class="topo-subview active" id="topo-sub-pontos">
+              <h3 class="topografia-subtitulo">Pontos fixos</h3>
+              <div class="hint">Pontos de referência usados na topografia — nome/código e coordenadas.</div>
+              <div class="grid-4" style="margin-top:8px;">
                 <div class="field">
-                  <label for="tm-tipo">Tipo</label>
-                  <select id="tm-tipo">
-                    <option value="leque">Leque (LQ)</option>
-                    <option value="slot">Slot (SL)</option>
-                    <option value="fill">Face Livre (FL)</option>
-                    <option value="cr">Corte de Recuo (CR)</option>
-                  </select>
+                  <label for="pf-nome">Nome / código</label>
+                  <input id="pf-nome" type="text" placeholder="ex: PF-01">
                 </div>
                 <div class="field">
-                  <label for="tm-leque-numero">Número do leque</label>
-                  <input id="tm-leque-numero" type="text" placeholder="ex: 04">
+                  <label for="pf-x">Este (X)</label>
+                  <input id="pf-x" type="number" step="any" placeholder="0.000">
+                </div>
+                <div class="field">
+                  <label for="pf-y">Norte (Y)</label>
+                  <input id="pf-y" type="number" step="any" placeholder="0.000">
+                </div>
+                <div class="field">
+                  <label for="pf-z">Cota (Z)</label>
+                  <input id="pf-z" type="number" step="any" placeholder="0.000">
                 </div>
               </div>
-              <button type="button" id="btn-abrir-leque-tm" class="steel" style="margin-top:14px;">Abrir leque</button>
+              <button type="button" id="btn-add-pf" class="steel" style="margin-top:14px;">+ Adicionar ponto fixo</button>
+              <div class="hint" id="pf-vazio" style="margin-top:10px;">Nenhum ponto fixo cadastrado ainda.</div>
+              <div class="pf-list" id="pf-list"></div>
             </div>
 
-            <div id="tm-leque-atual-box" style="display:none; margin-top:8px;">
-              <div class="leque-atual">
-                <span class="code" id="tm-leque-atual-code"></span>
-                <span class="hint">recebendo furos topografados</span>
-                <span class="spacer"></span>
-                <button class="ghost" id="btn-trocar-leque-tm">Trocar leque</button>
-              </div>
-              <div class="field" style="margin-top:10px;">
-                <label for="tm-furo-numero">Número do furo</label>
-                <input id="tm-furo-numero" type="text" placeholder="ex: 05">
-              </div>
-              <button type="button" id="btn-add-tm" class="steel" style="margin-top:14px;">+ Adicionar furo topografado</button>
+            <div class="topo-subview" id="topo-sub-furos">
+              <h3 class="topografia-subtitulo">Furos topografados</h3>
+              <div class="hint">Marque quais furos do anel ativo já tiveram a boca topografada. Só entra a marcação no relatório — não as coordenadas do furo.</div>
+              <div class="hint" id="topo-furos-vazio" style="margin-top:10px;">Nenhum furo lançado neste anel ainda.</div>
+              <div class="topo-furos-list" id="topo-furos-list"></div>
             </div>
 
-            <div class="hint" id="tm-vazio" style="margin-top:10px;">Nenhum furo lançado manualmente ainda.</div>
-            <div class="tm-list" id="tm-list"></div>
+            <div class="topo-subview" id="topo-sub-manual">
+              <h3 class="topografia-subtitulo">Furo topografado sem perfilagem ainda</h3>
+              <div class="hint">Quando a topografia é feita antes da perfilagem — abra o leque manualmente e vá adicionando os furos topografados nele, um de cada vez.</div>
+
+              <div id="tm-form-leque" style="margin-top:8px;">
+                <div class="grid-3">
+                  <div class="field">
+                    <label for="tm-tipo">Tipo</label>
+                    <select id="tm-tipo">
+                      <option value="leque">Leque (LQ)</option>
+                      <option value="slot">Slot (SL)</option>
+                      <option value="fill">Face Livre (FL)</option>
+                      <option value="cr">Corte de Recuo (CR)</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="tm-leque-numero">Número do leque</label>
+                    <input id="tm-leque-numero" type="text" placeholder="ex: 04">
+                  </div>
+                </div>
+                <button type="button" id="btn-abrir-leque-tm" class="steel" style="margin-top:14px;">Abrir leque</button>
+              </div>
+
+              <div id="tm-leque-atual-box" style="display:none; margin-top:8px;">
+                <div class="leque-atual">
+                  <span class="code" id="tm-leque-atual-code"></span>
+                  <span class="hint">recebendo furos topografados</span>
+                  <span class="spacer"></span>
+                  <button class="ghost" id="btn-trocar-leque-tm">Trocar leque</button>
+                </div>
+                <div class="field" style="margin-top:10px;">
+                  <label for="tm-furo-numero">Número do furo</label>
+                  <input id="tm-furo-numero" type="text" placeholder="ex: 05">
+                </div>
+                <button type="button" id="btn-add-tm" class="steel" style="margin-top:14px;">+ Adicionar furo topografado</button>
+              </div>
+
+              <div class="hint" id="tm-vazio" style="margin-top:10px;">Nenhum furo lançado manualmente ainda.</div>
+              <div class="tm-list" id="tm-list"></div>
+            </div>
 
           </div>
         </div>
