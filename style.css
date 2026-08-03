@@ -10,12 +10,11 @@
     --rust: #c23b2f;
     --moss: #4f7a3f;
     --navy: #191231;
-    /* Paleta separada só pra identidade das seções do menu (Turno/Anéis/Topografia) —
-       de propósito, cores diferentes das de situação do furo (moss/amber/steel), pra
+    /* Paleta separada só pra identidade das seções do menu (Turno/Anéis) — de
+       propósito, cores diferentes das de situação do furo (moss/amber/steel), pra
        não fazer "amber" significar tanto obstruído quanto Dados do Turno ao mesmo tempo. */
     --section-turno: #a8710a;
     --section-aneis: #6b5b95;
-    --section-topo: #0e7c7b;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace;
     --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
@@ -33,7 +32,6 @@
     --moss: #6fa85c;
     --section-turno: #d9a441;
     --section-aneis: #a594d6;
-    --section-topo: #35b0ae;
   }
 /* ================= MOVIMENTOS MINIMALISTAS ================= */
 
@@ -277,7 +275,6 @@
 .sidebar-item.active{ background:var(--surface-2); border-color:var(--line); color:var(--text); }
 .sidebar-item[data-view="turno"].active{ color:var(--section-turno); border-color:var(--section-turno); }
 .sidebar-item[data-view="aneis"].active{ color:var(--section-aneis); border-color:var(--section-aneis); }
-.sidebar-item[data-view="topografia"].active{ color:var(--section-topo); border-color:var(--section-topo); }
 
 @media (max-width:480px){
   .sidebar{ width:82vw; max-width:280px; }
@@ -295,7 +292,6 @@
 .view-card-header .current{ margin-left:auto; font-family:var(--sans); font-size:12.5px; color:var(--text); }
 .view-card.accent-steel .view-card-label{ color:var(--section-aneis); }
 .view-card.accent-amber .view-card-label{ color:var(--section-turno); }
-.view-card.accent-moss .view-card-label{ color:var(--section-topo); }
 
 .historico-body{ padding:14px 16px; border-top:1px solid var(--line); }
 .historico-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
@@ -312,7 +308,6 @@
 .historico-row .tipo.turno{ color:var(--steel); border-color:var(--steel); }
 .historico-row .tipo.leque{ color:var(--amber); border-color:var(--amber); }
 .historico-row .tipo.combinado{ color:var(--moss); border-color:var(--moss); }
-.historico-row .tipo.topografia{ color:var(--navy); border-color:var(--navy); }
 .historico-row .detalhe{ flex:1 1 100%; color:var(--text); word-break:break-word; }
 .historico-row .arquivo{ font-size:11px; color:var(--muted); flex:1 1 100%; word-break:break-all; }
 
@@ -373,58 +368,7 @@
   .anel-row .spacer{ flex:1; }
   .turno-body{ padding:14px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
 
-  .topografia-body{ padding:14px 16px; border-top:1px solid var(--line); }
-  .topografia-subtitulo{ font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--text); margin:0 0 4px 0; }
-
-  .topo-subtabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); padding:0 16px; flex-wrap:wrap; }
-  .topo-subtab{
-    background:transparent; border:none; border-bottom:2px solid transparent; border-radius:0;
-    color:var(--muted); font-family:var(--sans); font-size:12.5px; font-weight:600;
-    text-transform:none; letter-spacing:0; padding:12px 6px; margin-bottom:-1px; cursor:pointer;
-  }
-  .topo-subtab:hover{ color:var(--text); filter:none; }
-  .topo-subtab.active{ color:var(--section-topo); border-bottom-color:var(--section-topo); }
-  .topo-subview{ display:none; }
-  .topo-subview.active{ display:block; }
-  .topografia-divisor{ border-top:1px solid var(--line); margin:18px 0; }
-
-  .pf-list{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
-  .pf-row{
-    display:flex; align-items:center; gap:10px; padding:8px 10px; flex-wrap:wrap;
-    border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
-    font-family:var(--sans); font-size:12.5px;
-  }
-  .pf-row .nome{ font-weight:700; color:var(--text); white-space:nowrap; font-family:var(--mono); }
-  .pf-row .coords{ color:var(--muted); flex:1; font-family:var(--mono); }
-  #pf-vazio, #topo-furos-vazio{ display:none; }
-
-  .topo-furos-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-top:10px; }
-  .topo-furo-item{
-    display:flex; align-items:center; gap:10px; padding:8px 10px; cursor:pointer;
-    border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
-    font-family:var(--sans); font-size:12.5px;
-  }
-  .topo-furo-item.marcado{ border-color:var(--moss); background:rgba(79,122,63,0.08); }
-  .topo-furo-item input{ width:18px; height:18px; accent-color:var(--moss); flex-shrink:0; cursor:pointer; }
-  .topo-furo-item .code{ font-weight:700; color:var(--text); white-space:nowrap; font-family:var(--mono); }
-  .topo-furo-item .info{ flex:1; color:var(--muted); }
-
-  .tm-list{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
-  .tm-row{
-    display:flex; align-items:center; gap:10px; padding:8px 10px; flex-wrap:wrap;
-    border:1px solid var(--moss); border-radius:5px; background:rgba(79,122,63,0.06);
-    font-family:var(--sans); font-size:12.5px;
-  }
-  .tm-row .code{ font-weight:700; color:var(--text); white-space:nowrap; font-family:var(--mono); }
-  .tm-furos{ display:flex; gap:6px; flex-wrap:wrap; flex:1; }
-  .tm-furo-chip{
-    display:inline-flex; align-items:center; gap:4px; padding:3px 4px 3px 8px;
-    border:1px solid var(--line); border-radius:20px; background:var(--surface); color:var(--text);
-    font-family:var(--mono); font-size:12px;
-  }
-  .tm-furo-chip button.icon{ min-width:22px; min-height:22px; padding:2px; font-size:11px; }
-  #tm-vazio{ display:none; }
-  .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
+    .chip-group{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
     background:var(--surface-2); border:1px solid var(--line); color:var(--text);
     padding:10px 0; width:44px; min-height:44px; text-align:center; border-radius:20px; font-family:var(--mono); font-size:14px;

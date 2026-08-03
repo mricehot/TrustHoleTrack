@@ -44,14 +44,6 @@ function corRGBSituacao(situacao){
   return [79,122,63];                              // moss (livre)
 }
 
-// Desenha um pontinho verde depois do código do furo, no PDF, quando a boca já foi
-// topografada — mesma cor usada pra "livre" na situação, mas é um selo independente.
-function desenharSeloTopografado(doc, codigoFuro, x, y){
-  const largura = doc.getTextWidth(codigoFuro);
-  doc.setFillColor(79,122,63);
-  doc.circle(x + largura + 3, y - 1.3, 1, 'F');
-}
-
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
@@ -176,18 +168,12 @@ const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
-const TM_LOCAL_KEY = 'perfilagem-topografia-manual-v1';
-
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
-let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, topografado, ts }
-let pontosFixos = [];  // { id, nome, x, y, z }
-let topografiaManual = []; // { id, tipoLeque, numeroLeque, numeroFuro, ts } — furo topografado sem perfilagem ainda
+let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
 let lequesColapsados = new Set();
 let lequesSelecionados = new Set();
-let pontosFixosExcluidos = new Set(); // ids desmarcados na checklist de exportação de topografia — por padrão, todos entram
-let furosTopoLequesExcluidos = new Set(); // códigos de leque (ex: "real:LQ04", "manual:LQ09") desmarcados na exportação — sempre o leque inteiro
 let filaEnvio = [];     // fila de alterações feitas offline, esperando envio ao Supabase
 
 function toggleLeque(id){
@@ -282,97 +268,6 @@ function renderTurnoLequesChecklist(){
         <span class="info">
           <span class="code">${lequeCode(l)}</span>
           <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''} · ${qtdFuros} furo(s)</span>
-        </span>
-      </label>
-    `;
-  }).join('');
-}
-
-// Checklist de pontos fixos pra exportação do relatório de topografia — por padrão
-// todos entram (opt-out), diferente da checklist de leques (opt-in).
-function renderTurnoPontosChecklist(){
-  const campo = el('turno-pontos-field');
-  const lista = el('turno-pontos-checklist');
-  const vazio = el('turno-pontos-vazio');
-  if(!campo || !lista || !vazio) return;
-
-  const grupoTipo = el('turno-tipo-relatorio-group');
-  const chipTipoAtivo = grupoTipo ? grupoTipo.querySelector('.chip.active') : null;
-  const tipoRelatorio = chipTipoAtivo ? chipTipoAtivo.dataset.val : 'perfilagem';
-  campo.style.display = tipoRelatorio === 'topografia' ? '' : 'none';
-  if(tipoRelatorio !== 'topografia') return;
-
-  const doAnel = pontosFixosDoAnelAtivo();
-  if(doAnel.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
-
-  const ordenados = [...doAnel].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
-  lista.innerHTML = ordenados.map(pf=>{
-    const marcado = !pontosFixosExcluidos.has(pf.id);
-    return `
-      <label class="turno-leque-item">
-        <input type="checkbox" class="turno-ponto-check" data-id="${pf.id}" ${marcado ? 'checked' : ''}>
-        <span class="info">
-          <span class="code">${pf.nome}</span>
-          <span class="hint">E: ${fmt3(pf.x)} · N: ${fmt3(pf.y)} · Z: ${fmt3(pf.z)}</span>
-        </span>
-      </label>
-    `;
-  }).join('');
-}
-
-// Junta os furos já topografados de dois lugares diferentes — os furos reais (perfilados,
-// Agrupa os furos já topografados por leque — real (perfilado, do anel ativo) ou manual
-// (sem perfilagem ainda) — porque na exportação a escolha sempre é do leque inteiro,
-// nunca furo a furo. Cada grupo usa uma chave "tipo:código" (ex: "real:LQ04",
-// "manual:LQ09") pra não confundir um leque real com um manual que tenha o mesmo código.
-function gruposFurosTopoParaExportar(){
-  const grupos = [];
-
-  const manuaisPorLeque = new Map();
-  topografiaManual.forEach(item=>{
-    const codigo = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
-    manuaisPorLeque.set(codigo, (manuaisPorLeque.get(codigo) || 0) + 1);
-  });
-  manuaisPorLeque.forEach((qtd, codigo)=>{
-    grupos.push({ chave: `manual:${codigo}`, codigo, qtd, tipo:'manual' });
-  });
-
-  return grupos.sort((a,b)=> a.codigo.localeCompare(b.codigo, undefined, {numeric:true}));
-}
-
-function renderTurnoFurosTopoChecklist(){
-  const campo = el('turno-furos-topo-field');
-  const lista = el('turno-furos-topo-checklist');
-  const vazio = el('turno-furos-topo-vazio');
-  if(!campo || !lista || !vazio) return;
-
-  const grupoTipo = el('turno-tipo-relatorio-group');
-  const chipTipoAtivo = grupoTipo ? grupoTipo.querySelector('.chip.active') : null;
-  const tipoRelatorio = chipTipoAtivo ? chipTipoAtivo.dataset.val : 'perfilagem';
-  campo.style.display = tipoRelatorio === 'topografia' ? '' : 'none';
-  if(tipoRelatorio !== 'topografia') return;
-
-  const grupos = gruposFurosTopoParaExportar();
-  if(grupos.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
-
-  lista.innerHTML = grupos.map(g=>{
-    const marcado = !furosTopoLequesExcluidos.has(g.chave);
-    return `
-      <label class="turno-leque-item">
-        <input type="checkbox" class="turno-furo-topo-check" data-chave="${g.chave}" ${marcado ? 'checked' : ''}>
-        <span class="info">
-          <span class="code">${g.codigo}</span>
-          <span class="hint">${g.qtd} furo(s) topografado(s)${g.tipo === 'manual' ? ' · sem perfilagem ainda' : ''}</span>
         </span>
       </label>
     `;
@@ -602,27 +497,21 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: pfData, error: e5 }, { data: tmData, error: e6 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
-      db.from('turno_observacoes').select('*').order('criado_em'),
-      db.from('pontos_fixos').select('*').order('criado_em'),
-      db.from('topografia_manual').select('*').order('criado_em')
+      db.from('turno_observacoes').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6) throw (e1 || e2 || e3 || e4 || e5 || e6);
+    if(e1 || e2 || e3 || e4) throw (e1 || e2 || e3 || e4);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
     turnoObservacoes = (obsData || []).map(mapObservacao);
-    pontosFixos = (pfData || []).map(mapPontoFixo);
-    topografiaManual = (tmData || []).map(mapTopografiaManual);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     salvarLocal();
     salvarObsLocal();
-    salvarPontosFixosLocal();
-    salvarTopografiaManualLocal();
     renderAll();
     renderObservacoesTurno();
     registrarSincronizacaoOk();
@@ -655,8 +544,6 @@ el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
 
 async function loadData(){
   carregarLocal();
-  carregarPontosFixosLocal();
-  carregarTopografiaManualLocal();
   carregarUltimaSincronizacaoLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   renderAll();
@@ -1091,7 +978,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao, topografado: !!f.topografado
+      metragem_real: f.metragemReal, situacao: f.situacao
     });
   });
 
@@ -1309,10 +1196,10 @@ async function adicionarFuro(){
   const situacao = el('furo-situacao').value;
 
   const novoId = uuidv4();
-  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, topografado: false, ts: new Date().toISOString() };
+  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, ts: new Date().toISOString() };
   furos.push(novoFuro);
   enfileirar('furos', 'insert', {
-    id: novoId, leque_id: lequeAberto.id, numero, metragem_esperada: metragemEsperada, metragem_real: metragemReal, situacao, topografado: false
+    id: novoId, leque_id: lequeAberto.id, numero, metragem_esperada: metragemEsperada, metragem_real: metragemReal, situacao
   });
 
   el('furo-numero').value = '';
@@ -1364,7 +1251,7 @@ function desfazerRemocaoFuro(furoRemovido){
   restaurarNaFila('furos', furoRemovido.id, {
     id: furoRemovido.id, leque_id: furoRemovido.lequeId, numero: furoRemovido.numero,
     metragem_esperada: furoRemovido.metragemEsperada, metragem_real: furoRemovido.metragemReal,
-    situacao: furoRemovido.situacao, topografado: !!furoRemovido.topografado
+    situacao: furoRemovido.situacao
   });
   salvarLocal();
   renderAll();
@@ -1435,7 +1322,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao, topografado: !!f.topografado
+      metragem_real: f.metragemReal, situacao: f.situacao
     });
   });
 
@@ -1446,7 +1333,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
-function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, topografado: !!row.topografado, ts: row.criado_em }; }
+function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
 // A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
@@ -1496,312 +1383,20 @@ function salvarObsLocal(){
   try{ localStorage.setItem(OBS_LOCAL_KEY, JSON.stringify(turnoObservacoes)); }catch(e){}
 }
 
-// ---------- Topografia: pontos fixos + marcação de furos topografados ----------
-function carregarPontosFixosLocal(){
-  try{
-    const raw = localStorage.getItem(PF_LOCAL_KEY);
-    pontosFixos = raw ? JSON.parse(raw) : [];
-  }catch(e){ pontosFixos = []; }
-}
-function salvarPontosFixosLocal(){
-  try{ localStorage.setItem(PF_LOCAL_KEY, JSON.stringify(pontosFixos)); }catch(e){}
-}
-function mapPontoFixo(row){ return { id: row.id, nome: row.nome, x: row.x, y: row.y, z: row.z, anelId: row.anel_id || null }; }
 
-// Pontos fixos são amarrados ao anel em que foram criados — os sem anel definido
-// (cadastrados antes dessa amarração existir) continuam aparecendo em qualquer
-// anel, pra não "perder" dado antigo; os novos só aparecem no anel certo.
-function pontosFixosDoAnelAtivo(){
-  return pontosFixos.filter(pf=> !pf.anelId || pf.anelId === anelAtivoId);
-}
-
-function renderPontosFixos(){
-  const lista = el('pf-list');
-  const vazio = el('pf-vazio');
-  if(!lista || !vazio) return;
-  const doAnel = pontosFixosDoAnelAtivo();
-  if(doAnel.length === 0){
-    lista.innerHTML = '';
-    vazio.textContent = anelAtivoId ? 'Nenhum ponto fixo cadastrado neste anel ainda.' : 'Selecione um anel pra ver os pontos fixos dele.';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
-  const ordenados = [...doAnel].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
-  lista.innerHTML = ordenados.map(pf=>`
-    <div class="pf-row">
-      <span class="nome">${pf.nome}</span>
-      <span class="coords">E: ${fmt3(pf.x)} · N: ${fmt3(pf.y)} · Z: ${fmt3(pf.z)}</span>
-      <button class="icon icon-remover" onclick="removerPontoFixo('${pf.id}')" title="remover ponto fixo">✕</button>
-    </div>
-  `).join('');
-}
-
-function criarPontoFixo(){
-  if(!anelAtivoId){ showToast('Selecione um anel antes de cadastrar um ponto fixo.'); return; }
-  const nome = el('pf-nome').value.trim();
-  const x = parseFloat(el('pf-x').value);
-  const y = parseFloat(el('pf-y').value);
-  const z = parseFloat(el('pf-z').value);
-  if(!nome){ showToast('Preencha o nome/código do ponto fixo.'); return; }
-  if(isNaN(x) || isNaN(y) || isNaN(z)){ showToast('Preencha as três coordenadas (E, N, Z).'); return; }
-  if(pontosFixos.some(pf=>pf.anelId===anelAtivoId && pf.nome.toLowerCase() === nome.toLowerCase())){
-    showToast(`Já existe um ponto fixo chamado "${nome}" neste anel.`);
-    return;
-  }
-  const novoId = uuidv4();
-  const novoPF = { id: novoId, nome, x, y, z, anelId: anelAtivoId };
-  pontosFixos.push(novoPF);
-  enfileirar('pontos_fixos', 'insert', { id: novoId, nome, x, y, z, anel_id: anelAtivoId });
-  el('pf-nome').value = ''; el('pf-x').value = ''; el('pf-y').value = ''; el('pf-z').value = '';
-  salvarPontosFixosLocal();
-  renderPontosFixos();
-  showToast(`Ponto fixo "${nome}" adicionado.`);
-}
-
-async function removerPontoFixo(id){
-  const pf = pontosFixos.find(x=>x.id===id);
-  if(!pf) return;
-  if(!(await confirmDialog(`Remover o ponto fixo "${pf.nome}"?`, 'Remover'))) return;
-
-  pontosFixos = pontosFixos.filter(pf=>pf.id!==id);
-  enfileirar('pontos_fixos', 'delete', { id });
-  salvarPontosFixosLocal();
-  renderPontosFixos();
-  showToast(`Ponto fixo "${pf.nome}" removido.`, {
-    acaoLabel: 'Desfazer',
-    onAcao: ()=> desfazerRemocaoPontoFixo(pf)
-  });
-}
-
-function desfazerRemocaoPontoFixo(pontoRemovido){
-  if(pontosFixos.some(p=>p.id===pontoRemovido.id)) return; // já foi restaurado
-  pontosFixos.push(pontoRemovido);
-  restaurarNaFila('pontos_fixos', pontoRemovido.id, {
-    id: pontoRemovido.id, nome: pontoRemovido.nome, x: pontoRemovido.x, y: pontoRemovido.y,
-    z: pontoRemovido.z, anel_id: pontoRemovido.anelId
-  });
-  salvarPontosFixosLocal();
-  renderPontosFixos();
-  showToast('Ponto fixo restaurado.');
-}
-
-el('btn-add-pf').addEventListener('click', criarPontoFixo);
-['pf-nome','pf-x','pf-y','pf-z'].forEach(id=>{
-  el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarPontoFixo(); } });
-});
-
-// Lista todos os furos do anel ativo (de qualquer leque, aberto ou fechado) pra marcar
-// quais já tiveram a boca topografada. Só guarda o sim/não — não guarda coordenada
-// do furo, que é responsabilidade de outro levantamento.
-function renderFurosTopografia(){
-  const lista = el('topo-furos-list');
-  const vazio = el('topo-furos-vazio');
-  if(!lista || !vazio) return;
-
-  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  const lequesDoAnel = anelAtivo ? leques.filter(l=>l.anelId===anelAtivo.id) : [];
-  const idsLeques = new Set(lequesDoAnel.map(l=>l.id));
-  let furosDoAnel = furos.filter(f=>idsLeques.has(f.lequeId));
-  furosDoAnel = furosDoAnel.map(f=>({ furo: f, leque: lequesDoAnel.find(l=>l.id===f.lequeId) }))
-    .sort((a,b)=> furoCode(a.leque,a.furo).localeCompare(furoCode(b.leque,b.furo), undefined, {numeric:true}));
-
-  if(furosDoAnel.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
-
-  lista.innerHTML = furosDoAnel.map(({furo:f, leque:l})=>{
-    const marcado = !!f.topografado;
-    return `
-      <label class="topo-furo-item${marcado ? ' marcado' : ''}">
-        <input type="checkbox" class="topo-furo-check" data-id="${f.id}" ${marcado ? 'checked' : ''}>
-        <span class="code">${furoCode(l,f)}</span>
-        <span class="info">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''}</span>
-      </label>
-    `;
-  }).join('');
-}
-
-function toggleTopografado(id, marcado){
-  const f = furos.find(x=>x.id===id);
-  if(!f) return;
-  f.topografado = marcado;
-  enfileirar('furos', 'update', { id: f.id, topografado: marcado });
-  salvarLocal();
-  const item = document.querySelector(`.topo-furo-item input[data-id="${id}"]`)?.closest('.topo-furo-item');
-  if(item) item.classList.toggle('marcado', marcado);
-}
-
-el('topo-furos-list').addEventListener('change', (e)=>{
-  const chk = e.target.closest('.topo-furo-check');
-  if(!chk) return;
-  toggleTopografado(chk.dataset.id, chk.checked);
-});
-
-// ---------- Furo topografado sem perfilagem ainda (leque + furo lançados manualmente) ----------
-const TM_LEQUE_ATUAL_KEY = 'perfilagem-topografia-leque-atual-v1';
-let lequeTopoAtual = null; // { tipo, numero } — leque manual "aberto" recebendo furos agora
-
-function carregarTopografiaManualLocal(){
-  try{
-    const raw = localStorage.getItem(TM_LOCAL_KEY);
-    topografiaManual = raw ? JSON.parse(raw) : [];
-  }catch(e){ topografiaManual = []; }
-  try{
-    const rawAtual = localStorage.getItem(TM_LEQUE_ATUAL_KEY);
-    lequeTopoAtual = rawAtual ? JSON.parse(rawAtual) : null;
-  }catch(e){ lequeTopoAtual = null; }
-}
-function salvarTopografiaManualLocal(){
-  try{ localStorage.setItem(TM_LOCAL_KEY, JSON.stringify(topografiaManual)); }catch(e){}
-}
-function salvarLequeTopoAtualLocal(){
-  try{
-    if(lequeTopoAtual) localStorage.setItem(TM_LEQUE_ATUAL_KEY, JSON.stringify(lequeTopoAtual));
-    else localStorage.removeItem(TM_LEQUE_ATUAL_KEY);
-  }catch(e){}
-}
-function mapTopografiaManual(row){
-  return { id: row.id, tipoLeque: row.tipo_leque, numeroLeque: row.numero_leque, numeroFuro: row.numero_furo, ts: row.criado_em };
-}
 // Mesmo formato de código dos furos perfilados (LQ04F05), só que montado a partir de
 // texto digitado à mão, sem precisar existir um leque/furo real por trás.
-function codigoTopoManual(item){
-  return (PREFIXO[item.tipoLeque] || '') + item.numeroLeque + 'F' + item.numeroFuro;
-}
-function lequeTopoCodigo(){
-  if(!lequeTopoAtual) return '';
-  return (PREFIXO[lequeTopoAtual.tipo] || '') + lequeTopoAtual.numero;
-}
 
-function renderPainelTopografiaManual(){
-  const formLeque = el('tm-form-leque');
-  const boxAtual = el('tm-leque-atual-box');
-  if(!formLeque || !boxAtual) return;
-  if(lequeTopoAtual){
-    formLeque.style.display = 'none';
-    boxAtual.style.display = '';
-    el('tm-leque-atual-code').textContent = lequeTopoCodigo();
-  }else{
-    formLeque.style.display = '';
-    boxAtual.style.display = 'none';
-  }
-}
 
-function abrirLequeTopografico(){
-  const tipo = el('tm-tipo').value;
-  const numero = normalizarNumero(el('tm-leque-numero').value.trim());
-  if(!numero){ showToast('Preencha o número do leque.'); return; }
-  lequeTopoAtual = { tipo, numero };
-  salvarLequeTopoAtualLocal();
-  renderPainelTopografiaManual();
-  el('tm-furo-numero').focus();
-}
 
-function trocarLequeTopografico(){
-  lequeTopoAtual = null;
-  salvarLequeTopoAtualLocal();
-  el('tm-leque-numero').value = '';
-  renderPainelTopografiaManual();
-}
 
 // Agrupa os furos manuais por leque (LQ04: F01, F05...), igual à lista de furos de
 // verdade agrupa por leque — mais fácil de ver o conjunto do que uma lista solta.
-function renderTopografiaManual(){
-  const lista = el('tm-list');
-  const vazio = el('tm-vazio');
-  if(!lista || !vazio) return;
-  if(topografiaManual.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
 
-  const grupos = new Map();
-  topografiaManual.forEach(item=>{
-    const chave = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
-    if(!grupos.has(chave)) grupos.set(chave, []);
-    grupos.get(chave).push(item);
-  });
-  const chavesOrdenadas = [...grupos.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
 
-  lista.innerHTML = chavesOrdenadas.map(chave=>{
-    const itens = [...grupos.get(chave)].sort((a,b)=> String(a.numeroFuro).localeCompare(String(b.numeroFuro), undefined, {numeric:true}));
-    const furosHTML = itens.map(item=>`
-      <span class="tm-furo-chip">
-        F${item.numeroFuro}
-        <button class="icon icon-remover" onclick="removerTopografiaManual('${item.id}')" title="remover">✕</button>
-      </span>
-    `).join('');
-    return `
-      <div class="tm-row">
-        <span class="code">${chave}</span>
-        <div class="tm-furos">${furosHTML}</div>
-      </div>
-    `;
-  }).join('');
-}
 
-function criarTopografiaManual(){
-  if(!lequeTopoAtual){ showToast('Abra um leque primeiro.'); return; }
-  const numeroFuro = normalizarNumero(el('tm-furo-numero').value.trim());
-  if(!numeroFuro){ showToast('Preencha o número do furo.'); return; }
-  const { tipo: tipoLeque, numero: numeroLeque } = lequeTopoAtual;
-  const duplicado = topografiaManual.some(t=> t.tipoLeque===tipoLeque && t.numeroLeque===numeroLeque && t.numeroFuro===numeroFuro);
-  if(duplicado){
-    showToast(`Já existe ${PREFIXO[tipoLeque]}${numeroLeque}F${numeroFuro} nessa lista.`);
-    return;
-  }
-  const novoId = uuidv4();
-  const novoItem = { id: novoId, tipoLeque, numeroLeque, numeroFuro, ts: new Date().toISOString() };
-  topografiaManual.push(novoItem);
-  enfileirar('topografia_manual', 'insert', {
-    id: novoId, tipo_leque: tipoLeque, numero_leque: numeroLeque, numero_furo: numeroFuro
-  });
-  el('tm-furo-numero').value = '';
-  el('tm-furo-numero').focus();
-  salvarTopografiaManualLocal();
-  renderTopografiaManual();
-  showToast(`${codigoTopoManual(novoItem)} adicionado como topografado.`);
-}
 
-async function removerTopografiaManual(id){
-  const item = topografiaManual.find(t=>t.id===id);
-  if(!item) return;
-  const codigo = codigoTopoManual(item);
-  if(!(await confirmDialog(`Remover o furo topografado ${codigo}?`, 'Remover'))) return;
 
-  topografiaManual = topografiaManual.filter(t=>t.id!==id);
-  enfileirar('topografia_manual', 'delete', { id });
-  salvarTopografiaManualLocal();
-  renderTopografiaManual();
-  showToast(`Furo ${codigo} removido da lista.`, {
-    acaoLabel: 'Desfazer',
-    onAcao: ()=> desfazerRemocaoTopografiaManual(item)
-  });
-}
-
-function desfazerRemocaoTopografiaManual(itemRemovido){
-  if(topografiaManual.some(t=>t.id===itemRemovido.id)) return; // já foi restaurado
-  topografiaManual.push(itemRemovido);
-  restaurarNaFila('topografia_manual', itemRemovido.id, {
-    id: itemRemovido.id, tipo_leque: itemRemovido.tipoLeque,
-    numero_leque: itemRemovido.numeroLeque, numero_furo: itemRemovido.numeroFuro
-  });
-  salvarTopografiaManualLocal();
-  renderTopografiaManual();
-  showToast('Removido da lista, restaurado.');
-}
-
-el('btn-abrir-leque-tm').addEventListener('click', abrirLequeTopografico);
-el('btn-trocar-leque-tm').addEventListener('click', trocarLequeTopografico);
-el('tm-leque-numero').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); abrirLequeTopografico(); } });
-el('btn-add-tm').addEventListener('click', criarTopografiaManual);
-el('tm-furo-numero').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarTopografiaManual(); } });
 
 // Observações são por turno (mesma data + número + letra) — assim um turno não
 // mistura anotações com o turno seguinte, mesmo que o app fique aberto o dia todo.
@@ -2039,8 +1634,7 @@ function desenharResumoPDF(doc, y, stats){
 // Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + dados do turno).
 // Devolve a coordenada Y onde o conteúdo específico do relatório deve começar.
 function desenharCabecalhoTurnoPDF(doc, opcoes={}){
-  const titulo = opcoes.titulo || 'STATUS TURNO PERFILAGEM DE LAVRA/TOPOGRAFIA';
-  const mostrarPontosFixos = opcoes.mostrarPontosFixos !== false;
+  const titulo = opcoes.titulo || 'STATUS TURNO PERFILAGEM DE LAVRA';
 
   try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
 
@@ -2081,20 +1675,6 @@ function desenharCabecalhoTurnoPDF(doc, opcoes={}){
       if(y > 270){ doc.addPage(); y = 20; }
       doc.text(linhasObs, 18, y);
       y += linhasObs.length * 6;
-    });
-  }
-
-  const pontosDoHeader = pontosFixosDoAnelAtivo();
-  if(mostrarPontosFixos && pontosDoHeader.length > 0){
-    y += 2;
-    if(y > 260){ doc.addPage(); y = 20; }
-    doc.setFont(undefined,'bold'); doc.text('Pontos fixos:', 15, y); y += 6;
-    doc.setFont(undefined,'normal');
-    const ordenados = [...pontosDoHeader].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
-    ordenados.forEach(pf=>{
-      if(y > 273){ doc.addPage(); y = 20; }
-      doc.text(`• ${pf.nome} — E: ${fmt3(pf.x)}  N: ${fmt3(pf.y)}  Z: ${fmt3(pf.z)}`, 18, y);
-      y += 6;
     });
   }
 
@@ -2178,7 +1758,7 @@ function renderHistoricoExportacoes(){
   }
   if(vazio) vazio.style.display = 'none';
 
-  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado', topografia:'Topografia' };
+  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado' };
 
   lista.innerHTML = historicoExportacoes.map(reg=>{
     const quando = reg.criado_em ? new Date(reg.criado_em).toLocaleString('pt-BR') : '-';
@@ -2227,141 +1807,6 @@ async function exportarTurnoPDF(){
     : 'PDF do turno exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
 }
 
-// Relatório dedicado de topografia — pontos fixos em tabela e quais furos do anel
-// ativo já tiveram a boca levantada. Não mostra esperada/real/diferença: isso é
-// assunto do relatório de perfilagem, não deste.
-async function exportarTopografiaPDF(){
-  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let y = desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO DE TOPOGRAFIA', mostrarPontosFixos:false });
-
-  // ---- Pontos fixos, como tabela (só os marcados na checklist) ----
-  const pontosParaExportar = pontosFixosDoAnelAtivo().filter(pf=>!pontosFixosExcluidos.has(pf.id));
-
-  doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-  doc.text('Pontos fixos', 15, y); y += 9;
-
-  if(pontosParaExportar.length === 0){
-    doc.setFont(undefined,'italic'); doc.setFontSize(PDF_FONT_AVISO); doc.setTextColor(120);
-    doc.text(pontosFixos.length === 0 ? 'Nenhum ponto fixo cadastrado.' : 'Nenhum ponto fixo selecionado.', 15, y); y += 10;
-    doc.setFont(undefined,'normal'); doc.setTextColor(0);
-  }else{
-    doc.setFillColor(25,18,49); doc.rect(15, y-5, 180, 8, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(PDF_FONT_CABECALHO); doc.setFont(undefined,'bold');
-    doc.text('Nome', 17, y);
-    doc.text('Este (X)', 100, y, { align:'right' });
-    doc.text('Norte (Y)', 145, y, { align:'right' });
-    doc.text('Cota (Z)', 190, y, { align:'right' });
-    doc.setTextColor(0,0,0); y += 8;
-    doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
-
-    const pfOrdenados = [...pontosParaExportar].sort((a,b)=> a.nome.localeCompare(b.nome, undefined, {numeric:true}));
-    pfOrdenados.forEach(pf=>{
-      if(y > 273){ doc.addPage(); y = 20; }
-      doc.text(pf.nome, 17, y);
-      doc.text(fmt3(pf.x), 100, y, { align:'right' });
-      doc.text(fmt3(pf.y), 145, y, { align:'right' });
-      doc.text(fmt3(pf.z), 190, y, { align:'right' });
-      doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
-      y += 8;
-    });
-    y += 6;
-  }
-
-  // ---- Furos topografados manualmente (sem perfilagem ainda), agrupados por leque ----
-  if(y > 260){ doc.addPage(); y = 20; }
-  doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
-
-  let totalFurosGeral = 0, totalTopografadosGeral = 0;
-  const codigosLequesExportados = [];
-
-  // mesma regra: a exclusão é por leque manual inteiro, não furo a furo.
-  const manuaisParaExportar = topografiaManual.filter(item=>{
-    const codigoLeque = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
-    return !furosTopoLequesExcluidos.has(`manual:${codigoLeque}`);
-  });
-  if(manuaisParaExportar.length > 0){
-    const manuaisAgrupados = new Map();
-    manuaisParaExportar.forEach(item=>{
-      const codigo = (PREFIXO[item.tipoLeque] || '') + item.numeroLeque;
-      if(!manuaisAgrupados.has(codigo)) manuaisAgrupados.set(codigo, { tipoLeque: item.tipoLeque, itens: [] });
-      manuaisAgrupados.get(codigo).itens.push(item);
-    });
-
-    const codigosOrdenados = [...manuaisAgrupados.keys()].sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
-    codigosOrdenados.forEach((codigo, idx)=>{
-      codigosLequesExportados.push(codigo);
-      const grupo = manuaisAgrupados.get(codigo);
-      const itensOrdenados = [...grupo.itens].sort((a,b)=> codigoTopoManual(a).localeCompare(codigoTopoManual(b), undefined, {numeric:true}));
-
-      if(y > 260){ doc.addPage(); y = 20; }
-      doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-      doc.text(tipoLabel(grupo.tipoLeque) + ': ' + codigo, 15, y); y += 9;
-
-      // lista corrida em vez de tabela — bem mais compacto quando são só números de furo
-      doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); doc.setTextColor(60);
-      const listaFuros = itensOrdenados.map(item => 'F' + item.numeroFuro).join('   ');
-      const linhas = doc.splitTextToSize(listaFuros, 178);
-      linhas.forEach(linha=>{
-        if(y > 273){ doc.addPage(); y = 20; }
-        doc.text(linha, 17, y);
-        y += 6.5;
-      });
-      doc.setTextColor(0);
-
-      totalFurosGeral += itensOrdenados.length;
-      totalTopografadosGeral += itensOrdenados.length;
-
-      y += 4;
-      if(y > 268){ doc.addPage(); y = 20; }
-      doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
-      doc.text(`Subtotal ${codigo}: ${itensOrdenados.length} furo(s) topografado(s)`, 15, y);
-      y += 10;
-
-      // linha separando um leque do próximo (não depois do último, pra não duplicar
-      // com a linha que já antecede o TOTAL GERAL)
-      if(idx < codigosOrdenados.length - 1){
-        if(y > 273){ doc.addPage(); y = 20; }
-        doc.setDrawColor(200); doc.line(15, y, 195, y);
-        y += 8;
-      }
-    });
-  }else{
-    doc.setFont(undefined,'italic'); doc.setFontSize(PDF_FONT_AVISO); doc.setTextColor(120);
-    doc.text('Nenhum furo topografado ainda.', 15, y); y += 10;
-    doc.setFont(undefined,'normal'); doc.setTextColor(0);
-  }
-
-  if(totalFurosGeral > 0){
-    if(y > 268){ doc.addPage(); y = 20; }
-    y += 2;
-    doc.setDrawColor(25,18,49); doc.setLineWidth(0.6); doc.line(15, y, 195, y); doc.setLineWidth(0.2); y += 9;
-    doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL_GERAL);
-    doc.text(`TOTAL GERAL: ${totalTopografadosGeral} furo(s) topografado(s)`, 15, y);
-  }
-
-  adicionarMarcaDaguaPDF(doc);
-  adicionarNumeracaoPaginas(doc);
-
-  const dataArquivo = (turnoInfo.data || '').replace(/\//g,'-') || 'sem-data';
-  const nomeArquivo = ('Topografia_' + (anelAtivo ? anelAtivo.nome : 'anel') + '_' + dataArquivo).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
-
-  await baixarOuCompartilharPDF(doc, nomeArquivo);
-  const salvoNoHistorico = await registrarExportacao({
-    tipo:'topografia',
-    leques: codigosLequesExportados.join(', ') || null,
-    qtdLeques: codigosLequesExportados.length,
-    qtdFuros: totalFurosGeral,
-    nomeArquivo
-  });
-  showToast(salvoNoHistorico
-    ? 'Relatório de topografia exportado.'
-    : 'Relatório de topografia exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
-}
-
 async function exportarLequePDF(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
@@ -2387,7 +1832,6 @@ async function exportarLequePDF(id){
     const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
     doc.setTextColor(0,0,0);
     doc.text(furoCode(l,f), 17, y);
-    if(f.topografado) desenharSeloTopografado(doc, furoCode(l,f), 17, y);
     doc.text(fmt1(Number(f.metragemEsperada))+' m', 90, y, { align:'right' });
     doc.text(fmt1(Number(f.metragemReal))+' m', 122, y, { align:'right' });
     doc.setTextColor(...corRGBDiferenca(diff));
@@ -2405,13 +1849,12 @@ async function exportarLequePDF(id){
   const totalReal = furosDoLeque.reduce((s,f)=>s+Number(f.metragemReal||0),0);
   const varTotal = totalReal - totalEsp;
   const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
-  const topografados = furosDoLeque.filter(f=>f.topografado).length;
 
   doc.setFillColor(25,18,49);
   doc.rect(15, y-5, 180, 8, 'F');
   doc.setTextColor(255,255,255);
   doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
-  doc.text('Total: ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas + '  |  Topografados: ' + topografados + '/' + furosDoLeque.length, 17, y);
+  doc.text('Total: ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 17, y);
   doc.setTextColor(0,0,0);
 
   adicionarMarcaDaguaPDF(doc);
@@ -2453,18 +1896,16 @@ async function exportarLequesPDF(ids){
     const totalEsp = furosDoLeque.reduce((s,f)=>s+Number(f.metragemEsperada||0),0);
     const totalReal = furosDoLeque.reduce((s,f)=>s+Number(f.metragemReal||0),0);
     const alertas = furosDoLeque.filter(f=>f.situacao!=='livre').length;
-    const topografados = furosDoLeque.filter(f=>f.topografado).length;
-    return { leque: l, furosDoLeque, totalEsp, totalReal, alertas, topografados, varTotal: totalReal - totalEsp };
+    return { leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal: totalReal - totalEsp };
   });
 
-  let totalGeralEsp = 0, totalGeralReal = 0, totalGeralFuros = 0, alertasGeral = 0, topografadosGeral = 0;
+  let totalGeralEsp = 0, totalGeralReal = 0, totalGeralFuros = 0, alertasGeral = 0;
   let piorLeque = null;
   statsLeques.forEach(s=>{
     totalGeralEsp += s.totalEsp;
     totalGeralReal += s.totalReal;
     totalGeralFuros += s.furosDoLeque.length;
     alertasGeral += s.alertas;
-    topografadosGeral += s.topografados;
     if(!piorLeque || s.varTotal < piorLeque.diff){
       piorLeque = { codigo: lequeCode(s.leque), diff: s.varTotal, alertas: s.alertas };
     }
@@ -2475,7 +1916,7 @@ async function exportarLequesPDF(ids){
     totalEsp: totalGeralEsp, totalReal: totalGeralReal, alertas: alertasGeral, piorLeque
   });
 
-  statsLeques.forEach(({ leque: l, furosDoLeque, totalEsp, totalReal, alertas, topografados, varTotal }, idx)=>{
+  statsLeques.forEach(({ leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal }, idx)=>{
     const a = aneis.find(x=>x.id===l.anelId);
 
     if(y > 250){ doc.addPage(); y = 20; }
@@ -2492,7 +1933,6 @@ async function exportarLequesPDF(ids){
       const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
       doc.setTextColor(0,0,0);
       doc.text(furoCode(l,f), 17, y);
-      if(f.topografado) desenharSeloTopografado(doc, furoCode(l,f), 17, y);
       doc.text(fmt1(Number(f.metragemEsperada))+' m', 90, y, { align:'right' });
       doc.text(fmt1(Number(f.metragemReal))+' m', 122, y, { align:'right' });
       doc.setTextColor(...corRGBDiferenca(diff));
@@ -2507,7 +1947,7 @@ async function exportarLequesPDF(ids){
     y += 6;
     if(y > 268){ doc.addPage(); y = 20; }
     doc.setFont(undefined,'bold'); doc.setFontSize(PDF_FONT_TOTAL);
-    doc.text('Subtotal ' + lequeCode(l) + ': ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas + '  |  Topografados: ' + topografados + '/' + furosDoLeque.length, 15, y);
+    doc.text('Subtotal ' + lequeCode(l) + ': ' + furosDoLeque.length + ' furo(s)  |  Esperada: ' + fmt1(totalEsp) + ' m  |  Real: ' + fmt1(totalReal) + ' m  |  Variacao: ' + diffLabel(varTotal) + '  |  Alertas: ' + alertas, 15, y);
     y += 10;
 
     if(idx < selecionados.length - 1){
@@ -2521,7 +1961,7 @@ async function exportarLequesPDF(ids){
   doc.setDrawColor(25,18,49); doc.setLineWidth(0.6); doc.line(15, y, 195, y); doc.setLineWidth(0.2); y += 9;
   const varGeral = totalGeralReal - totalGeralEsp;
   doc.setFont(undefined,'bold');
-  const textoTotalGeral = 'TOTAL GERAL (' + selecionados.length + ' leque(s)): ' + totalGeralFuros + ' furo(s)  |  Esperada: ' + fmt1(totalGeralEsp) + ' m  |  Real: ' + fmt1(totalGeralReal) + ' m  |  Variacao: ' + diffLabel(varGeral) + '  |  Alertas: ' + alertasGeral + '  |  Topografados: ' + topografadosGeral + '/' + totalGeralFuros;
+  const textoTotalGeral = 'TOTAL GERAL (' + selecionados.length + ' leque(s)): ' + totalGeralFuros + ' furo(s)  |  Esperada: ' + fmt1(totalGeralEsp) + ' m  |  Real: ' + fmt1(totalGeralReal) + ' m  |  Variacao: ' + diffLabel(varGeral) + '  |  Alertas: ' + alertasGeral;
 
   // Encolhe a fonte só o suficiente pra caber numa linha só (até um piso legível de 8.5pt).
   // Só quebra em duas linhas se, mesmo no menor tamanho, o texto ainda não couber.
@@ -2706,12 +2146,6 @@ function renderAll(){
   atualizarBotaoEnviar();
   renderExportBar();
   renderTurnoLequesChecklist();
-  renderTurnoPontosChecklist();
-  renderTurnoFurosTopoChecklist();
-  renderPontosFixos();
-  renderFurosTopografia();
-  renderTopografiaManual();
-  renderPainelTopografiaManual();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -2765,51 +2199,13 @@ document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(chip=>{
   });
 });
 
-document.querySelectorAll('#turno-tipo-relatorio-group .chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('#turno-tipo-relatorio-group .chip').forEach(c=> c.classList.remove('active'));
-    chip.classList.add('active');
-    // "Incluir leques" só faz sentido pro relatório de perfilagem — o de topografia
-    // já lista sozinho todos os furos do anel ativo, sem precisar escolher leque a leque.
-    const campoIncluirLeques = el('turno-incluir-leques-field');
-    if(campoIncluirLeques) campoIncluirLeques.style.display = chip.dataset.val === 'topografia' ? 'none' : '';
-    if(chip.dataset.val === 'topografia') el('turno-leques-wrap').style.display = 'none';
-    else renderTurnoLequesChecklist();
-    renderTurnoPontosChecklist();
-    renderTurnoFurosTopoChecklist();
-  });
-});
-
 el('turno-leques-checklist').addEventListener('change', (e)=>{
   const chk = e.target.closest('.turno-leque-check');
   if(!chk) return;
   toggleSelecaoLeque(chk.dataset.id, chk.checked);
 });
 
-el('turno-furos-topo-checklist').addEventListener('change', (e)=>{
-  const chk = e.target.closest('.turno-furo-topo-check');
-  if(!chk) return;
-  if(chk.checked) furosTopoLequesExcluidos.delete(chk.dataset.chave);
-  else furosTopoLequesExcluidos.add(chk.dataset.chave);
-});
-
-el('turno-pontos-checklist').addEventListener('change', (e)=>{
-  const chk = e.target.closest('.turno-ponto-check');
-  if(!chk) return;
-  if(chk.checked) pontosFixosExcluidos.delete(chk.dataset.id);
-  else pontosFixosExcluidos.add(chk.dataset.id);
-});
-
 function exportarTurnoOuCombinado(){
-  const grupoTipo = el('turno-tipo-relatorio-group');
-  const tipoAtivo = grupoTipo ? grupoTipo.querySelector('.chip.active') : null;
-  const tipoRelatorio = tipoAtivo ? tipoAtivo.dataset.val : 'perfilagem';
-
-  if(tipoRelatorio === 'topografia'){
-    exportarTopografiaPDF();
-    return;
-  }
-
   const grupo = el('turno-incluir-leques-group');
   const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
   const incluirLeques = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
@@ -2832,15 +2228,6 @@ function mostrarView(viewId){
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.sidebar-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
 }
-
-// ---------- Sub-abas dentro de Topografia (Pontos Fixos / Furos Topografados / Furo Manual) ----------
-function mostrarSubTopo(subId){
-  document.querySelectorAll('.topo-subview').forEach(v=> v.classList.toggle('active', v.id === 'topo-sub-'+subId));
-  document.querySelectorAll('.topo-subtab').forEach(b=> b.classList.toggle('active', b.dataset.sub === subId));
-}
-document.querySelectorAll('.topo-subtab').forEach(btn=>{
-  btn.addEventListener('click', ()=> mostrarSubTopo(btn.dataset.sub));
-});
 
 // Menu deslizante (off-canvas) — some da tela por padrão, abre por cima do conteúdo
 // quando clica no ☰. Fecha ao escolher uma opção, clicar fora, no × ou apertar Esc.
