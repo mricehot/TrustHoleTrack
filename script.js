@@ -142,6 +142,13 @@ function atualizarStatusConexao(){
 }
 window.addEventListener('online', atualizarStatusConexao);
 window.addEventListener('offline', atualizarStatusConexao);
+
+// Quando o sinal volta (mesmo que só por um instante, no caminho de volta da mina),
+// já tenta mandar o que estiver pendente — sem depender de lembrar de clicar em
+// "Enviar Medições" ou de fechar um leque bem nesse momento.
+window.addEventListener('online', ()=>{
+  if(filaEnvio.length > 0) enviarMedicoes();
+});
 atualizarStatusConexao();
 
 // ---------- Tema claro/escuro ----------
@@ -796,7 +803,7 @@ function editFuroModal(furo){
     const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
     el('modal-cancelar').addEventListener('click', ()=> fechar(null));
     el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
-    const salvar = ()=>{
+    const salvar = async ()=>{
       const numero = normalizarNumero(el('edit-furo-numero').value.trim());
       const metragemEsperada = parseFloat(el('edit-furo-esperada').value);
       const metragemReal = parseFloat(el('edit-furo-real').value);
@@ -805,6 +812,7 @@ function editFuroModal(furo){
         showToast('Preencha número, esperada e real corretamente.');
         return;
       }
+      if(!(await confirmarMetragemSuspeita(metragemEsperada, metragemReal))) return;
       fechar({ numero, metragemEsperada, metragemReal, situacao });
     };
     el('modal-salvar').addEventListener('click', salvar);
@@ -1238,6 +1246,11 @@ async function finalizarLeque(id){
   salvarLocal();
   renderAll();
   showToast(`Leque ${lequeCode(l)} finalizado.`);
+
+  // Ao fechar o leque, já tenta subir tudo que está pendente pro banco — sem
+  // esperar o botão "Enviar Medições". Se não tiver sinal agora, fica na fila
+  // local mesmo e sincroniza normalmente quando a conexão voltar.
+  if(navigator.onLine) enviarMedicoes();
 }
 
 async function reabrirLeque(id){
@@ -1260,7 +1273,24 @@ async function reabrirLeque(id){
   showToast(`Leque ${lequeCode(l)} reaberto.`);
 }
 
-function adicionarFuro(){
+// Furos de produção raramente passam de uns 30-40m — acima disso é bem provável
+// que seja erro de digitação (ex: "90" em vez de "9.0", ou um zero sobrando).
+// Não bloqueia — só confirma antes de salvar, pra pegar o typo sem travar quem
+// realmente tem um furo fora do padrão.
+const LIMITE_METRAGEM_SUSPEITA = 50;
+function metragemPareceEstranha(valor){
+  return valor > LIMITE_METRAGEM_SUSPEITA;
+}
+async function confirmarMetragemSuspeita(metragemEsperada, metragemReal){
+  if(!metragemPareceEstranha(metragemEsperada) && !metragemPareceEstranha(metragemReal)) return true;
+  const maior = Math.max(metragemEsperada, metragemReal);
+  return confirmDialog(
+    `${fmt1(maior)}m é bem mais que o normal — confere se não faltou um ponto decimal (ex: "90" em vez de "9.0") antes de continuar.`,
+    'Salvar assim mesmo'
+  );
+}
+
+async function adicionarFuro(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo) return;
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
@@ -1275,6 +1305,7 @@ function adicionarFuro(){
   const metragemEsperada = parseFloat(el('furo-esperada').value);
   const metragemReal = parseFloat(el('furo-real').value);
   if(isNaN(metragemEsperada) || isNaN(metragemReal)) return;
+  if(!(await confirmarMetragemSuspeita(metragemEsperada, metragemReal))) return;
   const situacao = el('furo-situacao').value;
 
   const novoId = uuidv4();
