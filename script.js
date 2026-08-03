@@ -442,6 +442,19 @@ function enfileirar(tabela, acao, registro){
   salvarFila();
 }
 
+// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nível
+// cadastrado nele (ex: "N-125 TR6733") — evita digitar a mesma informação duas vezes.
+// Só sincroniza quando o anel tem um nível de fato; se estiver vazio, não apaga
+// o que a pessoa já tinha digitado em Local.
+function sincronizarLocalComNivelDoAnel(){
+  const anel = aneis.find(a=>a.id===anelAtivoId);
+  if(!anel || !anel.nivel) return;
+  const campoLocal = el('turno-local');
+  if(!campoLocal) return;
+  campoLocal.value = anel.nivel;
+  saveTurnoInfo();
+}
+
 function definirAnelAtivo(novoId){
   aneis.forEach(a=>{
     const novoAtivo = a.id === novoId;
@@ -451,6 +464,7 @@ function definirAnelAtivo(novoId){
     }
   });
   anelAtivoId = novoId;
+  sincronizarLocalComNivelDoAnel();
   // Limpa os filtros da lista de furos ao trocar de anel — um filtro (principalmente
   // a busca por texto) que fizesse sentido no anel anterior pode não bater com nada
   // no novo, fazendo a tela parecer vazia sem nenhuma pista visível do motivo.
@@ -914,6 +928,7 @@ function renderAneisMenu(){
     return `
       <div class="anel-row ${ativo?'ativo':''}">
         <span class="nome">${a.nome}</span>
+        ${a.nivel ? `<span class="hint">${a.nivel}</span>` : ''}
         ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
         <span class="spacer"></span>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este anel</button>` : ''}
@@ -1002,9 +1017,13 @@ function editAnelModal(anel){
       <div class="modal-overlay" id="modal-overlay">
         <div class="modal-box">
           <p style="font-weight:700;">Editar anel</p>
-          <div class="field" style="margin-bottom:16px;">
+          <div class="field" style="margin-bottom:14px;">
             <label for="edit-anel-nome">Nome</label>
             <input id="edit-anel-nome" type="text" value="${anel.nome}">
+          </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-anel-nivel">Nível</label>
+            <input id="edit-anel-nivel" type="text" value="${anel.nivel || ''}" placeholder="ex: N-125 TR6733">
           </div>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
@@ -1018,8 +1037,9 @@ function editAnelModal(anel){
     el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
     const salvar = ()=>{
       const nome = el('edit-anel-nome').value.trim();
+      const nivel = el('edit-anel-nivel').value.trim();
       if(!nome){ showToast('Preencha o nome do anel.'); return; }
-      fechar({ nome });
+      fechar({ nome, nivel });
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
@@ -1036,16 +1056,19 @@ function editarAnel(id){
       return;
     }
     a.nome = resultado.nome;
-    enfileirar('aneis', 'update', { id: a.id, nome: a.nome });
+    a.nivel = resultado.nivel;
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel });
+    if(a.id === anelAtivoId) sincronizarLocalComNivelDoAnel();
     salvarLocal();
     renderAll();
-    showToast(`Anel renomeado para "${a.nome}".`);
+    showToast(`Anel "${a.nome}" atualizado.`);
   });
 }
 
 function criarAnel(){
   const campoNome = el('anel-nome');
   const nome = campoNome.value.trim();
+  const nivel = el('anel-nivel').value.trim();
   campoNome.style.borderColor = '';
   el('anel-erro').textContent = '';
   if(!nome) return;
@@ -1062,13 +1085,15 @@ function criarAnel(){
       enfileirar('aneis', 'update', { id: a.id, ativo: false });
     }
   });
-  aneis.push({ id: novoId, nome, ativo: true });
+  aneis.push({ id: novoId, nome, ativo: true, nivel });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true });
+  sincronizarLocalComNivelDoAnel();
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel });
   campoNome.value = '';
+  el('anel-nivel').value = '';
   salvarLocal();
   renderAll();
   showToast('Anel criado e definido como ativo.');
@@ -1389,7 +1414,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
   showToast(`Leque ${lequeCode(lequeRemovido)} e ${furosRemovidos.length} furo(s) restaurados.`);
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '' }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
 
