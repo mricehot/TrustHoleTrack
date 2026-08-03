@@ -911,6 +911,7 @@ function renderAneisMenu(){
         ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
         <span class="spacer"></span>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este anel</button>` : ''}
+        <button class="icon icon-editar" onclick="editarAnel('${a.id}')" title="editar anel">✎</button>
         <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover anel">✕</button>
       </div>
     `;
@@ -986,6 +987,54 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
   salvarLocal();
   renderAll();
   showToast(`Anel "${anelRemovido.nome}" restaurado.`);
+}
+
+function editAnelModal(anel){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Editar anel</p>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-anel-nome">Nome</label>
+            <input id="edit-anel-nome" type="text" value="${anel.nome}">
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=>{
+      const nome = el('edit-anel-nome').value.trim();
+      if(!nome){ showToast('Preencha o nome do anel.'); return; }
+      fechar({ nome });
+    };
+    el('modal-salvar').addEventListener('click', salvar);
+    el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+  });
+}
+
+function editarAnel(id){
+  const a = aneis.find(x=>x.id===id);
+  if(!a) return;
+  editAnelModal(a).then(resultado=>{
+    if(!resultado) return;
+    if(aneis.some(x=>x.id!==id && x.nome.toLowerCase()===resultado.nome.toLowerCase())){
+      showToast(`Já existe um anel chamado "${resultado.nome}".`);
+      return;
+    }
+    a.nome = resultado.nome;
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome });
+    salvarLocal();
+    renderAll();
+    showToast(`Anel renomeado para "${a.nome}".`);
+  });
 }
 
 function criarAnel(){
@@ -2153,21 +2202,41 @@ function renderAll(){
 el('btn-enviar').addEventListener('click', enviarMedicoes);
 
 el('btn-csv').addEventListener('click', ()=>{
-  if(furos.length === 0) return;
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  if(!anelAtivo){ showToast('Selecione um anel ativo primeiro.'); return; }
+
+  // Replica exatamente o mesmo filtro que a tela usa (tipo de leque, situacao do
+  // furo, busca) -- pra exportar sempre o que a pessoa esta vendo, nao o app inteiro.
+  const tipoFiltro = el('f-tipo').value;
+  const situacaoFiltro = el('f-situacao').value;
+  const busca = el('f-busca').value.trim().toUpperCase();
+
+  let lequesDoAnel = leques.filter(l=>l.anelId===anelAtivo.id);
+  if(tipoFiltro) lequesDoAnel = lequesDoAnel.filter(l=>l.tipo===tipoFiltro);
+
+  const furosParaExportar = [];
+  lequesDoAnel.forEach(l=>{
+    let furosDoLeque = furos.filter(f=>f.lequeId===l.id);
+    if(situacaoFiltro) furosDoLeque = furosDoLeque.filter(f=>f.situacao===situacaoFiltro);
+    if(busca) furosDoLeque = furosDoLeque.filter(f=>furoCode(l,f).includes(busca) || lequeCode(l).includes(busca));
+    furosDoLeque.forEach(f=> furosParaExportar.push({ f, l }));
+  });
+
+  if(furosParaExportar.length === 0){ showToast('Nenhum furo pra exportar com esse filtro.'); return; }
+
   const header = 'anel,codigo_furo,tipo,metragem_esperada,metragem_real,diferenca,situacao,timestamp\n';
-  const rows = furos.map(f=>{
-    const l = leques.find(x=>x.id===f.lequeId) || {};
-    const a = aneis.find(x=>x.id===l.anelId) || {};
+  const rows = furosParaExportar.map(({ f, l })=>{
     const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
-    return [a.nome||'', furoCode(l,f), l.tipo||'', f.metragemEsperada, f.metragemReal, fmt1(diff), f.situacao, f.ts].join(',');
+    return [anelAtivo.nome||'', furoCode(l,f), l.tipo||'', f.metragemEsperada, f.metragemReal, fmt1(diff), f.situacao, f.ts].join(',');
   }).join('\n');
   const blob = new Blob([header+rows], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'perfilagem-furos.csv';
+  a.download = `perfilagem-furos-${anelAtivo.nome.replace(/[^a-zA-Z0-9_-]+/g,'_')}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast(`${furosParaExportar.length} furo(s) exportado(s) para CSV.`);
 });
 
 ['data','tecnicos','local'].forEach(k=>{
