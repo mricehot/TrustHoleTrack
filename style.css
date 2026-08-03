@@ -593,7 +593,11 @@
   th{ font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:600; }
   td{ font-family:var(--mono); }
   tr:last-child td{ border-bottom:none; }
-  .status-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+  .status-dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle;
+    cursor:pointer; box-shadow:0 0 0 5px transparent; transition:box-shadow .15s ease;
+  }
+  .status-dot:hover{ box-shadow:0 0 0 5px var(--surface-2); }
   .status-dot.livre{ background:var(--moss); }
   .status-dot.obstruido{ background:var(--amber); }
   .status-dot.varado{ background:var(--steel); }
@@ -610,8 +614,15 @@
     background:var(--surface-2); border:1px solid var(--amber); color:var(--text);
     padding:9px 16px; border-radius:5px; font-size:13px; font-family:var(--mono);
     opacity:0; transition:opacity 0.25s; pointer-events:none;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap; max-width:calc(100vw - 32px);
   }
-  .toast.show{ opacity:1; }
+  .toast.show{ opacity:1; pointer-events:auto; }
+  .toast-acao{
+    background:var(--steel); color:#fff; border:none; border-radius:4px;
+    padding:6px 12px; font-family:var(--sans); font-size:12px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.3px; cursor:pointer; flex-shrink:0;
+    min-height:0; box-shadow:none;
+  }
 
   .modal-overlay{
     position:fixed; inset:0; background:rgba(25,18,49,0.45);

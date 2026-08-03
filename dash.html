@@ -127,7 +127,7 @@
                 </div>
                 <div class="field">
                   <label for="leque-numero">Número</label>
-                  <input id="leque-numero" type="text" placeholder="ex: 01 ou 05" required>
+                  <input id="leque-numero" type="text" inputmode="numeric" placeholder="ex: 01 ou 05" required>
                 </div>
                 <div class="field">
                   <label for="leque-nome">Observação (opcional)</label>
@@ -145,15 +145,15 @@
               <div class="grid-4">
                 <div class="field">
                   <label for="furo-numero">Número</label>
-                  <input id="furo-numero" type="text" placeholder="ex: 01 ou 07" required>
+                  <input id="furo-numero" type="text" inputmode="numeric" placeholder="ex: 01 ou 07" required>
                 </div>
                 <div class="field">
                   <label for="furo-esperada">Esperada (m)</label>
-                  <input id="furo-esperada" type="number" step="0.1" min="0" placeholder="0.0" required>
+                  <input id="furo-esperada" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0" required>
                 </div>
                 <div class="field">
                   <label for="furo-real">Real (m)</label>
-                  <input id="furo-real" type="number" step="0.1" min="0" placeholder="0.0" required>
+                  <input id="furo-real" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0" required>
                 </div>
                 <div class="field">
                   <label for="furo-situacao">Situação</label>
@@ -369,7 +369,7 @@
                   </div>
                   <div class="field">
                     <label for="tm-leque-numero">Número do leque</label>
-                    <input id="tm-leque-numero" type="text" placeholder="ex: 04">
+                    <input id="tm-leque-numero" type="text" inputmode="numeric" placeholder="ex: 04">
                   </div>
                 </div>
                 <button type="button" id="btn-abrir-leque-tm" class="steel" style="margin-top:14px;">Abrir leque</button>
@@ -384,7 +384,7 @@
                 </div>
                 <div class="field" style="margin-top:10px;">
                   <label for="tm-furo-numero">Número do furo</label>
-                  <input id="tm-furo-numero" type="text" placeholder="ex: 05">
+                  <input id="tm-furo-numero" type="text" inputmode="numeric" placeholder="ex: 05">
                 </div>
                 <button type="button" id="btn-add-tm" class="steel" style="margin-top:14px;">+ Adicionar furo topografado</button>
               </div>

@@ -660,12 +660,27 @@ async function loadData(){
 
 const historicoToasts = []; // { texto, ts } — últimos avisos, pra quem perdeu o toast na hora
 
-function showToast(msg){
+function showToast(msg, opcoes){
+  opcoes = opcoes || {};
   const t = el('toast');
-  t.textContent = msg;
-  t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer = setTimeout(()=> t.classList.remove('show'), 2200);
+
+  if(opcoes.acaoLabel && opcoes.onAcao){
+    t.innerHTML = `<span>${msg}</span><button type="button" class="toast-acao">${opcoes.acaoLabel}</button>`;
+    t.querySelector('.toast-acao').addEventListener('click', ()=>{
+      clearTimeout(t._timer);
+      t.classList.remove('show');
+      opcoes.onAcao();
+    });
+  }else{
+    t.textContent = msg;
+  }
+
+  t.classList.add('show');
+  // com botão de ação, fica mais tempo na tela — precisa de uma folga pra dar
+  // tempo de ler e decidir se quer desfazer, não só "ver passar".
+  const duracao = opcoes.acaoLabel ? 5000 : 2200;
+  t._timer = setTimeout(()=> t.classList.remove('show'), duracao);
 
   historicoToasts.unshift({ texto: msg, ts: Date.now() });
   if(historicoToasts.length > 30) historicoToasts.length = 30;
@@ -797,6 +812,25 @@ function editFuroModal(furo){
       el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
     });
   });
+}
+
+// Clique direto na bolinha de status cicla Livre → Obstruído → Varado → Livre,
+// sem precisar abrir o modal de edição só pra isso — mais rápido num turno corrido.
+const ORDEM_SITUACAO = ['livre', 'obstruido', 'varado'];
+function ciclarSituacaoFuro(id){
+  const f = furos.find(x=>x.id===id);
+  if(!f) return;
+  const l = leques.find(x=>x.id===f.lequeId);
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode editar os furos dele.');
+    return;
+  }
+  const proxima = ORDEM_SITUACAO[(ORDEM_SITUACAO.indexOf(f.situacao) + 1) % ORDEM_SITUACAO.length];
+  f.situacao = proxima;
+  enfileirar('furos', 'update', { id: f.id, situacao: proxima });
+  salvarLocal();
+  renderAll();
+  showToast(`${furoCode(l,f)}: ${situacaoLabel(proxima)}.`);
 }
 
 function editarFuro(id){
@@ -999,27 +1033,64 @@ function usarAnel(id){
 async function removerAnel(id){
   const a = aneis.find(x=>x.id===id);
   if(!a) return;
-  const lequesDoAnel = leques.filter(l=>l.anelId===id).map(l=>l.id);
-  const furoIds = furos.filter(f=>lequesDoAnel.includes(f.lequeId)).map(f=>f.id);
-  const msg = `Remover o anel "${a.nome}", ${lequesDoAnel.length} leque(s) e ${furoIds.length} furo(s)? Esta ação não pode ser desfeita.`;
+  const lequesDoAnel = leques.filter(l=>l.anelId===id);
+  const furosDoAnel = furos.filter(f=>lequesDoAnel.some(l=>l.id===f.lequeId));
+  const msg = `Remover o anel "${a.nome}", ${lequesDoAnel.length} leque(s) e ${furosDoAnel.length} furo(s)?`;
   if(!(await confirmDialog(msg, 'Remover'))) return;
+
+  const anelRemovido = { ...a };
+  const lequesRemovidos = lequesDoAnel.map(l=>({ ...l }));
+  const furosRemovidos = furosDoAnel.map(f=>({ ...f }));
+  const eraAnelAtivo = anelAtivoId === id;
 
   aneis = aneis.filter(x=>x.id!==id);
   leques = leques.filter(l=>l.anelId!==id);
-  furos = furos.filter(f=>!lequesDoAnel.includes(f.lequeId));
+  furos = furos.filter(f=>!lequesDoAnel.some(l=>l.id===f.lequeId));
 
-  lequesDoAnel.forEach(lid=> removerDaFila('leques', lid));
-  furoIds.forEach(fid=> removerDaFila('furos', fid));
+  lequesRemovidos.forEach(l=> removerDaFila('leques', l.id));
+  furosRemovidos.forEach(f=> removerDaFila('furos', f.id));
   enfileirar('aneis', 'delete', { id });
 
-  if(anelAtivoId === id){
+  if(eraAnelAtivo){
     const restante = aneis[0];
     if(restante) definirAnelAtivo(restante.id);
     else anelAtivoId = null;
   }
   salvarLocal();
   renderAll();
-  showToast('Anel removido.');
+  showToast(`Anel "${a.nome}" removido.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraAnelAtivo)
+  });
+}
+
+function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraAnelAtivo){
+  if(aneis.some(a=>a.id===anelRemovido.id)) return; // já foi restaurado
+
+  aneis.push(anelRemovido);
+  restaurarNaFila('aneis', anelRemovido.id, { id: anelRemovido.id, nome: anelRemovido.nome, ativo: anelRemovido.ativo });
+
+  lequesRemovidos.forEach(l=>{
+    leques.push(l);
+    restaurarNaFila('leques', l.id, {
+      id: l.id, anel_id: l.anelId, tipo: l.tipo, numero: l.numero, nome: l.nome,
+      status: l.status, orientacao: l.orientacao, turno_numero: l.turnoNumero,
+      turno_letra: l.turnoLetra, criado_por: l.criadoPor
+    });
+  });
+
+  furosRemovidos.forEach(f=>{
+    furos.push(f);
+    restaurarNaFila('furos', f.id, {
+      id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
+      metragem_real: f.metragemReal, situacao: f.situacao, topografado: !!f.topografado
+    });
+  });
+
+  if(eraAnelAtivo) anelAtivoId = anelRemovido.id;
+  salvarLocal();
+  renderAll();
+  showToast(`Anel "${anelRemovido.nome}" restaurado.`);
 }
 
 function criarAnel(){
@@ -1222,22 +1293,74 @@ function adicionarFuro(){
   showToast(`Furo ${furoCode(lequeAberto, novoFuro)} registrado.`);
 }
 el('btn-add-furo').addEventListener('click', adicionarFuro);
-['furo-numero','furo-esperada','furo-real'].forEach(id=>{
-  el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarFuro(); } });
+// Enter pula pro próximo campo (como Tab) em vez de tentar salvar toda hora —
+// antes, apertar Enter em "Número" já tentava enviar o furo e falhava calado
+// porque Esperada/Real ainda estavam vazios.
+const ORDEM_CAMPOS_FURO = ['furo-numero','furo-esperada','furo-real'];
+ORDEM_CAMPOS_FURO.forEach((id, i)=>{
+  el(id).addEventListener('keydown', (e)=>{
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    const proximo = ORDEM_CAMPOS_FURO[i+1];
+    if(proximo) el(proximo).focus();
+    else adicionarFuro();
+  });
 });
 
-function removerFuro(id){
+// Restaura um furo removido. Se a exclusão ainda estava só na fila local (nunca
+// chegou a sincronizar), simplesmente cancela ela — o furo no servidor nem chegou
+// a ser tocado. Só faz um "insert" novo se realmente não tinha mais nada pendente
+// pra cancelar (furo criado e removido na mesma sessão, por exemplo).
+// Restaura algo apagado, do jeito seguro pra fila de sincronização: se a exclusão
+// ainda estava só pendente localmente (nunca chegou a sincronizar), simplesmente
+// cancela ela — o registro no servidor nem foi tocado. Só manda um "insert" novo
+// se realmente não tinha mais nada pra cancelar (criado e removido na mesma sessão).
+function restaurarNaFila(tabela, id, payloadInsert){
+  const tinhaDeletePendente = filaEnvio.some(item=>
+    item.tabela === tabela && item.acao === 'delete' && item.registro.id === id
+  );
+  if(tinhaDeletePendente){
+    removerDaFila(tabela, id);
+    salvarFila();
+  }else{
+    enfileirar(tabela, 'insert', payloadInsert);
+  }
+}
+
+function desfazerRemocaoFuro(furoRemovido){
+  if(furos.some(f=>f.id===furoRemovido.id)) return; // já foi restaurado (ex: clique duplo)
+  furos.push(furoRemovido);
+  restaurarNaFila('furos', furoRemovido.id, {
+    id: furoRemovido.id, leque_id: furoRemovido.lequeId, numero: furoRemovido.numero,
+    metragem_esperada: furoRemovido.metragemEsperada, metragem_real: furoRemovido.metragemReal,
+    situacao: furoRemovido.situacao, topografado: !!furoRemovido.topografado
+  });
+  salvarLocal();
+  renderAll();
+  showToast('Remoção desfeita.');
+}
+
+async function removerFuro(id){
   const f = furos.find(x=>x.id===id);
   const l = f ? leques.find(x=>x.id===f.lequeId) : null;
   if(!souDonoDoLeque(l)){
     showToast('Só quem criou este leque pode remover os furos dele.');
     return;
   }
+  if(!f) return;
+  const codigo = l ? furoCode(l, f) : `furo nº ${f.numero}`;
+  if(!(await confirmDialog(`Remover o furo ${codigo}?`, 'Remover'))) return;
+
+  const furoRemovido = { ...f }; // cópia, pra dar pra restaurar se a pessoa clicar em "Desfazer"
   furos = furos.filter(f=>f.id!==id);
   enfileirar('furos', 'delete', { id });
   salvarLocal();
   renderAll();
-  showToast('Furo removido.');
+
+  showToast(`Furo ${codigo} removido.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoFuro(furoRemovido)
+  });
 }
 
 async function removerLeque(id){
@@ -1251,6 +1374,9 @@ async function removerLeque(id){
   const qtd = furosDoLeque.length;
   if(!(await confirmDialog(`Remover o leque ${lequeCode(l)} e seus ${qtd} furo(s)?`, 'Remover'))) return;
 
+  const lequeRemovido = { ...l };
+  const furosRemovidos = furosDoLeque.map(f=>({ ...f }));
+
   leques = leques.filter(x=>x.id!==id);
   furos = furos.filter(f=>f.lequeId!==id);
   furosDoLeque.forEach(f=> removerDaFila('furos', f.id));
@@ -1258,7 +1384,33 @@ async function removerLeque(id){
 
   salvarLocal();
   renderAll();
-  showToast('Leque removido.');
+  showToast(`Leque ${lequeCode(l)} removido.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoLeque(lequeRemovido, furosRemovidos)
+  });
+}
+
+function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
+  if(leques.some(l=>l.id===lequeRemovido.id)) return; // já foi restaurado
+  leques.push(lequeRemovido);
+  restaurarNaFila('leques', lequeRemovido.id, {
+    id: lequeRemovido.id, anel_id: lequeRemovido.anelId, tipo: lequeRemovido.tipo,
+    numero: lequeRemovido.numero, nome: lequeRemovido.nome, status: lequeRemovido.status,
+    orientacao: lequeRemovido.orientacao, turno_numero: lequeRemovido.turnoNumero,
+    turno_letra: lequeRemovido.turnoLetra, criado_por: lequeRemovido.criadoPor
+  });
+
+  furosRemovidos.forEach(f=>{
+    furos.push(f);
+    restaurarNaFila('furos', f.id, {
+      id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
+      metragem_real: f.metragemReal, situacao: f.situacao, topografado: !!f.topografado
+    });
+  });
+
+  salvarLocal();
+  renderAll();
+  showToast(`Leque ${lequeCode(lequeRemovido)} e ${furosRemovidos.length} furo(s) restaurados.`);
 }
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo }; }
@@ -1376,12 +1528,31 @@ function criarPontoFixo(){
   showToast(`Ponto fixo "${nome}" adicionado.`);
 }
 
-function removerPontoFixo(id){
+async function removerPontoFixo(id){
+  const pf = pontosFixos.find(x=>x.id===id);
+  if(!pf) return;
+  if(!(await confirmDialog(`Remover o ponto fixo "${pf.nome}"?`, 'Remover'))) return;
+
   pontosFixos = pontosFixos.filter(pf=>pf.id!==id);
   enfileirar('pontos_fixos', 'delete', { id });
   salvarPontosFixosLocal();
   renderPontosFixos();
-  showToast('Ponto fixo removido.');
+  showToast(`Ponto fixo "${pf.nome}" removido.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoPontoFixo(pf)
+  });
+}
+
+function desfazerRemocaoPontoFixo(pontoRemovido){
+  if(pontosFixos.some(p=>p.id===pontoRemovido.id)) return; // já foi restaurado
+  pontosFixos.push(pontoRemovido);
+  restaurarNaFila('pontos_fixos', pontoRemovido.id, {
+    id: pontoRemovido.id, nome: pontoRemovido.nome, x: pontoRemovido.x, y: pontoRemovido.y,
+    z: pontoRemovido.z, anel_id: pontoRemovido.anelId
+  });
+  salvarPontosFixosLocal();
+  renderPontosFixos();
+  showToast('Ponto fixo restaurado.');
 }
 
 el('btn-add-pf').addEventListener('click', criarPontoFixo);
@@ -1567,12 +1738,32 @@ function criarTopografiaManual(){
   showToast(`${codigoTopoManual(novoItem)} adicionado como topografado.`);
 }
 
-function removerTopografiaManual(id){
+async function removerTopografiaManual(id){
+  const item = topografiaManual.find(t=>t.id===id);
+  if(!item) return;
+  const codigo = codigoTopoManual(item);
+  if(!(await confirmDialog(`Remover o furo topografado ${codigo}?`, 'Remover'))) return;
+
   topografiaManual = topografiaManual.filter(t=>t.id!==id);
   enfileirar('topografia_manual', 'delete', { id });
   salvarTopografiaManualLocal();
   renderTopografiaManual();
-  showToast('Removido da lista.');
+  showToast(`Furo ${codigo} removido da lista.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoTopografiaManual(item)
+  });
+}
+
+function desfazerRemocaoTopografiaManual(itemRemovido){
+  if(topografiaManual.some(t=>t.id===itemRemovido.id)) return; // já foi restaurado
+  topografiaManual.push(itemRemovido);
+  restaurarNaFila('topografia_manual', itemRemovido.id, {
+    id: itemRemovido.id, tipo_leque: itemRemovido.tipoLeque,
+    numero_leque: itemRemovido.numeroLeque, numero_furo: itemRemovido.numeroFuro
+  });
+  salvarTopografiaManualLocal();
+  renderTopografiaManual();
+  showToast('Removido da lista, restaurado.');
 }
 
 el('btn-abrir-leque-tm').addEventListener('click', abrirLequeTopografico);
@@ -1629,12 +1820,31 @@ function adicionarObservacaoTurno(){
   showToast('Observação adicionada.');
 }
 
-function removerObservacaoTurno(id){
+async function removerObservacaoTurno(id){
+  const o = turnoObservacoes.find(x=>x.id===id);
+  if(!o) return;
+  if(!(await confirmDialog('Remover esta observação do turno?', 'Remover'))) return;
+
   turnoObservacoes = turnoObservacoes.filter(o=>o.id!==id);
   enfileirar('turno_observacoes', 'delete', { id });
   salvarObsLocal();
   renderObservacoesTurno();
-  showToast('Observação removida.');
+  showToast('Observação removida.', {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoObservacao(o)
+  });
+}
+
+function desfazerRemocaoObservacao(obsRemovida){
+  if(turnoObservacoes.some(o=>o.id===obsRemovida.id)) return; // já foi restaurado
+  turnoObservacoes.push(obsRemovida);
+  restaurarNaFila('turno_observacoes', obsRemovida.id, {
+    id: obsRemovida.id, data: obsRemovida.data, turno_numero: obsRemovida.turnoNumero,
+    turno_letra: obsRemovida.turnoLetra, texto: obsRemovida.texto
+  });
+  salvarObsLocal();
+  renderObservacoesTurno();
+  showToast('Observação restaurada.');
 }
 
 el('btn-add-obs').addEventListener('click', adicionarObservacaoTurno);
@@ -2377,7 +2587,7 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td><span class="status-dot ${f.situacao}"></span>${furoCode(l,f)}</td>
+          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}</td>
           <td>${fmt1(Number(f.metragemEsperada))} m</td>
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
@@ -2632,8 +2842,26 @@ document.querySelectorAll('.sidebar-item').forEach(btn=>{
 let appJaIniciado = false;
 let usuarioAtual = null; // { id, email } — usado pra saber quem pode editar/apagar o quê
 
+// Guarda quem logou por último nesse aparelho, pra continuar liberando o app mesmo
+// se a consulta de sessão falhar por falta de rede (comum em turno de 8h no subsolo,
+// sem sinal) — só é limpo num logout explícito.
+const SESSAO_CACHE_KEY = 'perfilagem-sessao-cache-v1';
+function salvarSessaoCache(usuario){
+  try{ localStorage.setItem(SESSAO_CACHE_KEY, JSON.stringify(usuario)); }catch(e){}
+}
+function lerSessaoCache(){
+  try{
+    const raw = localStorage.getItem(SESSAO_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function limparSessaoCache(){
+  try{ localStorage.removeItem(SESSAO_CACHE_KEY); }catch(e){}
+}
+
 function mostrarApp(user){
   usuarioAtual = user ? { id: user.id, email: user.email } : null;
+  if(usuarioAtual) salvarSessaoCache(usuarioAtual);
   el('login-screen').style.display = 'none';
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
@@ -2692,6 +2920,7 @@ async function fazerLogin(){
 async function fazerLogout(){
   if(!(await confirmDialog('Sair do BlastHole Manager?', 'Sair'))) return;
   await db.auth.signOut();
+  limparSessaoCache();
   mostrarLogin();
 }
 
@@ -2705,23 +2934,45 @@ el('btn-logout').addEventListener('click', fazerLogout);
 // Supabase persiste o token no localStorage) — se tiver, entra direto sem pedir login
 // de novo; se não tiver (ou expirou), mostra a tela de login.
 async function verificarSessaoInicial(){
+  const cache = lerSessaoCache();
   try{
     const { data } = await db.auth.getSession();
     if(data && data.session){
       mostrarApp(data.session.user);
       iniciarApp();
+      return;
+    }
+    // O SDK diz que não tem sessão. Se estiver online, confia nisso — é um
+    // "deslogado" de verdade. Se estiver offline e já tinha logado antes nesse
+    // aparelho, deixa continuar (pode só ser o token que não conseguiu renovar
+    // sem sinal, o que é esperado num turno de horas no subsolo).
+    if(navigator.onLine || !cache){
+      mostrarLogin();
+    }else{
+      mostrarApp(cache);
+      iniciarApp();
+    }
+  }catch(e){
+    // Erro ao consultar a sessão — bem comum sem conexão. Se já logou antes
+    // nesse aparelho, deixa trabalhar localmente em vez de travar o turno inteiro.
+    if(cache){
+      mostrarApp(cache);
+      iniciarApp();
     }else{
       mostrarLogin();
     }
-  }catch(e){
-    mostrarLogin();
   }
 }
 
 // Reage a mudanças de sessão (login em outra aba, token expirado, logout remoto etc.)
 db.auth.onAuthStateChange((evento, session)=>{
   if(evento === 'SIGNED_OUT'){
-    mostrarLogin();
+    // Defesa extra: um SIGNED_OUT disparado sem sinal (renovação de token que falhou
+    // por falta de rede, não por logout de verdade) não deve travar quem já estava
+    // trabalhando. Só força a tela de login se estiver online ou nunca logou aqui.
+    if(navigator.onLine || !lerSessaoCache()){
+      mostrarLogin();
+    }
   }else if(evento === 'SIGNED_IN' && session){
     mostrarApp(session.user);
     iniciarApp();
