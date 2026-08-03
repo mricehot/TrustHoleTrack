@@ -451,6 +451,12 @@ function definirAnelAtivo(novoId){
     }
   });
   anelAtivoId = novoId;
+  // Limpa os filtros da lista de furos ao trocar de anel — um filtro (principalmente
+  // a busca por texto) que fizesse sentido no anel anterior pode não bater com nada
+  // no novo, fazendo a tela parecer vazia sem nenhuma pista visível do motivo.
+  if(el('f-tipo')) el('f-tipo').value = '';
+  if(el('f-situacao')) el('f-situacao').value = '';
+  if(el('f-busca')) el('f-busca').value = '';
 }
 
 // ---------- Envio manual da fila (quando voltar o sinal) ----------
@@ -1058,6 +1064,9 @@ function criarAnel(){
   });
   aneis.push({ id: novoId, nome, ativo: true });
   anelAtivoId = novoId;
+  if(el('f-tipo')) el('f-tipo').value = '';
+  if(el('f-situacao')) el('f-situacao').value = '';
+  if(el('f-busca')) el('f-busca').value = '';
   enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true });
   campoNome.value = '';
   salvarLocal();
