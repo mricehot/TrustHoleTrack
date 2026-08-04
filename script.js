@@ -191,6 +191,56 @@ function toggleLeque(id){
 
 // Menu "⋮" com as ações menos usadas do leque (reabrir, remover) — mantém o
 // cabeçalho enxuto, só ✎ editar e ⬇ PDF ficam sempre visíveis.
+// ---------- Foto do leque (Supabase Storage) ----------
+// Precisa de internet no momento do envio — diferente do resto do app, uma
+// foto não entra na fila offline (é um arquivo binário, não um dado simples
+// de sincronizar depois). O resto do app continua funcionando sem sinal.
+function selecionarFotoLeque(id){
+  const l = leques.find(x=>x.id===id);
+  if(!l) return;
+  if(!souDonoDoLeque(l)){ showToast('Só quem criou este leque pode adicionar foto.'); return; }
+  if(!navigator.onLine){ showToast('Precisa de internet pra enviar uma foto.'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // no celular, já abre a câmera direto
+  input.addEventListener('change', ()=>{
+    const arquivo = input.files[0];
+    if(arquivo) enviarFotoLeque(l, arquivo);
+  });
+  input.click();
+}
+
+async function enviarFotoLeque(leque, arquivo){
+  showToast('Enviando foto...');
+  try{
+    const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
+    const caminho = `${leque.id}-${Date.now()}.${extensao}`;
+    const { error: erroUpload } = await db.storage.from('fotos-leque').upload(caminho, arquivo, { upsert: true });
+    if(erroUpload) throw erroUpload;
+    const { data } = db.storage.from('fotos-leque').getPublicUrl(caminho);
+    leque.fotoUrl = data.publicUrl;
+    enfileirar('leques', 'update', { id: leque.id, foto_url: leque.fotoUrl });
+    salvarLocal();
+    renderAll();
+    showToast(`Foto de ${lequeCode(leque)} adicionada.`);
+  }catch(e){
+    showToast(`Não foi possível enviar a foto: ${e && e.message ? e.message : e}`);
+  }
+}
+
+async function removerFotoLeque(id){
+  const l = leques.find(x=>x.id===id);
+  if(!l) return;
+  if(!souDonoDoLeque(l)){ showToast('Só quem criou este leque pode remover a foto.'); return; }
+  if(!(await confirmDialog(`Remover a foto de ${lequeCode(l)}?`, 'Remover'))) return;
+  l.fotoUrl = null;
+  enfileirar('leques', 'update', { id: l.id, foto_url: null });
+  salvarLocal();
+  renderAll();
+  showToast('Foto removida.');
+}
+
 function toggleMenuLeque(evento, id){
   evento.stopPropagation();
   const menu = document.getElementById('menu-mais-' + id);
@@ -465,12 +515,17 @@ function enfileirar(tabela, acao, registro){
 // do anel + o nível cadastrado nele (ex: "Galeria N3-Leste · N-125 TR6733") — evita
 // digitar a mesma informação duas vezes. Só sincroniza quando o anel tem um nível de
 // fato; se estiver vazio, não apaga o que a pessoa já tinha digitado em Local.
+// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o
+// código/nome do anel — e o nível também, se estiver cadastrado (ex: "32PE12"
+// ou "32PE12 · N-125 TR6733"). Antes só sincronizava quando tinha nível
+// preenchido, o que deixava o Local sem atualizar pra quem usa o próprio
+// código do anel como nome, sem separar num campo de nível.
 function sincronizarLocalComNivelDoAnel(){
   const anel = aneis.find(a=>a.id===anelAtivoId);
-  if(!anel || !anel.nivel) return;
+  if(!anel) return;
   const campoLocal = el('turno-local');
   if(!campoLocal) return;
-  campoLocal.value = `${anel.nome} · ${anel.nivel}`;
+  campoLocal.value = anel.nivel ? `${anel.nome} · ${anel.nivel}` : anel.nome;
   saveTurnoInfo();
 }
 
@@ -1025,7 +1080,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
     restaurarNaFila('leques', l.id, {
       id: l.id, anel_id: l.anelId, tipo: l.tipo, numero: l.numero, nome: l.nome,
       status: l.status, orientacao: l.orientacao, turno_numero: l.turnoNumero,
-      turno_letra: l.turnoLetra, criado_por: l.criadoPor
+      turno_letra: l.turnoLetra, criado_por: l.criadoPor, foto_url: l.fotoUrl
     });
   });
 
@@ -1434,7 +1489,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
     id: lequeRemovido.id, anel_id: lequeRemovido.anelId, tipo: lequeRemovido.tipo,
     numero: lequeRemovido.numero, nome: lequeRemovido.nome, status: lequeRemovido.status,
     orientacao: lequeRemovido.orientacao, turno_numero: lequeRemovido.turnoNumero,
-    turno_letra: lequeRemovido.turnoLetra, criado_por: lequeRemovido.criadoPor
+    turno_letra: lequeRemovido.turnoLetra, criado_por: lequeRemovido.criadoPor, foto_url: lequeRemovido.fotoUrl
   });
 
   furosRemovidos.forEach(f=>{
@@ -1451,7 +1506,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 }
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null }; }
-function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
+function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
@@ -1957,6 +2012,52 @@ async function exportarTurnoPDF(){
     : 'PDF do turno exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
 }
 
+// Busca a foto do leque e devolve já em base64 (formato que o jsPDF entende),
+// junto com as dimensões reais — pra desenhar no PDF sem esticar/espremer a
+// imagem. Se falhar por qualquer motivo (sem sinal na hora de exportar, etc.),
+// devolve null e o relatório continua normal, só sem a foto.
+async function carregarImagemParaPDF(url){
+  try{
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('falha ao buscar imagem');
+    const blob = await resp.blob();
+    const dataUrl = await new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    const dimensoes = await new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = ()=> resolve({ w: img.naturalWidth || 4, h: img.naturalHeight || 3 });
+      img.onerror = ()=> resolve({ w: 4, h: 3 });
+      img.src = dataUrl;
+    });
+    return { dataUrl, ...dimensoes };
+  }catch(e){
+    return null;
+  }
+}
+
+// Desenha a foto no PDF a partir da posição y atual, mantendo a proporção
+// (nunca estica/espreme), dentro de um tamanho máximo razoável de página.
+// Devolve o novo y, já depois da foto.
+async function desenharFotoLequePDF(doc, fotoUrl, y){
+  const foto = await carregarImagemParaPDF(fotoUrl);
+  if(!foto) return y;
+  const larguraMax = 80, alturaMax = 60;
+  let largura = larguraMax, altura = larguraMax * (foto.h / foto.w);
+  if(altura > alturaMax){ altura = alturaMax; largura = alturaMax * (foto.w / foto.h); }
+  if(y + altura > 275){ doc.addPage(); y = 20; }
+  try{
+    const formato = foto.dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+    doc.addImage(foto.dataUrl, formato, 15, y, largura, altura);
+    return y + altura + 8;
+  }catch(e){
+    return y;
+  }
+}
+
 async function exportarLequePDF(id){
   const l = leques.find(x=>x.id===id);
   if(!l) return;
@@ -1973,6 +2074,8 @@ async function exportarLequePDF(id){
   doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
   doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
   doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
+
+  if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y);
 
   y = drawHeaderTabelaPDF(doc, y);
   doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
@@ -2074,7 +2177,7 @@ async function exportarLequesPDF(ids){
     totalEsp: totalGeralEsp, totalReal: totalGeralReal, alertas: alertasGeral, piorLeque
   });
 
-  statsLeques.forEach(({ leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal }, idx)=>{
+  for(const [idx, { leque: l, furosDoLeque, totalEsp, totalReal, alertas, varTotal }] of statsLeques.entries()){
     const a = aneis.find(x=>x.id===l.anelId);
 
     if(y > 250){ doc.addPage(); y = 20; }
@@ -2082,6 +2185,8 @@ async function exportarLequesPDF(ids){
     doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
     doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
     doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
+
+    if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y);
 
     y = drawHeaderTabelaPDF(doc, y);
     doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
@@ -2120,7 +2225,7 @@ async function exportarLequesPDF(ids){
       doc.setDrawColor(200); doc.line(15, y, 195, y);
       y += 8;
     }
-  });
+  }
 
   if(y > 255){ doc.addPage(); y = 20; }
   y += 2;
@@ -2254,6 +2359,7 @@ function render(){
               </label>
               <button class="icon toggle-leque" onclick="toggleLeque('${l.id}')" title="${colapsado ? 'expandir' : 'minimizar'}">${colapsado ? '▸' : '▾'}</button>
               <div class="fan">${fanSVG(furosDoLeque, l.orientacao)}</div>
+              ${l.fotoUrl ? `<a href="${l.fotoUrl}" target="_blank" rel="noopener"><img class="foto-leque-mini" src="${l.fotoUrl}" alt="foto do leque ${lequeCode(l)}" title="ver foto em tamanho maior"></a>` : ''}
               <span class="code">${lequeCode(l)}</span>
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
@@ -2277,6 +2383,8 @@ function render(){
                 <div class="menu-mais-wrap">
                   <button class="icon" onclick="toggleMenuLeque(event, '${l.id}')" title="mais ações">⋮</button>
                   <div class="menu-mais" id="menu-mais-${l.id}">
+                    <button onclick="selecionarFotoLeque('${l.id}')">📷 ${l.fotoUrl ? 'Trocar foto' : 'Adicionar foto'}</button>
+                    ${l.fotoUrl ? `<button class="perigo" onclick="removerFotoLeque('${l.id}')">🗑 Remover foto</button>` : ''}
                     ${l.status === 'fechado' ? `<button onclick="reabrirLeque('${l.id}')">↺ Reabrir leque</button>` : ''}
                     <button class="perigo" onclick="removerLeque('${l.id}')">✕ Remover leque</button>
                   </div>

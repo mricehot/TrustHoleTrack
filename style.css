@@ -480,6 +480,10 @@
   .leque-group.aberto .leque-head-line1::after{ background:linear-gradient(to right, transparent, rgba(255,67,29,0.12)); }
   .leque-group.aberto .leque-head{ background:rgba(255,67,29,0.12); border-bottom-color:rgba(255,67,29,0.25); }
   .leque-head .fan{ flex-shrink:0; }
+  .foto-leque-mini{
+    width:28px; height:28px; border-radius:5px; object-fit:cover; flex-shrink:0;
+    border:1px solid var(--line); vertical-align:middle; cursor:pointer;
+  }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; font-size:13px; line-height:1; padding:0; flex-shrink:0;
