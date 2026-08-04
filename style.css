@@ -277,6 +277,7 @@
 .view-card.accent-amber .view-card-label{ color:var(--section-turno); }
 
 .historico-body{ padding:14px 16px; border-top:1px solid var(--line); }
+.config-body{ padding:14px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
 .historico-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
 .historico-row{
   display:flex; align-items:center; gap:6px 10px; padding:8px 10px; flex-wrap:wrap;
