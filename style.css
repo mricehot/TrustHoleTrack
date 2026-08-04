@@ -546,6 +546,8 @@
   .status-dot.livre{ background:var(--moss); }
   .status-dot.obstruido{ background:var(--amber); }
   .status-dot.varado{ background:var(--steel); }
+  .obs-indicador{ margin-left:6px; font-size:11px; cursor:help; opacity:0.75; }
+  .obs-indicador:hover{ opacity:1; }
   .diff{ font-weight:700; }
   .diff.ok{ color:var(--moss); }
   .diff.warn{ color:var(--amber); }

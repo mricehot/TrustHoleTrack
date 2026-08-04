@@ -442,16 +442,16 @@ function enfileirar(tabela, acao, registro){
   salvarFila();
 }
 
-// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nível
-// cadastrado nele (ex: "N-125 TR6733") — evita digitar a mesma informação duas vezes.
-// Só sincroniza quando o anel tem um nível de fato; se estiver vazio, não apaga
-// o que a pessoa já tinha digitado em Local.
+// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nome
+// do anel + o nível cadastrado nele (ex: "Galeria N3-Leste · N-125 TR6733") — evita
+// digitar a mesma informação duas vezes. Só sincroniza quando o anel tem um nível de
+// fato; se estiver vazio, não apaga o que a pessoa já tinha digitado em Local.
 function sincronizarLocalComNivelDoAnel(){
   const anel = aneis.find(a=>a.id===anelAtivoId);
   if(!anel || !anel.nivel) return;
   const campoLocal = el('turno-local');
   if(!campoLocal) return;
-  campoLocal.value = anel.nivel;
+  campoLocal.value = `${anel.nome} · ${anel.nivel}`;
   saveTurnoInfo();
 }
 
@@ -700,6 +700,10 @@ function editFuroModal(furo){
               <option value="varado" ${furo.situacao==='varado'?'selected':''}>Varado</option>
             </select>
           </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-furo-observacao">Observação (opcional)</label>
+            <input id="edit-furo-observacao" type="text" value="${furo.observacao || ''}" maxlength="300" placeholder="ex: desviou por veio de água">
+          </div>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -715,12 +719,13 @@ function editFuroModal(furo){
       const metragemEsperada = parseFloat(el('edit-furo-esperada').value);
       const metragemReal = parseFloat(el('edit-furo-real').value);
       const situacao = el('edit-furo-situacao').value;
+      const observacao = el('edit-furo-observacao').value.trim();
       if(!numero || isNaN(metragemEsperada) || isNaN(metragemReal)){
         showToast('Preencha número, esperada e real corretamente.');
         return;
       }
       if(!(await confirmarMetragemSuspeita(metragemEsperada, metragemReal))) return;
-      fechar({ numero, metragemEsperada, metragemReal, situacao });
+      fechar({ numero, metragemEsperada, metragemReal, situacao, observacao });
     };
     el('modal-salvar').addEventListener('click', salvar);
     ['edit-furo-numero','edit-furo-esperada','edit-furo-real'].forEach(id=>{
@@ -769,8 +774,9 @@ function editarFuro(id){
     f.metragemEsperada = resultado.metragemEsperada;
     f.metragemReal = resultado.metragemReal;
     f.situacao = resultado.situacao;
+    f.observacao = resultado.observacao;
     enfileirar('furos', 'update', {
-      id: f.id, numero: f.numero, metragem_esperada: f.metragemEsperada, metragem_real: f.metragemReal, situacao: f.situacao
+      id: f.id, numero: f.numero, metragem_esperada: f.metragemEsperada, metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
     });
     salvarLocal();
     renderAll();
@@ -1000,7 +1006,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao
+      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
     });
   });
 
@@ -1155,7 +1161,7 @@ function renderPainelTrabalho(){
   }
 
   const semLeque = !lequeAberto;
-  ['furo-numero','furo-esperada','furo-real','furo-situacao','btn-add-furo'].forEach(id=> el(id).disabled = semLeque);
+  ['furo-numero','furo-esperada','furo-real','furo-situacao','furo-observacao','btn-add-furo'].forEach(id=> el(id).disabled = semLeque);
   el('furo-hint').style.display = semLeque ? 'block' : 'none';
 }
 
@@ -1277,17 +1283,19 @@ async function adicionarFuro(){
   if(isNaN(metragemEsperada) || isNaN(metragemReal)) return;
   if(!(await confirmarMetragemSuspeita(metragemEsperada, metragemReal))) return;
   const situacao = el('furo-situacao').value;
+  const observacao = el('furo-observacao').value.trim();
 
   const novoId = uuidv4();
-  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, ts: new Date().toISOString() };
+  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, observacao, ts: new Date().toISOString() };
   furos.push(novoFuro);
   enfileirar('furos', 'insert', {
-    id: novoId, leque_id: lequeAberto.id, numero, metragem_esperada: metragemEsperada, metragem_real: metragemReal, situacao
+    id: novoId, leque_id: lequeAberto.id, numero, metragem_esperada: metragemEsperada, metragem_real: metragemReal, situacao, observacao
   });
 
   el('furo-numero').value = '';
   el('furo-esperada').value = '';
   el('furo-real').value = '';
+  el('furo-observacao').value = '';
   el('furo-numero').focus();
   salvarLocal();
   renderAll();
@@ -1334,7 +1342,7 @@ function desfazerRemocaoFuro(furoRemovido){
   restaurarNaFila('furos', furoRemovido.id, {
     id: furoRemovido.id, leque_id: furoRemovido.lequeId, numero: furoRemovido.numero,
     metragem_esperada: furoRemovido.metragemEsperada, metragem_real: furoRemovido.metragemReal,
-    situacao: furoRemovido.situacao
+    situacao: furoRemovido.situacao, observacao: furoRemovido.observacao
   });
   salvarLocal();
   renderAll();
@@ -1405,7 +1413,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao
+      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
     });
   });
 
@@ -1416,7 +1424,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '' }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
-function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, ts: row.criado_em }; }
+function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
 // A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
@@ -1922,6 +1930,14 @@ async function exportarLequePDF(id){
     doc.setTextColor(...corRGBSituacao(f.situacao));
     doc.text(situacaoLabel(f.situacao), 162, y);
     doc.setTextColor(0,0,0);
+    if(f.observacao){
+      y += 5.5;
+      if(y > 273){ doc.addPage(); y = 20; y = drawHeaderTabelaPDF(doc, y); doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); }
+      doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(110);
+      doc.text('obs: ' + f.observacao, 20, y);
+      doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); doc.setTextColor(0,0,0);
+      y += 3;
+    }
     doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
     y += 8;
   });
@@ -2023,6 +2039,14 @@ async function exportarLequesPDF(ids){
       doc.setTextColor(...corRGBSituacao(f.situacao));
       doc.text(situacaoLabel(f.situacao), 162, y);
       doc.setTextColor(0,0,0);
+      if(f.observacao){
+        y += 5.5;
+        if(y > 273){ doc.addPage(); y = 20; y = drawHeaderTabelaPDF(doc, y); doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); }
+        doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(110);
+        doc.text('obs: ' + f.observacao, 20, y);
+        doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO); doc.setTextColor(0,0,0);
+        y += 3;
+      }
       doc.setDrawColor(220); doc.line(15, y+2.5, 195, y+2.5);
       y += 8;
     });
@@ -2141,7 +2165,7 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}</td>
+          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.observacao ? `<span class="obs-indicador" title="${f.observacao.replace(/"/g,'&quot;')}">💬</span>` : ''}</td>
           <td>${fmt1(Number(f.metragemEsperada))} m</td>
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
