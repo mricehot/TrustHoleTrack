@@ -2193,7 +2193,7 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.observacao ? `<span class="obs-indicador" title="${f.observacao.replace(/"/g,'&quot;')}">💬</span>` : ''}</td>
+          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}</td>
           <td>${fmt1(Number(f.metragemEsperada))} m</td>
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
@@ -2204,7 +2204,11 @@ function render(){
             <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
             ` : `<span class="hint" title="só quem criou o leque pode editar">🔒</span>`}
           </td>
-        </tr>`;
+        </tr>
+        ${f.observacao ? `
+        <tr class="linha-obs">
+          <td colspan="6">obs: ${f.observacao}</td>
+        </tr>` : ''}`;
       }).join('');
 
       const colapsado = lequesColapsados.has(l.id);

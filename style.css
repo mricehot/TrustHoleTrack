@@ -528,8 +528,11 @@
   .status-dot.livre{ background:var(--moss); }
   .status-dot.obstruido{ background:var(--amber); }
   .status-dot.varado{ background:var(--steel); }
-  .obs-indicador{ margin-left:6px; font-size:11px; cursor:help; opacity:0.75; }
-  .obs-indicador:hover{ opacity:1; }
+  .linha-obs td{
+    padding:0 12px 8px 12px; font-family:var(--sans); font-size:12px; font-style:italic;
+    color:var(--muted); border-bottom:1px solid var(--line);
+  }
+  tr.linha-obs:last-child td{ border-bottom:none; }
   .diff{ font-weight:700; }
   .diff.ok{ color:var(--moss); }
   .diff.warn{ color:var(--amber); }
