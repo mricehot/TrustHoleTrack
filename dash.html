@@ -46,7 +46,6 @@
 <div class="wrap" id="app-wrap" style="display:none;">
 
   <header>
-    <button type="button" class="menu-open" id="btn-abrir-menu" title="Abrir menu" aria-label="Abrir menu">☰</button>
     <div class="brand">
       <svg class="brand-icon" viewBox="0 0 100 100" width="38" height="38">
         <circle cx="50" cy="50" r="9" fill="var(--amber)"/>
@@ -93,14 +92,11 @@
     </div>
   </header>
 
-  <div class="menu-overlay" id="menu-overlay"></div>
-
-  <nav class="sidebar" id="sidebar">
-    <button type="button" class="menu-close" id="btn-fechar-menu" aria-label="Fechar menu">×</button>
-    <button type="button" class="sidebar-item" data-view="turno">🕐 Dados do Turno</button>
-    <button type="button" class="sidebar-item" data-view="aneis">🗂 Anéis / Galerias</button>
-    <button type="button" class="sidebar-item active" data-view="perfilagem">📊 Perfilagem</button>
-    <button type="button" class="sidebar-item" data-view="historico">📁 Histórico</button>
+  <nav class="tabbar" id="tabbar">
+    <button type="button" class="tab-item" data-view="turno"><span class="tab-icon">🕐</span><span class="tab-label">Turno</span></button>
+    <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon">🗂</span><span class="tab-label">Anéis</span></button>
+    <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon">📊</span><span class="tab-label">Perfilagem</span></button>
+    <button type="button" class="tab-item" data-view="historico"><span class="tab-icon">📁</span><span class="tab-label">Histórico</span></button>
   </nav>
 
   <div class="app-shell">

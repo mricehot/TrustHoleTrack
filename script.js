@@ -1140,7 +1140,7 @@ function renderBreadcrumb(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   const bc = el('breadcrumb');
   if(!anelAtivo){
-    bc.innerHTML = `<span class="warn">Nenhum anel ativo — clique em "Anéis / Galerias" no menu lateral e crie ou selecione um.</span>`;
+    bc.innerHTML = `<span class="warn">Nenhum anel ativo — clique na aba "Anéis" e crie ou selecione um.</span>`;
     return;
   }
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
@@ -2155,12 +2155,12 @@ function render(){
   const lista = el('lista');
 
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="empty">Nenhum anel criado ainda.<br>Clique em "Anéis / Galerias" no menu lateral para começar.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum anel criado ainda.<br>Clique na aba "Anéis" para começar.</div>`;
     return;
   }
 
   if(!anelAtivo){
-    lista.innerHTML = `<div class="empty">Nenhum anel ativo.<br>Clique em "Anéis / Galerias" no menu lateral e selecione um.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum anel ativo.<br>Clique na aba "Anéis" e selecione um.</div>`;
     return;
   }
 
@@ -2378,34 +2378,14 @@ function exportarTurnoOuCombinado(){
 }
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
-// ---------- Menu lateral: troca entre as "páginas" do app ----------
+// ---------- Barra de abas: troca entre as "páginas" do app ----------
 function mostrarView(viewId){
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
-  document.querySelectorAll('.sidebar-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
+  document.querySelectorAll('.tab-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
 }
 
-// Menu deslizante (off-canvas) — some da tela por padrão, abre por cima do conteúdo
-// quando clica no ☰. Fecha ao escolher uma opção, clicar fora, no × ou apertar Esc.
-function abrirMenu(){
-  el('sidebar').classList.add('open');
-  el('menu-overlay').classList.add('active');
-}
-function fecharMenu(){
-  el('sidebar').classList.remove('open');
-  el('menu-overlay').classList.remove('active');
-}
-el('btn-abrir-menu').addEventListener('click', abrirMenu);
-el('btn-fechar-menu').addEventListener('click', fecharMenu);
-el('menu-overlay').addEventListener('click', fecharMenu);
-document.addEventListener('keydown', (e)=>{
-  if(e.key === 'Escape' && el('sidebar').classList.contains('open')) fecharMenu();
-});
-
-document.querySelectorAll('.sidebar-item').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    mostrarView(btn.dataset.view);
-    fecharMenu();
-  });
+document.querySelectorAll('.tab-item').forEach(btn=>{
+  btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
 });
 
 // ---------- Autenticação (Supabase Auth) ----------
