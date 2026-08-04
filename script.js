@@ -530,6 +530,7 @@ async function atualizarDoServidor(){
     turnoObservacoes = (obsData || []).map(mapObservacao);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
+    sincronizarLocalComNivelDoAnel();
     salvarLocal();
     salvarObsLocal();
     renderAll();
@@ -566,6 +567,7 @@ async function loadData(){
   carregarLocal();
   carregarUltimaSincronizacaoLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
+  sincronizarLocalComNivelDoAnel();
   renderAll();
   atualizarBotaoEnviar();
   atualizarLabelUltimaSync();
@@ -1296,6 +1298,7 @@ async function adicionarFuro(){
   el('furo-esperada').value = '';
   el('furo-real').value = '';
   el('furo-observacao').value = '';
+  el('furo-situacao').value = 'livre';
   el('furo-numero').focus();
   salvarLocal();
   renderAll();
