@@ -254,6 +254,7 @@
 .tab-item[data-view="aneis"].active{ color:var(--section-aneis); border-bottom-color:var(--section-aneis); }
 .tab-item[data-view="perfilagem"].active{ color:var(--amber); border-bottom-color:var(--amber); }
 .tab-item[data-view="historico"].active{ color:var(--moss); border-bottom-color:var(--moss); }
+.tab-item[data-view="config"].active{ color:var(--muted); border-bottom-color:var(--muted); }
 
 @media (max-width:480px){
   .tabbar{ padding:0 18px; }
@@ -504,13 +505,14 @@
   .menu-mais{
     display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60;
     background:var(--surface); border:1px solid var(--line); border-radius:6px;
-    box-shadow:0 6px 18px rgba(25,18,49,0.18); padding:4px; min-width:160px;
+    box-shadow:0 6px 18px rgba(25,18,49,0.18); padding:4px; min-width:185px;
   }
   .menu-mais.open{ display:flex; flex-direction:column; }
   .menu-mais button{
     display:block; width:100%; text-align:left; background:transparent; border:none;
     color:var(--text); font-family:var(--sans); font-size:12.5px; font-weight:600;
     text-transform:none; letter-spacing:0; padding:9px 10px; border-radius:5px; cursor:pointer;
+    white-space:nowrap;
   }
   .menu-mais button:hover{ background:var(--surface-2); }
   .menu-mais button.perigo{ color:var(--rust); }

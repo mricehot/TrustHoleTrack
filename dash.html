@@ -97,6 +97,7 @@
     <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon">🗂</span><span class="tab-label">Anéis</span></button>
     <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon">📊</span><span class="tab-label">Perfilagem</span></button>
     <button type="button" class="tab-item" data-view="historico"><span class="tab-icon">📁</span><span class="tab-label">Histórico</span></button>
+    <button type="button" class="tab-item" data-view="config"><span class="tab-icon">⚙️</span><span class="tab-label">Config</span></button>
   </nav>
 
   <div class="app-shell">
@@ -300,6 +301,29 @@
           <div class="historico-body">
             <div class="hint" id="historico-vazio" style="display:none;">Nenhuma exportação registrada ainda.</div>
             <div class="historico-list" id="historico-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-config">
+        <div class="view-card">
+          <div class="view-card-header">
+            <span class="view-card-label">Configurações</span>
+            <span class="tag">usado nos relatórios</span>
+          </div>
+          <div class="config-body">
+            <div class="grid-3">
+              <div class="field">
+                <label for="config-supervisor">Supervisor</label>
+                <input id="config-supervisor" type="text" placeholder="ex: Talles da Silveira">
+              </div>
+              <div class="field">
+                <label for="config-projeto">Projeto</label>
+                <input id="config-projeto" type="text" placeholder="ex: Ero - Pilar">
+              </div>
+            </div>
+            <div class="hint">Esses dois campos preenchem automaticamente o Supervisor e o Projeto em Dados do Turno — mude aqui uma vez, em vez de editar turno por turno.</div>
+            <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
           </div>
         </div>
       </section>

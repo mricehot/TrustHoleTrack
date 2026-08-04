@@ -1459,9 +1459,40 @@ function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.n
 // é do tipo uuid, então precisa ser um UUID de verdade — não pode ser um texto livre
 // como 'current', senão o Postgres rejeita com "invalid input syntax for type uuid".
 const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
-const SUPERVISOR_CONST = 'Talles da Silveira';
-const PROJETO_CONST = 'Ero - Pilar';
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'' };
+// Supervisor e Projeto eram fixos no código — agora ficam editáveis na aba
+// Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
+// estavam no código antes), pra quem já usa o app não ver nada em branco.
+const CONFIG_LOCAL_KEY = 'perfilagem-config-app-v1';
+let configApp = { supervisor: 'Talles da Silveira', projeto: 'Ero - Pilar' };
+function carregarConfigLocal(){
+  try{
+    const raw = localStorage.getItem(CONFIG_LOCAL_KEY);
+    if(raw) configApp = { ...configApp, ...JSON.parse(raw) };
+  }catch(e){}
+}
+function salvarConfigLocal(){
+  try{ localStorage.setItem(CONFIG_LOCAL_KEY, JSON.stringify(configApp)); }catch(e){}
+}
+function renderConfig(){
+  const campoSupervisor = el('config-supervisor');
+  const campoProjeto = el('config-projeto');
+  if(!campoSupervisor || !campoProjeto) return;
+  campoSupervisor.value = configApp.supervisor;
+  campoProjeto.value = configApp.projeto;
+}
+function salvarConfig(){
+  configApp.supervisor = el('config-supervisor').value.trim() || configApp.supervisor;
+  configApp.projeto = el('config-projeto').value.trim() || configApp.projeto;
+  salvarConfigLocal();
+  turnoInfo.supervisor = configApp.supervisor;
+  turnoInfo.projeto = configApp.projeto;
+  if(el('turno-supervisor')) el('turno-supervisor').value = configApp.supervisor;
+  if(el('turno-projeto')) el('turno-projeto').value = configApp.projeto;
+  saveTurnoInfo();
+  showToast('Configurações salvas.');
+}
+el('btn-salvar-config').addEventListener('click', salvarConfig);
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'' };
 let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
 
 function selecionarChip(grupoId, valor){
@@ -1625,8 +1656,8 @@ async function loadTurnoInfo(){
   }
 
   turnoInfo.data = new Date().toLocaleDateString('pt-BR');
-  turnoInfo.supervisor = SUPERVISOR_CONST;
-  turnoInfo.projeto = PROJETO_CONST;
+  turnoInfo.supervisor = configApp.supervisor;
+  turnoInfo.projeto = configApp.projeto;
 
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
@@ -1644,8 +1675,8 @@ function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
-  turnoInfo.supervisor = SUPERVISOR_CONST;
-  turnoInfo.projeto = PROJETO_CONST;
+  turnoInfo.supervisor = configApp.supervisor;
+  turnoInfo.projeto = configApp.projeto;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
   const chipLetra = document.querySelector('#turno-letra-group .chip.active');
   turnoInfo.turnoNumero = chipNumero ? chipNumero.dataset.val : '';
@@ -2447,6 +2478,8 @@ function souDonoDoLeque(leque){
 function iniciarApp(){
   if(appJaIniciado) return;
   appJaIniciado = true;
+  carregarConfigLocal();
+  renderConfig();
   loadTurnoInfo();
   loadData();
   loadHistoricoExportacoes();
