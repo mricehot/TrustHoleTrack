@@ -1,15 +1,21 @@
 ﻿{
-  "name": "trustholetrack-frontend",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "lint": "eslint \"**/*.js\" --max-warnings=0",
-    "format": "prettier --check \"**/*.{js,css,html,json,md}\"",
-    "format:fix": "prettier --write \"**/*.{js,css,html,json,md}\"",
-    "test": "echo \"No tests configured\" && exit 0",
-    "build": "echo \"No build step configured\" && exit 0"
-  },
-  "engines": {
-    "node": ">=14"
-  }
+    "name":  "trustholetrack-frontend",
+    "version":  "0.1.0",
+    "private":  true,
+    "scripts":  {
+                    "lint":  "eslint \"**/*.js\" --max-warnings=0",
+                    "format":  "prettier --check \"**/*.{js,css,html,json,md}\"",
+                    "format:fix":  "prettier --write \"**/*.{js,css,html,json,md}\"",
+                    "test":  "echo \"No tests configured\" \u0026\u0026 exit 0",
+                    "build":  "echo \"No build step configured\" \u0026\u0026 exit 0"
+                },
+    "engines":  {
+                    "node":  "\u003e=14"
+                },
+    "devDependencies":  {
+                            "eslint":  "latest",
+                            "prettier":  "latest",
+                            "eslint-config-prettier":  "latest",
+                            "eslint-plugin-import":  "latest"
+                        }
 }
