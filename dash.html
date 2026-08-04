@@ -72,11 +72,16 @@
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="header-actions">
         <button type="button" id="btn-atualizar" class="ghost">🔄 Atualizar</button>
-        <button type="button" id="btn-ver-fila" class="ghost"><span class="label">👁 Pendências</span><span class="count-badge" id="count-fila"></span></button>
         <button type="button" id="btn-enviar" class="steel"><span class="label" id="label-enviar">📤 Enviar</span><span class="count-badge" id="count-enviar"></span></button>
-        <button type="button" id="btn-logout" class="ghost">🚪 Sair</button>
-        <button type="button" id="btn-historico-toast" class="ghost">🕘 Avisos</button>
-        <button type="button" id="btn-tema" class="ghost" title="Trocar tema claro/escuro">🌙</button>
+        <div class="menu-mais-wrap">
+          <button type="button" id="btn-header-mais" class="ghost" title="mais opções">⋮</button>
+          <div class="menu-mais" id="menu-header-mais">
+            <button type="button" id="btn-ver-fila">👁 Ver pendências<span class="count-badge" id="count-fila"></span></button>
+            <button type="button" id="btn-historico-toast">🕘 Avisos</button>
+            <button type="button" id="btn-tema">🌙 Trocar tema</button>
+            <button type="button" id="btn-logout" class="perigo">🚪 Sair</button>
+          </div>
+        </div>
       </div>
       <div class="readout">
         <div><span>leques</span><b id="stat-leques">0</b></div>

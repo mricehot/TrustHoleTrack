@@ -143,12 +143,19 @@ window.addEventListener('online', ()=>{
 });
 atualizarStatusConexao();
 
+// Sync automático contínuo: a cada 30s, se tiver internet e algo pendente, tenta
+// enviar sozinho — cobre o caso de sinal fraco/intermitente que nunca dispara um
+// evento "online" de verdade (fica ligado o tempo todo, só devagar ou instável).
+setInterval(()=>{
+  if(navigator.onLine && filaEnvio.length > 0) enviarMedicoes();
+}, 30000);
+
 // ---------- Tema claro/escuro ----------
 const TEMA_KEY = 'perfilagem-tema-v1';
 function aplicarTema(tema){
   document.body.classList.toggle('dark-mode', tema === 'escuro');
   const btn = el('btn-tema');
-  if(btn) btn.textContent = tema === 'escuro' ? '☀️' : '🌙';
+  if(btn) btn.textContent = tema === 'escuro' ? '☀️ Modo claro' : '🌙 Modo escuro';
   try{ localStorage.setItem(TEMA_KEY, tema); }catch(e){}
 }
 function alternarTema(){
@@ -194,6 +201,18 @@ function toggleMenuLeque(evento, id){
 }
 document.addEventListener('click', ()=>{
   document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
+});
+
+el('btn-header-mais').addEventListener('click', (evento)=>{
+  evento.stopPropagation();
+  const menu = el('menu-header-mais');
+  const jaEstavaAberto = menu.classList.contains('open');
+  document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
+  if(!jaEstavaAberto) menu.classList.add('open');
+});
+// Fecha o menu ao escolher qualquer opção dentro dele, sem precisar de um clique extra
+document.querySelectorAll('#menu-header-mais button').forEach(btn=>{
+  btn.addEventListener('click', ()=> el('menu-header-mais').classList.remove('open'));
 });
 
 function toggleSelecaoLeque(id, marcado){
@@ -474,9 +493,13 @@ function definirAnelAtivo(novoId){
 }
 
 // ---------- Envio manual da fila (quando voltar o sinal) ----------
+let enviandoAgora = false; // trava contra chamadas simultâneas — agora tem vários gatilhos
+                            // (botão manual, finalizar leque, voltar sinal, sync periódico)
 async function enviarMedicoes(){
+  if(enviandoAgora) return;
   if(filaEnvio.length === 0){ showToast('Nada pendente para enviar.'); return; }
   if(!navigator.onLine){ showToast('Sem conexão agora. Tente de novo quando tiver sinal.'); return; }
+  enviandoAgora = true;
 
   const btn = el('btn-enviar');
   btn.disabled = true;
@@ -503,11 +526,13 @@ async function enviarMedicoes(){
       enviados++;
     }catch(err){
       btn.disabled = false;
+      enviandoAgora = false;
       showToast(`Enviado ${enviados} de ${totalInicial}. Parou em: ${err && err.message ? err.message : err}`);
       return;
     }
   }
   btn.disabled = false;
+  enviandoAgora = false;
   showToast(`Tudo enviado! (${totalInicial} alteração${totalInicial>1?'ões':''})`);
   await atualizarDoServidor();
 }
