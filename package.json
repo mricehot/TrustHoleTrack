@@ -1,0 +1,13 @@
+﻿{
+  "name": "trustholetrack-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "echo \"No lint configured\"",
+    "test": "echo \"No tests configured\"",
+    "build": "echo \"No build step configured\""
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
