@@ -1018,7 +1018,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
   if(aneis.some(a=>a.id===anelRemovido.id)) return; // já foi restaurado
 
   aneis.push(anelRemovido);
-  restaurarNaFila('aneis', anelRemovido.id, { id: anelRemovido.id, nome: anelRemovido.nome, ativo: anelRemovido.ativo });
+  restaurarNaFila('aneis', anelRemovido.id, { id: anelRemovido.id, nome: anelRemovido.nome, ativo: anelRemovido.ativo, nivel: anelRemovido.nivel, empresa_id: anelRemovido.empresaId });
 
   lequesRemovidos.forEach(l=>{
     leques.push(l);
@@ -1124,7 +1124,7 @@ function criarAnel(){
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
   sincronizarLocalComNivelDoAnel();
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel });
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel, empresa_id: empresaAtual ? empresaAtual.id : null });
   campoNome.value = '';
   el('anel-nivel').value = '';
   salvarLocal();
@@ -1450,7 +1450,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
   showToast(`Leque ${lequeCode(lequeRemovido)} e ${furosRemovidos.length} furo(s) restaurados.`);
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '' }; }
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null }; }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
 
@@ -1458,7 +1458,10 @@ function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.n
 // A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
 // é do tipo uuid, então precisa ser um UUID de verdade — não pode ser um texto livre
 // como 'current', senão o Postgres rejeita com "invalid input syntax for type uuid".
-const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
+// Antes só existia UMA linha global de turno_info (TURNO_ROW_ID fixo) — agora
+// que várias empresas usam o mesmo sistema, cada empresa precisa da sua própria
+// linha. Como cada empresa só tem uma, o próprio id da empresa serve de id da
+// linha (mais simples que inventar outro identificador pra essa relação 1-pra-1).
 const SUPERVISOR_CONST = 'Talles da Silveira';
 const PROJETO_CONST = 'Ero - Pilar';
 let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:SUPERVISOR_CONST, projeto:PROJETO_CONST, local:'' };
@@ -1556,7 +1559,8 @@ function adicionarObservacaoTurno(){
   const novaObs = { id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra, texto, ts: new Date().toISOString() };
   turnoObservacoes.push(novaObs);
   enfileirar('turno_observacoes', 'insert', {
-    id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra, texto
+    id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra, texto,
+    empresa_id: empresaAtual ? empresaAtual.id : null
   });
   campo.value = '';
   campo.focus();
@@ -1585,7 +1589,8 @@ function desfazerRemocaoObservacao(obsRemovida){
   turnoObservacoes.push(obsRemovida);
   restaurarNaFila('turno_observacoes', obsRemovida.id, {
     id: obsRemovida.id, data: obsRemovida.data, turno_numero: obsRemovida.turnoNumero,
-    turno_letra: obsRemovida.turnoLetra, texto: obsRemovida.texto
+    turno_letra: obsRemovida.turnoLetra, texto: obsRemovida.texto,
+    empresa_id: empresaAtual ? empresaAtual.id : null
   });
   salvarObsLocal();
   renderObservacoesTurno();
@@ -1609,9 +1614,9 @@ async function loadTurnoInfo(){
   carregarTurnoLocal();
   carregarObsLocal();
 
-  if(navigator.onLine && !filaEnvio.some(item=>item.tabela==='turno_info')){
+  if(navigator.onLine && empresaAtual && !filaEnvio.some(item=>item.tabela==='turno_info')){
     try{
-      const { data, error } = await db.from('turno_info').select('*').eq('id', TURNO_ROW_ID).maybeSingle();
+      const { data, error } = await db.from('turno_info').select('*').eq('id', empresaAtual.id).maybeSingle();
       if(error) throw error;
       if(data){
         turnoInfo.tecnicos = data.tecnicos || '';
@@ -1652,7 +1657,8 @@ function saveTurnoInfo(){
   turnoInfo.turnoLetra = chipLetra ? chipLetra.dataset.val : '';
   salvarTurnoLocal();
   enfileirar('turno_info', 'upsert', {
-    id: TURNO_ROW_ID,
+    id: empresaAtual ? empresaAtual.id : null,
+    empresa_id: empresaAtual ? empresaAtual.id : null,
     data: dataBRParaISO(turnoInfo.data),
     turno_numero: turnoInfo.turnoNumero,
     turno_letra: turnoInfo.turnoLetra,
@@ -1842,7 +1848,8 @@ async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArqu
       leques: leques || null,
       qtd_leques: qtdLeques || 0,
       qtd_furos: qtdFuros || 0,
-      nome_arquivo: nomeArquivo
+      nome_arquivo: nomeArquivo,
+      empresa_id: empresaAtual ? empresaAtual.id : null
     });
     if(error) throw error;
     await loadHistoricoExportacoes();
@@ -2414,6 +2421,47 @@ function lerSessaoCache(){
 }
 function limparSessaoCache(){
   try{ localStorage.removeItem(SESSAO_CACHE_KEY); }catch(e){}
+  limparEmpresaCache();
+}
+
+// Cache local da empresa — mesma lógica do cache de sessão: se a busca no servidor
+// falhar por falta de rede (comum num turno de horas sem sinal), usa o que já tinha
+// carregado antes nesse aparelho, em vez de travar o app.
+const EMPRESA_CACHE_KEY = 'perfilagem-empresa-cache-v1';
+function salvarEmpresaCache(empresa){
+  try{ localStorage.setItem(EMPRESA_CACHE_KEY, JSON.stringify(empresa)); }catch(e){}
+}
+function lerEmpresaCache(){
+  try{
+    const raw = localStorage.getItem(EMPRESA_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function limparEmpresaCache(){
+  try{ localStorage.removeItem(EMPRESA_CACHE_KEY); }catch(e){}
+}
+
+let empresaAtual = null; // { id, nome } — buscado do profile do usuário logado
+
+async function carregarEmpresaAtual(userId){
+  try{
+    const { data, error } = await db.from('profiles').select('empresa_id, empresas(nome)').eq('id', userId).maybeSingle();
+    if(error) throw error;
+    if(!data || !data.empresa_id){
+      empresaAtual = null;
+      return false;
+    }
+    empresaAtual = { id: data.empresa_id, nome: data.empresas ? data.empresas.nome : '' };
+    salvarEmpresaCache(empresaAtual);
+    return true;
+  }catch(e){
+    // Sem rede pra confirmar — se já sabia a empresa desse aparelho antes, usa
+    // esse valor em vez de travar o turno inteiro por falta de sinal.
+    const cache = lerEmpresaCache();
+    if(cache){ empresaAtual = cache; return true; }
+    empresaAtual = null;
+    return false;
+  }
 }
 
 function mostrarApp(user){
@@ -2452,6 +2500,23 @@ function iniciarApp(){
   loadHistoricoExportacoes();
 }
 
+// Reúne num só lugar o que precisa acontecer sempre que uma sessão é confirmada
+// (login normal, sessão restaurada, ou cache offline): mostrar o app, carregar a
+// empresa do usuário, e só então liberar o carregamento de dados. Se a conta não
+// tiver empresa vinculada (erro de configuração do administrador), não libera.
+async function entrarNoApp(user){
+  mostrarApp(user);
+  const temEmpresa = await carregarEmpresaAtual(user.id);
+  const labelEmpresa = el('empresa-atual-label');
+  if(!temEmpresa){
+    if(labelEmpresa) labelEmpresa.textContent = '';
+    mostrarLogin('Sua conta ainda não está vinculada a uma empresa. Fale com o administrador.');
+    return;
+  }
+  if(labelEmpresa) labelEmpresa.textContent = `empresa: ${empresaAtual.nome}`;
+  iniciarApp();
+}
+
 async function fazerLogin(){
   const email = el('login-email').value.trim();
   const senha = el('login-senha').value;
@@ -2470,14 +2535,14 @@ async function fazerLogin(){
     el('login-erro').textContent = 'E-mail ou senha incorretos.';
     return;
   }
-  mostrarApp(data.user);
-  iniciarApp();
+  await entrarNoApp(data.user);
 }
 
 async function fazerLogout(){
   if(!(await confirmDialog('Sair do BlastHole Manager?', 'Sair'))) return;
   await db.auth.signOut();
   limparSessaoCache();
+  empresaAtual = null;
   mostrarLogin();
 }
 
@@ -2495,8 +2560,7 @@ async function verificarSessaoInicial(){
   try{
     const { data } = await db.auth.getSession();
     if(data && data.session){
-      mostrarApp(data.session.user);
-      iniciarApp();
+      await entrarNoApp(data.session.user);
       return;
     }
     // O SDK diz que não tem sessão. Se estiver online, confia nisso — é um
@@ -2506,15 +2570,13 @@ async function verificarSessaoInicial(){
     if(navigator.onLine || !cache){
       mostrarLogin();
     }else{
-      mostrarApp(cache);
-      iniciarApp();
+      await entrarNoApp(cache);
     }
   }catch(e){
     // Erro ao consultar a sessão — bem comum sem conexão. Se já logou antes
     // nesse aparelho, deixa trabalhar localmente em vez de travar o turno inteiro.
     if(cache){
-      mostrarApp(cache);
-      iniciarApp();
+      await entrarNoApp(cache);
     }else{
       mostrarLogin();
     }
@@ -2531,8 +2593,7 @@ db.auth.onAuthStateChange((evento, session)=>{
       mostrarLogin();
     }
   }else if(evento === 'SIGNED_IN' && session){
-    mostrarApp(session.user);
-    iniciarApp();
+    entrarNoApp(session.user);
   }
 });
 
