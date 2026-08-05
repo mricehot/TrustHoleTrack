@@ -2334,6 +2334,10 @@ async function exportarLequesPDF(ids){
 
     if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
 
+    // Garante espaço pro cabeçalho da tabela + pelo menos 1 linha antes de
+    // desenhar — sem isso, o cabeçalho podia ficar "órfão" sozinho numa página
+    // (sem nenhuma linha depois) quando sobrava só um pouquinho de espaço.
+    if(y + 16 > 273){ doc.addPage(); y = 20; }
     y = drawHeaderTabelaPDF(doc, y);
     doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
 
