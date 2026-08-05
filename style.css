@@ -250,7 +250,11 @@
   color:var(--muted); font-family:var(--sans); font-size:13.5px; font-weight:600;
   text-transform:none; letter-spacing:0; cursor:pointer; white-space:nowrap; margin-bottom:-1px;
 }
-.tab-icon{ font-size:15px; }
+.tab-icon{ font-size:15px; display:inline-flex; }
+.icon-svg{ width:15px; height:15px; flex-shrink:0; vertical-align:-3px; margin-right:5px; }
+.tab-icon .icon-svg{ width:16px; height:16px; margin-right:0; vertical-align:-3px; }
+button .icon-svg{ stroke:currentColor; }
+.menu-mais button .icon-svg{ margin-right:8px; }
 .tab-item:hover{ color:var(--text); filter:none; }
 .tab-item.active{ color:var(--text); border-bottom-color:var(--line); }
 .tab-item[data-view="turno"].active{ color:var(--section-turno); border-bottom-color:var(--section-turno); }
@@ -264,6 +268,7 @@
   .tab-item{ padding:12px 12px; font-size:12.5px; }
   .tab-label{ display:none; }
   .tab-icon{ font-size:18px; }
+  .tab-icon .icon-svg{ width:19px; height:19px; }
 }
 
 .view-card{ border:1px solid var(--line); border-radius:6px; background:var(--surface); overflow:hidden; }

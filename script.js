@@ -14,6 +14,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 const el = id => document.getElementById(id);
 const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
+const ICONE_CADEADO = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const fmt3 = n => Number(n).toFixed(3);
 const pad2 = n => String(n).padStart(2,'0');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -155,7 +156,9 @@ const TEMA_KEY = 'perfilagem-tema-v1';
 function aplicarTema(tema){
   document.body.classList.toggle('dark-mode', tema === 'escuro');
   const btn = el('btn-tema');
-  if(btn) btn.textContent = tema === 'escuro' ? '☀️ Modo claro' : '🌙 Modo escuro';
+  const ICONE_LUA = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  const ICONE_SOL = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+  if(btn) btn.innerHTML = tema === 'escuro' ? (ICONE_SOL + 'Modo claro') : (ICONE_LUA + 'Modo escuro');
   try{ localStorage.setItem(TEMA_KEY, tema); }catch(e){}
 }
 function alternarTema(){
@@ -384,13 +387,15 @@ function atualizarBotaoEnviar(){
   const n = filaEnvio.length;
   const labelEnviar = document.getElementById('label-enviar');
   const badgeEnviar = document.getElementById('count-enviar');
+  const ICONE_CHECK = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  const ICONE_ENVIAR = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
   if(n === 0){
-    if(labelEnviar) labelEnviar.textContent = '✓ Sincronizado';
+    if(labelEnviar) labelEnviar.innerHTML = ICONE_CHECK + 'Sincronizado';
     if(badgeEnviar) badgeEnviar.textContent = '';
     btn.classList.add('ghost');
     btn.classList.remove('steel');
   }else{
-    if(labelEnviar) labelEnviar.textContent = '📤 Enviar';
+    if(labelEnviar) labelEnviar.innerHTML = ICONE_ENVIAR + 'Enviar';
     if(badgeEnviar) badgeEnviar.textContent = n;
     btn.classList.remove('ghost');
     btn.classList.add('steel');
@@ -638,11 +643,11 @@ async function sincronizarDoServidor(){
   }
   const btn = el('btn-atualizar');
   btn.disabled = true;
-  const textoOriginal = btn.textContent;
-  btn.textContent = '🔄 Atualizando...';
+  const htmlOriginal = btn.innerHTML;
+  btn.innerHTML = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Atualizando...';
   const ok = await atualizarDoServidor();
   btn.disabled = false;
-  btn.textContent = textoOriginal;
+  btn.innerHTML = htmlOriginal;
   showToast(ok ? 'Dados atualizados a partir do servidor.' : 'Não foi possível atualizar agora. Tente de novo.');
 }
 
@@ -1238,7 +1243,7 @@ function renderPainelTrabalho(){
         <span class="spacer"></span>
         ${podeFinalizar
           ? `<button class="danger" onclick="finalizarLeque('${lequeAberto.id}')">Finalizar leque</button>`
-          : `<span class="hint" title="só quem criou pode finalizar">🔒 criado por outro usuário</span>`}
+          : `<span class="hint" title="só quem criou pode finalizar">${ICONE_CADEADO}criado por outro usuário</span>`}
       </div>
     `;
   }else{
@@ -2488,7 +2493,7 @@ function render(){
             ${podeEditar ? `
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
             <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
-            ` : `<span class="hint" title="só quem criou o leque pode editar">🔒</span>`}
+            ` : `<span class="hint" title="só quem criou o leque pode editar">${ICONE_CADEADO}</span>`}
           </td>
         </tr>
         ${f.observacao ? `
@@ -2516,7 +2521,7 @@ function render(){
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
-              ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">🔒 de outro usuário</span>` : ''}
+              ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">${ICONE_CADEADO}de outro usuário</span>` : ''}
             </div>
             <div class="leque-head-line2">
               <div class="stats">
@@ -2533,9 +2538,9 @@ function render(){
                 <div class="menu-mais-wrap">
                   <button class="icon" onclick="toggleMenuLeque(event, '${l.id}')" title="mais ações">⋮</button>
                   <div class="menu-mais" id="menu-mais-${l.id}">
-                    <button onclick="selecionarFotoLeque('${l.id}')">📷 ${l.fotoUrl ? 'Trocar foto' : 'Adicionar foto'}</button>
-                    ${l.fotoUrl ? `<button class="perigo" onclick="removerFotoLeque('${l.id}')">🗑 Remover foto</button>` : ''}
-                    ${l.status === 'fechado' ? `<button onclick="reabrirLeque('${l.id}')">↺ Reabrir leque</button>` : ''}
+                    <button onclick="selecionarFotoLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5l2-3h7l2 3H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>${l.fotoUrl ? 'Trocar foto' : 'Adicionar foto'}</button>
+                    ${l.fotoUrl ? `<button class="perigo" onclick="removerFotoLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Remover foto</button>` : ''}
+                    ${l.status === 'fechado' ? `<button onclick="reabrirLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Reabrir leque</button>` : ''}
                     <button class="perigo" onclick="removerLeque('${l.id}')">✕ Remover leque</button>
                   </div>
                 </div>` : ''}
