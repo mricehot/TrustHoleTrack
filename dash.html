@@ -135,6 +135,11 @@
                   <input id="leque-nome" type="text" placeholder="ex: fila de abertura">
                 </div>
               </div>
+              <div class="field-foto-leque">
+                <input id="leque-foto-input" type="file" accept="image/*" capture="environment" style="display:none;">
+                <button type="button" id="btn-escolher-foto-leque" class="ghost">📷 Adicionar foto (opcional)</button>
+                <span class="hint" id="leque-foto-nome-arquivo"></span>
+              </div>
               <button type="button" id="btn-add-leque">Criar Leque</button>
             </div>
             <div id="leque-atual-box"></div>
@@ -265,6 +270,14 @@
               <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
               <div class="obs-list" id="obs-list"></div>
               <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
+            </div>
+            <div class="field">
+              <label>Fotos do turno</label>
+              <div class="hint" id="foto-turno-hint">Pra registrar algo que aconteceu no turno e não é de um leque específico (ex: problema de equipamento, situação de segurança).</div>
+              <input id="foto-turno-input" type="file" accept="image/*" capture="environment" style="display:none;">
+              <button type="button" id="btn-escolher-foto-turno" class="steel" style="margin-top:8px;">📷 Adicionar foto</button>
+              <div class="fotos-turno-grid" id="fotos-turno-grid"></div>
+              <div class="hint" id="fotos-turno-vazio">Nenhuma foto registrada neste turno ainda.</div>
             </div>
           </div>
         </div>

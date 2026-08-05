@@ -174,6 +174,7 @@ const LOCAL_KEY = 'perfilagem-local-v1';
 const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
+const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
@@ -597,24 +598,28 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
-      db.from('turno_observacoes').select('*').order('criado_em')
+      db.from('turno_observacoes').select('*').order('criado_em'),
+      db.from('fotos_turno').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4) throw (e1 || e2 || e3 || e4);
+    if(e1 || e2 || e3 || e4 || e5) throw (e1 || e2 || e3 || e4 || e5);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
     turnoObservacoes = (obsData || []).map(mapObservacao);
+    fotosTurno = (fotosData || []).map(mapFotoTurno);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
     salvarLocal();
     salvarObsLocal();
+    salvarFotosTurnoLocal();
     renderAll();
     renderObservacoesTurno();
+    renderFotosTurno();
     registrarSincronizacaoOk();
     return true;
   }catch(e){
@@ -646,6 +651,7 @@ el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
 async function loadData(){
   carregarLocal();
   carregarUltimaSincronizacaoLocal();
+  carregarFotosTurnoLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -1247,6 +1253,12 @@ function renderPainelTrabalho(){
   el('furo-hint').style.display = semLeque ? 'block' : 'none';
 }
 
+el('btn-escolher-foto-leque').addEventListener('click', ()=> el('leque-foto-input').click());
+el('leque-foto-input').addEventListener('change', ()=>{
+  const arquivo = el('leque-foto-input').files[0];
+  el('leque-foto-nome-arquivo').textContent = arquivo ? `✓ ${arquivo.name}` : '';
+});
+
 function criarLeque(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo) return;
@@ -1265,13 +1277,19 @@ function criarLeque(){
   const criadoPor = usuarioAtual ? usuarioAtual.id : null;
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turnoNumero: null, turnoLetra: null, criadoPor
+    turnoNumero: null, turnoLetra: null, criadoPor, fotoUrl: null
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
     turno_numero: null, turno_letra: null, criado_por: criadoPor
   });
+
+  const arquivoFoto = el('leque-foto-input').files[0];
+  if(arquivoFoto) enviarFotoLeque(novoLeque, arquivoFoto);
+  el('leque-foto-input').value = '';
+  el('leque-foto-nome-arquivo').textContent = '';
+
   el('leque-numero').value = '';
   el('leque-nome').value = '';
   salvarLocal();
@@ -1549,6 +1567,7 @@ function salvarConfig(){
 el('btn-salvar-config').addEventListener('click', salvarConfig);
 let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'' };
 let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
+let fotosTurno = []; // { id, data (ISO), turnoNumero, turnoLetra, url, descricao, ts }
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -1577,6 +1596,7 @@ function dataParaExibicao(data){
 }
 
 function mapObservacao(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, texto: row.texto, ts: row.criado_em }; }
+function mapFotoTurno(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, url: row.url, descricao: row.descricao || '', ts: row.criado_em }; }
 
 function carregarObsLocal(){
   try{
@@ -1586,6 +1606,15 @@ function carregarObsLocal(){
 }
 function salvarObsLocal(){
   try{ localStorage.setItem(OBS_LOCAL_KEY, JSON.stringify(turnoObservacoes)); }catch(e){}
+}
+function carregarFotosTurnoLocal(){
+  try{
+    const raw = localStorage.getItem(FOTOS_TURNO_LOCAL_KEY);
+    fotosTurno = raw ? JSON.parse(raw) : [];
+  }catch(e){ fotosTurno = []; }
+}
+function salvarFotosTurnoLocal(){
+  try{ localStorage.setItem(FOTOS_TURNO_LOCAL_KEY, JSON.stringify(fotosTurno)); }catch(e){}
 }
 
 
@@ -1681,6 +1710,97 @@ function desfazerRemocaoObservacao(obsRemovida){
 el('btn-add-obs').addEventListener('click', adicionarObservacaoTurno);
 el('turno-obs-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarObservacaoTurno(); } });
 
+// ---------- Fotos do turno (algo que aconteceu no turno, sem ser de um leque específico) ----------
+function fotosDoTurnoAtual(){
+  const dataISO = dataBRParaISO(turnoInfo.data);
+  return fotosTurno
+    .filter(f => f.data === dataISO && f.turnoNumero === turnoInfo.turnoNumero && f.turnoLetra === turnoInfo.turnoLetra)
+    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+}
+
+function renderFotosTurno(){
+  const grid = el('fotos-turno-grid');
+  const vazio = el('fotos-turno-vazio');
+  if(!grid) return;
+  const fotos = fotosDoTurnoAtual();
+  if(fotos.length === 0){
+    grid.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  grid.innerHTML = fotos.map(f=>`
+    <div class="foto-turno-item">
+      <a href="${f.url}" target="_blank" rel="noopener"><img src="${f.url}" alt="foto do turno" title="ver em tamanho maior"></a>
+      <button class="icon icon-remover" onclick="removerFotoTurno('${f.id}')" title="remover">✕</button>
+    </div>
+  `).join('');
+}
+
+function selecionarFotoTurno(){
+  if(!navigator.onLine){ showToast('Precisa de internet pra enviar uma foto.'); return; }
+  el('foto-turno-input').click();
+}
+el('btn-escolher-foto-turno').addEventListener('click', selecionarFotoTurno);
+el('foto-turno-input').addEventListener('change', ()=>{
+  const arquivo = el('foto-turno-input').files[0];
+  el('foto-turno-input').value = '';
+  if(arquivo) enviarFotoTurno(arquivo);
+});
+
+async function enviarFotoTurno(arquivo){
+  showToast('Enviando foto...');
+  try{
+    const dataISO = dataBRParaISO(turnoInfo.data) || new Date().toISOString().slice(0,10);
+    const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
+    const novoId = uuidv4();
+    const caminho = `${novoId}.${extensao}`;
+    const { error: erroUpload } = await db.storage.from('fotos-turno').upload(caminho, arquivo, { upsert: true });
+    if(erroUpload) throw erroUpload;
+    const { data } = db.storage.from('fotos-turno').getPublicUrl(caminho);
+    const novaFoto = {
+      id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra,
+      url: data.publicUrl, descricao: '', ts: new Date().toISOString()
+    };
+    fotosTurno.push(novaFoto);
+    enfileirar('fotos_turno', 'insert', {
+      id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra,
+      url: novaFoto.url, descricao: ''
+    });
+    salvarFotosTurnoLocal();
+    renderFotosTurno();
+    showToast('Foto do turno adicionada.');
+  }catch(e){
+    showToast(`Não foi possível enviar a foto: ${e && e.message ? e.message : e}`);
+  }
+}
+
+async function removerFotoTurno(id){
+  const f = fotosTurno.find(x=>x.id===id);
+  if(!f) return;
+  if(!(await confirmDialog('Remover esta foto do turno?', 'Remover'))) return;
+  fotosTurno = fotosTurno.filter(x=>x.id!==id);
+  enfileirar('fotos_turno', 'delete', { id });
+  salvarFotosTurnoLocal();
+  renderFotosTurno();
+  showToast('Foto removida.', {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoFotoTurno(f)
+  });
+}
+
+function desfazerRemocaoFotoTurno(fotoRemovida){
+  if(fotosTurno.some(x=>x.id===fotoRemovida.id)) return; // já foi restaurado
+  fotosTurno.push(fotoRemovida);
+  restaurarNaFila('fotos_turno', fotoRemovida.id, {
+    id: fotoRemovida.id, data: fotoRemovida.data, turno_numero: fotoRemovida.turnoNumero,
+    turno_letra: fotoRemovida.turnoLetra, url: fotoRemovida.url, descricao: fotoRemovida.descricao
+  });
+  salvarFotosTurnoLocal();
+  renderFotosTurno();
+  showToast('Foto restaurada.');
+}
+
 function carregarTurnoLocal(){
   try{
     const raw = localStorage.getItem(TURNO_LOCAL_KEY);
@@ -1722,6 +1842,7 @@ async function loadTurnoInfo(){
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
   selecionarChip('turno-letra-group', turnoInfo.turnoLetra);
   renderObservacoesTurno();
+  renderFotosTurno();
 
   salvarTurnoLocal();
 }
@@ -1748,6 +1869,7 @@ function saveTurnoInfo(){
     local: turnoInfo.local
   });
   renderObservacoesTurno();
+  renderFotosTurno();
 }
 
 function drawHeaderTabelaPDF(doc, y){
@@ -1838,7 +1960,7 @@ function desenharResumoPDF(doc, y, stats){
 
 // Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + dados do turno).
 // Devolve a coordenada Y onde o conteúdo específico do relatório deve começar.
-function desenharCabecalhoTurnoPDF(doc, opcoes={}){
+async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   const titulo = opcoes.titulo || 'STATUS TURNO PERFILAGEM DE LAVRA';
 
   try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
@@ -1881,6 +2003,16 @@ function desenharCabecalhoTurnoPDF(doc, opcoes={}){
       doc.text(linhasObs, 18, y);
       y += linhasObs.length * 6;
     });
+  }
+
+  const fotosAtuais = fotosDoTurnoAtual();
+  if(fotosAtuais.length > 0){
+    y += 4;
+    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 4;
+    doc.setFont(undefined,'normal');
+    for(const f of fotosAtuais){
+      y = await desenharFotoLequePDF(doc, f.url, y, f.descricao || 'Foto do turno');
+    }
   }
 
   y += 4;
@@ -1990,7 +2122,7 @@ async function exportarTurnoPDF(){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  let y = desenharCabecalhoTurnoPDF(doc);
+  let y = await desenharCabecalhoTurnoPDF(doc);
 
   doc.setFontSize(PDF_FONT_AVISO); doc.setFont(undefined,'italic'); doc.setTextColor(120);
   doc.text('Nenhuma perfilagem de furos vinculada a este relatório.', 15, y);
@@ -2040,19 +2172,29 @@ async function carregarImagemParaPDF(url){
 }
 
 // Desenha a foto no PDF a partir da posição y atual, mantendo a proporção
-// (nunca estica/espreme), dentro de um tamanho máximo razoável de página.
-// Devolve o novo y, já depois da foto.
-async function desenharFotoLequePDF(doc, fotoUrl, y){
+// (nunca estica/espreme), dentro de um tamanho máximo razoável de página —
+// com moldura e legenda, pra parecer parte do relatório e não só uma imagem
+// flutuando sem contexto. Devolve o novo y, já depois da foto.
+async function desenharFotoLequePDF(doc, fotoUrl, y, legendaTexto){
   const foto = await carregarImagemParaPDF(fotoUrl);
   if(!foto) return y;
-  const larguraMax = 80, alturaMax = 60;
+  const larguraMax = 100, alturaMax = 70;
   let largura = larguraMax, altura = larguraMax * (foto.h / foto.w);
   if(altura > alturaMax){ altura = alturaMax; largura = alturaMax * (foto.w / foto.h); }
-  if(y + altura > 275){ doc.addPage(); y = 20; }
+  if(y + altura + 8 > 275){ doc.addPage(); y = 20; }
   try{
     const formato = foto.dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+    doc.setDrawColor(200); doc.setLineWidth(0.3);
+    doc.rect(15, y, largura, altura);
     doc.addImage(foto.dataUrl, formato, 15, y, largura, altura);
-    return y + altura + 8;
+    y += altura + 5;
+    if(legendaTexto){
+      doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(120);
+      doc.text(legendaTexto, 15, y);
+      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
+      y += 3;
+    }
+    return y + 8;
   }catch(e){
     return y;
   }
@@ -2069,14 +2211,18 @@ async function exportarLequePDF(id){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  let y = desenharCabecalhoTurnoPDF(doc);
+  let y = await desenharCabecalhoTurnoPDF(doc);
 
   doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
   doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
   doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
 
-  if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y);
+  if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
 
+  // A tabela de perfilagem sempre começa numa página nova — assim ela nunca
+  // fica cortada pela metade entre o resumo/foto (página 1) e os dados (página 2+).
+  doc.addPage();
+  y = 20;
   y = drawHeaderTabelaPDF(doc, y);
   doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);
 
@@ -2139,7 +2285,7 @@ async function exportarLequesPDF(ids){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  let y = desenharCabecalhoTurnoPDF(doc);
+  let y = await desenharCabecalhoTurnoPDF(doc);
 
   doc.setFontSize(PDF_FONT_AVISO); doc.setFont(undefined,'normal');
   const linhasInclusos = doc.splitTextToSize(
@@ -2186,7 +2332,7 @@ async function exportarLequesPDF(ids){
     doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
     doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
 
-    if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y);
+    if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
 
     y = drawHeaderTabelaPDF(doc, y);
     doc.setFont(undefined,'normal'); doc.setFontSize(PDF_FONT_CORPO);

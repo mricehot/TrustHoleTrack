@@ -132,6 +132,7 @@
 #form-furo .grid-4{ grid-template-columns:1fr; }
 #btn-add-leque{ margin-top:14px; }
 .furo-actions{ margin-top:14px; }
+.field-foto-leque{ display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
 
   header{
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -483,6 +484,17 @@
   .foto-leque-mini{
     width:28px; height:28px; border-radius:5px; object-fit:cover; flex-shrink:0;
     border:1px solid var(--line); vertical-align:middle; cursor:pointer;
+  }
+  .fotos-turno-grid{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+  .foto-turno-item{ position:relative; width:100px; }
+  .foto-turno-item img{
+    width:100px; height:75px; object-fit:cover; border-radius:6px;
+    border:1px solid var(--line); cursor:pointer; display:block;
+  }
+  .foto-turno-item .icon-remover{
+    position:absolute; top:-8px; right:-8px; background:var(--surface);
+    border:1px solid var(--line); border-radius:50%; width:24px; height:24px;
+    min-width:0; min-height:0; padding:0; font-size:12px; line-height:1;
   }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
