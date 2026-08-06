@@ -1661,6 +1661,7 @@ function renderObservacoesTurno(){
     return `
       <div class="obs-item">
         <span class="texto">${o.texto}</span>
+        <button class="icon icon-editar" onclick="editarObservacaoTurno('${o.id}')" title="editar">✎</button>
         <button class="icon icon-remover" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
       </div>
     `;
@@ -1683,6 +1684,50 @@ function adicionarObservacaoTurno(){
   salvarObsLocal();
   renderObservacoesTurno();
   showToast('Observação adicionada.');
+}
+
+function editarObservacaoModal(valorAtual){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Editar observação</p>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="obs-turno-editar-input">Texto</label>
+            <input id="obs-turno-editar-input" type="text" maxlength="300" value="${(valorAtual || '').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=>{
+      const texto = el('obs-turno-editar-input').value.trim();
+      if(!texto){ showToast('A observação não pode ficar em branco.'); return; }
+      fechar(texto);
+    };
+    el('modal-salvar').addEventListener('click', salvar);
+    el('obs-turno-editar-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    el('obs-turno-editar-input').focus();
+  });
+}
+
+async function editarObservacaoTurno(id){
+  const o = turnoObservacoes.find(x=>x.id===id);
+  if(!o) return;
+  const novoTexto = await editarObservacaoModal(o.texto);
+  if(novoTexto === null || novoTexto === o.texto) return;
+  o.texto = novoTexto;
+  enfileirar('turno_observacoes', 'update', { id: o.id, texto: novoTexto });
+  salvarObsLocal();
+  renderObservacoesTurno();
+  showToast('Observação atualizada.');
 }
 
 async function removerObservacaoTurno(id){
