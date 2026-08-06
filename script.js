@@ -1738,6 +1738,9 @@ function renderFotosTurno(){
     <div class="foto-turno-item">
       <a href="${f.url}" target="_blank" rel="noopener"><img src="${f.url}" alt="foto do turno" title="ver em tamanho maior"></a>
       <button class="icon icon-remover" onclick="removerFotoTurno('${f.id}')" title="remover">✕</button>
+      <button class="foto-turno-obs" onclick="editarDescricaoFotoTurno('${f.id}')" title="clique pra ${f.descricao ? 'editar' : 'adicionar'} a observação">
+        ${f.descricao ? f.descricao : '+ observação'}
+      </button>
     </div>
   `).join('');
 }
@@ -1753,6 +1756,34 @@ el('foto-turno-input').addEventListener('change', ()=>{
   if(arquivo) enviarFotoTurno(arquivo);
 });
 
+function descricaoFotoModal(valorAtual){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Observação da foto (opcional)</p>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="foto-turno-descricao-input">O que essa foto mostra?</label>
+            <input id="foto-turno-descricao-input" type="text" maxlength="200" placeholder="ex: vazamento de óleo na perfuratriz" value="${(valorAtual || '').replace(/"/g,'&quot;')}">
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Pular</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(valorAtual || ''));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(valorAtual || ''); });
+    const salvar = ()=> fechar(el('foto-turno-descricao-input').value.trim());
+    el('modal-salvar').addEventListener('click', salvar);
+    el('foto-turno-descricao-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    el('foto-turno-descricao-input').focus();
+  });
+}
+
 async function enviarFotoTurno(arquivo){
   showToast('Enviando foto...');
   try{
@@ -1763,14 +1794,17 @@ async function enviarFotoTurno(arquivo){
     const { error: erroUpload } = await db.storage.from('fotos-turno').upload(caminho, arquivo, { upsert: true });
     if(erroUpload) throw erroUpload;
     const { data } = db.storage.from('fotos-turno').getPublicUrl(caminho);
+
+    const descricao = await descricaoFotoModal('');
+
     const novaFoto = {
       id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra,
-      url: data.publicUrl, descricao: '', ts: new Date().toISOString()
+      url: data.publicUrl, descricao, ts: new Date().toISOString()
     };
     fotosTurno.push(novaFoto);
     enfileirar('fotos_turno', 'insert', {
       id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra,
-      url: novaFoto.url, descricao: ''
+      url: novaFoto.url, descricao
     });
     salvarFotosTurnoLocal();
     renderFotosTurno();
@@ -1778,6 +1812,18 @@ async function enviarFotoTurno(arquivo){
   }catch(e){
     showToast(`Não foi possível enviar a foto: ${e && e.message ? e.message : e}`);
   }
+}
+
+async function editarDescricaoFotoTurno(id){
+  const f = fotosTurno.find(x=>x.id===id);
+  if(!f) return;
+  const descricao = await descricaoFotoModal(f.descricao);
+  if(descricao === f.descricao) return; // nada mudou
+  f.descricao = descricao;
+  enfileirar('fotos_turno', 'update', { id: f.id, descricao });
+  salvarFotosTurnoLocal();
+  renderFotosTurno();
+  showToast('Observação atualizada.');
 }
 
 async function removerFotoTurno(id){

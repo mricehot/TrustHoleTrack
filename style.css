@@ -491,9 +491,9 @@ button .icon-svg{ stroke:currentColor; }
     border:1px solid var(--line); vertical-align:middle; cursor:pointer;
   }
   .fotos-turno-grid{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
-  .foto-turno-item{ position:relative; width:100px; }
+  .foto-turno-item{ position:relative; width:130px; }
   .foto-turno-item img{
-    width:100px; height:75px; object-fit:cover; border-radius:6px;
+    width:130px; height:90px; object-fit:cover; border-radius:6px;
     border:1px solid var(--line); cursor:pointer; display:block;
   }
   .foto-turno-item .icon-remover{
@@ -501,6 +501,14 @@ button .icon-svg{ stroke:currentColor; }
     border:1px solid var(--line); border-radius:50%; width:24px; height:24px;
     min-width:0; min-height:0; padding:0; font-size:12px; line-height:1;
   }
+  .foto-turno-obs{
+    display:block; width:100%; margin-top:4px; padding:0; background:transparent;
+    border:none; text-align:left; font-family:var(--sans); font-size:11px;
+    font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted);
+    cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    min-height:0;
+  }
+  .foto-turno-obs:hover{ color:var(--steel); text-decoration:underline; }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; font-size:13px; line-height:1; padding:0; flex-shrink:0;
