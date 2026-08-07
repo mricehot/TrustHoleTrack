@@ -14,6 +14,15 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 const el = id => document.getElementById(id);
 const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
+// Cada letra de turno tem uma dupla fixa de técnicos — usado pra preencher
+// "Técnicos" automaticamente e pra registrar quem abriu cada leque.
+const TECNICOS_POR_LETRA = {
+  A: 'Erbisson / Francisco',
+  B: 'Graziel / Bruno',
+  C: 'Caique / Jamerson',
+  D: 'Adeilsom / Atos',
+  E: 'Alexandre / Lucas'
+};
 const ICONE_CADEADO = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const fmt3 = n => Number(n).toFixed(3);
 const pad2 = n => String(n).padStart(2,'0');
@@ -207,7 +216,6 @@ function selecionarFotoLeque(id){
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment'; // no celular, já abre a câmera direto
   input.addEventListener('change', ()=>{
     const arquivo = input.files[0];
     if(arquivo) enviarFotoLeque(l, arquivo);
@@ -1282,12 +1290,12 @@ function criarLeque(){
   const criadoPor = usuarioAtual ? usuarioAtual.id : null;
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turnoNumero: null, turnoLetra: null, criadoPor, fotoUrl: null
+    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null, criadoPor, fotoUrl: null
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turno_numero: null, turno_letra: null, criado_por: criadoPor
+    turno_numero: novoLeque.turnoNumero, turno_letra: novoLeque.turnoLetra, criado_por: criadoPor
   });
 
   const arquivoFoto = el('leque-foto-input').files[0];
@@ -2311,7 +2319,15 @@ async function exportarLequePDF(id){
 
   doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
   doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
-  doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
+  doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
+  if(l.turnoLetra || l.turnoNumero){
+    doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
+    const nomesTecnicos = TECNICOS_POR_LETRA[l.turnoLetra];
+    doc.text(`Aberto no turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${nomesTecnicos ? ' · ' + nomesTecnicos : ''}`, 15, y);
+    doc.setTextColor(0,0,0); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
+    y += 6;
+  }
+  y += 2;
 
   if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
 
@@ -2426,7 +2442,15 @@ async function exportarLequesPDF(ids){
 
     doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
     doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
-    doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 10;
+    doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
+    if(l.turnoLetra || l.turnoNumero){
+      doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
+      const nomesTecnicos = TECNICOS_POR_LETRA[l.turnoLetra];
+      doc.text(`Aberto no turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${nomesTecnicos ? ' · ' + nomesTecnicos : ''}`, 15, y);
+      doc.setTextColor(0,0,0); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
+      y += 6;
+    }
+    y += 2;
 
     if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
 
@@ -2611,7 +2635,7 @@ function render(){
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
-              ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}</span>` : ''}
+              ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
               ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">${ICONE_CADEADO}de outro usuário</span>` : ''}
             </div>
             <div class="leque-head-line2">
@@ -2722,6 +2746,12 @@ document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip')
   chip.addEventListener('click', ()=>{
     chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
     chip.classList.add('active');
+    // Cada letra tem uma dupla fixa de técnicos — preenche na hora, em vez de
+    // digitar de novo a cada turno.
+    if(chip.parentElement.id === 'turno-letra-group'){
+      const nomes = TECNICOS_POR_LETRA[chip.dataset.val];
+      if(nomes) el('turno-tecnicos').value = nomes;
+    }
     saveTurnoInfo();
   });
 });
