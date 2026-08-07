@@ -1578,6 +1578,61 @@ function salvarConfig(){
   showToast('Configurações salvas.');
 }
 el('btn-salvar-config').addEventListener('click', salvarConfig);
+
+// ---------- Perfil do técnico ----------
+function renderPerfilTecnico(){
+  if(!usuarioAtual) return;
+  const campoEmail = el('tecnico-email');
+  const campoNome = el('tecnico-nome');
+  if(campoEmail) campoEmail.value = usuarioAtual.email || '';
+  if(campoNome) campoNome.value = usuarioAtual.nome || '';
+}
+
+async function salvarPerfilTecnico(){
+  const novoNome = el('tecnico-nome').value.trim();
+  const { data, error } = await db.auth.updateUser({ data: { nome: novoNome } });
+  if(error){
+    showToast(`Não foi possível salvar: ${error.message}`);
+    return;
+  }
+  usuarioAtual.nome = novoNome;
+  salvarSessaoCache(usuarioAtual);
+  const labelUsuario = el('usuario-logado-label');
+  if(labelUsuario) labelUsuario.textContent = `logado: ${usuarioAtual.nome || usuarioAtual.email}`;
+  showToast('Nome atualizado.');
+}
+el('btn-salvar-perfil').addEventListener('click', salvarPerfilTecnico);
+
+async function alterarSenhaTecnico(){
+  const novaSenha = el('tecnico-senha-nova').value;
+  const confirmar = el('tecnico-senha-confirmar').value;
+  const erro = el('tecnico-senha-erro');
+  erro.textContent = '';
+
+  if(!novaSenha || novaSenha.length < 6){
+    erro.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    return;
+  }
+  if(novaSenha !== confirmar){
+    erro.textContent = 'As duas senhas precisam ser iguais.';
+    return;
+  }
+  const btn = el('btn-alterar-senha');
+  btn.disabled = true;
+  const { error } = await db.auth.updateUser({ password: novaSenha });
+  btn.disabled = false;
+  if(error){
+    erro.textContent = `Não foi possível alterar: ${error.message}`;
+    return;
+  }
+  el('tecnico-senha-nova').value = '';
+  el('tecnico-senha-confirmar').value = '';
+  showToast('Senha alterada com sucesso.');
+}
+el('btn-alterar-senha').addEventListener('click', alterarSenhaTecnico);
+['tecnico-senha-nova','tecnico-senha-confirmar'].forEach(id=>{
+  el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); alterarSenhaTecnico(); } });
+});
 let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'' };
 let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
 let fotosTurno = []; // { id, data (ISO), turnoNumero, turnoLetra, url, descricao, ts }
@@ -2832,12 +2887,12 @@ function limparSessaoCache(){
 }
 
 function mostrarApp(user){
-  usuarioAtual = user ? { id: user.id, email: user.email } : null;
+  usuarioAtual = user ? { id: user.id, email: user.email, nome: (user.user_metadata && user.user_metadata.nome) || '' } : null;
   if(usuarioAtual) salvarSessaoCache(usuarioAtual);
   el('login-screen').style.display = 'none';
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
-  if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.email}` : '';
+  if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
 }
 
 function mostrarLogin(mensagemErro){
@@ -2864,6 +2919,7 @@ function iniciarApp(){
   appJaIniciado = true;
   carregarConfigLocal();
   renderConfig();
+  renderPerfilTecnico();
   loadTurnoInfo();
   loadData();
   loadHistoricoExportacoes();
