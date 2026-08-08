@@ -386,6 +386,25 @@ button .icon-svg{ stroke:currentColor; }
   .breadcrumb .arrow{ color:var(--muted); }
   .breadcrumb .warn{ color:var(--amber); }
 
+  .aviso-refazer{
+    font-family:var(--sans); font-size:13px; color:var(--text);
+    padding:10px 14px; background:rgba(255,163,26,0.12); border:1px solid var(--amber);
+    border-radius:6px; margin-bottom:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  }
+  .aviso-refazer b{ color:var(--amber); flex-shrink:0; }
+  .aviso-refazer-item{
+    font-family:var(--mono); font-size:12px; background:var(--surface);
+    border:1px solid var(--line); border-radius:4px; padding:3px 8px;
+  }
+  .badge-refazer{
+    margin-left:7px; font-family:var(--sans); font-size:9px; text-transform:uppercase;
+    letter-spacing:0.5px; font-weight:700; color:var(--amber); border:1px solid var(--amber);
+    border-radius:20px; padding:1px 7px; vertical-align:middle;
+  }
+  .icon-refazer{ color:var(--muted); }
+  .icon-refazer.ativo{ color:var(--amber); }
+  .icon-refazer:hover{ color:var(--amber); filter:none; }
+
   .row-2{ display:grid; grid-template-columns:0.8fr 1.6fr; gap:16px; margin-bottom:16px; align-items:start; }
   @media (max-width:820px){ .row-2{ grid-template-columns:1fr; } }
 

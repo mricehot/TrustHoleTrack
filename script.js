@@ -818,6 +818,10 @@ function editFuroModal(furo){
             <label for="edit-furo-observacao">Observação (opcional)</label>
             <input id="edit-furo-observacao" type="text" value="${furo.observacao || ''}" maxlength="300" placeholder="ex: desviou por veio de água">
           </div>
+          <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
+            <input id="edit-furo-refazer" type="checkbox" style="width:17px; height:17px; accent-color:var(--amber);" ${furo.precisaRefazer ? 'checked' : ''}>
+            <span>Precisa ser refeito (medição atual não é confiável)</span>
+          </label>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -834,12 +838,13 @@ function editFuroModal(furo){
       const metragemReal = parseFloat(el('edit-furo-real').value);
       const situacao = el('edit-furo-situacao').value;
       const observacao = el('edit-furo-observacao').value.trim();
+      const precisaRefazer = el('edit-furo-refazer').checked;
       if(!numero || isNaN(metragemEsperada) || isNaN(metragemReal)){
         showToast('Preencha número, esperada e real corretamente.');
         return;
       }
       if(!(await confirmarMetragemSuspeita(metragemEsperada, metragemReal))) return;
-      fechar({ numero, metragemEsperada, metragemReal, situacao, observacao });
+      fechar({ numero, metragemEsperada, metragemReal, situacao, observacao, precisaRefazer });
     };
     el('modal-salvar').addEventListener('click', salvar);
     ['edit-furo-numero','edit-furo-esperada','edit-furo-real'].forEach(id=>{
@@ -867,6 +872,54 @@ function ciclarSituacaoFuro(id){
   showToast(`${furoCode(l,f)}: ${situacaoLabel(proxima)}.`);
 }
 
+// Independente da situação (Livre/Obstruído/Varado) — marca que a medição já
+// registrada não é confiável e precisa ser perfilada de novo, sem apagar o
+// que já foi lançado até decidir refazer de fato.
+function toggleRefazerFuro(id){
+  const f = furos.find(x=>x.id===id);
+  if(!f) return;
+  const l = leques.find(x=>x.id===f.lequeId);
+  if(!souDonoDoLeque(l)){
+    showToast('Só quem criou este leque pode editar os furos dele.');
+    return;
+  }
+  f.precisaRefazer = !f.precisaRefazer;
+  enfileirar('furos', 'update', { id: f.id, precisa_refazer: f.precisaRefazer });
+  salvarLocal();
+  renderAll();
+  showToast(f.precisaRefazer ? `${furoCode(l,f)} marcado pra refazer.` : `${furoCode(l,f)}: marcação de refazer removida.`);
+}
+
+// Lista todos os furos marcados pra refazer no anel ativo (de qualquer leque,
+// aberto ou fechado) — usado no aviso no topo da página.
+function furosPrecisandoRefazer(){
+  if(!anelAtivoId) return [];
+  const idsLequesDoAnel = new Set(leques.filter(l=>l.anelId===anelAtivoId).map(l=>l.id));
+  return furos
+    .filter(f=>f.precisaRefazer && idsLequesDoAnel.has(f.lequeId))
+    .map(f=>{
+      const l = leques.find(x=>x.id===f.lequeId);
+      return { furo: f, leque: l, codigo: l ? furoCode(l, f) : f.numero };
+    })
+    .sort((a,b)=> a.codigo.localeCompare(b.codigo, undefined, {numeric:true}));
+}
+
+function renderAvisoRefazer(){
+  const aviso = el('aviso-refazer');
+  if(!aviso) return;
+  const pendentes = furosPrecisandoRefazer();
+  if(pendentes.length === 0){
+    aviso.style.display = 'none';
+    aviso.innerHTML = '';
+    return;
+  }
+  aviso.style.display = 'block';
+  aviso.innerHTML = `
+    <b>${pendentes.length} furo(s) precisando ser refeito(s):</b>
+    ${pendentes.map(p=> `<span class="aviso-refazer-item">${p.leque ? p.leque.nome ? lequeCode(p.leque)+' ('+p.leque.nome+')' : lequeCode(p.leque) : '-'} · ${p.codigo}</span>`).join('')}
+  `;
+}
+
 function editarFuro(id){
   const f = furos.find(x=>x.id===id);
   if(!f) return;
@@ -889,8 +942,9 @@ function editarFuro(id){
     f.metragemReal = resultado.metragemReal;
     f.situacao = resultado.situacao;
     f.observacao = resultado.observacao;
+    f.precisaRefazer = resultado.precisaRefazer;
     enfileirar('furos', 'update', {
-      id: f.id, numero: f.numero, metragem_esperada: f.metragemEsperada, metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
+      id: f.id, numero: f.numero, metragem_esperada: f.metragemEsperada, metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao, precisa_refazer: f.precisaRefazer
     });
     salvarLocal();
     renderAll();
@@ -1120,7 +1174,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
+      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao, precisa_refazer: f.precisaRefazer
     });
   });
 
@@ -1412,7 +1466,7 @@ async function adicionarFuro(){
   const observacao = el('furo-observacao').value.trim();
 
   const novoId = uuidv4();
-  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, observacao, ts: new Date().toISOString() };
+  const novoFuro = { id: novoId, lequeId: lequeAberto.id, numero, metragemEsperada, metragemReal, situacao, observacao, precisaRefazer: false, ts: new Date().toISOString() };
   furos.push(novoFuro);
   enfileirar('furos', 'insert', {
     id: novoId, leque_id: lequeAberto.id, numero, metragem_esperada: metragemEsperada, metragem_real: metragemReal, situacao, observacao
@@ -1469,7 +1523,7 @@ function desfazerRemocaoFuro(furoRemovido){
   restaurarNaFila('furos', furoRemovido.id, {
     id: furoRemovido.id, leque_id: furoRemovido.lequeId, numero: furoRemovido.numero,
     metragem_esperada: furoRemovido.metragemEsperada, metragem_real: furoRemovido.metragemReal,
-    situacao: furoRemovido.situacao, observacao: furoRemovido.observacao
+    situacao: furoRemovido.situacao, observacao: furoRemovido.observacao, precisa_refazer: furoRemovido.precisaRefazer
   });
   salvarLocal();
   renderAll();
@@ -1540,7 +1594,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
     furos.push(f);
     restaurarNaFila('furos', f.id, {
       id: f.id, leque_id: f.lequeId, numero: f.numero, metragem_esperada: f.metragemEsperada,
-      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao
+      metragem_real: f.metragemReal, situacao: f.situacao, observacao: f.observacao, precisa_refazer: f.precisaRefazer
     });
   });
 
@@ -1793,7 +1847,7 @@ function desfazerRemocaoChecklistFuro(furoRemovido){
   renderChecklist();
   showToast('Furo restaurado no checklist.');
 }
-function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
+function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', precisaRefazer: !!row.precisa_refazer, ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
 // A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
@@ -2965,13 +3019,14 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}</td>
+          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
           <td>${fmt1(Number(f.metragemEsperada))} m</td>
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
           <td>${situacaoLabel(f.situacao)}</td>
           <td class="actions">
             ${podeEditar ? `
+            <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
             <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
             ` : `<span class="hint" title="só quem criou o leque pode editar">${ICONE_CADEADO}</span>`}
@@ -3061,6 +3116,7 @@ function renderAll(){
   renderExportBar();
   renderTurnoLequesChecklist();
   renderChecklist();
+  renderAvisoRefazer();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
