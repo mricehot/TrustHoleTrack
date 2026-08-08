@@ -260,6 +260,7 @@ button .icon-svg{ stroke:currentColor; }
 .tab-item[data-view="turno"].active{ color:var(--section-turno); border-bottom-color:var(--section-turno); }
 .tab-item[data-view="aneis"].active{ color:var(--section-aneis); border-bottom-color:var(--section-aneis); }
 .tab-item[data-view="perfilagem"].active{ color:var(--amber); border-bottom-color:var(--amber); }
+.tab-item[data-view="checklist"].active{ color:var(--section-aneis); border-bottom-color:var(--section-aneis); }
 .tab-item[data-view="historico"].active{ color:var(--moss); border-bottom-color:var(--moss); }
 .tab-item[data-view="config"].active{ color:var(--muted); border-bottom-color:var(--muted); }
 
@@ -509,6 +510,20 @@ button .icon-svg{ stroke:currentColor; }
     min-height:0;
   }
   .foto-turno-obs:hover{ color:var(--steel); text-decoration:underline; }
+  .checklist-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .checklist-item{
+    display:flex; align-items:center; gap:7px; padding:9px 10px 9px 12px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:20px;
+    font-family:var(--mono); font-size:13px; font-weight:600; cursor:pointer;
+    user-select:none;
+  }
+  .checklist-item input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
+  .checklist-item.feito{ background:var(--surface); border-color:var(--moss); }
+  .checklist-item.feito .codigo{ color:var(--moss); text-decoration:line-through; opacity:0.75; }
+  .checklist-item .icon-remover{
+    width:20px; height:20px; min-width:0; min-height:0; padding:0; font-size:11px;
+    border-radius:50%; margin-left:2px;
+  }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; font-size:13px; line-height:1; padding:0; flex-shrink:0;

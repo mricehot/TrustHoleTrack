@@ -186,10 +186,12 @@ const LOCAL_KEY = 'perfilagem-local-v1';
 const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
+const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
 const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
+let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, ts } — controle manual, separado dos leques de verdade
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
 let lequesColapsados = new Set();
@@ -611,25 +613,28 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
       db.from('turno_observacoes').select('*').order('criado_em'),
-      db.from('fotos_turno').select('*').order('criado_em')
+      db.from('fotos_turno').select('*').order('criado_em'),
+      db.from('checklist_leques').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5) throw (e1 || e2 || e3 || e4 || e5);
+    if(e1 || e2 || e3 || e4 || e5 || e6) throw (e1 || e2 || e3 || e4 || e5 || e6);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
     turnoObservacoes = (obsData || []).map(mapObservacao);
     fotosTurno = (fotosData || []).map(mapFotoTurno);
+    checklistLeques = (checklistData || []).map(mapChecklistLeque);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
     salvarLocal();
     salvarObsLocal();
     salvarFotosTurnoLocal();
+    salvarChecklistLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -665,6 +670,7 @@ async function loadData(){
   carregarLocal();
   carregarUltimaSincronizacaoLocal();
   carregarFotosTurnoLocal();
+  carregarChecklistLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -1538,6 +1544,117 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
+function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, ts: row.criado_em }; }
+
+function carregarChecklistLocal(){
+  try{
+    const raw = localStorage.getItem(CHECKLIST_LOCAL_KEY);
+    checklistLeques = raw ? JSON.parse(raw) : [];
+  }catch(e){ checklistLeques = []; }
+}
+function salvarChecklistLocal(){
+  try{ localStorage.setItem(CHECKLIST_LOCAL_KEY, JSON.stringify(checklistLeques)); }catch(e){}
+}
+function checklistDoAnelAtivo(){
+  return checklistLeques
+    .filter(c=>c.anelId===anelAtivoId)
+    .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true}));
+}
+
+function renderChecklist(){
+  const grid = el('checklist-grid');
+  const vazio = el('checklist-vazio');
+  const progresso = el('checklist-progresso');
+  if(!grid) return;
+  const itens = checklistDoAnelAtivo();
+  if(progresso){
+    const feitos = itens.filter(c=>c.perfilado).length;
+    progresso.textContent = `${feitos}/${itens.length} perfilados`;
+  }
+  if(itens.length === 0){
+    grid.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  grid.innerHTML = itens.map(c=>{
+    const codigo = PREFIXO[c.tipo] + c.numero;
+    return `
+      <label class="checklist-item ${c.perfilado ? 'feito' : ''}">
+        <input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')">
+        <span class="codigo">${codigo}</span>
+        <button type="button" class="icon icon-remover" onclick="event.preventDefault(); removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
+      </label>
+    `;
+  }).join('');
+}
+
+function adicionarAoChecklist(){
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  if(!anelAtivo){ showToast('Selecione um anel primeiro.'); return; }
+  const tipo = el('checklist-tipo').value;
+  const de = parseInt(el('checklist-numero-de').value, 10);
+  const ateTexto = el('checklist-numero-ate').value.trim();
+  const ate = ateTexto ? parseInt(ateTexto, 10) : de;
+  if(isNaN(de)){ showToast('Preencha o número (ou a faixa) pra adicionar.'); return; }
+  if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
+  if(ate - de > 200){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 200).'); return; }
+
+  let adicionados = 0, duplicados = 0;
+  for(let n = de; n <= ate; n++){
+    const numero = normalizarNumero(String(n));
+    const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero);
+    if(jaExiste){ duplicados++; continue; }
+    const novoId = uuidv4();
+    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, ts: new Date().toISOString() };
+    checklistLeques.push(novoItem);
+    enfileirar('checklist_leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false });
+    adicionados++;
+  }
+  salvarChecklistLocal();
+  renderChecklist();
+  el('checklist-numero-de').value = '';
+  el('checklist-numero-ate').value = '';
+  if(adicionados === 0) showToast('Nada adicionado — todos já estavam no checklist.');
+  else showToast(`${adicionados} adicionado(s) ao checklist.${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
+}
+el('btn-add-checklist').addEventListener('click', adicionarAoChecklist);
+
+function toggleChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  c.perfilado = !c.perfilado;
+  enfileirar('checklist_leques', 'update', { id: c.id, perfilado: c.perfilado });
+  salvarChecklistLocal();
+  renderChecklist();
+}
+
+async function removerChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  const codigo = PREFIXO[c.tipo] + c.numero;
+  if(!(await confirmDialog(`Remover ${codigo} do checklist?`, 'Remover'))) return;
+  checklistLeques = checklistLeques.filter(x=>x.id!==id);
+  enfileirar('checklist_leques', 'delete', { id });
+  salvarChecklistLocal();
+  renderChecklist();
+  showToast(`${codigo} removido do checklist.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoChecklist(c)
+  });
+}
+
+function desfazerRemocaoChecklist(itemRemovido){
+  if(checklistLeques.some(x=>x.id===itemRemovido.id)) return; // já foi restaurado
+  checklistLeques.push(itemRemovido);
+  restaurarNaFila('checklist_leques', itemRemovido.id, {
+    id: itemRemovido.id, anel_id: itemRemovido.anelId, tipo: itemRemovido.tipo,
+    numero: itemRemovido.numero, perfilado: itemRemovido.perfilado
+  });
+  salvarChecklistLocal();
+  renderChecklist();
+  showToast('Restaurado no checklist.');
+}
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
 
 // ---------- Dados do turno (também local, com fila própria) ----------
@@ -2167,11 +2284,9 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   const fotosAtuais = fotosDoTurnoAtual();
   if(fotosAtuais.length > 0){
     y += 4;
-    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 4;
+    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 6;
     doc.setFont(undefined,'normal');
-    for(const f of fotosAtuais){
-      y = await desenharFotoLequePDF(doc, f.url, y, f.descricao || 'Foto do turno');
-    }
+    y = await desenharGradeFotosPDF(doc, fotosAtuais, y);
   }
 
   y += 4;
@@ -2357,6 +2472,64 @@ async function desenharFotoLequePDF(doc, fotoUrl, y, legendaTexto){
   }catch(e){
     return y;
   }
+}
+
+// Desenha várias fotos lado a lado, em 2 colunas — usado só pras fotos do turno,
+// que podem ser várias (diferente da foto de leque, que é sempre uma só). Evita
+// que o PDF fique enorme empilhando foto atrás de foto numa coluna só.
+async function desenharGradeFotosPDF(doc, fotos, y){
+  const COLUNAS = 2;
+  const GAP = 8;
+  const LARGURA_TOTAL = 180; // de x=15 até x=195
+  const larguraCol = (LARGURA_TOTAL - GAP * (COLUNAS - 1)) / COLUNAS;
+  const alturaMaxFoto = 55;
+
+  let coluna = 0;
+  let yLinha = y;
+  let alturaMaxLinha = 0;
+
+  for(const f of fotos){
+    const foto = await carregarImagemParaPDF(f.url);
+    if(!foto) continue;
+
+    let largura = larguraCol, altura = larguraCol * (foto.h / foto.w);
+    if(altura > alturaMaxFoto){ altura = alturaMaxFoto; largura = alturaMaxFoto * (foto.w / foto.h); }
+
+    const legenda = f.descricao || 'Foto do turno';
+    doc.setFont(undefined,'italic'); doc.setFontSize(8.5);
+    const linhasLegenda = doc.splitTextToSize(legenda, larguraCol);
+    doc.setFont(undefined,'normal');
+    const alturaLinha = altura + 5 + linhasLegenda.length * 4 + 8;
+
+    // só quebra página no início de uma linha nova (coluna 0), pra não cortar
+    // uma foto pela metade nem deixar a segunda coluna desalinhada da primeira
+    if(coluna === 0 && yLinha + alturaLinha > 278){
+      doc.addPage();
+      yLinha = 20;
+    }
+
+    const x = 15 + coluna * (larguraCol + GAP);
+    try{
+      const formato = foto.dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+      doc.setDrawColor(200); doc.setLineWidth(0.3);
+      doc.rect(x, yLinha, largura, altura);
+      doc.addImage(foto.dataUrl, formato, x, yLinha, largura, altura);
+      doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(120);
+      doc.text(linhasLegenda, x, yLinha + altura + 5);
+      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
+    }catch(e){}
+
+    alturaMaxLinha = Math.max(alturaMaxLinha, alturaLinha);
+    coluna++;
+    if(coluna >= COLUNAS){
+      coluna = 0;
+      yLinha += alturaMaxLinha;
+      alturaMaxLinha = 0;
+    }
+  }
+  if(coluna !== 0) yLinha += alturaMaxLinha; // sobrou 1 foto pendente numa linha ímpar
+
+  return yLinha;
 }
 
 async function exportarLequePDF(id){
@@ -2749,6 +2922,7 @@ function renderAll(){
   atualizarBotaoEnviar();
   renderExportBar();
   renderTurnoLequesChecklist();
+  renderChecklist();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
