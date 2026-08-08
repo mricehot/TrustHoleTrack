@@ -510,20 +510,36 @@ button .icon-svg{ stroke:currentColor; }
     min-height:0;
   }
   .foto-turno-obs:hover{ color:var(--steel); text-decoration:underline; }
-  .checklist-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .checklist-item{
-    display:flex; align-items:center; gap:7px; padding:9px 10px 9px 12px;
-    background:var(--surface-2); border:1px solid var(--line); border-radius:20px;
-    font-family:var(--mono); font-size:13px; font-weight:600; cursor:pointer;
-    user-select:none;
+  .checklist-grid{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .checklist-leque-card{
+    border:1px solid var(--line); border-radius:8px; background:var(--surface-2);
+    overflow:hidden;
   }
-  .checklist-item input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
-  .checklist-item.feito{ background:var(--surface); border-color:var(--moss); }
-  .checklist-item.feito .codigo{ color:var(--moss); text-decoration:line-through; opacity:0.75; }
-  .checklist-item .icon-remover{
-    width:20px; height:20px; min-width:0; min-height:0; padding:0; font-size:11px;
-    border-radius:50%; margin-left:2px;
+  .checklist-leque-card.feito{ border-color:var(--moss); }
+  .checklist-leque-cabecalho{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
   }
+  .checklist-leque-cabecalho input[type="checkbox"]{ width:17px; height:17px; margin:0; accent-color:var(--moss); cursor:pointer; flex-shrink:0; }
+  .checklist-leque-codigo{
+    background:transparent; border:none; padding:0; font-family:var(--mono); font-size:14px;
+    font-weight:700; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:6px;
+    min-height:0; box-shadow:none; text-transform:none; letter-spacing:0;
+  }
+  .checklist-leque-card.feito .checklist-leque-codigo{ color:var(--moss); }
+  .checklist-leque-codigo .seta{ font-size:11px; color:var(--muted); }
+  .checklist-leque-cabecalho .spacer{ flex:1; }
+  .checklist-furos-body{ padding:0 12px 14px 39px; border-top:1px solid var(--line); }
+  .checklist-furos-add{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+  .checklist-furos-add input{ width:90px; min-height:38px; padding:6px 8px; font-size:13px; }
+  .checklist-furos-add button{
+    min-height:38px; padding:6px 14px; font-size:12px; background:var(--steel); color:#fff; box-shadow:none;
+  }
+  table.checklist-furos-tabela{ width:100%; max-width:320px; }
+  table.checklist-furos-tabela th{ text-align:left; font-size:10px; padding:4px 8px; }
+  table.checklist-furos-tabela td{ padding:5px 8px; font-family:var(--mono); font-size:13px; border-bottom:1px solid var(--line); }
+  table.checklist-furos-tabela tr.feito td:first-child{ color:var(--moss); text-decoration:line-through; opacity:0.8; }
+  table.checklist-furos-tabela input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
+  table.checklist-furos-tabela .icon-remover{ width:22px; height:22px; min-width:0; min-height:0; padding:0; font-size:11px; }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; font-size:13px; line-height:1; padding:0; flex-shrink:0;

@@ -187,11 +187,14 @@ const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
+const CHECKLIST_FUROS_LOCAL_KEY = 'perfilagem-checklist-furos-v1';
 const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
 let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, ts } — controle manual, separado dos leques de verdade
+let checklistFuros = []; // { id, checklistLequeId, numero, perfilado, ts } — furos dentro de cada leque do checklist
+let checklistExpandido = new Set(); // ids de checklist_leques com a tabela de furos aberta (só na sessão, não persiste)
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
 let lequesColapsados = new Set();
@@ -613,21 +616,23 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
       db.from('turno_observacoes').select('*').order('criado_em'),
       db.from('fotos_turno').select('*').order('criado_em'),
-      db.from('checklist_leques').select('*').order('criado_em')
+      db.from('checklist_leques').select('*').order('criado_em'),
+      db.from('checklist_furos').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6) throw (e1 || e2 || e3 || e4 || e5 || e6);
+    if(e1 || e2 || e3 || e4 || e5 || e6 || e7) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
     turnoObservacoes = (obsData || []).map(mapObservacao);
     fotosTurno = (fotosData || []).map(mapFotoTurno);
     checklistLeques = (checklistData || []).map(mapChecklistLeque);
+    checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
@@ -635,6 +640,7 @@ async function atualizarDoServidor(){
     salvarObsLocal();
     salvarFotosTurnoLocal();
     salvarChecklistLocal();
+    salvarChecklistFurosLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -671,6 +677,7 @@ async function loadData(){
   carregarUltimaSincronizacaoLocal();
   carregarFotosTurnoLocal();
   carregarChecklistLocal();
+  carregarChecklistFurosLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -1545,6 +1552,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -1554,6 +1562,20 @@ function carregarChecklistLocal(){
 }
 function salvarChecklistLocal(){
   try{ localStorage.setItem(CHECKLIST_LOCAL_KEY, JSON.stringify(checklistLeques)); }catch(e){}
+}
+function carregarChecklistFurosLocal(){
+  try{
+    const raw = localStorage.getItem(CHECKLIST_FUROS_LOCAL_KEY);
+    checklistFuros = raw ? JSON.parse(raw) : [];
+  }catch(e){ checklistFuros = []; }
+}
+function salvarChecklistFurosLocal(){
+  try{ localStorage.setItem(CHECKLIST_FUROS_LOCAL_KEY, JSON.stringify(checklistFuros)); }catch(e){}
+}
+function checklistFurosDoLeque(checklistLequeId){
+  return checklistFuros
+    .filter(f=>f.checklistLequeId===checklistLequeId)
+    .sort((a,b)=> a.numero.localeCompare(b.numero, undefined, {numeric:true}));
 }
 function checklistDoAnelAtivo(){
   return checklistLeques
@@ -1579,14 +1601,52 @@ function renderChecklist(){
   if(vazio) vazio.style.display = 'none';
   grid.innerHTML = itens.map(c=>{
     const codigo = PREFIXO[c.tipo] + c.numero;
+    const expandido = checklistExpandido.has(c.id);
+    const furosDoLeque = checklistFurosDoLeque(c.id);
+    const furosFeitos = furosDoLeque.filter(f=>f.perfilado).length;
     return `
-      <label class="checklist-item ${c.perfilado ? 'feito' : ''}">
-        <input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')">
-        <span class="codigo">${codigo}</span>
-        <button type="button" class="icon icon-remover" onclick="event.preventDefault(); removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
-      </label>
+      <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''}">
+        <div class="checklist-leque-cabecalho">
+          <input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" title="marcar leque como perfilado">
+          <button type="button" class="checklist-leque-codigo" onclick="toggleExpandirChecklist('${c.id}')">
+            ${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span>
+          </button>
+          <span class="hint">${furosDoLeque.length ? furosFeitos + '/' + furosDoLeque.length + ' furos' : 'sem furos ainda'}</span>
+          <span class="spacer"></span>
+          <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
+        </div>
+        ${expandido ? `
+        <div class="checklist-furos-body">
+          <div class="checklist-furos-add">
+            <input type="text" inputmode="numeric" placeholder="de" id="cf-de-${c.id}">
+            <input type="text" inputmode="numeric" placeholder="até (opcional)" id="cf-ate-${c.id}">
+            <button type="button" onclick="adicionarFurosAoChecklist('${c.id}')">+ Adicionar furos</button>
+          </div>
+          ${furosDoLeque.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
+          <table class="checklist-furos-tabela">
+            <thead><tr><th>Furo</th><th>Perfilado</th><th></th></tr></thead>
+            <tbody>
+              ${furosDoLeque.map(f=>`
+                <tr class="${f.perfilado ? 'feito' : ''}">
+                  <td>F${f.numero}</td>
+                  <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')"></td>
+                  <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover">✕</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          `}
+        </div>
+        ` : ''}
+      </div>
     `;
   }).join('');
+}
+
+function toggleExpandirChecklist(id){
+  if(checklistExpandido.has(id)) checklistExpandido.delete(id);
+  else checklistExpandido.add(id);
+  renderChecklist();
 }
 
 function adicionarAoChecklist(){
@@ -1633,27 +1693,105 @@ async function removerChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
   const codigo = PREFIXO[c.tipo] + c.numero;
-  if(!(await confirmDialog(`Remover ${codigo} do checklist?`, 'Remover'))) return;
+  const furosDoLeque = checklistFurosDoLeque(id);
+  if(!(await confirmDialog(`Remover ${codigo} do checklist${furosDoLeque.length ? ' e seus '+furosDoLeque.length+' furo(s)' : ''}?`, 'Remover'))) return;
+
+  const furosRemovidos = furosDoLeque.map(f=>({ ...f }));
   checklistLeques = checklistLeques.filter(x=>x.id!==id);
+  checklistFuros = checklistFuros.filter(f=>f.checklistLequeId!==id);
+  furosDoLeque.forEach(f=> removerDaFila('checklist_furos', f.id));
   enfileirar('checklist_leques', 'delete', { id });
+  checklistExpandido.delete(id);
+
   salvarChecklistLocal();
+  salvarChecklistFurosLocal();
   renderChecklist();
   showToast(`${codigo} removido do checklist.`, {
     acaoLabel: 'Desfazer',
-    onAcao: ()=> desfazerRemocaoChecklist(c)
+    onAcao: ()=> desfazerRemocaoChecklist(c, furosRemovidos)
   });
 }
 
-function desfazerRemocaoChecklist(itemRemovido){
+function desfazerRemocaoChecklist(itemRemovido, furosRemovidos){
   if(checklistLeques.some(x=>x.id===itemRemovido.id)) return; // já foi restaurado
   checklistLeques.push(itemRemovido);
   restaurarNaFila('checklist_leques', itemRemovido.id, {
     id: itemRemovido.id, anel_id: itemRemovido.anelId, tipo: itemRemovido.tipo,
     numero: itemRemovido.numero, perfilado: itemRemovido.perfilado
   });
+  (furosRemovidos || []).forEach(f=>{
+    checklistFuros.push(f);
+    restaurarNaFila('checklist_furos', f.id, {
+      id: f.id, checklist_leque_id: f.checklistLequeId, numero: f.numero, perfilado: f.perfilado
+    });
+  });
   salvarChecklistLocal();
+  salvarChecklistFurosLocal();
   renderChecklist();
   showToast('Restaurado no checklist.');
+}
+
+function adicionarFurosAoChecklist(checklistLequeId){
+  const c = checklistLeques.find(x=>x.id===checklistLequeId);
+  if(!c) return;
+  const campoDe = el(`cf-de-${checklistLequeId}`);
+  const campoAte = el(`cf-ate-${checklistLequeId}`);
+  const de = parseInt(campoDe.value, 10);
+  const ateTexto = campoAte.value.trim();
+  const ate = ateTexto ? parseInt(ateTexto, 10) : de;
+  if(isNaN(de)){ showToast('Preencha o número (ou a faixa) do furo.'); return; }
+  if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
+  if(ate - de > 200){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 200).'); return; }
+
+  let adicionados = 0, duplicados = 0;
+  for(let n = de; n <= ate; n++){
+    const numero = normalizarNumero(String(n));
+    const jaExiste = checklistFuros.some(f=>f.checklistLequeId===checklistLequeId && f.numero===numero);
+    if(jaExiste){ duplicados++; continue; }
+    const novoId = uuidv4();
+    checklistFuros.push({ id: novoId, checklistLequeId, numero, perfilado: false, ts: new Date().toISOString() });
+    enfileirar('checklist_furos', 'insert', { id: novoId, checklist_leque_id: checklistLequeId, numero, perfilado: false });
+    adicionados++;
+  }
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  if(adicionados === 0) showToast('Nada adicionado — todos já estavam no checklist desse leque.');
+  else showToast(`${adicionados} furo(s) adicionado(s).${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
+}
+
+function toggleChecklistFuro(id){
+  const f = checklistFuros.find(x=>x.id===id);
+  if(!f) return;
+  f.perfilado = !f.perfilado;
+  enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+}
+
+async function removerChecklistFuro(id){
+  const f = checklistFuros.find(x=>x.id===id);
+  if(!f) return;
+  if(!(await confirmDialog(`Remover o furo F${f.numero} do checklist?`, 'Remover'))) return;
+  checklistFuros = checklistFuros.filter(x=>x.id!==id);
+  enfileirar('checklist_furos', 'delete', { id });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(`Furo F${f.numero} removido.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoChecklistFuro(f)
+  });
+}
+
+function desfazerRemocaoChecklistFuro(furoRemovido){
+  if(checklistFuros.some(x=>x.id===furoRemovido.id)) return; // já foi restaurado
+  checklistFuros.push(furoRemovido);
+  restaurarNaFila('checklist_furos', furoRemovido.id, {
+    id: furoRemovido.id, checklist_leque_id: furoRemovido.checklistLequeId,
+    numero: furoRemovido.numero, perfilado: furoRemovido.perfilado
+  });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast('Furo restaurado no checklist.');
 }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', ts: row.criado_em }; }
 
