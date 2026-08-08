@@ -61,12 +61,12 @@
       </svg>
       <div>
         <h1><span class="line1">Blast<span class="accent">Hole</span></span><span class="line2">Manager</span></h1>
-        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL &middot; esperada &times; real</div>
+        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL/CR &middot; esperada &times; real</div>
       </div>
     </div>
     <div class="header-right">
       <div class="readout-label" id="usuario-logado-label" style="margin-bottom:2px;"></div>
-      <div class="readout-label" id="readout-label">anel ativo: —</div>
+      <div class="readout-label" id="readout-label">realce ativo: —</div>
       <div class="readout-label" id="ultima-sync-label" style="margin-top:2px;"></div>
       <span class="sync-badge" id="sync-badge"><span class="sync-dot"></span>sincronizando...</span>
       <div class="header-actions">
@@ -94,7 +94,7 @@
 
   <nav class="tabbar" id="tabbar">
     <button type="button" class="tab-item" data-view="turno"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><span class="tab-label">Turno</span></button>
-    <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="tab-label">Anéis</span></button>
+    <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="tab-label">Realce</span></button>
     <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="15"/></svg></span><span class="tab-label">Perfilagem</span></button>
     <button type="button" class="tab-item" data-view="checklist"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="tab-label">Checklist</span></button>
     <button type="button" class="tab-item" data-view="historico"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg></span><span class="tab-label">Histórico</span></button>
@@ -210,15 +210,15 @@
       <section class="view" id="view-aneis">
         <div class="view-card accent-steel">
           <div class="view-card-header">
-            <span class="view-card-label">Anéis / Galerias</span>
-            <span class="tag">trocar só ao mudar de galeria</span>
-            <span class="current" id="anel-menu-current">nenhum anel ativo</span>
+            <span class="view-card-label">Realce</span>
+            <span class="tag">trocar só ao mudar de realce</span>
+            <span class="current" id="anel-menu-current">nenhum realce ativo</span>
           </div>
           <div class="anel-body">
             <div class="anel-form" id="form-anel">
-              <input id="anel-nome" type="text" placeholder="nome do anel / galeria, ex: Galeria N3-Leste" required style="flex:1;">
+              <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:0 0 200px;">
-              <button type="button" id="btn-criar-anel" class="steel">Criar anel</button>
+              <button type="button" id="btn-criar-anel" class="steel">Criar realce</button>
             </div>
             <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
             <div class="anel-list" id="anel-list"></div>
@@ -297,10 +297,10 @@
                 <button type="button" class="chip active" data-val="nao">Não</button>
                 <button type="button" class="chip" data-val="sim">Sim</button>
               </div>
-              <div class="hint">Se marcar "Sim", escolha abaixo quais leques do anel ativo entram junto no PDF.</div>
+              <div class="hint">Se marcar "Sim", escolha abaixo quais leques do realce ativo entram junto no PDF.</div>
             </div>
             <div id="turno-leques-wrap" style="display:none;">
-              <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste anel ainda.</div>
+              <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste realce ainda.</div>
               <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
             </div>
             <button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
@@ -415,7 +415,7 @@
               </div>
             </div>
             <button type="button" id="btn-add-checklist" class="steel" style="margin-top:10px;">+ Adicionar ao checklist</button>
-            <div class="hint" id="checklist-vazio" style="margin-top:16px;">Nenhum leque no checklist deste anel ainda.</div>
+            <div class="hint" id="checklist-vazio" style="margin-top:16px;">Nenhum leque no checklist deste realce ainda.</div>
             <div class="checklist-grid" id="checklist-grid"></div>
           </div>
         </div>

@@ -420,7 +420,7 @@ function atualizarBotaoEnviar(){
 
 // Nomes amigáveis pra tabela e pro tipo de ação, usados na lista de pendências.
 const NOME_TABELA_FILA = {
-  aneis: 'Anel', leques: 'Leque', furos: 'Furo',
+  aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno'
 };
 const NOME_ACAO_FILA = { insert: 'novo', update: 'atualização', upsert: 'atualização', delete: 'remoção' };
@@ -429,7 +429,7 @@ const NOME_ACAO_FILA = { insert: 'novo', update: 'atualização', upsert: 'atual
 // não sabe (e não precisa saber) o nome das colunas no banco.
 function descreverItemFila({ tabela, registro }){
   if(tabela === 'aneis'){
-    return registro.nome ? `Anel "${registro.nome}"` : 'Anel';
+    return registro.nome ? `Realce "${registro.nome}"` : 'Realce';
   }
   if(tabela === 'leques'){
     const prefixo = PREFIXO[registro.tipo] || '';
@@ -531,7 +531,7 @@ function enfileirar(tabela, acao, registro){
 }
 
 // Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nome
-// do anel + o nível cadastrado nele (ex: "Galeria N3-Leste · N-125 TR6733") — evita
+// do anel + o nível cadastrado nele (ex: "Realce N3-Leste · N-125 TR6733") — evita
 // digitar a mesma informação duas vezes. Só sincroniza quando o anel tem um nível de
 // fato; se estiver vazio, não apaga o que a pessoa já tinha digitado em Local.
 // Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o
@@ -1047,7 +1047,7 @@ function editarLeque(id){
     if(resultado.tipo !== l.tipo || resultado.numero !== l.numero){
       const duplicado = leques.some(x=>x.anelId===l.anelId && x.tipo===resultado.tipo && x.numero===resultado.numero && x.id!==l.id);
       if(duplicado){
-        showToast(`Já existe ${PREFIXO[resultado.tipo]}${resultado.numero} neste anel.`);
+        showToast(`Já existe ${PREFIXO[resultado.tipo]}${resultado.numero} neste realce.`);
         return;
       }
     }
@@ -1090,11 +1090,11 @@ function lequeAbertoDoAnel(anelId){
 // ---------- Anéis (menu separado) ----------
 function renderAneisMenu(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  el('anel-menu-current').textContent = anelAtivo ? `ativo: ${anelAtivo.nome}` : 'nenhum anel ativo';
+  el('anel-menu-current').textContent = anelAtivo ? `ativo: ${anelAtivo.nome}` : 'nenhum realce ativo';
 
   const lista = el('anel-list');
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="hint">Nenhum anel criado. Crie o primeiro acima.</div>`;
+    lista.innerHTML = `<div class="hint">Nenhum realce criado. Crie o primeiro acima.</div>`;
     return;
   }
   lista.innerHTML = aneis.map(a=>{
@@ -1105,9 +1105,9 @@ function renderAneisMenu(){
         ${a.nivel ? `<span class="hint">${a.nivel}</span>` : ''}
         ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
         <span class="spacer"></span>
-        ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este anel</button>` : ''}
-        <button class="icon icon-editar" onclick="editarAnel('${a.id}')" title="editar anel">✎</button>
-        <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover anel">✕</button>
+        ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
+        <button class="icon icon-editar" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
+        <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
       </div>
     `;
   }).join('');
@@ -1117,7 +1117,7 @@ function usarAnel(id){
   definirAnelAtivo(id);
   salvarLocal();
   renderAll();
-  showToast('Anel ativo alterado.');
+  showToast('Realce ativo alterado.');
   mostrarView('perfilagem');
 }
 
@@ -1126,7 +1126,7 @@ async function removerAnel(id){
   if(!a) return;
   const lequesDoAnel = leques.filter(l=>l.anelId===id);
   const furosDoAnel = furos.filter(f=>lequesDoAnel.some(l=>l.id===f.lequeId));
-  const msg = `Remover o anel "${a.nome}", ${lequesDoAnel.length} leque(s) e ${furosDoAnel.length} furo(s)?`;
+  const msg = `Remover o realce "${a.nome}", ${lequesDoAnel.length} leque(s) e ${furosDoAnel.length} furo(s)?`;
   if(!(await confirmDialog(msg, 'Remover'))) return;
 
   const anelRemovido = { ...a };
@@ -1149,7 +1149,7 @@ async function removerAnel(id){
   }
   salvarLocal();
   renderAll();
-  showToast(`Anel "${a.nome}" removido.`, {
+  showToast(`Realce "${a.nome}" removido.`, {
     acaoLabel: 'Desfazer',
     onAcao: ()=> desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraAnelAtivo)
   });
@@ -1181,7 +1181,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
   if(eraAnelAtivo) anelAtivoId = anelRemovido.id;
   salvarLocal();
   renderAll();
-  showToast(`Anel "${anelRemovido.nome}" restaurado.`);
+  showToast(`Realce "${anelRemovido.nome}" restaurado.`);
 }
 
 function editAnelModal(anel){
@@ -1190,7 +1190,7 @@ function editAnelModal(anel){
     root.innerHTML = `
       <div class="modal-overlay" id="modal-overlay">
         <div class="modal-box">
-          <p style="font-weight:700;">Editar anel</p>
+          <p style="font-weight:700;">Editar realce</p>
           <div class="field" style="margin-bottom:14px;">
             <label for="edit-anel-nome">Nome</label>
             <input id="edit-anel-nome" type="text" value="${anel.nome}">
@@ -1212,7 +1212,7 @@ function editAnelModal(anel){
     const salvar = ()=>{
       const nome = el('edit-anel-nome').value.trim();
       const nivel = el('edit-anel-nivel').value.trim();
-      if(!nome){ showToast('Preencha o nome do anel.'); return; }
+      if(!nome){ showToast('Preencha o nome do realce.'); return; }
       fechar({ nome, nivel });
     };
     el('modal-salvar').addEventListener('click', salvar);
@@ -1226,7 +1226,7 @@ function editarAnel(id){
   editAnelModal(a).then(resultado=>{
     if(!resultado) return;
     if(aneis.some(x=>x.id!==id && x.nome.toLowerCase()===resultado.nome.toLowerCase())){
-      showToast(`Já existe um anel chamado "${resultado.nome}".`);
+      showToast(`Já existe um realce chamado "${resultado.nome}".`);
       return;
     }
     a.nome = resultado.nome;
@@ -1235,7 +1235,7 @@ function editarAnel(id){
     if(a.id === anelAtivoId) sincronizarLocalComNivelDoAnel();
     salvarLocal();
     renderAll();
-    showToast(`Anel "${a.nome}" atualizado.`);
+    showToast(`Realce "${a.nome}" atualizado.`);
   });
 }
 
@@ -1248,8 +1248,8 @@ function criarAnel(){
   if(!nome) return;
   if(aneis.some(a=>a.nome.toLowerCase() === nome.toLowerCase())){
     campoNome.style.borderColor = 'var(--rust)';
-    el('anel-erro').textContent = `Já existe um anel chamado "${nome}". Escolha outro nome ou use o existente na lista abaixo.`;
-    showToast('Já existe um anel com esse nome.');
+    el('anel-erro').textContent = `Já existe um realce chamado "${nome}". Escolha outro nome ou use o existente na lista abaixo.`;
+    showToast('Já existe um realce com esse nome.');
     return;
   }
   const novoId = uuidv4();
@@ -1270,7 +1270,7 @@ function criarAnel(){
   el('anel-nivel').value = '';
   salvarLocal();
   renderAll();
-  showToast('Anel criado e definido como ativo.');
+  showToast('Realce criado e definido como ativo.');
   mostrarView('perfilagem');
 }
 el('btn-criar-anel').addEventListener('click', criarAnel);
@@ -1281,11 +1281,11 @@ function renderBreadcrumb(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   const bc = el('breadcrumb');
   if(!anelAtivo){
-    bc.innerHTML = `<span class="warn">Nenhum anel ativo — clique na aba "Anéis" e crie ou selecione um.</span>`;
+    bc.innerHTML = `<span class="warn">Nenhum realce ativo — clique na aba "Realce" e crie ou selecione um.</span>`;
     return;
   }
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
-  bc.innerHTML = `Anel <b>${anelAtivo.nome}</b>` +
+  bc.innerHTML = `Realce <b>${anelAtivo.nome}</b>` +
     (lequeAberto
       ? ` <span class="arrow">›</span> leque aberto <b>${lequeCode(lequeAberto)}</b> (${tipoLabel(lequeAberto.tipo)})`
       : ` <span class="arrow">›</span> <span class="warn">nenhum leque aberto</span>`);
@@ -1347,7 +1347,7 @@ function criarLeque(){
   if(!numero) return;
   const duplicado = leques.some(l=>l.anelId===anelAtivo.id && l.tipo===tipo && l.numero===numero);
   if(duplicado){
-    showToast(`Já existe ${PREFIXO[tipo]}${numero} neste anel.`);
+    showToast(`Já existe ${PREFIXO[tipo]}${numero} neste realce.`);
     return;
   }
   const chipOrientacao = document.querySelector('#leque-orientacao-group .chip.active');
@@ -1418,7 +1418,7 @@ async function reabrirLeque(id){
   }
   const outroAberto = lequeAbertoDoAnel(l.anelId);
   if(outroAberto && outroAberto.id !== l.id){
-    if(!(await confirmDialog(`O leque ${lequeCode(outroAberto)} está aberto neste anel. Finalizá-lo e reabrir ${lequeCode(l)}?`, 'Reabrir'))) return;
+    if(!(await confirmDialog(`O leque ${lequeCode(outroAberto)} está aberto neste realce. Finalizá-lo e reabrir ${lequeCode(l)}?`, 'Reabrir'))) return;
     outroAberto.status = 'fechado';
     enfileirar('leques', 'update', { id: outroAberto.id, status: 'fechado' });
   }
@@ -1705,7 +1705,7 @@ function toggleExpandirChecklist(id){
 
 function adicionarAoChecklist(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  if(!anelAtivo){ showToast('Selecione um anel primeiro.'); return; }
+  if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
   const tipo = el('checklist-tipo').value;
   const de = parseInt(el('checklist-numero-de').value, 10);
   const ateTexto = el('checklist-numero-ate').value.trim();
@@ -2738,7 +2738,7 @@ async function exportarLequePDF(id){
   let y = await desenharCabecalhoTurnoPDF(doc);
 
   doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
-  doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
+  doc.text('Realce: ' + (a ? a.nome : '-'), 15, y); y += 7;
   doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
   if(l.turnoLetra || l.turnoNumero){
     doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
@@ -2799,7 +2799,7 @@ async function exportarLequePDF(id){
   adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
 
-  const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'anel')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+  const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'realce')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
   const salvoNoHistorico = await registrarExportacao({ tipo:'leque', leques: lequeCode(l), qtdLeques:1, qtdFuros: furosDoLeque.length, nomeArquivo });
   showToast(salvoNoHistorico
@@ -2861,7 +2861,7 @@ async function exportarLequesPDF(ids){
     if(y > 250){ doc.addPage(); y = 20; }
 
     doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
-    doc.text('Anel: ' + (a ? a.nome : '-'), 15, y); y += 7;
+    doc.text('Realce: ' + (a ? a.nome : '-'), 15, y); y += 7;
     doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
     if(l.turnoLetra || l.turnoNumero){
       doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
@@ -2966,7 +2966,7 @@ function render(){
   const totalEsperada = furosDoAtivo.reduce((s,f)=>s+Number(f.metragemEsperada||0),0);
   const variacao = totalReal - totalEsperada;
 
-  el('readout-label').textContent = anelAtivo ? `anel ativo: ${anelAtivo.nome}` : 'nenhum anel ativo';
+  el('readout-label').textContent = anelAtivo ? `realce ativo: ${anelAtivo.nome}` : 'nenhum realce ativo';
   el('stat-leques').textContent = lequesDoAtivo.length;
   el('stat-furos').textContent = furosDoAtivo.length;
   el('stat-metros').textContent = fmt1(totalReal);
@@ -2981,12 +2981,12 @@ function render(){
   const lista = el('lista');
 
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="empty">Nenhum anel criado ainda.<br>Clique na aba "Anéis" para começar.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum realce criado ainda.<br>Clique na aba "Realce" para começar.</div>`;
     return;
   }
 
   if(!anelAtivo){
-    lista.innerHTML = `<div class="empty">Nenhum anel ativo.<br>Clique na aba "Anéis" e selecione um.</div>`;
+    lista.innerHTML = `<div class="empty">Nenhum realce ativo.<br>Clique na aba "Realce" e selecione um.</div>`;
     return;
   }
 
@@ -3125,7 +3125,7 @@ el('btn-enviar').addEventListener('click', enviarMedicoes);
 
 el('btn-csv').addEventListener('click', ()=>{
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  if(!anelAtivo){ showToast('Selecione um anel ativo primeiro.'); return; }
+  if(!anelAtivo){ showToast('Selecione um realce ativo primeiro.'); return; }
 
   // Replica exatamente o mesmo filtro que a tela usa (tipo de leque, situacao do
   // furo, busca) -- pra exportar sempre o que a pessoa esta vendo, nao o app inteiro.
@@ -3146,7 +3146,7 @@ el('btn-csv').addEventListener('click', ()=>{
 
   if(furosParaExportar.length === 0){ showToast('Nenhum furo pra exportar com esse filtro.'); return; }
 
-  const header = 'anel,codigo_furo,tipo,metragem_esperada,metragem_real,diferenca,situacao,timestamp\n';
+  const header = 'realce,codigo_furo,tipo,metragem_esperada,metragem_real,diferenca,situacao,timestamp\n';
   const rows = furosParaExportar.map(({ f, l })=>{
     const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
     return [anelAtivo.nome||'', furoCode(l,f), l.tipo||'', f.metragemEsperada, f.metragemReal, fmt1(diff), f.situacao, f.ts].join(',');
