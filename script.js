@@ -2167,11 +2167,9 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   const fotosAtuais = fotosDoTurnoAtual();
   if(fotosAtuais.length > 0){
     y += 4;
-    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 4;
+    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 6;
     doc.setFont(undefined,'normal');
-    for(const f of fotosAtuais){
-      y = await desenharFotoLequePDF(doc, f.url, y, f.descricao || 'Foto do turno');
-    }
+    y = await desenharGradeFotosPDF(doc, fotosAtuais, y);
   }
 
   y += 4;
@@ -2357,6 +2355,64 @@ async function desenharFotoLequePDF(doc, fotoUrl, y, legendaTexto){
   }catch(e){
     return y;
   }
+}
+
+// Desenha várias fotos lado a lado, em 2 colunas — usado só pras fotos do turno,
+// que podem ser várias (diferente da foto de leque, que é sempre uma só). Evita
+// que o PDF fique enorme empilhando foto atrás de foto numa coluna só.
+async function desenharGradeFotosPDF(doc, fotos, y){
+  const COLUNAS = 2;
+  const GAP = 8;
+  const LARGURA_TOTAL = 180; // de x=15 até x=195
+  const larguraCol = (LARGURA_TOTAL - GAP * (COLUNAS - 1)) / COLUNAS;
+  const alturaMaxFoto = 55;
+
+  let coluna = 0;
+  let yLinha = y;
+  let alturaMaxLinha = 0;
+
+  for(const f of fotos){
+    const foto = await carregarImagemParaPDF(f.url);
+    if(!foto) continue;
+
+    let largura = larguraCol, altura = larguraCol * (foto.h / foto.w);
+    if(altura > alturaMaxFoto){ altura = alturaMaxFoto; largura = alturaMaxFoto * (foto.w / foto.h); }
+
+    const legenda = f.descricao || 'Foto do turno';
+    doc.setFont(undefined,'italic'); doc.setFontSize(8.5);
+    const linhasLegenda = doc.splitTextToSize(legenda, larguraCol);
+    doc.setFont(undefined,'normal');
+    const alturaLinha = altura + 5 + linhasLegenda.length * 4 + 8;
+
+    // só quebra página no início de uma linha nova (coluna 0), pra não cortar
+    // uma foto pela metade nem deixar a segunda coluna desalinhada da primeira
+    if(coluna === 0 && yLinha + alturaLinha > 278){
+      doc.addPage();
+      yLinha = 20;
+    }
+
+    const x = 15 + coluna * (larguraCol + GAP);
+    try{
+      const formato = foto.dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+      doc.setDrawColor(200); doc.setLineWidth(0.3);
+      doc.rect(x, yLinha, largura, altura);
+      doc.addImage(foto.dataUrl, formato, x, yLinha, largura, altura);
+      doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(120);
+      doc.text(linhasLegenda, x, yLinha + altura + 5);
+      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
+    }catch(e){}
+
+    alturaMaxLinha = Math.max(alturaMaxLinha, alturaLinha);
+    coluna++;
+    if(coluna >= COLUNAS){
+      coluna = 0;
+      yLinha += alturaMaxLinha;
+      alturaMaxLinha = 0;
+    }
+  }
+  if(coluna !== 0) yLinha += alturaMaxLinha; // sobrou 1 foto pendente numa linha ímpar
+
+  return yLinha;
 }
 
 async function exportarLequePDF(id){
