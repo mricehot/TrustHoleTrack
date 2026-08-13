@@ -2320,15 +2320,22 @@ async function loadTurnoInfo(){
 // Limpa data/turno/letra/técnicos pra começar um turno novo — não apaga
 // observações nem fotos já registradas (elas só passam a não aparecer, já que
 // são filtradas pelo turno atual; continuam guardadas se voltar pro turno certo).
-async function limparDadosTurno(){
-  const msg = 'Limpar Data, Turno, Letra, Técnicos e DDS pra começar um turno novo? As observações e fotos já registradas não são apagadas — só deixam de aparecer aqui até você voltar pro turno/letra em que foram feitas.';
-  if(!(await confirmDialog(msg, 'Limpar'))) return;
+// Faz a limpeza de verdade — separado da confirmação, pra poder ser chamado
+// tanto pelo botão manual (com confirmação) quanto automaticamente depois de
+// exportar o relatório do turno (sem confirmação, já é esperado nesse ponto).
+function executarLimpezaCamposTurno(){
   el('turno-data').value = new Date().toLocaleDateString('pt-BR');
   el('turno-tecnicos').value = '';
   el('turno-dds').value = '';
   document.querySelectorAll('#turno-numero-group .chip').forEach(c=> c.classList.remove('active'));
   document.querySelectorAll('#turno-letra-group .chip').forEach(c=> c.classList.remove('active'));
   saveTurnoInfo();
+}
+
+async function limparDadosTurno(){
+  const msg = 'Limpar Data, Turno, Letra, Técnicos e DDS pra começar um turno novo? As observações e fotos já registradas não são apagadas — só deixam de aparecer aqui até você voltar pro turno/letra em que foram feitas.';
+  if(!(await confirmDialog(msg, 'Limpar'))) return;
+  executarLimpezaCamposTurno();
   showToast('Dados do turno limpos.');
 }
 el('btn-limpar-turno').addEventListener('click', limparDadosTurno);
@@ -3223,7 +3230,7 @@ el('turno-leques-checklist').addEventListener('change', (e)=>{
   toggleSelecaoLeque(chk.dataset.id, chk.checked);
 });
 
-function exportarTurnoOuCombinado(){
+async function exportarTurnoOuCombinado(){
   const grupo = el('turno-incluir-leques-group');
   const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
   const incluirLeques = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
@@ -3234,10 +3241,19 @@ function exportarTurnoOuCombinado(){
       showToast('Marque ao menos um leque, ou escolha "Não" pra exportar só o turno.');
       return;
     }
-    exportarLequesPDF(idsMarcados);
-    return;
+    await exportarLequesPDF(idsMarcados);
+  }else{
+    await exportarTurnoPDF();
   }
-  exportarTurnoPDF();
+
+  // Depois de exportar o relatório do turno, já limpa os campos (Data, Turno,
+  // Letra, Técnicos, DDS) pra deixar pronto pro próximo turno — sem precisar
+  // clicar em "Limpar" à parte. Observações e fotos continuam guardadas.
+  // O toast da própria exportação (ex: "PDF do turno exportado.") já apareceu
+  // acima — espera ele passar antes de mostrar o da limpeza, pra não um
+  // sobrescrever o outro (o toast é um elemento só, reaproveitado).
+  executarLimpezaCamposTurno();
+  setTimeout(()=> showToast('Dados do turno limpos, pronto pro próximo.'), 2400);
 }
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
