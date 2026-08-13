@@ -188,6 +188,7 @@ const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
 const CHECKLIST_FUROS_LOCAL_KEY = 'perfilagem-checklist-furos-v1';
+const CHECKLIST_TOPO_LOCAL_KEY = 'perfilagem-checklist-topografia-v1';
 const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
@@ -195,6 +196,7 @@ let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fe
 let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, ts } — controle manual, separado dos leques de verdade
 let checklistFuros = []; // { id, checklistLequeId, numero, perfilado, ts } — furos dentro de cada leque do checklist
 let checklistExpandido = new Set(); // ids de checklist_leques com a tabela de furos aberta (só na sessão, não persiste)
+let checklistTopografia = []; // { id, anelId, numero, concluido, ts } — mesmo espírito do checklist de leques, mas pra pontos de topografia
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
 let lequesColapsados = new Set();
@@ -616,16 +618,17 @@ async function enviarMedicoes(){
 async function atualizarDoServidor(){
   if(!navigator.onLine || filaEnvio.length > 0) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistTopoData, error: e8 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
       db.from('turno_observacoes').select('*').order('criado_em'),
       db.from('fotos_turno').select('*').order('criado_em'),
       db.from('checklist_leques').select('*').order('criado_em'),
-      db.from('checklist_furos').select('*').order('criado_em')
+      db.from('checklist_furos').select('*').order('criado_em'),
+      db.from('checklist_topografia').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6 || e7) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7);
+    if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
@@ -633,6 +636,7 @@ async function atualizarDoServidor(){
     fotosTurno = (fotosData || []).map(mapFotoTurno);
     checklistLeques = (checklistData || []).map(mapChecklistLeque);
     checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
+    checklistTopografia = (checklistTopoData || []).map(mapChecklistTopografia);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
@@ -641,6 +645,7 @@ async function atualizarDoServidor(){
     salvarFotosTurnoLocal();
     salvarChecklistLocal();
     salvarChecklistFurosLocal();
+    salvarChecklistTopoLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -678,6 +683,7 @@ async function loadData(){
   carregarFotosTurnoLocal();
   carregarChecklistLocal();
   carregarChecklistFurosLocal();
+  carregarChecklistTopoLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -1637,6 +1643,22 @@ function checklistDoAnelAtivo(){
     .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true}));
 }
 
+function mapChecklistTopografia(row){ return { id: row.id, anelId: row.anel_id, numero: row.numero, concluido: !!row.concluido, ts: row.criado_em }; }
+function carregarChecklistTopoLocal(){
+  try{
+    const raw = localStorage.getItem(CHECKLIST_TOPO_LOCAL_KEY);
+    checklistTopografia = raw ? JSON.parse(raw) : [];
+  }catch(e){ checklistTopografia = []; }
+}
+function salvarChecklistTopoLocal(){
+  try{ localStorage.setItem(CHECKLIST_TOPO_LOCAL_KEY, JSON.stringify(checklistTopografia)); }catch(e){}
+}
+function checklistTopoDoAnelAtivo(){
+  return checklistTopografia
+    .filter(t=>t.anelId===anelAtivoId)
+    .sort((a,b)=> a.numero.localeCompare(b.numero, undefined, {numeric:true}));
+}
+
 function renderChecklist(){
   const grid = el('checklist-grid');
   const vazio = el('checklist-vazio');
@@ -1716,6 +1738,102 @@ function toggleExpandirChecklist(id){
   if(checklistExpandido.has(id)) checklistExpandido.delete(id);
   else checklistExpandido.add(id);
   renderChecklist();
+}
+
+// ---------- Checklist de topografia — mesmo padrão do checklist de leques, só
+// que mais simples (sem sub-tabela, é um único nível de item). A perfilagem
+// depende dos pontos de topografia estarem prontos, daí o controle aqui. ----------
+function renderChecklistTopografia(){
+  const grid = el('checklist-topo-grid');
+  const vazio = el('checklist-topo-vazio');
+  const progresso = el('checklist-topo-progresso');
+  const textoBarra = el('checklist-topo-progresso-texto');
+  const barra = el('checklist-topo-progresso-barra');
+  if(!grid) return;
+  const itens = checklistTopoDoAnelAtivo();
+  const feitos = itens.filter(t=>t.concluido).length;
+  if(progresso) progresso.textContent = `${feitos}/${itens.length} concluídos`;
+  if(textoBarra && barra){
+    const percentual = itens.length > 0 ? Math.round((feitos / itens.length) * 100) : 0;
+    textoBarra.textContent = `${feitos}/${itens.length}`;
+    barra.style.width = percentual + '%';
+  }
+  if(itens.length === 0){
+    grid.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  grid.innerHTML = itens.map(t=>`
+    <label class="checklist-topo-item ${t.concluido ? 'feito' : ''}">
+      <input type="checkbox" ${t.concluido ? 'checked' : ''} onchange="toggleChecklistTopo('${t.id}')">
+      <span class="codigo">PT${t.numero}</span>
+      <button type="button" class="icon icon-remover" onclick="event.preventDefault(); removerChecklistTopo('${t.id}')" title="remover do checklist">✕</button>
+    </label>
+  `).join('');
+}
+
+function adicionarAoChecklistTopo(){
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
+  const de = parseInt(el('checklist-topo-numero-de').value, 10);
+  const ateTexto = el('checklist-topo-numero-ate').value.trim();
+  const ate = ateTexto ? parseInt(ateTexto, 10) : de;
+  if(isNaN(de)){ showToast('Preencha o número (ou a faixa) do ponto.'); return; }
+  if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
+  if(ate - de > 200){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 200).'); return; }
+
+  let adicionados = 0, duplicados = 0;
+  for(let n = de; n <= ate; n++){
+    const numero = normalizarNumero(String(n));
+    const jaExiste = checklistTopografia.some(t=>t.anelId===anelAtivo.id && t.numero===numero);
+    if(jaExiste){ duplicados++; continue; }
+    const novoId = uuidv4();
+    checklistTopografia.push({ id: novoId, anelId: anelAtivo.id, numero, concluido: false, ts: new Date().toISOString() });
+    enfileirar('checklist_topografia', 'insert', { id: novoId, anel_id: anelAtivo.id, numero, concluido: false });
+    adicionados++;
+  }
+  salvarChecklistTopoLocal();
+  renderChecklistTopografia();
+  el('checklist-topo-numero-de').value = '';
+  el('checklist-topo-numero-ate').value = '';
+  if(adicionados === 0) showToast('Nada adicionado — todos já estavam no checklist.');
+  else showToast(`${adicionados} ponto(s) adicionado(s) ao checklist.${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
+}
+el('btn-add-checklist-topo').addEventListener('click', adicionarAoChecklistTopo);
+
+function toggleChecklistTopo(id){
+  const t = checklistTopografia.find(x=>x.id===id);
+  if(!t) return;
+  t.concluido = !t.concluido;
+  enfileirar('checklist_topografia', 'update', { id: t.id, concluido: t.concluido });
+  salvarChecklistTopoLocal();
+  renderChecklistTopografia();
+}
+
+async function removerChecklistTopo(id){
+  const t = checklistTopografia.find(x=>x.id===id);
+  if(!t) return;
+  if(!(await confirmDialog(`Remover PT${t.numero} do checklist de topografia?`, 'Remover'))) return;
+  checklistTopografia = checklistTopografia.filter(x=>x.id!==id);
+  enfileirar('checklist_topografia', 'delete', { id });
+  salvarChecklistTopoLocal();
+  renderChecklistTopografia();
+  showToast(`PT${t.numero} removido do checklist.`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoChecklistTopo(t)
+  });
+}
+
+function desfazerRemocaoChecklistTopo(itemRemovido){
+  if(checklistTopografia.some(x=>x.id===itemRemovido.id)) return; // já foi restaurado
+  checklistTopografia.push(itemRemovido);
+  restaurarNaFila('checklist_topografia', itemRemovido.id, {
+    id: itemRemovido.id, anel_id: itemRemovido.anelId, numero: itemRemovido.numero, concluido: itemRemovido.concluido
+  });
+  salvarChecklistTopoLocal();
+  renderChecklistTopografia();
+  showToast('Restaurado no checklist.');
 }
 
 function adicionarAoChecklist(){
@@ -3159,6 +3277,7 @@ function renderAll(){
   renderExportBar();
   renderTurnoLequesChecklist();
   renderChecklist();
+  renderChecklistTopografia();
   renderAvisoRefazer();
 }
 

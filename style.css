@@ -574,6 +574,21 @@ button .icon-svg{ stroke:currentColor; }
   table.checklist-furos-tabela tr.feito td:first-child{ color:var(--moss); text-decoration:line-through; opacity:0.8; }
   table.checklist-furos-tabela input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
   table.checklist-furos-tabela .icon-remover{ width:22px; height:22px; min-width:0; min-height:0; padding:0; font-size:11px; }
+
+  .checklist-topo-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .checklist-topo-item{
+    display:flex; align-items:center; gap:7px; padding:9px 10px 9px 12px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:20px;
+    font-family:var(--mono); font-size:13px; font-weight:600; cursor:pointer;
+    user-select:none;
+  }
+  .checklist-topo-item input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
+  .checklist-topo-item.feito{ background:var(--surface); border-color:var(--moss); }
+  .checklist-topo-item.feito .codigo{ color:var(--moss); text-decoration:line-through; opacity:0.75; }
+  .checklist-topo-item .icon-remover{
+    width:20px; height:20px; min-width:0; min-height:0; padding:0; font-size:11px;
+    border-radius:50%; margin-left:2px;
+  }
   .toggle-leque{
     display:inline-flex; align-items:center; justify-content:center;
     width:32px; height:32px; font-size:13px; line-height:1; padding:0; flex-shrink:0;
