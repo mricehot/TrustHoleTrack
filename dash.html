@@ -397,7 +397,14 @@
             <span class="tag" id="checklist-progresso">0/0 perfilados</span>
           </div>
           <div class="config-body">
-            <div class="hint">Marcação manual, separada da perfilagem de verdade — serve só de controle de quais leques do plano já foram feitos. Marcar aqui não afeta (e não é afetado por) os furos lançados na aba Perfilagem.</div>
+            <div class="hint">Marcação manual, separada da perfilagem de verdade — serve só de controle de quais leques do plano já foram feitos. Marcar aqui não afeta (e não é afetado por) os furos lançados na aba Perfilagem. Cada furo do checklist tem duas caixinhas: uma pra topografia, outra pra perfilagem.</div>
+            <div class="checklist-progresso-furos">
+              <div class="checklist-progresso-furos-topo">
+                <span>Furos topografados (checklist)</span>
+                <span id="checklist-progresso-topo-texto">0/0</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill fill-steel" id="checklist-progresso-topo-barra" style="width:0%;"></div></div>
+            </div>
             <div class="checklist-progresso-furos">
               <div class="checklist-progresso-furos-topo">
                 <span>Furos perfilados (checklist)</span>
@@ -427,36 +434,6 @@
             <button type="button" id="btn-add-checklist" class="steel" style="margin-top:10px;">+ Adicionar ao checklist</button>
             <div class="hint" id="checklist-vazio" style="margin-top:16px;">Nenhum leque no checklist deste realce ainda.</div>
             <div class="checklist-grid" id="checklist-grid"></div>
-          </div>
-        </div>
-
-        <div class="view-card" style="margin-top:16px;">
-          <div class="view-card-header">
-            <span class="view-card-label">Checklist de Topografia</span>
-            <span class="tag" id="checklist-topo-progresso">0/0 concluídos</span>
-          </div>
-          <div class="config-body">
-            <div class="hint">Mesma ideia do checklist de leques — marcação manual, separada de qualquer dado real. A perfilagem depende dos pontos de topografia estarem prontos, então isso ajuda a acompanhar o que já foi feito.</div>
-            <div class="checklist-progresso-furos">
-              <div class="checklist-progresso-furos-topo">
-                <span>Pontos concluídos</span>
-                <span id="checklist-topo-progresso-texto">0/0</span>
-              </div>
-              <div class="progress-track"><div class="progress-fill" id="checklist-topo-progresso-barra" style="width:0%;"></div></div>
-            </div>
-            <div class="grid-2" style="margin-top:10px;">
-              <div class="field">
-                <label for="checklist-topo-numero-de">Número do ponto (de)</label>
-                <input id="checklist-topo-numero-de" type="text" inputmode="numeric" placeholder="ex: 01">
-              </div>
-              <div class="field">
-                <label for="checklist-topo-numero-ate">até (opcional)</label>
-                <input id="checklist-topo-numero-ate" type="text" inputmode="numeric" placeholder="pra adicionar vários de uma vez, ex: 20">
-              </div>
-            </div>
-            <button type="button" id="btn-add-checklist-topo" class="steel" style="margin-top:10px;">+ Adicionar ao checklist</button>
-            <div class="hint" id="checklist-topo-vazio" style="margin-top:16px;">Nenhum ponto de topografia no checklist deste realce ainda.</div>
-            <div class="checklist-topo-grid" id="checklist-topo-grid"></div>
           </div>
         </div>
       </section>
