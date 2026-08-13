@@ -1704,13 +1704,13 @@ function renderChecklist(){
           </div>
           ${furosDoLeque.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th>Topografado</th><th>Perfilado</th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th>Perfilado</th><th>Topografado</th><th></th></tr></thead>
             <tbody>
               ${furosDoLeque.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''}">
                   <td>F${f.numero}</td>
-                  <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado"></td>
                   <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado"></td>
+                  <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover">✕</button></td>
                 </tr>
               `).join('')}
