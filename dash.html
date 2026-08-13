@@ -61,7 +61,7 @@
       </svg>
       <div>
         <h1><span class="line1">Blast<span class="accent">Hole</span></span><span class="line2">Manager</span></h1>
-        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL/CR &middot; esperada &times; real</div>
+        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL &middot; esperada &times; real</div>
       </div>
     </div>
     <div class="header-right">
@@ -231,6 +231,8 @@
           <div class="view-card-header">
             <span class="view-card-label">Dados do Turno</span>
             <span class="tag">usado na exportação do relatório</span>
+            <span class="spacer"></span>
+            <button type="button" id="btn-limpar-turno" class="ghost" title="limpar data, turno, letra e técnicos — pra começar um turno novo">Limpar</button>
           </div>
           <div class="turno-body">
             <div class="grid-3">
@@ -261,8 +263,9 @@
               <div class="field"><label for="turno-supervisor">Supervisor</label><input id="turno-supervisor" type="text" readonly></div>
               <div class="field"><label for="turno-projeto">Projeto</label><input id="turno-projeto" type="text" readonly></div>
             </div>
-            <div class="grid-3">
+            <div class="grid-2">
               <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
+              <div class="field"><label for="turno-dds">DDS (tema abordado)</label><input id="turno-dds" type="text" placeholder="ex: uso correto de EPI" maxlength="300"></div>
             </div>
             <div class="field">
               <label for="turno-obs-input">Observações do turno</label>

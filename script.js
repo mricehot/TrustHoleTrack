@@ -1942,7 +1942,7 @@ el('btn-alterar-senha').addEventListener('click', alterarSenhaTecnico);
 ['tecnico-senha-nova','tecnico-senha-confirmar'].forEach(id=>{
   el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); alterarSenhaTecnico(); } });
 });
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'', dds:'' };
 let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
 let fotosTurno = []; // { id, data (ISO), turnoNumero, turnoLetra, url, descricao, ts }
 
@@ -2292,6 +2292,7 @@ async function loadTurnoInfo(){
         turnoInfo.local = data.local || '';
         turnoInfo.turnoNumero = data.turno_numero || '';
         turnoInfo.turnoLetra = data.turno_letra || '';
+        turnoInfo.dds = data.dds || '';
       }
     }catch(e){
       // sem sinal — segue com o que já está salvo localmente
@@ -2305,6 +2306,7 @@ async function loadTurnoInfo(){
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
+  el('turno-dds').value = turnoInfo.dds || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
   el('turno-projeto').value = turnoInfo.projeto;
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
@@ -2315,10 +2317,27 @@ async function loadTurnoInfo(){
   salvarTurnoLocal();
 }
 
+// Limpa data/turno/letra/técnicos pra começar um turno novo — não apaga
+// observações nem fotos já registradas (elas só passam a não aparecer, já que
+// são filtradas pelo turno atual; continuam guardadas se voltar pro turno certo).
+async function limparDadosTurno(){
+  const msg = 'Limpar Data, Turno, Letra, Técnicos e DDS pra começar um turno novo? As observações e fotos já registradas não são apagadas — só deixam de aparecer aqui até você voltar pro turno/letra em que foram feitas.';
+  if(!(await confirmDialog(msg, 'Limpar'))) return;
+  el('turno-data').value = new Date().toLocaleDateString('pt-BR');
+  el('turno-tecnicos').value = '';
+  el('turno-dds').value = '';
+  document.querySelectorAll('#turno-numero-group .chip').forEach(c=> c.classList.remove('active'));
+  document.querySelectorAll('#turno-letra-group .chip').forEach(c=> c.classList.remove('active'));
+  saveTurnoInfo();
+  showToast('Dados do turno limpos.');
+}
+el('btn-limpar-turno').addEventListener('click', limparDadosTurno);
+
 function saveTurnoInfo(){
   turnoInfo.data = el('turno-data').value;
   turnoInfo.tecnicos = el('turno-tecnicos').value;
   turnoInfo.local = el('turno-local').value;
+  turnoInfo.dds = el('turno-dds').value;
   turnoInfo.supervisor = configApp.supervisor;
   turnoInfo.projeto = configApp.projeto;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
@@ -2334,7 +2353,8 @@ function saveTurnoInfo(){
     tecnicos: turnoInfo.tecnicos,
     supervisor: turnoInfo.supervisor,
     projeto: turnoInfo.projeto,
-    local: turnoInfo.local
+    local: turnoInfo.local,
+    dds: turnoInfo.dds
   });
   renderObservacoesTurno();
   renderFotosTurno();
@@ -2452,6 +2472,7 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
     ['Supervisor:', turnoInfo.supervisor],
     ['Projeto:', turnoInfo.projeto],
     ['Local:', turnoInfo.local],
+    ['DDS:', turnoInfo.dds],
   ];
   doc.setFont(undefined,'normal');
   campos.forEach(([label,val])=>{
@@ -3161,7 +3182,7 @@ el('btn-csv').addEventListener('click', ()=>{
   showToast(`${furosParaExportar.length} furo(s) exportado(s) para CSV.`);
 });
 
-['data','tecnicos','local'].forEach(k=>{
+['data','tecnicos','local','dds'].forEach(k=>{
   const campo = document.getElementById('turno-'+k);
   if(campo) campo.addEventListener('input', saveTurnoInfo);
 });
