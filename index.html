@@ -29,7 +29,6 @@
     margin:0; background:var(--paper); color:var(--ink);
     font-family:var(--sans); line-height:1.5; -webkit-font-smoothing:antialiased;
   }
-  section[id]{ scroll-margin-top:78px; }
   h1,h2,h3{ font-family:var(--display); margin:0; letter-spacing:-0.01em; }
   p{ margin:0; }
   a{ color:inherit; text-decoration:none; }
@@ -61,32 +60,8 @@
   }
   .nav-links{ display:flex; gap:22px; font-size:13px; color:var(--muted); }
   .nav-links a:hover{ color:var(--ink); }
-  .nav-links a.active{ color:var(--ink); }
   .nav-center{ display:flex; align-items:center; gap:22px; }
   .nav-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
-  .scroll-progress{
-    position:fixed; top:0; left:0; height:2.5px; width:0%; background:var(--blast);
-    z-index:40; transition:width .12s linear;
-  }
-  @media (prefers-reduced-motion:reduce){ .scroll-progress{ transition:none; } }
-  .nav-toggle{
-    display:none; flex-direction:column; justify-content:center; gap:4px; width:32px; height:32px;
-    background:transparent; border:1px solid var(--line); border-radius:6px; padding:0; cursor:pointer; flex-shrink:0;
-  }
-  .nav-toggle span{ display:block; width:16px; height:1.5px; background:var(--ink); margin:0 auto; transition:transform .2s ease, opacity .2s ease; }
-  .nav-toggle.open span:nth-child(1){ transform:translateY(5.5px) rotate(45deg); }
-  .nav-toggle.open span:nth-child(2){ opacity:0; }
-  .nav-toggle.open span:nth-child(3){ transform:translateY(-5.5px) rotate(-45deg); }
-  .nav-mobile{
-    display:none; flex-direction:column; overflow:hidden; max-height:0; opacity:0;
-    transition:max-height .3s cubic-bezier(.16,1,.3,1), opacity .2s ease;
-    background:var(--surface); border-top:1px solid var(--line);
-  }
-  .nav-mobile a{
-    padding:14px 22px; font-size:14px; color:var(--ink); border-bottom:1px solid var(--line);
-  }
-  .nav-mobile a.active{ color:var(--blast); font-weight:600; }
-  .nav-mobile.open{ max-height:320px; opacity:1; }
   .nav-btn{
     font-family:var(--sans); font-size:13px; font-weight:600; padding:8px 16px; border-radius:6px;
     display:inline-flex; align-items:center; transition:transform .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
@@ -97,11 +72,7 @@
   .nav-btn.primary{ background:var(--ink); color:#fff; }
   .nav-btn.primary:hover{ background:var(--blast); }
   @media (prefers-reduced-motion:no-preference){ .nav-btn:hover{ transform:translateY(-1px); } }
-  @media (max-width:720px){
-    .nav-tag, .nav-links{ display:none; }
-    .nav-toggle{ display:flex; }
-    .nav-mobile{ display:flex; }
-  }
+  @media (max-width:720px){ .nav-tag, .nav-links{ display:none; } }
   @media (max-width:480px){
     .nav-btn{ padding:7px 12px; font-size:12.5px; }
     .nav-actions{ gap:8px; }
@@ -345,7 +316,7 @@
   }
 
   /* ---------- reveal ---------- */
-  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .5s ease, transform .5s ease; }
   .reveal.in{ opacity:1; transform:none; }
   @media (prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
 
@@ -418,29 +389,45 @@
     to{ opacity:1; transform:translateY(0); }
   }
   .trail:not(.in) .trail-step{ opacity:0; }
-  .trail.in .trail-step{ animation:revealUp .6s cubic-bezier(.16,1,.3,1) both; }
+  .trail.in .trail-step{ animation:revealUp .5s ease both; }
   .trail.in .trail-step:nth-child(3){ animation-delay:.12s; }
   .trail.in .trail-step:nth-child(5){ animation-delay:.24s; }
 
   .steps-grid:not(.in) .step{ opacity:0; }
-  .steps-grid.in .step{ animation:revealUp .6s cubic-bezier(.16,1,.3,1) both; }
+  .steps-grid.in .step{ animation:revealUp .5s ease both; }
   .steps-grid.in .step:nth-child(2){ animation-delay:.1s; }
   .steps-grid.in .step:nth-child(3){ animation-delay:.2s; }
   .steps-grid.in .step:nth-child(4){ animation-delay:.3s; }
 
   .cards-grid:not(.in) .card{ opacity:0; }
-  .cards-grid.in .card{ animation:revealUp .6s cubic-bezier(.16,1,.3,1) both; }
-  .cards-grid.in .card:nth-child(2){ animation-delay:.07s; }
-  .cards-grid.in .card:nth-child(3){ animation-delay:.14s; }
-  .cards-grid.in .card:nth-child(4){ animation-delay:.21s; }
-  .cards-grid.in .card:nth-child(5){ animation-delay:.28s; }
-  .cards-grid.in .card:nth-child(6){ animation-delay:.35s; }
-  .cards-grid.in .card:nth-child(7){ animation-delay:.42s; }
-  .cards-grid.in .card:nth-child(8){ animation-delay:.49s; }
-  .cards-grid.in .card:nth-child(9){ animation-delay:.56s; }
+  .cards-grid.in .card{ animation:revealUp .5s ease both; }
+  .cards-grid.in .card:nth-child(2){ animation-delay:.08s; }
+  .cards-grid.in .card:nth-child(3){ animation-delay:.16s; }
+  .cards-grid.in .card:nth-child(4){ animation-delay:.24s; }
+  .cards-grid.in .card:nth-child(5){ animation-delay:.32s; }
+  .cards-grid.in .card:nth-child(6){ animation-delay:.40s; }
+  .cards-grid.in .card:nth-child(7){ animation-delay:.48s; }
+  .cards-grid.in .card:nth-child(8){ animation-delay:.56s; }
 
   @keyframes pulseFuro{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
   .hero-diagram svg .furo-alerta{ animation:pulseFuro 2.2s ease-in-out infinite; }
+
+  /* Depois que as linhas dos furos terminam de "desenhar", o leque inteiro dá
+     uma fechada e reabre a partir do ponto central — como um leque de mão de
+     verdade — pra representar a topografia estabelecendo o formato antes da
+     perfilagem. Só acontece depois de tudo já desenhado, não durante. */
+  .hero-diagram svg .leque-grupo{
+    transform-box: view-box; transform-origin: 230px 345px;
+  }
+  @keyframes abrirLeque{
+    0%{ transform:scaleX(1); }
+    35%{ transform:scaleX(.08); }
+    70%{ transform:scaleX(1.06); }
+    100%{ transform:scaleX(1); }
+  }
+  .hero-diagram svg .leque-grupo.abrindo{
+    animation:abrirLeque 900ms cubic-bezier(.45,0,.2,1) both;
+  }
 
   .scale .bar-fill{ transition:width 900ms cubic-bezier(.22,.9,.32,1); }
 
@@ -448,7 +435,7 @@
     .nav-links a::after, .nav .wrap,
     .btn-primary, .btn-ghost, .nav-btn, .mock-btn,
     .card, .trail-step, .step, .cards-grid .card,
-    .hero-diagram svg .furo-alerta, .scale .bar-fill, .nav-mobile{
+    .hero-diagram svg .furo-alerta, .scale .bar-fill{
       animation:none !important; transition:none !important; transform:none !important;
     }
     .trail-step, .step, .cards-grid .card{ opacity:1 !important; }
@@ -457,7 +444,6 @@
 </head>
 <body>
 
-<div class="scroll-progress" id="scroll-progress"></div>
 <nav class="nav">
   <div class="wrap">
     <div class="brandmark">
@@ -477,17 +463,7 @@
     <div class="nav-actions">
       <a href="#login" class="nav-btn ghost" data-auth="login">Entrar</a>
       <a href="#registro" class="nav-btn primary" data-auth="registro">Criar conta</a>
-      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav-mobile">
-        <span></span><span></span><span></span>
-      </button>
     </div>
-  </div>
-  <div class="nav-mobile" id="nav-mobile">
-    <a href="#estrutura">Estrutura</a>
-    <a href="#como-funciona">Como funciona</a>
-    <a href="#funcionalidades">Funcionalidades</a>
-    <a href="#exportacao">Exportação</a>
-    <a href="#faq">FAQ</a>
   </div>
 </nav>
 
@@ -496,13 +472,13 @@
     <div>
       <p class="eyebrow">SISTEMA DE PERFILAGEM · LQ / SL / FL / CR</p>
       <h1>Do leque no campo<br>ao relatório pronto.</h1>
-      <p class="lead">Cada furo registrado com profundidade esperada, real e situação — organizado por anel, leque e turno, com o PDF gerado sem passar pelo Excel.</p>
+      <p class="lead">Cada furo registrado com profundidade esperada, real e situação — organizado por realce, leque e turno, com o PDF gerado sem passar pelo Excel.</p>
       <div class="hero-actions">
         <a href="#funcionalidades" class="btn-primary">Ver funcionalidades</a>
         <a href="#estrutura" class="btn-ghost">Como é organizado →</a>
       </div>
       <dl class="hero-stats">
-        <div><dt>Hierarquia</dt><dd>Anel → Leque → Furo</dd></div>
+        <div><dt>Hierarquia</dt><dd>Realce → Leque → Furo</dd></div>
         <div><dt>Situações</dt><dd>Livre · Obstruído · Varado</dd></div>
         <div><dt>Relatório</dt><dd>Por leque, por turno ou combinado</dd></div>
       </dl>
@@ -511,39 +487,54 @@
     <div class="hero-diagram">
       <svg viewBox="0 0 460 380" xmlns="http://www.w3.org/2000/svg">
         <line x1="40" y1="345" x2="420" y2="345" stroke="#dcdce3" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>
-        <text x="40" y="365" font-family="IBM Plex Mono" font-size="10" fill="#6c6c7d">GALERIA N3-LESTE — ANEL 04</text>
-
-        <g stroke-linecap="round">
-          <line x1="230" y1="345" x2="70" y2="70" stroke="#dcdce3" stroke-width="2"/>
-          <line x1="230" y1="345" x2="120" y2="45" stroke="#dcdce3" stroke-width="2"/>
-          <line x1="230" y1="345" x2="175" y2="30" stroke="#4f7a3f" stroke-width="2.5"/>
-          <line x1="230" y1="345" x2="230" y2="24" stroke="#dcdce3" stroke-width="2"/>
-          <line x1="230" y1="345" x2="285" y2="30" stroke="#ff431d" stroke-width="2.5"/>
-          <line x1="230" y1="345" x2="340" y2="45" stroke="#dcdce3" stroke-width="2"/>
-          <line x1="230" y1="345" x2="390" y2="70" stroke="#2f6690" stroke-width="2.5"/>
-          <line x1="230" y1="345" x2="410" y2="110" stroke="#dcdce3" stroke-width="2"/>
-        </g>
+        <text x="40" y="365" font-family="IBM Plex Mono" font-size="10" fill="#6c6c7d">N3-LESTE — REALCE 04</text>
 
         <circle cx="230" cy="345" r="6" fill="#191231"/>
         <text x="230" y="345" text-anchor="middle" dy="22" font-family="IBM Plex Mono" font-size="10" fill="#191231" font-weight="500">LQ04</text>
 
-        <circle cx="70" cy="70" r="4" fill="#4f7a3f"/>
-        <circle cx="120" cy="45" r="4" fill="#4f7a3f"/>
-        <circle cx="175" cy="30" r="4.5" fill="#4f7a3f"/>
-        <circle cx="230" cy="24" r="4" fill="#4f7a3f"/>
-        <circle cx="285" cy="30" r="4.5" fill="#ff431d"/>
-        <circle cx="340" cy="45" r="4" fill="#4f7a3f"/>
-        <circle cx="390" cy="70" r="4.5" fill="#2f6690"/>
-        <circle cx="410" cy="110" r="4" fill="#4f7a3f"/>
+        <g class="leque-grupo">
+          <g stroke-linecap="round">
+            <line x1="185" y1="345" x2="70" y2="70" stroke="#dcdce3" stroke-width="2"/>
+            <line x1="197" y1="345" x2="120" y2="45" stroke="#dcdce3" stroke-width="2"/>
+            <line x1="210" y1="345" x2="175" y2="30" stroke="#4f7a3f" stroke-width="2.5"/>
+            <line x1="223" y1="345" x2="230" y2="24" stroke="#dcdce3" stroke-width="2"/>
+            <line x1="237" y1="345" x2="285" y2="30" stroke="#ff431d" stroke-width="2.5"/>
+            <line x1="250" y1="345" x2="340" y2="45" stroke="#dcdce3" stroke-width="2"/>
+            <line x1="263" y1="345" x2="390" y2="70" stroke="#2f6690" stroke-width="2.5"/>
+            <line x1="275" y1="345" x2="410" y2="110" stroke="#dcdce3" stroke-width="2"/>
+          </g>
 
-        <text x="175" y="30" dx="10" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231">F03 · 9.1m</text>
-        <text x="175" y="30" dx="10" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#4f7a3f">livre · +0.1m</text>
+          <!-- Marca o ponto de partida de cada furo — com topografia, cada um
+               sai do seu próprio lugar, não de um ponto único. -->
+          <g fill="#9a99ab">
+            <circle cx="185" cy="345" r="2.5"/>
+            <circle cx="197" cy="345" r="2.5"/>
+            <circle cx="210" cy="345" r="2.5"/>
+            <circle cx="223" cy="345" r="2.5"/>
+            <circle cx="237" cy="345" r="2.5"/>
+            <circle cx="250" cy="345" r="2.5"/>
+            <circle cx="263" cy="345" r="2.5"/>
+            <circle cx="275" cy="345" r="2.5"/>
+          </g>
 
-        <text x="285" y="30" dx="10" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231">F05 · 7.4m</text>
-        <text x="285" y="30" dx="10" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#ff431d">obstruído · -0.6m</text>
+          <circle cx="70" cy="70" r="4" fill="#4f7a3f"/>
+          <circle cx="120" cy="45" r="4" fill="#4f7a3f"/>
+          <circle cx="175" cy="30" r="4.5" fill="#4f7a3f"/>
+          <circle cx="230" cy="24" r="4" fill="#4f7a3f"/>
+          <circle cx="285" cy="30" r="4.5" fill="#ff431d"/>
+          <circle cx="340" cy="45" r="4" fill="#4f7a3f"/>
+          <circle cx="390" cy="70" r="4.5" fill="#2f6690"/>
+          <circle cx="410" cy="110" r="4" fill="#4f7a3f"/>
 
-        <text x="390" y="70" dx="-92" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231" text-anchor="start">F07 · 8.8m</text>
-        <text x="390" y="70" dx="-92" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#2f6690" text-anchor="start">varado · -2.3m</text>
+          <text x="175" y="30" dx="10" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231">F03 · 9.1m</text>
+          <text x="175" y="30" dx="10" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#4f7a3f">livre · +0.1m</text>
+
+          <text x="285" y="30" dx="10" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231">F05 · 7.4m</text>
+          <text x="285" y="30" dx="10" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#ff431d">obstruído · -0.6m</text>
+
+          <text x="390" y="70" dx="-92" dy="-6" font-family="IBM Plex Mono" font-size="10" fill="#191231" text-anchor="start">F07 · 8.8m</text>
+          <text x="390" y="70" dx="-92" dy="8" font-family="IBM Plex Mono" font-size="9.5" fill="#2f6690" text-anchor="start">varado · -2.3m</text>
+        </g>
       </svg>
       <div class="diagram-caption">
         <span>leque LQ04 · 8 furos</span>
@@ -565,15 +556,15 @@
     </div>
     <div class="trail reveal">
       <div class="trail-step">
-        <span class="tag">ANEL</span>
-        <h3>Galeria</h3>
-        <p>Cada anel representa uma galeria. Só ele guarda o histórico completo de leques abertos e fechados ali.</p>
+        <span class="tag">REALCE</span>
+        <h3>Realce</h3>
+        <p>Cada realce guarda o histórico completo de leques abertos e fechados ali.</p>
       </div>
       <div class="trail-arrow">→</div>
       <div class="trail-step">
         <span class="tag">LEQUE / SLOT / FACE LIVRE / CORTE DE RECUO</span>
         <h3>LQ · SL · FL · CR</h3>
-        <p>Um leque por vez fica aberto em cada anel — número e observação, pronto pra receber furos.</p>
+        <p>Um leque por vez fica aberto em cada realce — número e observação, pronto pra receber furos.</p>
       </div>
       <div class="trail-arrow">→</div>
       <div class="trail-step">
@@ -595,7 +586,7 @@
       <div class="step">
         <span class="num">01</span>
         <h3>Abra o leque</h3>
-        <p>Escolha o anel ativo e crie um leque, slot ou face livre. Só um fica aberto por vez em cada anel.</p>
+        <p>Escolha o realce ativo e crie um leque, slot ou face livre. Só um fica aberto por vez em cada realce.</p>
       </div>
       <div class="step">
         <span class="num">02</span>
@@ -626,32 +617,26 @@
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10a2 2 0 0 1 2-2h4V4h4v4h4a2 2 0 0 1 2 2v10"/><path d="M4 20h16"/><path d="M10 20v-6h4v6"/></svg>
-        <h3>Anéis e galerias</h3>
-        <p>Cada galeria vira um anel com nome próprio. Trocar de anel só é necessário quando a frente de lavra muda de fato.</p>
+        <h3>Realce</h3>
+        <p>Cada realce tem nome próprio (e nível, se quiser). Trocar de realce só é necessário quando a frente de lavra muda de fato.</p>
       </div>
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2v9"/><path d="M12 11l7 3"/><path d="M12 11l-7 3"/><path d="M12 11l4 8"/><path d="M12 11l-4 8"/><circle cx="12" cy="11" r="1.6" fill="currentColor" stroke="none"/></svg>
         <h3>Leques, slots, faces livres e cortes de recuo</h3>
-        <p>Quatro tipos de medição — Leque (LQ), Slot (SL), Face Livre (FL) e Corte de Recuo (CR) — com orientação ascendente ou descendente, número e observação. Apenas um leque fica aberto por anel a cada momento.</p>
+        <p>Quatro tipos de medição — Leque (LQ), Slot (SL), Face Livre (FL) e Corte de Recuo (CR) — com número e observação. Apenas um leque fica aberto por realce a cada momento.</p>
       </div>
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5"/><path d="M4 5l8 4 8-4"/><path d="M20 5v10.5"/><path d="M4 19h16"/></svg>
         <h3>Esperada × real, furo a furo</h3>
-        <p>Profundidade esperada, profundidade real e situação — livre, obstruído ou varado — com a variação calculada na hora e observação opcional em cada furo.</p>
+        <p>Profundidade esperada, profundidade real e situação — livre, obstruído ou varado — com a variação calculada na hora.</p>
       </div>
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         <h3>Dados do turno</h3>
-        <p>Data, número e letra do turno, técnicos e local — com supervisor e projeto preenchidos automaticamente a partir da configuração salva uma única vez. Observações são lançadas uma a uma, na hora que acontecem.</p>
-      </div>
-
-      <div class="card">
-        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-        <h3>Busca, filtros e CSV</h3>
-        <p>Filtre a lista por tipo ou situação, ou busque direto pelo código do furo — ex: LQ04F03. Quando o PDF não é o formato certo, a mesma lista sai em CSV.</p>
+        <p>Data, número e letra do turno, técnicos, supervisor, local e o tema do DDS — preenchidos uma vez. Observações são lançadas uma a uma, na hora que acontecem, e entram como lista no relatório. Ao exportar o relatório do turno, os campos já limpam sozinhos, prontos pro próximo turno.</p>
       </div>
 
       <div class="card">
@@ -662,8 +647,14 @@
 
       <div class="card">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a10 10 0 1 0 7.07 2.93"/><path d="M12 7v5l3 2"/><path d="M20 2v5h-5"/></svg>
-        <h3>Sincronização e fila offline</h3>
-        <p>Todo PDF gerado entra no histórico de exportações. Antes de mandar pro servidor, veja exatamente o que está pendente — cada anel, leque, furo ou observação lançado offline, esperando a conexão voltar.</p>
+        <h3>Histórico e sincronização</h3>
+        <p>Todo PDF gerado entra no histórico de exportações. Os dados sincronizam mesmo quando a conexão cai no meio do turno.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <h3>Fila de envio visível</h3>
+        <p>Antes de mandar pro servidor, veja exatamente o que está pendente — cada realce, leque, furo ou observação lançado offline, esperando conexão.</p>
       </div>
 
       <div class="card">
@@ -673,9 +664,33 @@
       </div>
 
       <div class="card">
-        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="8" cy="14.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="13" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
-        <h3>Abas e tema claro/escuro</h3>
-        <p>Turno, Anéis, Perfilagem, Histórico e Configurações — cada um na sua aba, com o painel de trabalho sempre à mão. Alterne entre tema claro e escuro conforme a luz do ambiente.</p>
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5l2-3h7l2 3H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <h3>Foto do leque e do turno</h3>
+        <p>Uma foto por leque (mostra a situação visual), e quantas quiser por turno — pra registrar algo que aconteceu e não é de um leque específico. Cada foto pode ter uma observação, e entra automaticamente no PDF, em grade de 2 colunas quando são várias.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <h3>Checklist de leques e furos do plano</h3>
+        <p>O plano já chega com todos os leques definidos. Cadastre a faixa inteira de uma vez e marque manualmente quais já foram feitos — furo por furo, se quiser, com uma caixinha pra topografia e outra pra perfilagem em cada um. Duas barras de progresso mostram o total de cada etapa no realce inteiro. Totalmente separado da perfilagem real: marcar aqui nunca cria nem apaga dado de furo de verdade.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        <h3>Furo precisando ser refeito</h3>
+        <p>Às vezes a medição já lançada não é mais confiável. Marque o furo pra refazer sem apagar o que já foi registrado — um aviso no topo da página lista todos os furos pendentes, com o leque de cada um, até você reperfilar.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 15.09V15a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <h3>Configurações e perfil do técnico</h3>
+        <p>Supervisor e projeto ficam salvos uma vez, não digita de novo em cada turno. Cada técnico troca a própria senha e o nome de exibição direto no app, sem depender de ninguém.</p>
+      </div>
+
+      <div class="card">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <h3>Modo claro e escuro</h3>
+        <p>Navegação em abas, sempre visível — sem menu escondido pra abrir. Troca de tema com um toque, útil em qualquer condição de luz no subsolo.</p>
       </div>
 
     </div>
@@ -737,7 +752,7 @@
     </div>
     <div class="pdf-mock reveal">
       <div class="pdf-head">
-        <div class="title">Anel: Galeria N3-Leste — LQ04</div>
+        <div class="title">Realce: N3-Leste — LQ04</div>
         <div class="meta">Turno 2B · Técnicos: Marcos/Bruno/Lucas · Gerado em 23/07/2026</div>
         <div class="pdf-obs-list">
           <span class="pdf-obs-title">Observações:</span>
@@ -769,15 +784,19 @@
     <div class="faq-list reveal">
       <details class="faq-item">
         <summary>Preciso de internet o tempo todo?<span class="ic">+</span></summary>
-        <p>Não. Um aviso aparece quando a conexão cai, e os dados sincronizam com o servidor assim que ela volta — nada lançado no meio do turno se perde.</p>
+        <p>Não — o app foi pensado pra um turno inteiro sem sinal (8h ou mais). Tudo fica guardado no aparelho e sincroniza sozinho quando a conexão volta, seja no ato, ao finalizar um leque, ou automaticamente a cada 30 segundos. Nada lançado no meio do turno se perde.</p>
       </details>
       <details class="faq-item">
-        <summary>Posso ter dois leques abertos no mesmo anel?<span class="ic">+</span></summary>
-        <p>Não. Cada anel mantém só um leque, slot ou face livre aberto por vez. Isso evita lançar furo no leque errado por engano.</p>
+        <summary>Marcar o checklist de leques afeta a perfilagem de verdade?<span class="ic">+</span></summary>
+        <p>Não, de propósito. O checklist é uma lista de controle manual — serve pra saber o que já foi feito do plano, mas marcar ou desmarcar ali nunca cria, altera ou apaga nenhum furo ou leque real.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Posso ter dois leques abertos no mesmo realce?<span class="ic">+</span></summary>
+        <p>Não. Cada realce mantém só um leque, slot ou face livre aberto por vez. Isso evita lançar furo no leque errado por engano.</p>
       </details>
       <details class="faq-item">
         <summary>O relatório sai em Excel ou PDF?<span class="ic">+</span></summary>
-        <p>O relatório oficial sai em PDF, pronto pra assinar ou anexar — um leque só, o turno inteiro, ou vários leques combinados. Se precisar dos dados brutos pra outra planilha, a lista de furos (já filtrada) também exporta em CSV.</p>
+        <p>Em PDF, pronto pra assinar ou anexar. Você pode exportar um leque só, o turno inteiro, ou vários leques combinados num único arquivo.</p>
       </details>
       <details class="faq-item">
         <summary>Dá pra exportar o turno mesmo sem furos lançados?<span class="ic">+</span></summary>
@@ -795,7 +814,7 @@
   <div class="wrap">
     <div>
       <h2>Pronto pro próximo turno?</h2>
-      <p>Crie sua conta e comece a registrar anéis, leques e furos direto do navegador — sem instalar nada.</p>
+      <p>Crie sua conta e comece a registrar realces, leques e furos direto do navegador — sem instalar nada.</p>
     </div>
     <a href="#registro" class="btn-primary" data-auth="registro">Criar conta</a>
   </div>
@@ -927,54 +946,6 @@
     window.addEventListener('scroll', aoRolar, { passive:true });
   })();
 
-  (function(){
-    const barra = document.getElementById('scroll-progress');
-    if(!barra) return;
-    const atualizar = ()=>{
-      const doc = document.documentElement;
-      const alturaTotal = doc.scrollHeight - doc.clientHeight;
-      barra.style.width = alturaTotal > 0 ? (doc.scrollTop / alturaTotal * 100) + '%' : '0%';
-    };
-    atualizar();
-    window.addEventListener('scroll', atualizar, { passive:true });
-    window.addEventListener('resize', atualizar);
-  })();
-
-  (function(){
-    const toggle = document.getElementById('nav-toggle');
-    const mobile = document.getElementById('nav-mobile');
-    if(!toggle || !mobile) return;
-    const fechar = ()=>{
-      mobile.classList.remove('open');
-      toggle.classList.remove('open');
-      toggle.setAttribute('aria-expanded', 'false');
-    };
-    toggle.addEventListener('click', ()=>{
-      const aberto = mobile.classList.toggle('open');
-      toggle.classList.toggle('open', aberto);
-      toggle.setAttribute('aria-expanded', aberto ? 'true' : 'false');
-    });
-    mobile.querySelectorAll('a').forEach(a=> a.addEventListener('click', fechar));
-    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') fechar(); });
-  })();
-
-  (function(){
-    const links = document.querySelectorAll('.nav-links a, .nav-mobile a');
-    if(!links.length) return;
-    const mapa = new Map();
-    links.forEach(a=>{
-      const alvo = document.getElementById(a.getAttribute('href').slice(1));
-      if(alvo) mapa.set(alvo, true);
-    });
-    const marcarAtivo = (id)=>{
-      links.forEach(a=> a.classList.toggle('active', a.getAttribute('href') === '#' + id));
-    };
-    const ioNav = new IntersectionObserver((entries)=>{
-      entries.forEach(e=>{ if(e.isIntersecting) marcarAtivo(e.target.id); });
-    }, { rootMargin:'-45% 0px -50% 0px', threshold:0 });
-    mapa.forEach((_, alvo)=> ioNav.observe(alvo));
-  })();
-
   if(!prefereReduzido){
 
     const grupos = document.querySelectorAll('.trail, .steps-grid, .cards-grid');
@@ -1001,6 +972,14 @@
             linhasFuro.forEach((linha, i)=>{
               setTimeout(()=>{ linha.style.strokeDashoffset = '0'; }, i * 70);
             });
+            // Depois que a última linha termina de "desenhar" (dura ~1s, com o
+            // atraso escalonado), o leque inteiro abre a partir do ponto
+            // central — representando a topografia estabelecendo o formato.
+            const grupoLeque = diagrama.querySelector('.leque-grupo');
+            if(grupoLeque){
+              const atrasoUltimaLinha = (linhasFuro.length - 1) * 70;
+              setTimeout(()=> grupoLeque.classList.add('abrindo'), atrasoUltimaLinha + 950);
+            }
             ioDiagrama.unobserve(e.target);
           }
         });
