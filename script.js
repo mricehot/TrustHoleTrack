@@ -1647,6 +1647,21 @@ function renderChecklist(){
     const feitos = itens.filter(c=>c.perfilado).length;
     progresso.textContent = `${feitos}/${itens.length} perfilados`;
   }
+
+  // Progresso geral de furos — soma os furos de TODOS os leques do checklist
+  // nesse realce (não só dos que estão expandidos na tela).
+  const textoFurosBarra = el('checklist-progresso-furos-texto');
+  const barraFuros = el('checklist-progresso-furos-barra');
+  if(textoFurosBarra && barraFuros){
+    const idsLequesChecklist = new Set(itens.map(c=>c.id));
+    const todosFurosDoRealce = checklistFuros.filter(f=>idsLequesChecklist.has(f.checklistLequeId));
+    const furosFeitosNoRealce = todosFurosDoRealce.filter(f=>f.perfilado).length;
+    const totalFurosNoRealce = todosFurosDoRealce.length;
+    const percentual = totalFurosNoRealce > 0 ? Math.round((furosFeitosNoRealce / totalFurosNoRealce) * 100) : 0;
+    textoFurosBarra.textContent = `${furosFeitosNoRealce}/${totalFurosNoRealce}`;
+    barraFuros.style.width = percentual + '%';
+  }
+
   if(itens.length === 0){
     grid.innerHTML = '';
     if(vazio) vazio.style.display = 'block';

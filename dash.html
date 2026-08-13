@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='9' fill='%23ff431d'/%3E%3Cg stroke='%23ff431d' stroke-width='6' stroke-linecap='round'%3E%3Cline x1='50' y1='50' x2='50' y2='12'/%3E%3Cline x1='50' y1='50' x2='80' y2='28'/%3E%3Cline x1='50' y1='50' x2='88' y2='58'/%3E%3Cline x1='50' y1='50' x2='68' y2='84'/%3E%3Cline x1='50' y1='50' x2='32' y2='84'/%3E%3Cline x1='50' y1='50' x2='12' y2='58'/%3E%3Cline x1='50' y1='50' x2='20' y2='28'/%3E%3C/g%3E%3C/svg%3E">
 <title>BlastHole Manager</title>
-<link rel="stylesheet" href="style.css?v=20260804a">
+<link rel="stylesheet" href="style.css?v=20260813185955">
 
 </head>
 <body>
@@ -398,6 +398,13 @@
           </div>
           <div class="config-body">
             <div class="hint">Marcação manual, separada da perfilagem de verdade — serve só de controle de quais leques do plano já foram feitos. Marcar aqui não afeta (e não é afetado por) os furos lançados na aba Perfilagem.</div>
+            <div class="checklist-progresso-furos">
+              <div class="checklist-progresso-furos-topo">
+                <span>Furos perfilados (checklist)</span>
+                <span id="checklist-progresso-furos-texto">0/0</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" id="checklist-progresso-furos-barra" style="width:0%;"></div></div>
+            </div>
             <div class="grid-3" style="margin-top:10px;">
               <div class="field">
                 <label for="checklist-tipo">Tipo</label>
@@ -441,6 +448,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20260804a"></script>
+<script src="script.js?v=20260813185955"></script>
 </body>
 </html>
