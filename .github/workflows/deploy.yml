@@ -74,7 +74,6 @@ jobs:
 
       - name: Configurar o Pages
         uses: actions/configure-pages@v5
-        
 
       - name: Empacotar os arquivos
         uses: actions/upload-pages-artifact@v3
