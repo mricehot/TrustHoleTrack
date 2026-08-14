@@ -1,9 +1,12 @@
 // ======================================================
-// COLOQUE AQUI A URL E A CHAVE "anon public" DO SEU PROJETO
-// (painel do Supabase → Project Settings → API)
+// URL e chave "anon public" do Supabase — os valores reais NÃO ficam aqui.
+// Esses dois marcadores (__SUPABASE_URL__ e __SUPABASE_ANON_KEY__) são
+// substituídos automaticamente pelo GitHub Actions no momento do deploy,
+// usando os "Secrets" configurados no repositório. Rodando local sem passar
+// pelo Actions, troque só pra testar (nunca comite os valores reais aqui).
 // ======================================================
-const SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   global: {
     // Reforça o cabeçalho apikey em toda chamada, na mão — proteção extra caso algo no
@@ -1352,12 +1355,14 @@ function criarLeque(){
   }
   const chipOrientacao = document.querySelector('#leque-orientacao-group .chip.active');
   const orientacao = chipOrientacao ? chipOrientacao.dataset.val : 'ascendente';
+  const chipLetraLeque = document.querySelector('#leque-letra-group .chip.active');
+  const letraQuemPerfilou = chipLetraLeque ? chipLetraLeque.dataset.val : (turnoInfo.turnoLetra || null);
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
   const criadoPor = usuarioAtual ? usuarioAtual.id : null;
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null, criadoPor, fotoUrl: null
+    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: letraQuemPerfilou, criadoPor, fotoUrl: null
   };
   leques.push(novoLeque);
   enfileirar('leques', 'insert', {
@@ -1378,6 +1383,12 @@ function criarLeque(){
 }
 el('btn-add-leque').addEventListener('click', criarLeque);
 el('leque-tipo').addEventListener('change', ()=>{ el('btn-add-leque').textContent = tipoBotaoLabel(el('leque-tipo').value); });
+document.querySelectorAll('#leque-letra-group .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
 document.querySelectorAll('#leque-orientacao-group .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     document.querySelectorAll('#leque-orientacao-group .chip').forEach(c=> c.classList.remove('active'));
@@ -2348,6 +2359,12 @@ async function loadTurnoInfo(){
   el('turno-projeto').value = turnoInfo.projeto;
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
   selecionarChip('turno-letra-group', turnoInfo.turnoLetra);
+  // Pré-seleciona a letra na criação de leque com o turno atual, só como
+  // ponto de partida — a pessoa pode trocar manualmente antes de criar,
+  // já que quem perfila pode ser diferente de quem está com o turno aberto.
+  if(!document.querySelector('#leque-letra-group .chip.active')){
+    selecionarChip('leque-letra-group', turnoInfo.turnoLetra);
+  }
   renderObservacoesTurno();
   renderFotosTurno();
 
@@ -3239,6 +3256,11 @@ document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip')
     if(chip.parentElement.id === 'turno-letra-group'){
       const nomes = TECNICOS_POR_LETRA[chip.dataset.val];
       if(nomes) el('turno-tecnicos').value = nomes;
+      // Só ajusta o padrão da criação de leque se ninguém tinha escolhido
+      // manualmente ainda — não sobrescreve uma escolha explícita.
+      if(!document.querySelector('#leque-letra-group .chip.active')){
+        selecionarChip('leque-letra-group', chip.dataset.val);
+      }
     }
     saveTurnoInfo();
   });
