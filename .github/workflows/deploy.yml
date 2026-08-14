@@ -1,0 +1,85 @@
+name: Deploy no GitHub Pages
+
+# Roda automaticamente a cada push na branch principal — nada manual depois
+# de configurado. Também pode ser disparado manualmente pela aba Actions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-e-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar pasta de saída
+        run: |
+          mkdir -p site
+          cp dash.html index.html script.js style.css site/
+          # copia a pasta de icones/manifest/service worker, se existirem
+          [ -f manifest.json ] && cp manifest.json site/ || true
+          [ -f sw.js ] && cp sw.js site/ || true
+          [ -d icons ] && cp -r icons site/ || true
+
+      - name: Substituir a URL e a chave do Supabase (variáveis de ambiente)
+        # Os valores de verdade nunca ficam no repositório — vêm dos Secrets
+        # configurados em Settings → Secrets and variables → Actions.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Faltam os Secrets SUPABASE_URL / SUPABASE_ANON_KEY no repositório."
+            exit 1
+          fi
+          sed -i "s|__SUPABASE_URL__|${SUPABASE_URL}|g" site/script.js site/index.html
+          sed -i "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" site/script.js site/index.html
+
+      - name: Confirmar que a substituição realmente aconteceu
+        # Trava o deploy se sobrar algum marcador — evita publicar de novo o
+        # mesmo erro "Invalid supabaseUrl" por engano (ex: secret com nome
+        # errado, valor vazio, etc.), sem precisar descobrir isso só depois
+        # de já estar no ar.
+        run: |
+          if grep -q "__SUPABASE_URL__\|__SUPABASE_ANON_KEY__" site/script.js site/index.html; then
+            echo "Ainda sobrou marcador não substituído — confira o NOME dos Secrets"
+            echo "(precisa ser exatamente SUPABASE_URL e SUPABASE_ANON_KEY, sem underscore extra)."
+            exit 1
+          fi
+          echo "Substituição confirmada, sem marcadores restantes."
+
+      - name: Atualizar a versão de cache (?v=...) automaticamente
+        # Resolve de vez o problema de "esqueci de trocar o ?v= e o navegador
+        # serviu a versão antiga" — agora cada deploy já tem sua própria
+        # versão, sem precisar lembrar de rodar nada na mão.
+        run: |
+          VERSAO="${{ github.run_number }}-${GITHUB_SHA::7}"
+          sed -i -E "s/(script\.js\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
+          sed -i -E "s/(style\.css\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
+          echo "Versão de cache deste deploy: ${VERSAO}"
+
+      - name: Configurar o Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empacotar os arquivos
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
