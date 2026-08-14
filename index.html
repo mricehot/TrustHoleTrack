@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BlastHole Manager — Perfilagem de Furos de Lavra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1014,8 +1017,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  var SUPABASE_URL = 'https://yccblxqevplzjopkdryb.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_IFKAde28BGRHIghLcVYT0g_dpT5IBlw';
+  // Substituído automaticamente pelo GitHub Actions no deploy (ver script.js
+  // pra mais detalhes) — nunca comitar os valores reais aqui.
+  var SUPABASE_URL = '__SUPABASE_URL__';
+  var SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
   var dbAuth = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { apikey: SUPABASE_ANON_KEY } }
   });
