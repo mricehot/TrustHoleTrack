@@ -1321,7 +1321,7 @@ function renderPainelTrabalho(){
         <span class="spacer"></span>
         ${podeFinalizar
           ? `<button class="danger" onclick="finalizarLeque('${lequeAberto.id}')">Finalizar leque</button>`
-          : `<span class="hint" title="só quem criou pode finalizar">${ICONE_CADEADO}criado por outro usuário</span>`}
+          : ''}
       </div>
     `;
   }else{
@@ -3107,11 +3107,9 @@ function render(){
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
           <td>${situacaoLabel(f.situacao)}</td>
           <td class="actions">
-            ${podeEditar ? `
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
             <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
-            ` : `<span class="hint" title="só quem criou o leque pode editar">${ICONE_CADEADO}</span>`}
           </td>
         </tr>
         ${f.observacao ? `
@@ -3139,7 +3137,6 @@ function render(){
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
-              ${!podeEditar ? `<span class="hint" title="criado por outra pessoa — só quem criou pode editar ou apagar">${ICONE_CADEADO}de outro usuário</span>` : ''}
             </div>
             <div class="leque-head-line2">
               <div class="stats">
@@ -3370,10 +3367,13 @@ function mostrarLogin(mensagemErro){
 
 // Um leque sem dono (criado antes dessa funcionalidade existir) pode ser editado por
 // qualquer autenticado — só trava quando já tem um dono definido e não é o atual.
+// Antes só quem criou o leque podia editar/apagar ele e os furos dele — isso
+// foi removido a pedido: agora qualquer autenticado pode, independente de
+// quem criou ou de qual letra foi selecionada na abertura do leque. A função
+// continua existindo (e sendo chamada nos mesmos lugares) só pra não precisar
+// mexer em cada ponto individualmente — sempre libera.
 function souDonoDoLeque(leque){
-  if(!leque) return false;
-  if(!leque.criadoPor) return true;
-  return !!usuarioAtual && leque.criadoPor === usuarioAtual.id;
+  return !!leque;
 }
 
 // Só executa o carregamento de dados uma vez por sessão de página — evita duplicar
