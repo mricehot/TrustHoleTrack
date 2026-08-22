@@ -1085,6 +1085,10 @@ function editAnelModal(anel){
             <label for="edit-anel-nivel">Nível</label>
             <input id="edit-anel-nivel" type="text" value="${anel.nivel || ''}" placeholder="ex: N-125 TR6733">
           </div>
+          <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
+            <input id="edit-anel-oculto-whatsapp" type="checkbox" style="width:17px; height:17px;" ${anel.ocultoWhatsapp ? 'checked' : ''}>
+            <span>Ocultar da lista de envio por WhatsApp (ex: realce já finalizado)</span>
+          </label>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -1098,8 +1102,9 @@ function editAnelModal(anel){
     const salvar = ()=>{
       const nome = el('edit-anel-nome').value.trim();
       const nivel = el('edit-anel-nivel').value.trim();
+      const ocultoWhatsapp = el('edit-anel-oculto-whatsapp').checked;
       if(!nome){ showToast('Preencha o nome do realce.'); return; }
-      fechar({ nome, nivel });
+      fechar({ nome, nivel, ocultoWhatsapp });
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
@@ -1117,7 +1122,8 @@ function editarAnel(id){
     }
     a.nome = resultado.nome;
     a.nivel = resultado.nivel;
-    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel });
+    a.ocultoWhatsapp = resultado.ocultoWhatsapp;
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, oculto_whatsapp: a.ocultoWhatsapp });
     if(a.id === anelAtivoId) sincronizarLocalComNivelDoAnel();
     salvarLocal();
     renderAll();
@@ -1145,7 +1151,7 @@ function criarAnel(){
       enfileirar('aneis', 'update', { id: a.id, ativo: false });
     }
   });
-  aneis.push({ id: novoId, nome, ativo: true, nivel });
+  aneis.push({ id: novoId, nome, ativo: true, nivel, ocultoWhatsapp: false });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
@@ -1487,7 +1493,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
   showToast(`Leque ${lequeCode(lequeRemovido)} e ${furosRemovidos.length} furo(s) restaurados.`);
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null }; }
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, ts: row.criado_em }; }
@@ -1667,13 +1673,17 @@ function enviarRelatorioWhatsApp(idsRealces){
 // porque um turno pode ter perfilado um realce e outro turno, outro; a
 // equipe se orienta melhor vendo tudo junto, não só o realce ativo agora.
 function abrirModalEscolherRealcesWhatsApp(){
-  if(aneis.length === 0){ showToast('Nenhum realce cadastrado ainda.'); return; }
+  const realcesVisiveis = aneis.filter(a=>!a.ocultoWhatsapp);
+  if(realcesVisiveis.length === 0){
+    showToast(aneis.length === 0 ? 'Nenhum realce cadastrado ainda.' : 'Todos os realces estão ocultos da lista de WhatsApp — libere algum em Realce › editar.');
+    return;
+  }
   if(!configApp.whatsapp){
     showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
     return;
   }
   const root = el('modal-root');
-  const linhas = aneis.map(a=>{
+  const linhas = realcesVisiveis.map(a=>{
     const qtd = checklistDoAnel(a.id).length;
     const marcadoPorPadrao = qtd > 0; // já vem marcado quem tem algo no checklist
     return `
