@@ -147,21 +147,11 @@ function atualizarStatusConexao(){
 }
 window.addEventListener('online', atualizarStatusConexao);
 window.addEventListener('offline', atualizarStatusConexao);
-
-// Quando o sinal volta (mesmo que só por um instante, no caminho de volta da mina),
-// já tenta mandar o que estiver pendente — sem depender de lembrar de clicar em
-// "Enviar Medições" ou de fechar um leque bem nesse momento.
-window.addEventListener('online', ()=>{
-  if(filaEnvio.length > 0) enviarMedicoes();
-});
 atualizarStatusConexao();
 
-// Sync automático contínuo: a cada 30s, se tiver internet e algo pendente, tenta
-// enviar sozinho — cobre o caso de sinal fraco/intermitente que nunca dispara um
-// evento "online" de verdade (fica ligado o tempo todo, só devagar ou instável).
-setInterval(()=>{
-  if(navigator.onLine && filaEnvio.length > 0) enviarMedicoes();
-}, 30000);
+// Sem fila de envio: qualquer alteração já vai direto pro servidor no
+// momento em que acontece (função enfileirar). Não há mais nada "pendente"
+// esperando o sinal voltar pra ser reenviado em lote.
 
 // ---------- Tema claro/escuro ----------
 const TEMA_KEY = 'perfilagem-tema-v1';
@@ -186,7 +176,6 @@ el('btn-tema').addEventListener('click', alternarTema);
 
 // ---------- Armazenamento local (funciona 100% sem internet) ----------
 const LOCAL_KEY = 'perfilagem-local-v1';
-const FILA_KEY = 'perfilagem-fila-v1';
 const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
@@ -202,7 +191,6 @@ let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal,
 let anelAtivoId = null;
 let lequesColapsados = new Set();
 let lequesSelecionados = new Set();
-let filaEnvio = [];     // fila de alterações feitas offline, esperando envio ao Supabase
 
 function toggleLeque(id){
   if(lequesColapsados.has(id)) lequesColapsados.delete(id);
@@ -387,151 +375,76 @@ function carregarLocal(){
       anelAtivoId = parsed.anelAtivoId || null;
     }
   }catch(e){}
-  try{
-    const rawFila = localStorage.getItem(FILA_KEY);
-    filaEnvio = rawFila ? JSON.parse(rawFila) : [];
-  }catch(e){ filaEnvio = []; }
-}
-function salvarFila(){
-  try{ localStorage.setItem(FILA_KEY, JSON.stringify(filaEnvio)); }catch(e){}
-  atualizarBotaoEnviar();
-}
-
-function atualizarBotaoEnviar(){
-  const btn = document.getElementById('btn-enviar');
-  if(!btn) return;
-  const n = filaEnvio.length;
-  const labelEnviar = document.getElementById('label-enviar');
-  const badgeEnviar = document.getElementById('count-enviar');
-  const ICONE_CHECK = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-  const ICONE_ENVIAR = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
-  if(n === 0){
-    if(labelEnviar) labelEnviar.innerHTML = ICONE_CHECK + 'Sincronizado';
-    if(badgeEnviar) badgeEnviar.textContent = '';
-    btn.classList.add('ghost');
-    btn.classList.remove('steel');
-  }else{
-    if(labelEnviar) labelEnviar.innerHTML = ICONE_ENVIAR + 'Enviar';
-    if(badgeEnviar) badgeEnviar.textContent = n;
-    btn.classList.remove('ghost');
-    btn.classList.add('steel');
-  }
-
-  const badgeFila = document.getElementById('count-fila');
-  if(badgeFila) badgeFila.textContent = n === 0 ? '' : n;
 }
 
 // Nomes amigáveis pra tabela e pro tipo de ação, usados na lista de pendências.
+// ---------- Envio direto ao servidor (sem fila) ----------
+// Cada alteração vai pro Supabase na hora que acontece — não fica guardada
+// esperando um botão "Enviar" nem um horário certo. Se estiver offline, o
+// pedido simplesmente falha e a pessoa vê um aviso na hora, em vez de ficar
+// "pendente" silenciosamente até o sinal voltar.
+
+// Nomes amigáveis pra tabela — usados só nas mensagens de erro, pra dizer o
+// que exatamente não foi salvo.
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno'
 };
-const NOME_ACAO_FILA = { insert: 'novo', update: 'atualização', upsert: 'atualização', delete: 'remoção' };
 
-// Descreve um item da fila de forma legível — usado na lista de pendências, pra quem
-// não sabe (e não precisa saber) o nome das colunas no banco.
-function descreverItemFila({ tabela, registro }){
-  if(tabela === 'aneis'){
-    return registro.nome ? `Realce "${registro.nome}"` : 'Realce';
-  }
-  if(tabela === 'leques'){
-    const prefixo = PREFIXO[registro.tipo] || '';
-    return registro.numero ? `Leque ${prefixo}${registro.numero}` : 'Leque';
-  }
-  if(tabela === 'furos'){
-    return registro.numero !== undefined ? `Furo nº ${registro.numero}` : 'Furo';
-  }
-  if(tabela === 'turno_info'){
-    return 'Data, técnicos, local etc.';
-  }
-  if(tabela === 'turno_observacoes'){
-    if(!registro.texto) return 'Observação do turno';
-    const texto = registro.texto.length > 50 ? registro.texto.slice(0,50)+'...' : registro.texto;
-    return `"${texto}"`;
-  }
-  return tabela;
-}
+// Pequeno atraso (debounce) só pras ações de update/upsert — evita mandar uma
+// chamada de rede a cada letra digitada em campos como Local/Técnicos/DDS.
+// Inserção e remoção continuam indo na hora, sem atraso nenhum.
+const debouncesPendentes = new Map();
+const DEBOUNCE_MS = 500;
 
-// Modal só de leitura mostrando tudo que está esperando pra ser enviado ao servidor —
-// útil pra conferir se algo digitado em campo (sem sinal) realmente entrou na fila.
-function abrirModalFila(){
-  const root = el('modal-root');
-  if(filaEnvio.length === 0){
-    root.innerHTML = `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
-          <p style="font-weight:700;">Nada pendente</p>
-          <p class="hint">Tudo que foi criado ou editado já está sincronizado com o servidor.</p>
-          <div class="modal-actions">
-            <button class="ghost" id="modal-fechar">Fechar</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }else{
-    const linhas = filaEnvio.map(item=>`
-      <div class="fila-item">
-        <span class="tabela">${NOME_TABELA_FILA[item.tabela] || item.tabela}</span>
-        <span class="acao ${item.acao}">${NOME_ACAO_FILA[item.acao] || item.acao}</span>
-        <span class="desc">${descreverItemFila(item)}</span>
-      </div>
-    `).join('');
-    root.innerHTML = `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
-          <p style="font-weight:700;">${filaEnvio.length} ${filaEnvio.length>1?'alterações':'alteração'} pendente${filaEnvio.length>1?'s':''} de envio</p>
-          <p class="hint">Isso só vai pro servidor quando você tocar em "Enviar Medições".</p>
-          <div class="fila-lista">${linhas}</div>
-          <div class="modal-actions">
-            <button class="ghost" id="modal-fechar">Fechar</button>
-          </div>
-        </div>
-      </div>
-    `;
+async function executarEnvio(tabela, acao, registro){
+  try{
+    let error;
+    if(acao === 'insert'){
+      ({ error } = await db.from(tabela).insert(registro));
+    }else if(acao === 'update'){
+      const { id, ...resto } = registro;
+      ({ error } = await db.from(tabela).update(resto).eq('id', id));
+    }else if(acao === 'upsert'){
+      ({ error } = await db.from(tabela).upsert(registro));
+    }else if(acao === 'delete'){
+      ({ error } = await db.from(tabela).delete().eq('id', registro.id));
+    }
+    if(error) throw error;
+  }catch(err){
+    const nomeTabela = NOME_TABELA_FILA[tabela] || tabela;
+    const motivo = err && err.message ? err.message : 'sem conexão';
+    showToast(`Não foi possível salvar (${nomeTabela}): ${motivo}`);
   }
-  const fechar = ()=>{ root.innerHTML = ''; };
-  el('modal-fechar').addEventListener('click', fechar);
-  el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(); });
-}
-el('btn-ver-fila').addEventListener('click', abrirModalFila);
-
-
-// Remove qualquer entrada pendente pra esse registro nessa tabela (usado antes de
-// enfileirar algo novo, pra fila nunca acumular ações redundantes/contraditórias).
-function removerDaFila(tabela, id){
-  filaEnvio = filaEnvio.filter(item => !(item.tabela===tabela && item.registro.id===id));
 }
 
 function enfileirar(tabela, acao, registro){
-  if(acao === 'delete'){
-    const tinhaInsertPendente = filaEnvio.some(item=>item.tabela===tabela && item.acao==='insert' && item.registro.id===registro.id);
-    removerDaFila(tabela, registro.id);
-    if(tinhaInsertPendente){ salvarFila(); return; } // nunca chegou a existir no servidor
-    filaEnvio.push({ id: uid(), tabela, acao, registro });
-    salvarFila();
+  // Insert e delete são ações discretas (um clique, não uma tecla) — vão na
+  // hora, sem debounce, e cancelam qualquer debounce pendente pro mesmo registro.
+  if(acao === 'insert' || acao === 'delete'){
+    const chave = tabela + ':' + registro.id;
+    const timerPendente = debouncesPendentes.get(chave);
+    if(timerPendente){ clearTimeout(timerPendente); debouncesPendentes.delete(chave); }
+    executarEnvio(tabela, acao, registro);
     return;
   }
-  if(acao === 'update' || acao === 'upsert'){
-    const idxInsert = filaEnvio.findIndex(item=>item.tabela===tabela && item.acao==='insert' && item.registro.id===registro.id);
-    if(idxInsert !== -1){
-      filaEnvio[idxInsert].registro = { ...filaEnvio[idxInsert].registro, ...registro };
-      salvarFila();
-      return;
-    }
-    const idxExistente = filaEnvio.findIndex(item=>item.tabela===tabela && item.acao===acao && item.registro.id===registro.id);
-    if(idxExistente !== -1){
-      filaEnvio[idxExistente].registro = { ...filaEnvio[idxExistente].registro, ...registro };
-      salvarFila();
-      return;
-    }
-    filaEnvio.push({ id: uid(), tabela, acao, registro });
-    salvarFila();
-    return;
-  }
-  // insert
-  filaEnvio.push({ id: uid(), tabela, acao, registro });
-  salvarFila();
+  // update/upsert: agrupa chamadas rápidas seguidas (ex: digitando num campo)
+  // numa só, depois de uma pequena pausa.
+  const chave = tabela + ':' + acao + ':' + registro.id;
+  const timerAnterior = debouncesPendentes.get(chave);
+  if(timerAnterior) clearTimeout(timerAnterior);
+  const novoTimer = setTimeout(()=>{
+    debouncesPendentes.delete(chave);
+    executarEnvio(tabela, acao, registro);
+  }, DEBOUNCE_MS);
+  debouncesPendentes.set(chave, novoTimer);
 }
+
+// Antes cancelava um item pendente na fila (ex: ao apagar um leque, cancela o
+// furo dele que ainda não tinha sido enviado). Sem fila, isso não existe mais
+// — mas a função continua aqui (sem fazer nada) pra não precisar mexer em
+// cada lugar que ainda chama ela.
+function removerDaFila(tabela, id){}
 
 // Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nome
 // do anel + o nível cadastrado nele (ex: "Realce N3-Leste · N-125 TR6733") — evita
@@ -569,55 +482,10 @@ function definirAnelAtivo(novoId){
   if(el('f-busca')) el('f-busca').value = '';
 }
 
-// ---------- Envio manual da fila (quando voltar o sinal) ----------
-let enviandoAgora = false; // trava contra chamadas simultâneas — agora tem vários gatilhos
-                            // (botão manual, finalizar leque, voltar sinal, sync periódico)
-async function enviarMedicoes(){
-  if(enviandoAgora) return;
-  if(filaEnvio.length === 0){ showToast('Nada pendente para enviar.'); return; }
-  if(!navigator.onLine){ showToast('Sem conexão agora. Tente de novo quando tiver sinal.'); return; }
-  enviandoAgora = true;
-
-  const btn = el('btn-enviar');
-  btn.disabled = true;
-  const totalInicial = filaEnvio.length;
-  let enviados = 0;
-
-  while(filaEnvio.length > 0){
-    const item = filaEnvio[0];
-    try{
-      let error;
-      if(item.acao === 'insert'){
-        ({ error } = await db.from(item.tabela).insert(item.registro));
-      }else if(item.acao === 'update'){
-        const { id, ...resto } = item.registro;
-        ({ error } = await db.from(item.tabela).update(resto).eq('id', id));
-      }else if(item.acao === 'upsert'){
-        ({ error } = await db.from(item.tabela).upsert(item.registro));
-      }else if(item.acao === 'delete'){
-        ({ error } = await db.from(item.tabela).delete().eq('id', item.registro.id));
-      }
-      if(error) throw error;
-      filaEnvio.shift();
-      salvarFila();
-      enviados++;
-    }catch(err){
-      btn.disabled = false;
-      enviandoAgora = false;
-      showToast(`Enviado ${enviados} de ${totalInicial}. Parou em: ${err && err.message ? err.message : err}`);
-      return;
-    }
-  }
-  btn.disabled = false;
-  enviandoAgora = false;
-  showToast(`Tudo enviado! (${totalInicial} alteração${totalInicial>1?'ões':''})`);
-  await atualizarDoServidor();
-}
-
 // Busca a versão mais recente do servidor. Só sobrescreve o que está local
 // se não houver nada pendente (pra nunca perder alterações ainda não enviadas).
 async function atualizarDoServidor(){
-  if(!navigator.onLine || filaEnvio.length > 0) return false;
+  if(!navigator.onLine) return false;
   try{
     const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
@@ -659,10 +527,6 @@ async function sincronizarDoServidor(){
     showToast('Sem conexão agora. Tente de novo quando tiver sinal.');
     return;
   }
-  if(filaEnvio.length > 0){
-    showToast('Você tem alterações pendentes para enviar. Envie-as antes de atualizar, pra não perder nada.');
-    return;
-  }
   const btn = el('btn-atualizar');
   btn.disabled = true;
   const htmlOriginal = btn.innerHTML;
@@ -684,7 +548,6 @@ async function loadData(){
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
-  atualizarBotaoEnviar();
   atualizarLabelUltimaSync();
   await atualizarDoServidor();
 }
@@ -1413,11 +1276,6 @@ async function finalizarLeque(id){
   salvarLocal();
   renderAll();
   showToast(`Leque ${lequeCode(l)} finalizado.`);
-
-  // Ao fechar o leque, já tenta subir tudo que está pendente pro banco — sem
-  // esperar o botão "Enviar Medições". Se não tiver sinal agora, fica na fila
-  // local mesmo e sincroniza normalmente quando a conexão voltar.
-  if(navigator.onLine) enviarMedicoes();
 }
 
 async function reabrirLeque(id){
@@ -1516,16 +1374,11 @@ ORDEM_CAMPOS_FURO.forEach((id, i)=>{
 // ainda estava só pendente localmente (nunca chegou a sincronizar), simplesmente
 // cancela ela — o registro no servidor nem foi tocado. Só manda um "insert" novo
 // se realmente não tinha mais nada pra cancelar (criado e removido na mesma sessão).
+// Usada pelo "Desfazer" — como não há mais fila, a remoção já foi enviada
+// (ou tentada) na hora em que aconteceu, então desfazer sempre significa
+// recriar o registro no servidor, nunca "cancelar" algo que ainda não saiu.
 function restaurarNaFila(tabela, id, payloadInsert){
-  const tinhaDeletePendente = filaEnvio.some(item=>
-    item.tabela === tabela && item.acao === 'delete' && item.registro.id === id
-  );
-  if(tinhaDeletePendente){
-    removerDaFila(tabela, id);
-    salvarFila();
-  }else{
-    enfileirar(tabela, 'insert', payloadInsert);
-  }
+  enfileirar(tabela, 'insert', payloadInsert);
 }
 
 function desfazerRemocaoFuro(furoRemovido){
@@ -2377,7 +2230,7 @@ async function loadTurnoInfo(){
   carregarTurnoLocal();
   carregarObsLocal();
 
-  if(navigator.onLine && !filaEnvio.some(item=>item.tabela==='turno_info')){
+  if(navigator.onLine){
     try{
       const { data, error } = await db.from('turno_info').select('*').eq('id', TURNO_ROW_ID).maybeSingle();
       if(error) throw error;
@@ -3237,7 +3090,6 @@ function renderAll(){
   renderBreadcrumb();
   renderPainelTrabalho();
   render();
-  atualizarBotaoEnviar();
   renderExportBar();
   renderTurnoLequesChecklist();
   renderChecklist();
@@ -3245,8 +3097,6 @@ function renderAll(){
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
-
-el('btn-enviar').addEventListener('click', enviarMedicoes);
 
 el('btn-csv').addEventListener('click', ()=>{
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
