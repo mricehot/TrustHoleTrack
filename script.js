@@ -1735,6 +1735,49 @@ function renderChecklist(){
   }).join('');
 }
 
+// Monta um texto de resumo do checklist (leques + furos) pra mandar pelo
+// WhatsApp — usa os mesmos números já calculados pras barras de progresso,
+// só formatados como mensagem em vez de elementos na tela.
+function montarResumoChecklistParaWhatsApp(){
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  const nomeRealce = anelAtivo ? anelAtivo.nome : '-';
+  const itens = checklistDoAnelAtivo();
+  const feitos = itens.filter(c=>c.perfilado).length;
+
+  const idsLequesChecklist = new Set(itens.map(c=>c.id));
+  const todosFuros = checklistFuros.filter(f=>idsLequesChecklist.has(f.checklistLequeId));
+  const furosPerfilados = todosFuros.filter(f=>f.perfilado).length;
+  const furosTopografados = todosFuros.filter(f=>f.topografado).length;
+  const totalFuros = todosFuros.length;
+  const pctFuros = totalFuros > 0 ? Math.round((furosPerfilados / totalFuros) * 100) : 0;
+  const pctTopo = totalFuros > 0 ? Math.round((furosTopografados / totalFuros) * 100) : 0;
+
+  const codigosPerfilados = itens.filter(c=>c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
+  const codigosPendentes = itens.filter(c=>!c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
+
+  let msg = `*Checklist de Perfilagem — Realce ${nomeRealce}*\n`;
+  msg += `${new Date().toLocaleString('pt-BR')}\n\n`;
+  msg += `Leques: ${feitos}/${itens.length} perfilados\n`;
+  msg += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n\n`;
+  if(codigosPerfilados.length) msg += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
+  if(codigosPendentes.length) msg += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+  return msg.trim();
+}
+
+function enviarChecklistPorWhatsApp(){
+  if(!anelAtivoId){ showToast('Selecione um realce primeiro.'); return; }
+  const itens = checklistDoAnelAtivo();
+  if(itens.length === 0){ showToast('Não há nada no checklist deste realce ainda.'); return; }
+  if(!configApp.whatsapp){
+    showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
+    return;
+  }
+  const mensagem = montarResumoChecklistParaWhatsApp();
+  const url = `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+  window.open(url, '_blank');
+}
+el('btn-enviar-whatsapp').addEventListener('click', enviarChecklistPorWhatsApp);
+
 function toggleExpandirChecklist(id){
   if(checklistExpandido.has(id)) checklistExpandido.delete(id);
   else checklistExpandido.add(id);
@@ -1906,7 +1949,7 @@ const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
 // Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
 // estavam no código antes), pra quem já usa o app não ver nada em branco.
 const CONFIG_LOCAL_KEY = 'perfilagem-config-app-v1';
-let configApp = { supervisor: 'Talles da Silveira', projeto: 'Ero - Pilar' };
+let configApp = { supervisor: 'Talles da Silveira', projeto: 'Ero - Pilar', whatsapp: '' };
 function carregarConfigLocal(){
   try{
     const raw = localStorage.getItem(CONFIG_LOCAL_KEY);
@@ -1919,13 +1962,16 @@ function salvarConfigLocal(){
 function renderConfig(){
   const campoSupervisor = el('config-supervisor');
   const campoProjeto = el('config-projeto');
+  const campoWhatsapp = el('config-whatsapp');
   if(!campoSupervisor || !campoProjeto) return;
   campoSupervisor.value = configApp.supervisor;
   campoProjeto.value = configApp.projeto;
+  if(campoWhatsapp) campoWhatsapp.value = configApp.whatsapp || '';
 }
 function salvarConfig(){
   configApp.supervisor = el('config-supervisor').value.trim() || configApp.supervisor;
   configApp.projeto = el('config-projeto').value.trim() || configApp.projeto;
+  configApp.whatsapp = el('config-whatsapp').value.replace(/\D/g, ''); // só dígitos
   salvarConfigLocal();
   turnoInfo.supervisor = configApp.supervisor;
   turnoInfo.projeto = configApp.projeto;
