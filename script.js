@@ -1515,10 +1515,13 @@ function checklistFurosDoLeque(checklistLequeId){
     .filter(f=>f.checklistLequeId===checklistLequeId)
     .sort((a,b)=> a.numero.localeCompare(b.numero, undefined, {numeric:true}));
 }
-function checklistDoAnelAtivo(){
+function checklistDoAnel(anelId){
   return checklistLeques
-    .filter(c=>c.anelId===anelAtivoId)
+    .filter(c=>c.anelId===anelId)
     .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true}));
+}
+function checklistDoAnelAtivo(){
+  return checklistDoAnel(anelAtivoId);
 }
 
 function renderChecklist(){
@@ -1608,13 +1611,12 @@ function renderChecklist(){
   }).join('');
 }
 
-// Monta um texto de resumo do checklist (leques + furos) pra mandar pelo
-// WhatsApp — usa os mesmos números já calculados pras barras de progresso,
-// só formatados como mensagem em vez de elementos na tela.
-function montarResumoChecklistParaWhatsApp(){
-  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  const nomeRealce = anelAtivo ? anelAtivo.nome : '-';
-  const itens = checklistDoAnelAtivo();
+// Monta o bloco de resumo (leques + furos) de UM realce — reaproveitado tanto
+// pra mandar um realce só quanto pra combinar vários no mesmo relatório.
+function montarBlocoRealceParaWhatsApp(anelId){
+  const anel = aneis.find(a=>a.id===anelId);
+  const nomeRealce = anel ? anel.nome : '-';
+  const itens = checklistDoAnel(anelId);
   const feitos = itens.filter(c=>c.perfilado).length;
 
   const idsLequesChecklist = new Set(itens.map(c=>c.id));
@@ -1628,28 +1630,85 @@ function montarResumoChecklistParaWhatsApp(){
   const codigosPerfilados = itens.filter(c=>c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
   const codigosPendentes = itens.filter(c=>!c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
 
-  let msg = `*Checklist de Perfilagem — Realce ${nomeRealce}*\n`;
-  msg += `${new Date().toLocaleString('pt-BR')}\n\n`;
-  msg += `Leques: ${feitos}/${itens.length} perfilados\n`;
-  msg += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n\n`;
-  if(codigosPerfilados.length) msg += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
-  if(codigosPendentes.length) msg += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+  if(itens.length === 0){
+    return `*Realce ${nomeRealce}*\nNada no checklist ainda.`;
+  }
+
+  let bloco = `*Realce ${nomeRealce}*\n`;
+  bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
+  bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
+  if(codigosPerfilados.length) bloco += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
+  if(codigosPendentes.length) bloco += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+  return bloco.trim();
+}
+
+// Monta o relatório completo — um ou vários realces, cada um no seu bloco,
+// pra equipe se orientar mesmo quando turnos diferentes perfilaram realces
+// diferentes.
+function montarRelatorioChecklistParaWhatsApp(idsRealces){
+  let msg = `*Checklist de Perfilagem*\n`;
+  msg += `${new Date().toLocaleString('pt-BR')}\n`;
+  msg += `${idsRealces.length} realce${idsRealces.length>1?'s':''}\n\n`;
+  msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n———\n\n');
   return msg.trim();
 }
 
-function enviarChecklistPorWhatsApp(){
-  if(!anelAtivoId){ showToast('Selecione um realce primeiro.'); return; }
-  const itens = checklistDoAnelAtivo();
-  if(itens.length === 0){ showToast('Não há nada no checklist deste realce ainda.'); return; }
+function enviarRelatorioWhatsApp(idsRealces){
   if(!configApp.whatsapp){
     showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
     return;
   }
-  const mensagem = montarResumoChecklistParaWhatsApp();
+  const mensagem = montarRelatorioChecklistParaWhatsApp(idsRealces);
   const url = `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}`;
   window.open(url, '_blank');
 }
-el('btn-enviar-whatsapp').addEventListener('click', enviarChecklistPorWhatsApp);
+
+// Antes de enviar, deixa escolher quais realces entram no relatório — útil
+// porque um turno pode ter perfilado um realce e outro turno, outro; a
+// equipe se orienta melhor vendo tudo junto, não só o realce ativo agora.
+function abrirModalEscolherRealcesWhatsApp(){
+  if(aneis.length === 0){ showToast('Nenhum realce cadastrado ainda.'); return; }
+  if(!configApp.whatsapp){
+    showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
+    return;
+  }
+  const root = el('modal-root');
+  const linhas = aneis.map(a=>{
+    const qtd = checklistDoAnel(a.id).length;
+    const marcadoPorPadrao = qtd > 0; // já vem marcado quem tem algo no checklist
+    return `
+      <label class="realce-whatsapp-item">
+        <input type="checkbox" value="${a.id}" ${marcadoPorPadrao ? 'checked' : ''}>
+        <span>${a.nome}</span>
+        <span class="hint">${qtd > 0 ? qtd + ' no checklist' : 'sem checklist'}</span>
+      </label>
+    `;
+  }).join('');
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box">
+        <p style="font-weight:700;">Escolher realces para o relatório</p>
+        <p class="hint">Marque os realces que devem entrar na mensagem do WhatsApp.</p>
+        <div class="realce-whatsapp-lista">${linhas}</div>
+        <div class="modal-actions">
+          <button class="ghost" id="modal-cancelar">Cancelar</button>
+          <button class="steel" id="modal-confirmar-whatsapp">Gerar e enviar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('modal-cancelar').addEventListener('click', fechar);
+  el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('modal-confirmar-whatsapp').addEventListener('click', ()=>{
+    const idsSelecionados = Array.from(root.querySelectorAll('.realce-whatsapp-item input:checked')).map(i=>i.value);
+    if(idsSelecionados.length === 0){ showToast('Marque ao menos um realce.'); return; }
+    fechar();
+    enviarRelatorioWhatsApp(idsSelecionados);
+  });
+}
+el('btn-enviar-whatsapp').addEventListener('click', abrirModalEscolherRealcesWhatsApp);
 
 function toggleExpandirChecklist(id){
   if(checklistExpandido.has(id)) checklistExpandido.delete(id);
