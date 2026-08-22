@@ -249,13 +249,30 @@ async function removerFotoLeque(id){
   showToast('Foto removida.');
 }
 
+// Posiciona um menu suspenso "position:fixed" logo abaixo do botão que abriu
+// ele, alinhado pela direita — precisa ser calculado na hora (não fixo via
+// CSS) porque "fixed" não sabe de onde o botão está. Isso é o que permite o
+// menu escapar do overflow:hidden do card do leque, em vez de ficar cortado.
+function posicionarMenuFixo(botao, menu){
+  const retBotao = botao.getBoundingClientRect();
+  menu.style.top = (retBotao.bottom + 4) + 'px';
+  let right = window.innerWidth - retBotao.right;
+  // Garante que não estoure a lateral esquerda da tela em telas estreitas
+  const larguraMenu = menu.offsetWidth || 185;
+  if(window.innerWidth - right - larguraMenu < 8) right = Math.max(8, window.innerWidth - larguraMenu - 8);
+  menu.style.right = right + 'px';
+}
+
 function toggleMenuLeque(evento, id){
   evento.stopPropagation();
   const menu = document.getElementById('menu-mais-' + id);
   if(!menu) return;
   const jaEstavaAberto = menu.classList.contains('open');
   document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
-  if(!jaEstavaAberto) menu.classList.add('open');
+  if(!jaEstavaAberto){
+    menu.classList.add('open');
+    posicionarMenuFixo(evento.currentTarget, menu);
+  }
 }
 document.addEventListener('click', ()=>{
   document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
@@ -266,7 +283,10 @@ el('btn-header-mais').addEventListener('click', (evento)=>{
   const menu = el('menu-header-mais');
   const jaEstavaAberto = menu.classList.contains('open');
   document.querySelectorAll('.menu-mais.open').forEach(m=> m.classList.remove('open'));
-  if(!jaEstavaAberto) menu.classList.add('open');
+  if(!jaEstavaAberto){
+    menu.classList.add('open');
+    posicionarMenuFixo(evento.currentTarget, menu);
+  }
 });
 // Fecha o menu ao escolher qualquer opção dentro dele, sem precisar de um clique extra
 document.querySelectorAll('#menu-header-mais button').forEach(btn=>{

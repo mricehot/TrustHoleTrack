@@ -604,7 +604,7 @@ button .icon-svg{ stroke:currentColor; }
   .menu-mais-wrap{ position:relative; }
   .menu-mais-wrap > button.icon{ min-width:32px; padding:5px 8px; }
   .menu-mais{
-    display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:60;
+    display:none; position:fixed; z-index:60;
     background:var(--surface); border:1px solid var(--line); border-radius:6px;
     box-shadow:0 6px 18px rgba(25,18,49,0.18); padding:4px; min-width:185px;
   }
