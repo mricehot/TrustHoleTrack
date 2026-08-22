@@ -4,7 +4,7 @@ name: Deploy no GitHub Pages
 # de configurado. Também pode ser disparado manualmente pela aba Actions.
 on:
   push:
-    branches: [dev]
+    branches: [Dev]
   workflow_dispatch:
 
 permissions:
