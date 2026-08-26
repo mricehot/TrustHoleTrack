@@ -1789,6 +1789,7 @@ function montarBlocoRealceParaWhatsApp(anelId){
     bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) - ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
     if(codigosPerfilados.length) bloco += `[PERFILADOS] ${codigosPerfilados.join(', ')}\n`;
     if(codigosPendentes.length) bloco += `[PENDENTES] ${codigosPendentes.join(', ')}\n`;
+    bloco += `\n`;
     if(codigosTopografados.length) bloco += `[TOPOGRAFADOS] ${codigosTopografados.join(', ')}\n`;
     if(codigosPendentesTopografia.length) bloco += `[PENDENTES TOPOGRAFIA] ${codigosPendentesTopografia.join(', ')}`;
     bloco = bloco.trim();
