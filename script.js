@@ -180,12 +180,14 @@ const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
 const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
 const CHECKLIST_FUROS_LOCAL_KEY = 'perfilagem-checklist-furos-v1';
+const CHECKLIST_OBS_GERAL_LOCAL_KEY = 'perfilagem-checklist-obs-geral-v1';
 const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
-let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, ts } — controle manual, separado dos leques de verdade
+let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, observacao, ts } — controle manual, separado dos leques de verdade
 let checklistFuros = []; // { id, checklistLequeId, numero, perfilado, ts } — furos dentro de cada leque do checklist
+let checklistObservacoesGerais = []; // { id, anelId, texto, ts } — notas gerais do checklist, não ligadas a um leque específico
 let checklistExpandido = new Set(); // ids de checklist_leques com a tabela de furos aberta (só na sessão, não persiste)
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
@@ -507,16 +509,17 @@ function definirAnelAtivo(novoId){
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
       db.from('turno_observacoes').select('*').order('criado_em'),
       db.from('fotos_turno').select('*').order('criado_em'),
       db.from('checklist_leques').select('*').order('criado_em'),
-      db.from('checklist_furos').select('*').order('criado_em')
+      db.from('checklist_furos').select('*').order('criado_em'),
+      db.from('checklist_observacoes_gerais').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6 || e7) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7);
+    if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
@@ -524,6 +527,7 @@ async function atualizarDoServidor(){
     fotosTurno = (fotosData || []).map(mapFotoTurno);
     checklistLeques = (checklistData || []).map(mapChecklistLeque);
     checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
+    checklistObservacoesGerais = (checklistObsGeralData || []).map(mapObservacaoGeralChecklist);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
@@ -532,6 +536,7 @@ async function atualizarDoServidor(){
     salvarFotosTurnoLocal();
     salvarChecklistLocal();
     salvarChecklistFurosLocal();
+    salvarChecklistObsGeralLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -565,6 +570,7 @@ async function loadData(){
   carregarFotosTurnoLocal();
   carregarChecklistLocal();
   carregarChecklistFurosLocal();
+  carregarChecklistObsGeralLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -1509,7 +1515,7 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
-function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, ts: row.criado_em }; }
+function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
@@ -1535,6 +1541,98 @@ function checklistFurosDoLeque(checklistLequeId){
     .filter(f=>f.checklistLequeId===checklistLequeId)
     .sort((a,b)=> a.numero.localeCompare(b.numero, undefined, {numeric:true}));
 }
+
+function mapObservacaoGeralChecklist(row){ return { id: row.id, anelId: row.anel_id, texto: row.texto, ts: row.criado_em }; }
+function carregarChecklistObsGeralLocal(){
+  try{
+    const raw = localStorage.getItem(CHECKLIST_OBS_GERAL_LOCAL_KEY);
+    checklistObservacoesGerais = raw ? JSON.parse(raw) : [];
+  }catch(e){ checklistObservacoesGerais = []; }
+}
+function salvarChecklistObsGeralLocal(){
+  try{ localStorage.setItem(CHECKLIST_OBS_GERAL_LOCAL_KEY, JSON.stringify(checklistObservacoesGerais)); }catch(e){}
+}
+function checklistObsGeraisDoAnel(anelId){
+  return checklistObservacoesGerais
+    .filter(o=>o.anelId===anelId)
+    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+}
+
+function renderObservacoesGeraisChecklist(){
+  const lista = el('checklist-obs-geral-list');
+  const vazio = el('checklist-obs-geral-vazio');
+  if(!lista) return;
+  const obs = anelAtivoId ? checklistObsGeraisDoAnel(anelAtivoId) : [];
+  if(obs.length === 0){
+    lista.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+    return;
+  }
+  if(vazio) vazio.style.display = 'none';
+  lista.innerHTML = obs.map(o=>`
+    <div class="obs-item">
+      <span class="texto">${o.texto}</span>
+      <button class="icon icon-editar" onclick="editarObservacaoGeralChecklist('${o.id}')" title="editar">✎</button>
+      <button class="icon icon-remover" onclick="removerObservacaoGeralChecklist('${o.id}')" title="remover">✕</button>
+    </div>
+  `).join('');
+}
+
+function adicionarObservacaoGeralChecklist(){
+  if(!anelAtivoId){ showToast('Selecione um realce primeiro.'); return; }
+  const campo = el('checklist-obs-geral-input');
+  const texto = campo.value.trim();
+  if(!texto) return;
+  const novoId = uuidv4();
+  const novaObs = { id: novoId, anelId: anelAtivoId, texto, ts: new Date().toISOString() };
+  checklistObservacoesGerais.push(novaObs);
+  enfileirar('checklist_observacoes_gerais', 'insert', { id: novoId, anel_id: anelAtivoId, texto });
+  campo.value = '';
+  campo.focus();
+  salvarChecklistObsGeralLocal();
+  renderObservacoesGeraisChecklist();
+  showToast('Observação geral adicionada.');
+}
+el('btn-add-checklist-obs-geral').addEventListener('click', adicionarObservacaoGeralChecklist);
+el('checklist-obs-geral-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarObservacaoGeralChecklist(); } });
+
+async function editarObservacaoGeralChecklist(id){
+  const o = checklistObservacoesGerais.find(x=>x.id===id);
+  if(!o) return;
+  const novoTexto = await editarObservacaoModal(o.texto);
+  if(novoTexto === null || novoTexto === o.texto) return;
+  o.texto = novoTexto;
+  enfileirar('checklist_observacoes_gerais', 'update', { id: o.id, texto: novoTexto });
+  salvarChecklistObsGeralLocal();
+  renderObservacoesGeraisChecklist();
+  showToast('Observação atualizada.');
+}
+
+async function removerObservacaoGeralChecklist(id){
+  const o = checklistObservacoesGerais.find(x=>x.id===id);
+  if(!o) return;
+  if(!(await confirmDialog('Remover esta observação geral?', 'Remover'))) return;
+  checklistObservacoesGerais = checklistObservacoesGerais.filter(x=>x.id!==id);
+  enfileirar('checklist_observacoes_gerais', 'delete', { id });
+  salvarChecklistObsGeralLocal();
+  renderObservacoesGeraisChecklist();
+  showToast('Observação removida.', {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoObservacaoGeralChecklist(o)
+  });
+}
+
+function desfazerRemocaoObservacaoGeralChecklist(obsRemovida){
+  if(checklistObservacoesGerais.some(o=>o.id===obsRemovida.id)) return; // já foi restaurado
+  checklistObservacoesGerais.push(obsRemovida);
+  restaurarNaFila('checklist_observacoes_gerais', obsRemovida.id, {
+    id: obsRemovida.id, anel_id: obsRemovida.anelId, texto: obsRemovida.texto
+  });
+  salvarChecklistObsGeralLocal();
+  renderObservacoesGeraisChecklist();
+  showToast('Observação restaurada.');
+}
+
 function checklistDoAnel(anelId){
   return checklistLeques
     .filter(c=>c.anelId===anelId)
@@ -1549,6 +1647,7 @@ function renderChecklist(){
   const vazio = el('checklist-vazio');
   const progresso = el('checklist-progresso');
   if(!grid) return;
+  renderObservacoesGeraisChecklist();
   const itens = checklistDoAnelAtivo();
   if(progresso){
     const feitos = itens.filter(c=>c.perfilado).length;
@@ -1602,6 +1701,15 @@ function renderChecklist(){
           <span class="spacer"></span>
           <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
         </div>
+        <div class="checklist-leque-obs">
+          ${c.observacao ? `
+            <span class="texto">${c.observacao}</span>
+            <button type="button" class="icon icon-editar" onclick="editarObservacaoChecklistLeque('${c.id}')" title="editar observação">✎</button>
+            <button type="button" class="icon icon-remover" onclick="removerObservacaoChecklistLeque('${c.id}')" title="remover observação">✕</button>
+          ` : `
+            <button type="button" class="link-obs" onclick="editarObservacaoChecklistLeque('${c.id}')">+ observação</button>
+          `}
+        </div>
         ${expandido ? `
         <div class="checklist-furos-body">
           <div class="checklist-furos-add">
@@ -1650,15 +1758,34 @@ function montarBlocoRealceParaWhatsApp(anelId){
   const codigosPerfilados = itens.filter(c=>c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
   const codigosPendentes = itens.filter(c=>!c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
 
-  if(itens.length === 0){
+  if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
     return `*Realce ${nomeRealce}*\nNada no checklist ainda.`;
   }
 
   let bloco = `*Realce ${nomeRealce}*\n`;
-  bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
-  bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
-  if(codigosPerfilados.length) bloco += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
-  if(codigosPendentes.length) bloco += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+  if(itens.length > 0){
+    bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
+    bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
+    if(codigosPerfilados.length) bloco += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
+    if(codigosPendentes.length) bloco += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+  }
+
+  // Observações lançadas em cada leque do checklist — ajuda quem lê a
+  // entender o "porquê" por trás dos números, não só o placar.
+  const lequesComObs = itens.filter(c=>c.observacao);
+  if(lequesComObs.length){
+    bloco += `\n\n📝 Observações dos leques:\n`;
+    bloco += lequesComObs.map(c=> `${PREFIXO[c.tipo]}${c.numero}: ${c.observacao}`).join('\n');
+  }
+
+  // Observações gerais do realce (não ligadas a nenhum leque específico).
+  const obsGerais = checklistObsGeraisDoAnel(anelId);
+  if(obsGerais.length){
+    bloco += `\n\n📌 Observações gerais:\n`;
+    bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
+  }
+
+  return bloco.trim();
   return bloco.trim();
 }
 
@@ -1699,12 +1826,13 @@ function abrirModalEscolherRealcesWhatsApp(){
   const root = el('modal-root');
   const linhas = realcesVisiveis.map(a=>{
     const qtd = checklistDoAnel(a.id).length;
-    const marcadoPorPadrao = qtd > 0; // já vem marcado quem tem algo no checklist
+    const qtdObsGerais = checklistObsGeraisDoAnel(a.id).length;
+    const marcadoPorPadrao = qtd > 0 || qtdObsGerais > 0; // já vem marcado quem tem algo no checklist ou alguma observação geral
     return `
       <label class="realce-whatsapp-item">
         <input type="checkbox" value="${a.id}" ${marcadoPorPadrao ? 'checked' : ''}>
         <span>${a.nome}</span>
-        <span class="hint">${qtd > 0 ? qtd + ' no checklist' : 'sem checklist'}</span>
+        <span class="hint">${qtd > 0 ? qtd + ' no checklist' : 'sem checklist'}${qtdObsGerais > 0 ? ' · ' + qtdObsGerais + ' obs.' : ''}</span>
       </label>
     `;
   }).join('');
@@ -1758,7 +1886,7 @@ function adicionarAoChecklist(){
     const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero);
     if(jaExiste){ duplicados++; continue; }
     const novoId = uuidv4();
-    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, ts: new Date().toISOString() };
+    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', ts: new Date().toISOString() };
     checklistLeques.push(novoItem);
     enfileirar('checklist_leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false });
     adicionados++;
@@ -1779,6 +1907,29 @@ function toggleChecklistLeque(id){
   enfileirar('checklist_leques', 'update', { id: c.id, perfilado: c.perfilado });
   salvarChecklistLocal();
   renderChecklist();
+}
+
+async function editarObservacaoChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  const novoTexto = await editarObservacaoModal(c.observacao);
+  if(novoTexto === null || novoTexto === c.observacao) return;
+  c.observacao = novoTexto;
+  enfileirar('checklist_leques', 'update', { id: c.id, observacao: novoTexto });
+  salvarChecklistLocal();
+  renderChecklist();
+  showToast('Observação salva.');
+}
+
+async function removerObservacaoChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  if(!(await confirmDialog('Remover esta observação?', 'Remover'))) return;
+  c.observacao = '';
+  enfileirar('checklist_leques', 'update', { id: c.id, observacao: '' });
+  salvarChecklistLocal();
+  renderChecklist();
+  showToast('Observação removida.');
 }
 
 async function removerChecklistLeque(id){

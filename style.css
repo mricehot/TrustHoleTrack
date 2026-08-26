@@ -573,6 +573,16 @@ button .icon-svg{ stroke:currentColor; }
   }
   .checklist-leque-card.feito .checklist-leque-codigo{ color:var(--moss); }
   .checklist-leque-codigo .seta{ font-size:11px; color:var(--muted); }
+  .checklist-leque-obs{
+    display:flex; align-items:center; gap:8px; padding:0 12px 10px 39px;
+    font-family:var(--sans); font-size:12.5px; color:var(--muted);
+  }
+  .checklist-leque-obs .texto{ flex:1; color:var(--text); }
+  .checklist-leque-obs .link-obs{
+    background:none; border:none; padding:0; color:var(--steel); cursor:pointer;
+    font-family:var(--sans); font-size:12.5px; min-height:0; box-shadow:none;
+  }
+  .checklist-leque-obs .link-obs:hover{ text-decoration:underline; }
   .checklist-leque-cabecalho .spacer{ flex:1; }
   .checklist-furos-body{ padding:0 12px 14px 39px; border-top:1px solid var(--line); }
   .checklist-furos-add{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }

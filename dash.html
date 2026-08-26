@@ -449,6 +449,18 @@
               </div>
             </div>
             <button type="button" id="btn-add-checklist" class="steel" style="margin-top:10px;">+ Adicionar ao checklist</button>
+
+            <div class="field" style="margin-top:18px;">
+              <label for="checklist-obs-geral-input">Observações gerais do checklist</label>
+              <div class="obs-add-row">
+                <input id="checklist-obs-geral-input" type="text" placeholder="ex: falta material pra abrir os leques restantes" maxlength="300">
+                <button type="button" id="btn-add-checklist-obs-geral" class="steel">+ Adicionar</button>
+              </div>
+              <div class="hint">Notas gerais do realce (não ligadas a um leque específico) — ajudam o próximo turno a se orientar, e entram no relatório do WhatsApp.</div>
+              <div class="obs-list" id="checklist-obs-geral-list"></div>
+              <div class="hint" id="checklist-obs-geral-vazio">Nenhuma observação geral registrada neste realce ainda.</div>
+            </div>
+
             <div class="hint" id="checklist-vazio" style="margin-top:16px;">Nenhum leque no checklist deste realce ainda.</div>
             <div class="checklist-grid" id="checklist-grid"></div>
           </div>
