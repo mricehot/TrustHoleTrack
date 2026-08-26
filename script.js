@@ -1690,6 +1690,7 @@ function renderChecklist(){
     const expandido = checklistExpandido.has(c.id);
     const furosDoLeque = checklistFurosDoLeque(c.id);
     const furosFeitos = furosDoLeque.filter(f=>f.perfilado).length;
+    const furosTopoFeitos = furosDoLeque.filter(f=>f.topografado).length;
     return `
       <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''}">
         <div class="checklist-leque-cabecalho">
@@ -1697,7 +1698,10 @@ function renderChecklist(){
           <button type="button" class="checklist-leque-codigo" onclick="toggleExpandirChecklist('${c.id}')">
             ${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span>
           </button>
-          <span class="hint">${furosDoLeque.length ? furosFeitos + '/' + furosDoLeque.length + ' furos' : 'sem furos ainda'}</span>
+          ${furosDoLeque.length ? `
+          <span class="mini-selo mini-selo-moss" style="--pct:${Math.round((furosFeitos/furosDoLeque.length)*100)}%" title="furos perfilados neste leque">${furosFeitos}/${furosDoLeque.length} perfilado${furosDoLeque.length===1?'':'s'}</span>
+          <span class="mini-selo mini-selo-steel" style="--pct:${Math.round((furosTopoFeitos/furosDoLeque.length)*100)}%" title="furos topografados neste leque">${furosTopoFeitos}/${furosDoLeque.length} topografado${furosDoLeque.length===1?'':'s'}</span>
+          ` : `<span class="hint">sem furos ainda</span>`}
           <span class="spacer"></span>
           <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
         </div>

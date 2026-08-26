@@ -583,6 +583,20 @@ button .icon-svg{ stroke:currentColor; }
     font-family:var(--sans); font-size:12.5px; min-height:0; box-shadow:none;
   }
   .checklist-leque-obs .link-obs:hover{ text-decoration:underline; }
+
+  .mini-selo{
+    position:relative; overflow:hidden; font-family:var(--mono); font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:20px; border:1px solid var(--line); white-space:nowrap;
+    color:var(--text); background:var(--surface-2); isolation:isolate;
+  }
+  .mini-selo::before{
+    content:""; position:absolute; inset:0; z-index:-1; width:var(--pct, 0%);
+    transition:width .25s ease;
+  }
+  .mini-selo-moss{ border-color:color-mix(in srgb, var(--moss) 55%, var(--line)); }
+  .mini-selo-moss::before{ background:color-mix(in srgb, var(--moss) 35%, transparent); }
+  .mini-selo-steel{ border-color:color-mix(in srgb, var(--steel) 55%, var(--line)); }
+  .mini-selo-steel::before{ background:color-mix(in srgb, var(--steel) 35%, transparent); }
   .checklist-leque-cabecalho .spacer{ flex:1; }
   .checklist-furos-body{ padding:0 12px 14px 39px; border-top:1px solid var(--line); }
   .checklist-furos-add{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
