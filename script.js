@@ -38,8 +38,8 @@ function normalizarNumero(str){
 }
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
-function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'Corte de Recuo' }[t] || t; }
-function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar Corte de Recuo' }[t] || 'Criar Medição'; }
+function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'Corte de Recuo', inv:'Investigação' }[t] || t; }
+function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar Corte de Recuo', inv:'Criar Investigação' }[t] || 'Criar Medição'; }
 function diffClass(diff){ if(diff >= 0) return 'ok'; if(diff >= -0.5) return 'warn'; return 'bad'; }
 function diffLabel(diff){ return (diff > 0 ? '+' : '') + fmt1(diff) + ' m'; }
 
@@ -60,7 +60,7 @@ function corRGBSituacao(situacao){
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
-const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR' };
+const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV' };
 
 // ---------- Tamanhos de fonte usados na geração dos PDFs ----------
 // Ajuste os valores abaixo (em pt) para controlar o tamanho das letras nos PDFs exportados.
@@ -860,6 +860,7 @@ function editLequeModal(leque){
                 <option value="slot" ${leque.tipo==='slot'?'selected':''}>Slot (SL)</option>
                 <option value="fill" ${leque.tipo==='fill'?'selected':''}>Face Livre (FL)</option>
                 <option value="cr" ${leque.tipo==='cr'?'selected':''}>Corte de Recuo (CR)</option>
+                <option value="inv" ${leque.tipo==='inv'?'selected':''}>Investigação (INV)</option>
               </select>
             </div>
             <div class="field">
@@ -1762,6 +1763,22 @@ function montarBlocoRealceParaWhatsApp(anelId){
   const codigosPerfilados = itens.filter(c=>c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
   const codigosPendentes = itens.filter(c=>!c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
 
+  // Topografia por leque — usa os furos já marcados no checklist (não é um
+  // campo novo): um leque conta como topografado quando tem furo lançado e
+  // TODOS os furos dele já estão marcados como topografados.
+  const codigosTopografados = itens
+    .filter(c=>{
+      const furosDoLeque = checklistFurosDoLeque(c.id);
+      return furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado);
+    })
+    .map(c=> PREFIXO[c.tipo] + c.numero);
+  const codigosPendentesTopografia = itens
+    .filter(c=>{
+      const furosDoLeque = checklistFurosDoLeque(c.id);
+      return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado));
+    })
+    .map(c=> PREFIXO[c.tipo] + c.numero);
+
   if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
     return `*Realce ${nomeRealce}*\nNada no checklist ainda.`;
   }
@@ -1769,23 +1786,26 @@ function montarBlocoRealceParaWhatsApp(anelId){
   let bloco = `*Realce ${nomeRealce}*\n`;
   if(itens.length > 0){
     bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
-    bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) · ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
-    if(codigosPerfilados.length) bloco += `✅ Perfilados: ${codigosPerfilados.join(', ')}\n`;
-    if(codigosPendentes.length) bloco += `⏳ Pendentes: ${codigosPendentes.join(', ')}`;
+    bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) - ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
+    if(codigosPerfilados.length) bloco += `[PERFILADOS] ${codigosPerfilados.join(', ')}\n`;
+    if(codigosPendentes.length) bloco += `[PENDENTES] ${codigosPendentes.join(', ')}\n`;
+    if(codigosTopografados.length) bloco += `[TOPOGRAFADOS] ${codigosTopografados.join(', ')}\n`;
+    if(codigosPendentesTopografia.length) bloco += `[PENDENTES TOPOGRAFIA] ${codigosPendentesTopografia.join(', ')}`;
+    bloco = bloco.trim();
   }
 
   // Observações lançadas em cada leque do checklist — ajuda quem lê a
   // entender o "porquê" por trás dos números, não só o placar.
   const lequesComObs = itens.filter(c=>c.observacao);
   if(lequesComObs.length){
-    bloco += `\n\n📝 Observações dos leques:\n`;
+    bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
     bloco += lequesComObs.map(c=> `${PREFIXO[c.tipo]}${c.numero}: ${c.observacao}`).join('\n');
   }
 
   // Observações gerais do realce (não ligadas a nenhum leque específico).
   const obsGerais = checklistObsGeraisDoAnel(anelId);
   if(obsGerais.length){
-    bloco += `\n\n📌 Observações gerais:\n`;
+    bloco += `\n\n[OBSERVACOES GERAIS]\n`;
     bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
   }
 
@@ -1800,7 +1820,7 @@ function montarRelatorioChecklistParaWhatsApp(idsRealces){
   let msg = `*Checklist de Perfilagem*\n`;
   msg += `${new Date().toLocaleString('pt-BR')}\n`;
   msg += `${idsRealces.length} realce${idsRealces.length>1?'s':''}\n\n`;
-  msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n———\n\n');
+  msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n----------\n\n');
   return msg.trim();
 }
 
