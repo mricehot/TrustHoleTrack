@@ -995,12 +995,30 @@ function renderAneisMenu(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   el('anel-menu-current').textContent = anelAtivo ? `ativo: ${anelAtivo.nome}` : 'nenhum realce ativo';
 
+  const filtroProjeto = configApp.projetoAtivo;
+  const aneisFiltrados = filtroProjeto ? aneis.filter(a=>a.projeto===filtroProjeto) : aneis;
+
+  const avisoFiltro = el('anel-filtro-projeto-aviso');
+  if(avisoFiltro){
+    if(filtroProjeto){
+      avisoFiltro.style.display = 'block';
+      const ocultos = aneis.length - aneisFiltrados.length;
+      avisoFiltro.textContent = `Mostrando só realces do projeto "${filtroProjeto}"${ocultos > 0 ? ` — ${ocultos} de outro(s) projeto(s) escondido(s)` : ''}. Muda isso em Config.`;
+    }else{
+      avisoFiltro.style.display = 'none';
+    }
+  }
+
   const lista = el('anel-list');
   if(aneis.length === 0){
     lista.innerHTML = `<div class="hint">Nenhum realce criado. Crie o primeiro acima.</div>`;
     return;
   }
-  lista.innerHTML = aneis.map(a=>{
+  if(aneisFiltrados.length === 0){
+    lista.innerHTML = `<div class="hint">Nenhum realce do projeto "${filtroProjeto}" ainda. Troque o filtro em Config, ou crie um realce associado a esse projeto.</div>`;
+    return;
+  }
+  lista.innerHTML = aneisFiltrados.map(a=>{
     const ativo = a.id === anelAtivoId;
     return `
       <div class="anel-row ${ativo?'ativo':''}">
@@ -1555,6 +1573,11 @@ function preencherSelectsDeProjeto(){
     selectCriar.innerHTML = `<option value="">sem projeto</option>` +
       projetos.map(p=> `<option value="${p.nome}">${p.nome}</option>`).join('');
     if(projetos.some(p=>p.nome===valorAtual)) selectCriar.value = valorAtual;
+  }
+  const selectAtivo = el('config-projeto-ativo');
+  if(selectAtivo){
+    selectAtivo.innerHTML = `<option value="">Todos os projetos</option>` +
+      projetos.map(p=> `<option value="${p.nome}" ${configApp.projetoAtivo===p.nome ? 'selected' : ''}>${p.nome}</option>`).join('');
   }
 }
 
@@ -2191,7 +2214,7 @@ const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
 // Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
 // estavam no código antes), pra quem já usa o app não ver nada em branco.
 const CONFIG_LOCAL_KEY = 'perfilagem-config-app-v1';
-let configApp = { supervisor: 'Talles da Silveira', whatsapp: '' };
+let configApp = { supervisor: 'Talles da Silveira', whatsapp: '', projetoAtivo: '' };
 function carregarConfigLocal(){
   try{
     const raw = localStorage.getItem(CONFIG_LOCAL_KEY);
@@ -2219,6 +2242,16 @@ function salvarConfig(){
   showToast('Configurações salvas.');
 }
 el('btn-salvar-config').addEventListener('click', salvarConfig);
+
+// O filtro de projeto ativo já aplica na hora, sem precisar clicar em
+// "Salvar" — é só uma forma de enxergar a lista, não uma configuração
+// que precisa de confirmação.
+el('config-projeto-ativo').addEventListener('change', ()=>{
+  configApp.projetoAtivo = el('config-projeto-ativo').value;
+  salvarConfigLocal();
+  renderAneisMenu();
+  showToast(configApp.projetoAtivo ? `Mostrando só realces de "${configApp.projetoAtivo}".` : 'Mostrando realces de todos os projetos.');
+});
 
 // ---------- Perfil do técnico ----------
 function renderPerfilTecnico(){

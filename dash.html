@@ -237,6 +237,7 @@
               <button type="button" id="btn-criar-anel" class="steel">Criar realce</button>
             </div>
             <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
+            <div class="hint" id="anel-filtro-projeto-aviso" style="display:none; margin-bottom:10px;"></div>
             <div class="anel-list" id="anel-list"></div>
           </div>
         </div>
@@ -359,6 +360,14 @@
             <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
+              <label for="config-projeto-ativo">Projeto ativo</label>
+              <select id="config-projeto-ativo">
+                <option value="">Todos os projetos</option>
+              </select>
+              <div class="hint">Escolhendo um projeto aqui, a aba "Realce" passa a mostrar só os realces daquele projeto — o resto fica escondido, sem apagar nada.</div>
+            </div>
+
+            <div class="field" style="margin-top:20px;">
               <label for="config-novo-projeto-input">Projetos</label>
               <div class="obs-add-row">
                 <input id="config-novo-projeto-input" type="text" placeholder="ex: Ero - Pilar" maxlength="80">
