@@ -64,7 +64,7 @@
       </svg>
       <div>
         <h1><span class="line1">Blast<span class="accent">Hole</span></span><span class="line2">Manager</span></h1>
-        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL/CR/INV &middot; esperada &times; real</div>
+        <div class="sub">Perfilagem de Furos de Lavra &middot; LQ/SL/FL/CR/INV/AUX &middot; esperada &times; real</div>
       </div>
     </div>
     <div class="header-right">
@@ -122,6 +122,8 @@
                     <option value="fill">Face Livre (FL)</option>
                     <option value="cr">Corte de Recuo (CR)</option>
                     <option value="inv">Investigação (INV)</option>
+                  <option value="aux">Auxiliar (AUX)</option>
+                    <option value="aux">Auxiliar (AUX)</option>
                   </select>
                 </div>
                 <div class="field">
@@ -205,6 +207,7 @@
             <option value="fill">Face Livre</option>
             <option value="cr">Corte de Recuo</option>
             <option value="inv">Investigação</option>
+            <option value="aux">Auxiliar</option>
           </select>
           <select id="f-situacao">
             <option value="">Todas as situações</option>
@@ -231,6 +234,7 @@
             <div class="anel-form" id="form-anel">
               <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:0 0 200px;">
+              <select id="anel-projeto" style="flex:0 0 180px;"><option value="">sem projeto</option></select>
               <button type="button" id="btn-criar-anel" class="steel">Criar realce</button>
             </div>
             <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
@@ -344,22 +348,27 @@
             <span class="tag">usado nos relatórios</span>
           </div>
           <div class="config-body">
-            <div class="grid-2">
-              <div class="field">
-                <label for="config-supervisor">Supervisor</label>
-                <input id="config-supervisor" type="text" placeholder="ex: Talles da Silveira">
-              </div>
-              <div class="field">
-                <label for="config-projeto">Projeto</label>
-                <input id="config-projeto" type="text" placeholder="ex: Ero - Pilar">
-              </div>
+            <div class="field">
+              <label for="config-supervisor">Supervisor</label>
+              <input id="config-supervisor" type="text" placeholder="ex: Talles da Silveira">
             </div>
             <div class="field" style="margin-top:14px;">
               <label for="config-whatsapp">WhatsApp para envio do checklist</label>
               <input id="config-whatsapp" type="text" inputmode="tel" placeholder="ex: 5511987654321 (DDI+DDD+número, só números)">
             </div>
-            <div class="hint">Esses campos preenchem automaticamente o Supervisor e o Projeto em Dados do Turno, e o número usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
+            <div class="hint">Esses campos preenchem automaticamente o Supervisor em Dados do Turno, e o número usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
             <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
+
+            <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
+              <label for="config-novo-projeto-input">Projetos</label>
+              <div class="obs-add-row">
+                <input id="config-novo-projeto-input" type="text" placeholder="ex: Ero - Pilar" maxlength="80">
+                <button type="button" id="btn-add-projeto" class="steel">+ Adicionar</button>
+              </div>
+              <div class="hint">Cada realce fica associado a um desses projetos, escolhido na criação ou edição dele.</div>
+              <div class="obs-list" id="config-projetos-list"></div>
+              <div class="hint" id="config-projetos-vazio">Nenhum projeto cadastrado ainda.</div>
+            </div>
           </div>
         </div>
       </section>

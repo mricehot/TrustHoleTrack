@@ -38,8 +38,8 @@ function normalizarNumero(str){
 }
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }
-function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'Corte de Recuo', inv:'Investigação' }[t] || t; }
-function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar Corte de Recuo', inv:'Criar Investigação' }[t] || 'Criar Medição'; }
+function tipoLabel(t){ return { leque:'Leque', slot:'Slot', fill:'Face Livre', cr:'Corte de Recuo', inv:'Investigação', aux:'Auxiliar' }[t] || t; }
+function tipoBotaoLabel(t){ return { leque:'Criar Leque', slot:'Criar Slot', fill:'Criar Face Livre', cr:'Criar Corte de Recuo', inv:'Criar Investigação', aux:'Criar Auxiliar' }[t] || 'Criar Medição'; }
 function diffClass(diff){ if(diff >= 0) return 'ok'; if(diff >= -0.5) return 'warn'; return 'bad'; }
 function diffLabel(diff){ return (diff > 0 ? '+' : '') + fmt1(diff) + ' m'; }
 
@@ -60,7 +60,7 @@ function corRGBSituacao(situacao){
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
-const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV' };
+const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV', aux:'AUX' };
 
 // ---------- Tamanhos de fonte usados na geração dos PDFs ----------
 // Ajuste os valores abaixo (em pt) para controlar o tamanho das letras nos PDFs exportados.
@@ -181,6 +181,7 @@ const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
 const CHECKLIST_FUROS_LOCAL_KEY = 'perfilagem-checklist-furos-v1';
 const CHECKLIST_OBS_GERAL_LOCAL_KEY = 'perfilagem-checklist-obs-geral-v1';
+const PROJETOS_LOCAL_KEY = 'perfilagem-projetos-v1';
 const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
@@ -188,6 +189,7 @@ let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fe
 let checklistLeques = []; // { id, anelId, tipo, numero, perfilado, observacao, ts } — controle manual, separado dos leques de verdade
 let checklistFuros = []; // { id, checklistLequeId, numero, perfilado, ts } — furos dentro de cada leque do checklist
 let checklistObservacoesGerais = []; // { id, anelId, texto, ts } — notas gerais do checklist, não ligadas a um leque específico
+let projetos = []; // { id, nome, ts } — lista de projetos que os realces podem ser associados
 let checklistExpandido = new Set(); // ids de checklist_leques com a tabela de furos aberta (só na sessão, não persiste)
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
@@ -481,8 +483,11 @@ function sincronizarLocalComNivelDoAnel(){
   const anel = aneis.find(a=>a.id===anelAtivoId);
   if(!anel) return;
   const campoLocal = el('turno-local');
-  if(!campoLocal) return;
-  campoLocal.value = anel.nivel ? `${anel.nome} · ${anel.nivel}` : anel.nome;
+  if(campoLocal) campoLocal.value = anel.nivel ? `${anel.nome} · ${anel.nivel}` : anel.nome;
+  // O campo Projeto do turno é só-leitura — segue automaticamente o projeto
+  // associado ao realce ativo (configurado na criação/edição do realce).
+  const campoProjeto = el('turno-projeto');
+  if(campoProjeto) campoProjeto.value = anel.projeto || '';
   saveTurnoInfo();
 }
 
@@ -509,7 +514,7 @@ function definirAnelAtivo(novoId){
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   try{
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
       db.from('aneis').select('*').order('criado_em'),
       db.from('leques').select('*').order('criado_em'),
       db.from('furos').select('*').order('criado_em'),
@@ -517,9 +522,10 @@ async function atualizarDoServidor(){
       db.from('fotos_turno').select('*').order('criado_em'),
       db.from('checklist_leques').select('*').order('criado_em'),
       db.from('checklist_furos').select('*').order('criado_em'),
-      db.from('checklist_observacoes_gerais').select('*').order('criado_em')
+      db.from('checklist_observacoes_gerais').select('*').order('criado_em'),
+      db.from('projetos').select('*').order('criado_em')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8);
+    if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
@@ -528,6 +534,7 @@ async function atualizarDoServidor(){
     checklistLeques = (checklistData || []).map(mapChecklistLeque);
     checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
     checklistObservacoesGerais = (checklistObsGeralData || []).map(mapObservacaoGeralChecklist);
+    projetos = (projetosData || []).map(mapProjeto);
     const ativo = aneis.find(a=>a.ativo);
     anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
     sincronizarLocalComNivelDoAnel();
@@ -537,6 +544,7 @@ async function atualizarDoServidor(){
     salvarChecklistLocal();
     salvarChecklistFurosLocal();
     salvarChecklistObsGeralLocal();
+    salvarProjetosLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -571,6 +579,7 @@ async function loadData(){
   carregarChecklistLocal();
   carregarChecklistFurosLocal();
   carregarChecklistObsGeralLocal();
+  carregarProjetosLocal();
   if(!anelAtivoId && aneis[0]) anelAtivoId = aneis[0].id;
   sincronizarLocalComNivelDoAnel();
   renderAll();
@@ -861,6 +870,7 @@ function editLequeModal(leque){
                 <option value="fill" ${leque.tipo==='fill'?'selected':''}>Face Livre (FL)</option>
                 <option value="cr" ${leque.tipo==='cr'?'selected':''}>Corte de Recuo (CR)</option>
                 <option value="inv" ${leque.tipo==='inv'?'selected':''}>Investigação (INV)</option>
+                <option value="aux" ${leque.tipo==='aux'?'selected':''}>Auxiliar (AUX)</option>
               </select>
             </div>
             <div class="field">
@@ -1106,6 +1116,13 @@ function editAnelModal(anel){
             <label for="edit-anel-nivel">Nível</label>
             <input id="edit-anel-nivel" type="text" value="${anel.nivel || ''}" placeholder="ex: N-125 TR6733">
           </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-anel-projeto">Projeto</label>
+            <select id="edit-anel-projeto">
+              <option value="">sem projeto</option>
+              ${projetos.map(p=> `<option value="${p.nome}" ${anel.projeto===p.nome ? 'selected' : ''}>${p.nome}</option>`).join('')}
+            </select>
+          </div>
           <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
             <input id="edit-anel-oculto-whatsapp" type="checkbox" style="width:17px; height:17px;" ${anel.ocultoWhatsapp ? 'checked' : ''}>
             <span>Ocultar da lista de envio por WhatsApp (ex: realce já finalizado)</span>
@@ -1123,9 +1140,10 @@ function editAnelModal(anel){
     const salvar = ()=>{
       const nome = el('edit-anel-nome').value.trim();
       const nivel = el('edit-anel-nivel').value.trim();
+      const projeto = el('edit-anel-projeto').value;
       const ocultoWhatsapp = el('edit-anel-oculto-whatsapp').checked;
       if(!nome){ showToast('Preencha o nome do realce.'); return; }
-      fechar({ nome, nivel, ocultoWhatsapp });
+      fechar({ nome, nivel, projeto, ocultoWhatsapp });
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
@@ -1143,8 +1161,9 @@ function editarAnel(id){
     }
     a.nome = resultado.nome;
     a.nivel = resultado.nivel;
+    a.projeto = resultado.projeto;
     a.ocultoWhatsapp = resultado.ocultoWhatsapp;
-    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, oculto_whatsapp: a.ocultoWhatsapp });
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, projeto: a.projeto, oculto_whatsapp: a.ocultoWhatsapp });
     if(a.id === anelAtivoId) sincronizarLocalComNivelDoAnel();
     salvarLocal();
     renderAll();
@@ -1156,6 +1175,7 @@ function criarAnel(){
   const campoNome = el('anel-nome');
   const nome = campoNome.value.trim();
   const nivel = el('anel-nivel').value.trim();
+  const projeto = el('anel-projeto') ? el('anel-projeto').value : '';
   campoNome.style.borderColor = '';
   el('anel-erro').textContent = '';
   if(!nome) return;
@@ -1172,15 +1192,16 @@ function criarAnel(){
       enfileirar('aneis', 'update', { id: a.id, ativo: false });
     }
   });
-  aneis.push({ id: novoId, nome, ativo: true, nivel, ocultoWhatsapp: false });
+  aneis.push({ id: novoId, nome, ativo: true, nivel, projeto, ocultoWhatsapp: false });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
   sincronizarLocalComNivelDoAnel();
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel });
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel, projeto });
   campoNome.value = '';
   el('anel-nivel').value = '';
+  if(el('anel-projeto')) el('anel-projeto').value = '';
   salvarLocal();
   renderAll();
   showToast('Realce criado e definido como ativo.');
@@ -1514,7 +1535,96 @@ function desfazerRemocaoLeque(lequeRemovido, furosRemovidos){
   showToast(`Leque ${lequeCode(lequeRemovido)} e ${furosRemovidos.length} furo(s) restaurados.`);
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
+function mapProjeto(row){ return { id: row.id, nome: row.nome, ts: row.criado_em }; }
+function carregarProjetosLocal(){
+  try{
+    const raw = localStorage.getItem(PROJETOS_LOCAL_KEY);
+    projetos = raw ? JSON.parse(raw) : [];
+  }catch(e){ projetos = []; }
+}
+function salvarProjetosLocal(){
+  try{ localStorage.setItem(PROJETOS_LOCAL_KEY, JSON.stringify(projetos)); }catch(e){}
+}
+
+// Preenche os dois seletores de projeto (criar realce + editar realce, esse
+// segundo só quando o modal estiver aberto) com a lista atual.
+function preencherSelectsDeProjeto(){
+  const selectCriar = el('anel-projeto');
+  if(selectCriar){
+    const valorAtual = selectCriar.value;
+    selectCriar.innerHTML = `<option value="">sem projeto</option>` +
+      projetos.map(p=> `<option value="${p.nome}">${p.nome}</option>`).join('');
+    if(projetos.some(p=>p.nome===valorAtual)) selectCriar.value = valorAtual;
+  }
+}
+
+function renderProjetosConfig(){
+  const lista = el('config-projetos-list');
+  const vazio = el('config-projetos-vazio');
+  if(!lista) return;
+  if(projetos.length === 0){
+    lista.innerHTML = '';
+    if(vazio) vazio.style.display = 'block';
+  }else{
+    if(vazio) vazio.style.display = 'none';
+    lista.innerHTML = projetos.map(p=>`
+      <div class="obs-item">
+        <span class="texto">${p.nome}</span>
+        <button class="icon icon-remover" onclick="removerProjeto('${p.id}')" title="remover">✕</button>
+      </div>
+    `).join('');
+  }
+  preencherSelectsDeProjeto();
+}
+
+function adicionarProjeto(){
+  const campo = el('config-novo-projeto-input');
+  const nome = campo.value.trim();
+  if(!nome) return;
+  if(projetos.some(p=>p.nome.toLowerCase()===nome.toLowerCase())){
+    showToast('Já existe um projeto com esse nome.');
+    return;
+  }
+  const novoId = uuidv4();
+  projetos.push({ id: novoId, nome, ts: new Date().toISOString() });
+  enfileirar('projetos', 'insert', { id: novoId, nome });
+  campo.value = '';
+  campo.focus();
+  salvarProjetosLocal();
+  renderProjetosConfig();
+  showToast('Projeto adicionado.');
+}
+el('btn-add-projeto').addEventListener('click', adicionarProjeto);
+el('config-novo-projeto-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarProjeto(); } });
+
+async function removerProjeto(id){
+  const p = projetos.find(x=>x.id===id);
+  if(!p) return;
+  const emUso = aneis.some(a=>a.projeto===p.nome);
+  const aviso = emUso
+    ? `Remover o projeto "${p.nome}"? Ele ainda está associado a algum realce — remover aqui não muda os realces já criados, só deixa de aparecer como opção nova.`
+    : `Remover o projeto "${p.nome}"?`;
+  if(!(await confirmDialog(aviso, 'Remover'))) return;
+  projetos = projetos.filter(x=>x.id!==id);
+  enfileirar('projetos', 'delete', { id });
+  salvarProjetosLocal();
+  renderProjetosConfig();
+  showToast('Projeto removido.', {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerRemocaoProjeto(p)
+  });
+}
+
+function desfazerRemocaoProjeto(projetoRemovido){
+  if(projetos.some(p=>p.id===projetoRemovido.id)) return; // já foi restaurado
+  projetos.push(projetoRemovido);
+  restaurarNaFila('projetos', projetoRemovido.id, { id: projetoRemovido.id, nome: projetoRemovido.nome });
+  salvarProjetosLocal();
+  renderProjetosConfig();
+  showToast('Projeto restaurado.');
+}
+
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, ts: row.criado_em }; }
@@ -2081,7 +2191,7 @@ const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
 // Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
 // estavam no código antes), pra quem já usa o app não ver nada em branco.
 const CONFIG_LOCAL_KEY = 'perfilagem-config-app-v1';
-let configApp = { supervisor: 'Talles da Silveira', projeto: 'Ero - Pilar', whatsapp: '' };
+let configApp = { supervisor: 'Talles da Silveira', whatsapp: '' };
 function carregarConfigLocal(){
   try{
     const raw = localStorage.getItem(CONFIG_LOCAL_KEY);
@@ -2093,22 +2203,18 @@ function salvarConfigLocal(){
 }
 function renderConfig(){
   const campoSupervisor = el('config-supervisor');
-  const campoProjeto = el('config-projeto');
   const campoWhatsapp = el('config-whatsapp');
-  if(!campoSupervisor || !campoProjeto) return;
+  if(!campoSupervisor) return;
   campoSupervisor.value = configApp.supervisor;
-  campoProjeto.value = configApp.projeto;
   if(campoWhatsapp) campoWhatsapp.value = configApp.whatsapp || '';
+  renderProjetosConfig();
 }
 function salvarConfig(){
   configApp.supervisor = el('config-supervisor').value.trim() || configApp.supervisor;
-  configApp.projeto = el('config-projeto').value.trim() || configApp.projeto;
   configApp.whatsapp = el('config-whatsapp').value.replace(/\D/g, ''); // só dígitos
   salvarConfigLocal();
   turnoInfo.supervisor = configApp.supervisor;
-  turnoInfo.projeto = configApp.projeto;
   if(el('turno-supervisor')) el('turno-supervisor').value = configApp.supervisor;
-  if(el('turno-projeto')) el('turno-projeto').value = configApp.projeto;
   saveTurnoInfo();
   showToast('Configurações salvas.');
 }
@@ -2168,7 +2274,7 @@ el('btn-alterar-senha').addEventListener('click', alterarSenhaTecnico);
 ['tecnico-senha-nova','tecnico-senha-confirmar'].forEach(id=>{
   el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); alterarSenhaTecnico(); } });
 });
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:configApp.projeto, local:'', dds:'' };
+let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:'', local:'', dds:'' };
 let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
 let fotosTurno = []; // { id, data (ISO), turnoNumero, turnoLetra, url, descricao, ts }
 
@@ -2527,14 +2633,14 @@ async function loadTurnoInfo(){
 
   turnoInfo.data = new Date().toLocaleDateString('pt-BR');
   turnoInfo.supervisor = configApp.supervisor;
-  turnoInfo.projeto = configApp.projeto;
 
   el('turno-data').value = turnoInfo.data;
   el('turno-tecnicos').value = turnoInfo.tecnicos || '';
   el('turno-local').value = turnoInfo.local || '';
   el('turno-dds').value = turnoInfo.dds || '';
   el('turno-supervisor').value = turnoInfo.supervisor;
-  el('turno-projeto').value = turnoInfo.projeto;
+  // Projeto não entra aqui — é só-leitura e sincronizado a partir do realce
+  // ativo (sincronizarLocalComNivelDoAnel), não de um valor salvo à parte.
   selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
   selecionarChip('turno-letra-group', turnoInfo.turnoLetra);
   // Pré-seleciona a letra na criação de leque com o turno atual, só como
@@ -2578,7 +2684,7 @@ function saveTurnoInfo(){
   turnoInfo.local = el('turno-local').value;
   turnoInfo.dds = el('turno-dds').value;
   turnoInfo.supervisor = configApp.supervisor;
-  turnoInfo.projeto = configApp.projeto;
+  turnoInfo.projeto = el('turno-projeto').value;
   const chipNumero = document.querySelector('#turno-numero-group .chip.active');
   const chipLetra = document.querySelector('#turno-letra-group .chip.active');
   turnoInfo.turnoNumero = chipNumero ? chipNumero.dataset.val : '';
@@ -3373,6 +3479,7 @@ function renderAll(){
   renderTurnoLequesChecklist();
   renderChecklist();
   renderAvisoRefazer();
+  preencherSelectsDeProjeto();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
