@@ -1655,7 +1655,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', ts: row.criado_em }; }
-function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -1781,6 +1781,21 @@ function checklistDoAnelAtivo(){
   return checklistDoAnel(anelAtivoId);
 }
 
+// Realces dentro do escopo atual — respeita o "Projeto ativo" já usado na
+// aba Realce. Sem projeto escolhido, o escopo é todos os realces.
+function aneisNoEscopoAtual(){
+  return configApp.projetoAtivo ? aneis.filter(a=>a.projeto===configApp.projetoAtivo) : aneis;
+}
+
+// Todos os furos do checklist dentro do escopo atual (realces do projeto
+// ativo, ou todos os realces se nenhum projeto estiver escolhido) — é a
+// base de dados usada pelo Infográfico.
+function checklistFurosNoEscopoAtual(){
+  const idsAneis = new Set(aneisNoEscopoAtual().map(a=>a.id));
+  const idsLeques = new Set(checklistLeques.filter(c=>idsAneis.has(c.anelId)).map(c=>c.id));
+  return checklistFuros.filter(f=>idsLeques.has(f.checklistLequeId));
+}
+
 function renderChecklist(){
   const grid = el('checklist-grid');
   const vazio = el('checklist-vazio');
@@ -1862,13 +1877,14 @@ function renderChecklist(){
           </div>
           ${furosDoLeque.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th>Perfilado</th><th>Topografado</th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th>Perfilado</th><th>Topografado</th><th>Metros</th><th></th></tr></thead>
             <tbody>
               ${furosDoLeque.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''}">
                   <td>F${f.numero}</td>
                   <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado"></td>
                   <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado"></td>
+                  <td><input type="text" inputmode="decimal" class="input-metragem-checklist" value="${f.metragem != null ? f.metragem : ''}" placeholder="0.0" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" title="metros perfilados nesse furo"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover">✕</button></td>
                 </tr>
               `).join('')}
@@ -2169,7 +2185,11 @@ function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   f.perfilado = !f.perfilado;
-  enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado });
+  // Guarda quando foi marcado (ou limpa, se desmarcar) — é isso que permite
+  // depois calcular "quanto foi perfilado hoje/essa semana/esse mês" de
+  // verdade, em vez de só o total acumulado até agora.
+  f.perfiladoEm = f.perfilado ? new Date().toISOString() : null;
+  enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado, perfilado_em: f.perfiladoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
 }
@@ -2178,7 +2198,19 @@ function toggleChecklistFuroTopografado(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   f.topografado = !f.topografado;
-  enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado });
+  f.topografadoEm = f.topografado ? new Date().toISOString() : null;
+  enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+}
+
+function atualizarMetragemChecklistFuro(id, valorTexto){
+  const f = checklistFuros.find(x=>x.id===id);
+  if(!f) return;
+  const valor = valorTexto.trim().replace(',', '.');
+  const numero = valor === '' ? null : parseFloat(valor);
+  f.metragem = (numero !== null && !isNaN(numero)) ? numero : null;
+  enfileirar('checklist_furos', 'update', { id: f.id, metragem: f.metragem });
   salvarChecklistFurosLocal();
   renderChecklist();
 }
@@ -3519,6 +3551,7 @@ function renderAll(){
   renderChecklist();
   renderAvisoRefazer();
   preencherSelectsDeProjeto();
+  renderInfografico();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -3638,11 +3671,130 @@ el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 function mostrarView(viewId){
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.tab-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
+  // O infográfico não recalcula sozinho a cada marcação no checklist (só
+  // renderChecklist roda nesse caso) — então garante dado fresco toda vez
+  // que a aba é aberta de verdade.
+  if(viewId === 'infografico') renderInfografico();
 }
 
 document.querySelectorAll('.tab-item').forEach(btn=>{
   btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
 });
+
+// ---------- Infográfico ----------
+// Data local (sem hora) no formato AAAA-MM-DD, usada pra agrupar por dia
+// sem se preocupar com fuso — só compara a data "no relógio da pessoa".
+function chaveDia(dataIso){
+  const d = new Date(dataIso);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function inicioDaSemana(base){
+  const d = new Date(base);
+  const diaSemana = d.getDay(); // 0=domingo
+  const deslocamento = diaSemana === 0 ? 6 : diaSemana - 1; // volta até a segunda-feira
+  d.setDate(d.getDate() - deslocamento);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function calcularEstatisticasInfografico(){
+  const furos = checklistFurosNoEscopoAtual();
+  const agora = new Date();
+  const hojeChave = chaveDia(agora);
+  const inicioSemana = inicioDaSemana(agora);
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+
+  let metrosHoje = 0, metrosSemana = 0, metrosMes = 0;
+  const porDia = {}; // chaveDia -> soma de metros
+
+  furos.forEach(f=>{
+    if(!f.perfiladoEm) return;
+    const metros = f.metragem != null ? f.metragem : 0;
+    const dataMarcacao = new Date(f.perfiladoEm);
+    const chave = chaveDia(f.perfiladoEm);
+    porDia[chave] = (porDia[chave] || 0) + metros;
+    if(chave === hojeChave) metrosHoje += metros;
+    if(dataMarcacao >= inicioSemana) metrosSemana += metros;
+    if(dataMarcacao >= inicioMes) metrosMes += metros;
+  });
+
+  // Últimos 14 dias, do mais antigo pro mais recente, pro gráfico.
+  const serieDiaria = [];
+  for(let i = 13; i >= 0; i--){
+    const d = new Date(agora);
+    d.setDate(d.getDate() - i);
+    const chave = chaveDia(d);
+    serieDiaria.push({
+      dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
+      metros: porDia[chave] || 0
+    });
+  }
+
+  const totalFuros = furos.length;
+  const totalPerfilados = furos.filter(f=>f.perfilado).length;
+  const totalTopografados = furos.filter(f=>f.topografado).length;
+
+  return { metrosHoje, metrosSemana, metrosMes, serieDiaria, totalFuros, totalPerfilados, totalTopografados };
+}
+
+function renderInfografico(){
+  const svg = el('infografico-chart-dia');
+  if(!svg) return; // view ainda não foi montada na tela
+
+  const tagEscopo = el('infografico-escopo-tag');
+  if(tagEscopo) tagEscopo.textContent = configApp.projetoAtivo ? `projeto: ${configApp.projetoAtivo}` : 'todos os projetos';
+
+  const stats = calcularEstatisticasInfografico();
+
+  el('infografico-metros-hoje').innerHTML = `${fmt1(stats.metrosHoje)}<span class="unidade">m</span>`;
+  el('infografico-metros-semana').innerHTML = `${fmt1(stats.metrosSemana)}<span class="unidade">m</span>`;
+  el('infografico-metros-mes').innerHTML = `${fmt1(stats.metrosMes)}<span class="unidade">m</span>`;
+
+  // Percentuais de perfilagem/topografia — mesma base do checklist.
+  const pctPerfilado = stats.totalFuros > 0 ? Math.round((stats.totalPerfilados/stats.totalFuros)*100) : 0;
+  const pctTopografado = stats.totalFuros > 0 ? Math.round((stats.totalTopografados/stats.totalFuros)*100) : 0;
+  el('infografico-pct-perfilado-texto').textContent = `${stats.totalPerfilados}/${stats.totalFuros}`;
+  el('infografico-pct-perfilado-barra').style.width = pctPerfilado + '%';
+  el('infografico-pct-topografado-texto').textContent = `${stats.totalTopografados}/${stats.totalFuros}`;
+  el('infografico-pct-topografado-barra').style.width = pctTopografado + '%';
+
+  const vazio = el('infografico-vazio');
+  if(vazio) vazio.style.display = stats.totalFuros === 0 ? 'block' : 'none';
+
+  // ---------- gráfico de área (mesmo estilo do usado na landing page) ----------
+  const w = 900, h = 170, pad = 8;
+  const max = Math.max(1, ...stats.serieDiaria.map(d=>d.metros)) * 1.15;
+  const passoX = (w - pad*2) / (stats.serieDiaria.length - 1);
+  const pontos = stats.serieDiaria.map((d,i)=>{
+    const x = pad + i * passoX;
+    const y = h - pad - ((d.metros / max) * (h - pad*2));
+    return [x,y];
+  });
+  const linhaPath = pontos.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linhaPath + ` L${pontos[pontos.length-1][0]},${h-pad} L${pontos[0][0]},${h-pad} Z`;
+
+  let svgHTML = `
+    <defs>
+      <linearGradient id="gradInfografico" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" style="stop-color:var(--amber); stop-opacity:0.35;"/>
+        <stop offset="100%" style="stop-color:var(--amber); stop-opacity:0;"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" style="fill:url(#gradInfografico);"/>
+    <path d="${linhaPath}" style="fill:none; stroke:var(--amber); stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
+  `;
+  pontos.forEach((p,i)=>{
+    const ultimo = i === pontos.length - 1;
+    svgHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?'var(--amber)':'var(--surface)'}; stroke:var(--amber); stroke-width:2px;"/>`;
+  });
+  svg.innerHTML = svgHTML;
+
+  const eixoX = el('infografico-eixo-x');
+  if(eixoX){
+    // Mostra só a cada 2 dias, senão fica apertado demais em tela de celular.
+    eixoX.innerHTML = stats.serieDiaria.map((d,i)=> `<span style="${i % 2 !== 0 ? 'visibility:hidden;' : ''}">${d.dia}</span>`).join('');
+  }
+}
 
 // ---------- Autenticação (Supabase Auth) ----------
 // O app fica travado na tela de login até existir uma sessão válida. As contas são

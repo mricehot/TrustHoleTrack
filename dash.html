@@ -98,6 +98,7 @@
     <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="tab-label">Realce</span></button>
     <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="15"/></svg></span><span class="tab-label">Perfilagem</span></button>
     <button type="button" class="tab-item" data-view="checklist"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="tab-label">Checklist</span></button>
+    <button type="button" class="tab-item" data-view="infografico"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="tab-label">Infográfico</span></button>
     <button type="button" class="tab-item" data-view="historico"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg></span><span class="tab-label">Histórico</span></button>
     <button type="button" class="tab-item" data-view="config"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 15.09V15a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="tab-label">Config</span></button>
     <button type="button" class="tab-item" data-view="tecnico"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span class="tab-label">Técnico</span></button>
@@ -483,6 +484,51 @@
 
             <div class="hint" id="checklist-vazio" style="margin-top:16px;">Nenhum leque no checklist deste realce ainda.</div>
             <div class="checklist-grid" id="checklist-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-infografico">
+        <div class="view-card">
+          <div class="view-card-header">
+            <span class="view-card-label">Infográfico</span>
+            <span class="tag" id="infografico-escopo-tag">todos os projetos</span>
+          </div>
+          <div class="config-body">
+            <div class="hint">Baseado nas marcações do checklist de perfilagem e topografia — não nos dados reais lançados na aba Perfilagem.</div>
+
+            <div class="infografico-kpis">
+              <div class="infografico-kpi">
+                <div class="label">Perfilado hoje</div>
+                <div class="valor" id="infografico-metros-hoje">0<span class="unidade">m</span></div>
+              </div>
+              <div class="infografico-kpi">
+                <div class="label">Perfilado essa semana</div>
+                <div class="valor" id="infografico-metros-semana">0<span class="unidade">m</span></div>
+              </div>
+              <div class="infografico-kpi">
+                <div class="label">Perfilado esse mês</div>
+                <div class="valor" id="infografico-metros-mes">0<span class="unidade">m</span></div>
+              </div>
+            </div>
+
+            <div class="card-titulo" style="margin-top:22px;">Metros perfilados por dia</div>
+            <div class="hint">Últimos 14 dias, somando os furos marcados como perfilados no checklist com metragem preenchida.</div>
+            <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-dia"></svg>
+            <div class="chart-eixo-x" id="infografico-eixo-x"></div>
+
+            <div class="infografico-percentuais">
+              <div>
+                <div class="progresso-item-topo"><span>Furos perfilados (checklist)</span><b id="infografico-pct-perfilado-texto">0/0</b></div>
+                <div class="progress-track"><div class="progress-fill" id="infografico-pct-perfilado-barra" style="width:0%;"></div></div>
+              </div>
+              <div>
+                <div class="progresso-item-topo"><span>Furos topografados (checklist)</span><b id="infografico-pct-topografado-texto">0/0</b></div>
+                <div class="progress-track"><div class="progress-fill fill-steel" id="infografico-pct-topografado-barra" style="width:0%;"></div></div>
+              </div>
+            </div>
+
+            <div class="hint" id="infografico-vazio" style="display:none; margin-top:16px;">Nada marcado no checklist ainda — os números aparecem aqui assim que você começar a marcar furos como perfilados ou topografados.</div>
           </div>
         </div>
       </section>

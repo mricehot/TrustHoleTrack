@@ -261,6 +261,7 @@ button .icon-svg{ stroke:currentColor; }
 .tab-item[data-view="aneis"].active{ color:var(--section-aneis); border-bottom-color:var(--section-aneis); }
 .tab-item[data-view="perfilagem"].active{ color:var(--amber); border-bottom-color:var(--amber); }
 .tab-item[data-view="checklist"].active{ color:var(--section-aneis); border-bottom-color:var(--section-aneis); }
+.tab-item[data-view="infografico"].active{ color:var(--steel); border-bottom-color:var(--steel); }
 .tab-item[data-view="historico"].active{ color:var(--moss); border-bottom-color:var(--moss); }
 .tab-item[data-view="config"].active{ color:var(--muted); border-bottom-color:var(--muted); }
 
@@ -542,11 +543,11 @@ button .icon-svg{ stroke:currentColor; }
   .foto-turno-obs:hover{ color:var(--steel); text-decoration:underline; }
   .checklist-progresso-furos{ margin-top:14px; }
   .checklist-progresso-furos + .checklist-progresso-furos{ margin-top:10px; }
-  .checklist-progresso-furos-topo{
+  .checklist-progresso-furos-topo, .progresso-item-topo{
     display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--sans); font-size:12px; color:var(--muted); margin-bottom:6px;
   }
-  .checklist-progresso-furos-topo span:last-child{ font-family:var(--mono); font-weight:700; color:var(--text); }
+  .checklist-progresso-furos-topo span:last-child, .progresso-item-topo b{ font-family:var(--mono); font-weight:700; color:var(--text); }
   .progress-track{
     width:100%; height:10px; border-radius:6px; background:var(--surface-2);
     border:1px solid var(--line); overflow:hidden;
@@ -556,6 +557,28 @@ button .icon-svg{ stroke:currentColor; }
     transition:width .25s ease;
   }
   .progress-fill.fill-steel{ background:var(--steel); }
+
+  /* ---------- Infográfico ---------- */
+  .card-titulo{ font-family:var(--sans); font-size:14.5px; font-weight:700; margin:0 0 4px; }
+  .infografico-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+  .infografico-kpi{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:14px 16px;
+  }
+  .infografico-kpi .label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); font-weight:700; margin-bottom:8px;
+  }
+  .infografico-kpi .valor{ font-family:var(--mono); font-size:24px; font-weight:600; letter-spacing:-0.5px; }
+  .infografico-kpi .valor .unidade{ font-size:13px; color:var(--muted); font-weight:500; margin-left:2px; }
+  .infografico-chart{ width:100%; height:170px; margin-top:10px; }
+  .chart-eixo-x{
+    display:flex; justify-content:space-between; margin-top:6px;
+    font-family:var(--mono); font-size:10px; color:var(--muted);
+  }
+  .infografico-percentuais{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:22px; }
+  @media (max-width:640px){
+    .infografico-kpis{ grid-template-columns:1fr; }
+    .infografico-percentuais{ grid-template-columns:1fr; }
+  }
   .checklist-grid{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   .checklist-leque-card{
     border:1px solid var(--line); border-radius:8px; background:var(--surface-2);
@@ -615,6 +638,10 @@ button .icon-svg{ stroke:currentColor; }
   table.checklist-furos-tabela td{ padding:5px 8px; font-family:var(--mono); font-size:13px; border-bottom:1px solid var(--line); }
   table.checklist-furos-tabela tr.feito td:first-child{ color:var(--moss); text-decoration:line-through; opacity:0.8; }
   table.checklist-furos-tabela input[type="checkbox"]{ width:16px; height:16px; margin:0; accent-color:var(--moss); cursor:pointer; }
+  .input-metragem-checklist{
+    width:64px; min-height:30px; padding:4px 7px; font-size:12.5px;
+    font-family:var(--mono); text-align:right;
+  }
   table.checklist-furos-tabela .icon-remover{ width:22px; height:22px; min-width:0; min-height:0; padding:0; font-size:11px; }
 
   .toggle-leque{
