@@ -1193,7 +1193,9 @@ function criarAnel(){
   const campoNome = el('anel-nome');
   const nome = campoNome.value.trim();
   const nivel = el('anel-nivel').value.trim();
-  const projeto = el('anel-projeto') ? el('anel-projeto').value : '';
+  // Não pergunta o projeto de novo aqui — o realce nasce direto no projeto
+  // ativo escolhido em Config (se nenhum estiver ativo, nasce sem projeto).
+  const projeto = configApp.projetoAtivo || '';
   campoNome.style.borderColor = '';
   el('anel-erro').textContent = '';
   if(!nome) return;
@@ -1219,7 +1221,6 @@ function criarAnel(){
   enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel, projeto });
   campoNome.value = '';
   el('anel-nivel').value = '';
-  if(el('anel-projeto')) el('anel-projeto').value = '';
   salvarLocal();
   renderAll();
   showToast('Realce criado e definido como ativo.');
@@ -1567,12 +1568,14 @@ function salvarProjetosLocal(){
 // Preenche os dois seletores de projeto (criar realce + editar realce, esse
 // segundo só quando o modal estiver aberto) com a lista atual.
 function preencherSelectsDeProjeto(){
-  const selectCriar = el('anel-projeto');
-  if(selectCriar){
-    const valorAtual = selectCriar.value;
-    selectCriar.innerHTML = `<option value="">sem projeto</option>` +
-      projetos.map(p=> `<option value="${p.nome}">${p.nome}</option>`).join('');
-    if(projetos.some(p=>p.nome===valorAtual)) selectCriar.value = valorAtual;
+  // Não existe mais seletor de projeto na criação de realce — ele nasce
+  // direto no projeto ativo (configApp.projetoAtivo). Isso só deixa claro
+  // qual projeto é esse, pra não ficar escondido.
+  const avisoAoCriar = el('anel-projeto-ativo-aviso');
+  if(avisoAoCriar){
+    avisoAoCriar.textContent = configApp.projetoAtivo
+      ? `Vai ser criado no projeto ativo: "${configApp.projetoAtivo}". Muda isso em Config.`
+      : `Nenhum projeto ativo escolhido — vai ser criado sem projeto associado. Escolha um em Config, se precisar.`;
   }
   const selectAtivo = el('config-projeto-ativo');
   if(selectAtivo){
@@ -2250,6 +2253,7 @@ el('config-projeto-ativo').addEventListener('change', ()=>{
   configApp.projetoAtivo = el('config-projeto-ativo').value;
   salvarConfigLocal();
   renderAneisMenu();
+  preencherSelectsDeProjeto();
   showToast(configApp.projetoAtivo ? `Mostrando só realces de "${configApp.projetoAtivo}".` : 'Mostrando realces de todos os projetos.');
 });
 
