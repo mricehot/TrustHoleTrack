@@ -1003,7 +1003,7 @@ function renderAneisMenu(){
     if(filtroProjeto){
       avisoFiltro.style.display = 'block';
       const ocultos = aneis.length - aneisFiltrados.length;
-      avisoFiltro.textContent = `Mostrando só realces do projeto "${filtroProjeto}"${ocultos > 0 ? ` — ${ocultos} de outro(s) projeto(s) escondido(s)` : ''}. Muda isso em Config.`;
+      avisoFiltro.innerHTML = `Mostrando só realces do projeto "${filtroProjeto}"${ocultos > 0 ? ` — ${ocultos} de outro(s) projeto(s) escondido(s)` : ''}. <button type="button" class="link-obs" onclick="limparFiltroProjeto()">Ver todos os realces</button>`;
     }else{
       avisoFiltro.style.display = 'none';
     }
@@ -2256,6 +2256,16 @@ el('config-projeto-ativo').addEventListener('change', ()=>{
   preencherSelectsDeProjeto();
   showToast(configApp.projetoAtivo ? `Mostrando só realces de "${configApp.projetoAtivo}".` : 'Mostrando realces de todos os projetos.');
 });
+
+// Atalho pra limpar o filtro direto da tela de Realce, sem precisar ir em
+// Config — é a mesma ação do seletor "Todos os projetos", só mais à mão.
+function limparFiltroProjeto(){
+  configApp.projetoAtivo = '';
+  salvarConfigLocal();
+  renderAneisMenu();
+  preencherSelectsDeProjeto();
+  showToast('Mostrando realces de todos os projetos.');
+}
 
 // ---------- Perfil do técnico ----------
 function renderPerfilTecnico(){
