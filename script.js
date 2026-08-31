@@ -1003,7 +1003,10 @@ function renderAneisMenu(){
     if(filtroProjeto){
       avisoFiltro.style.display = 'block';
       const ocultos = aneis.length - aneisFiltrados.length;
-      avisoFiltro.innerHTML = `Mostrando só realces do projeto "${filtroProjeto}"${ocultos > 0 ? ` — ${ocultos} de outro(s) projeto(s) escondido(s)` : ''}. <button type="button" class="link-obs" onclick="limparFiltroProjeto()">Ver todos os realces</button>`;
+      avisoFiltro.textContent = ocultos > 0
+        ? `${ocultos} realce(s) de outro(s) projeto(s) escondido(s) — troque o "Projeto ativo" acima pra ver todos.`
+        : '';
+      if(ocultos === 0) avisoFiltro.style.display = 'none';
     }else{
       avisoFiltro.style.display = 'none';
     }
@@ -1568,16 +1571,15 @@ function salvarProjetosLocal(){
 // Preenche os dois seletores de projeto (criar realce + editar realce, esse
 // segundo só quando o modal estiver aberto) com a lista atual.
 function preencherSelectsDeProjeto(){
-  // Não existe mais seletor de projeto na criação de realce — ele nasce
-  // direto no projeto ativo (configApp.projetoAtivo). Isso só deixa claro
-  // qual projeto é esse, pra não ficar escondido.
+  // O seletor de projeto ativo já está logo acima, na mesma tela — esse
+  // aviso só confirma qual projeto o novo realce vai herdar.
   const avisoAoCriar = el('anel-projeto-ativo-aviso');
   if(avisoAoCriar){
     avisoAoCriar.textContent = configApp.projetoAtivo
-      ? `Vai ser criado no projeto ativo: "${configApp.projetoAtivo}". Muda isso em Config.`
-      : `Nenhum projeto ativo escolhido — vai ser criado sem projeto associado. Escolha um em Config, se precisar.`;
+      ? `Vai ser criado no projeto ativo: "${configApp.projetoAtivo}".`
+      : `Nenhum projeto ativo escolhido acima — vai ser criado sem projeto associado.`;
   }
-  const selectAtivo = el('config-projeto-ativo');
+  const selectAtivo = el('anel-projeto-ativo');
   if(selectAtivo){
     selectAtivo.innerHTML = `<option value="">Todos os projetos</option>` +
       projetos.map(p=> `<option value="${p.nome}" ${configApp.projetoAtivo===p.nome ? 'selected' : ''}>${p.nome}</option>`).join('');
@@ -2249,23 +2251,13 @@ el('btn-salvar-config').addEventListener('click', salvarConfig);
 // O filtro de projeto ativo já aplica na hora, sem precisar clicar em
 // "Salvar" — é só uma forma de enxergar a lista, não uma configuração
 // que precisa de confirmação.
-el('config-projeto-ativo').addEventListener('change', ()=>{
-  configApp.projetoAtivo = el('config-projeto-ativo').value;
+el('anel-projeto-ativo').addEventListener('change', ()=>{
+  configApp.projetoAtivo = el('anel-projeto-ativo').value;
   salvarConfigLocal();
   renderAneisMenu();
   preencherSelectsDeProjeto();
   showToast(configApp.projetoAtivo ? `Mostrando só realces de "${configApp.projetoAtivo}".` : 'Mostrando realces de todos os projetos.');
 });
-
-// Atalho pra limpar o filtro direto da tela de Realce, sem precisar ir em
-// Config — é a mesma ação do seletor "Todos os projetos", só mais à mão.
-function limparFiltroProjeto(){
-  configApp.projetoAtivo = '';
-  salvarConfigLocal();
-  renderAneisMenu();
-  preencherSelectsDeProjeto();
-  showToast('Mostrando realces de todos os projetos.');
-}
 
 // ---------- Perfil do técnico ----------
 function renderPerfilTecnico(){

@@ -230,6 +230,13 @@
             <span class="current" id="anel-menu-current">nenhum realce ativo</span>
           </div>
           <div class="anel-body">
+            <div class="field" style="margin-bottom:16px;">
+              <label for="anel-projeto-ativo">Projeto ativo</label>
+              <select id="anel-projeto-ativo">
+                <option value="">Todos os projetos</option>
+              </select>
+              <div class="hint">Escolhendo um projeto, só aparecem (e só nascem) realces daquele projeto. Pra criar ou apagar projetos, use a aba Config.</div>
+            </div>
             <div class="anel-form" id="form-anel">
               <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:0 0 200px;">
@@ -360,14 +367,6 @@
             <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
-              <label for="config-projeto-ativo">Projeto ativo</label>
-              <select id="config-projeto-ativo">
-                <option value="">Todos os projetos</option>
-              </select>
-              <div class="hint">Escolhendo um projeto aqui, a aba "Realce" passa a mostrar só os realces daquele projeto — o resto fica escondido, sem apagar nada.</div>
-            </div>
-
-            <div class="field" style="margin-top:20px;">
               <label for="config-novo-projeto-input">Projetos</label>
               <div class="obs-add-row">
                 <input id="config-novo-projeto-input" type="text" placeholder="ex: Ero - Pilar" maxlength="80">
