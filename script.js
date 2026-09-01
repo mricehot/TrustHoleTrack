@@ -1992,6 +1992,70 @@ function enviarRelatorioWhatsApp(idsRealces){
 // Antes de enviar, deixa escolher quais realces entram no relatório — útil
 // porque um turno pode ter perfilado um realce e outro turno, outro; a
 // equipe se orienta melhor vendo tudo junto, não só o realce ativo agora.
+// Manda uma imagem do infográfico pelo WhatsApp. Diferente do relatório de
+// texto do checklist: não existe um jeito de anexar arquivo automaticamente
+// num link "wa.me" (só texto pré-preenchido dá pra fazer assim). Então o
+// caminho é: gerar a imagem na hora (html2canvas) e usar o compartilhamento
+// nativo do aparelho — no celular, isso abre a folha de compartilhar com a
+// imagem já pronta, só falta escolher o WhatsApp na lista. Em telas sem esse
+// recurso (a maioria dos desktops), baixa a imagem e abre o WhatsApp Web,
+// pra colar manualmente.
+async function enviarFotoInfograficoWhatsApp(){
+  if(!configApp.whatsapp){
+    showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
+    return;
+  }
+  const cardEl = document.querySelector('#view-infografico .view-card');
+  const btn = el('btn-enviar-foto-infografico-whatsapp');
+  if(!cardEl || !btn) return;
+
+  const htmlOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = 'Gerando imagem...';
+  btn.style.visibility = 'hidden'; // não aparece na própria foto
+
+  try{
+    const canvas = await html2canvas(cardEl, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+      scale: 2,
+      useCORS: true
+    });
+    btn.style.visibility = '';
+
+    canvas.toBlob(async (blob)=>{
+      btn.disabled = false;
+      btn.innerHTML = htmlOriginal;
+      if(!blob){ showToast('Não foi possível gerar a imagem.'); return; }
+
+      const nomeArquivo = `infografico-${new Date().toISOString().slice(0,10)}.png`;
+      const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+
+      if(navigator.canShare && navigator.canShare({ files: [arquivo] })){
+        try{
+          await navigator.share({ files: [arquivo], title: 'Infográfico' });
+        }catch(err){
+          if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.');
+        }
+      }else{
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nomeArquivo;
+        link.click();
+        URL.revokeObjectURL(url);
+        window.open(`https://wa.me/${configApp.whatsapp}`, '_blank');
+        showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.');
+      }
+    }, 'image/png');
+  }catch(err){
+    btn.style.visibility = '';
+    btn.disabled = false;
+    btn.innerHTML = htmlOriginal;
+    showToast('Erro ao gerar a imagem: ' + (err && err.message ? err.message : err));
+  }
+}
+el('btn-enviar-foto-infografico-whatsapp').addEventListener('click', enviarFotoInfograficoWhatsApp);
+
 function abrirModalEscolherRealcesWhatsApp(){
   const realcesVisiveis = aneis.filter(a=>!a.ocultoWhatsapp);
   if(realcesVisiveis.length === 0){
