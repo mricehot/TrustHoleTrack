@@ -3705,17 +3705,30 @@ function calcularEstatisticasInfografico(){
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
 
   let metrosHoje = 0, metrosSemana = 0, metrosMes = 0;
-  const porDia = {}; // chaveDia -> soma de metros
+  let furosTopoHoje = 0, furosTopoSemana = 0, furosTopoMes = 0;
+  const porDia = {}; // chaveDia -> soma de metros perfilados
+  const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
 
   furos.forEach(f=>{
-    if(!f.perfiladoEm) return;
     const metros = f.metragem != null ? f.metragem : 0;
-    const dataMarcacao = new Date(f.perfiladoEm);
-    const chave = chaveDia(f.perfiladoEm);
-    porDia[chave] = (porDia[chave] || 0) + metros;
-    if(chave === hojeChave) metrosHoje += metros;
-    if(dataMarcacao >= inicioSemana) metrosSemana += metros;
-    if(dataMarcacao >= inicioMes) metrosMes += metros;
+    if(f.perfiladoEm){
+      const dataMarcacao = new Date(f.perfiladoEm);
+      const chave = chaveDia(f.perfiladoEm);
+      porDia[chave] = (porDia[chave] || 0) + metros;
+      if(chave === hojeChave) metrosHoje += metros;
+      if(dataMarcacao >= inicioSemana) metrosSemana += metros;
+      if(dataMarcacao >= inicioMes) metrosMes += metros;
+    }
+    // Topografia é contagem de furos marcados, não soma de metros — não faz
+    // sentido "medir metros topografados", faz sentido contar pontos.
+    if(f.topografadoEm){
+      const dataMarcacaoTopo = new Date(f.topografadoEm);
+      const chaveTopo = chaveDia(f.topografadoEm);
+      porDiaTopo[chaveTopo] = (porDiaTopo[chaveTopo] || 0) + 1;
+      if(chaveTopo === hojeChave) furosTopoHoje++;
+      if(dataMarcacaoTopo >= inicioSemana) furosTopoSemana++;
+      if(dataMarcacaoTopo >= inicioMes) furosTopoMes++;
+    }
   });
 
   // Últimos 14 dias, do mais antigo pro mais recente, pro gráfico.
@@ -3726,7 +3739,8 @@ function calcularEstatisticasInfografico(){
     const chave = chaveDia(d);
     serieDiaria.push({
       dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
-      metros: porDia[chave] || 0
+      metros: porDia[chave] || 0,
+      furosTopo: porDiaTopo[chave] || 0
     });
   }
 
@@ -3734,7 +3748,52 @@ function calcularEstatisticasInfografico(){
   const totalPerfilados = furos.filter(f=>f.perfilado).length;
   const totalTopografados = furos.filter(f=>f.topografado).length;
 
-  return { metrosHoje, metrosSemana, metrosMes, serieDiaria, totalFuros, totalPerfilados, totalTopografados };
+  return {
+    metrosHoje, metrosSemana, metrosMes,
+    furosTopoHoje, furosTopoSemana, furosTopoMes,
+    serieDiaria, totalFuros, totalPerfilados, totalTopografados
+  };
+}
+
+// Desenha um gráfico de área+linha genérico dentro de um <svg> — reaproveitado
+// pros dois gráficos do infográfico (metros perfilados e furos topografados),
+// que têm unidades diferentes e por isso não podem dividir o mesmo eixo.
+function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVar){
+  const svg = el(idSvg);
+  if(!svg) return;
+  const w = 900, h = 170, pad = 8;
+  const max = Math.max(1, ...serie.map(d=>d[chaveValor])) * 1.15;
+  const passoX = (w - pad*2) / (serie.length - 1);
+  const pontos = serie.map((d,i)=>{
+    const x = pad + i * passoX;
+    const y = h - pad - ((d[chaveValor] / max) * (h - pad*2));
+    return [x,y];
+  });
+  const linhaPath = pontos.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linhaPath + ` L${pontos[pontos.length-1][0]},${h-pad} L${pontos[0][0]},${h-pad} Z`;
+  const idGrad = 'grad-' + idSvg;
+
+  let svgHTML = `
+    <defs>
+      <linearGradient id="${idGrad}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" style="stop-color:${corVar}; stop-opacity:0.35;"/>
+        <stop offset="100%" style="stop-color:${corVar}; stop-opacity:0;"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" style="fill:url(#${idGrad});"/>
+    <path d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
+  `;
+  pontos.forEach((p,i)=>{
+    const ultimo = i === pontos.length - 1;
+    svgHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
+  });
+  svg.innerHTML = svgHTML;
+
+  const eixoX = el(idEixoX);
+  if(eixoX){
+    // Mostra só a cada 2 dias, senão fica apertado demais em tela de celular.
+    eixoX.innerHTML = serie.map((d,i)=> `<span style="${i % 2 !== 0 ? 'visibility:hidden;' : ''}">${d.dia}</span>`).join('');
+  }
 }
 
 function renderInfografico(){
@@ -3749,6 +3808,10 @@ function renderInfografico(){
   el('infografico-metros-hoje').innerHTML = `${fmt1(stats.metrosHoje)}<span class="unidade">m</span>`;
   el('infografico-metros-semana').innerHTML = `${fmt1(stats.metrosSemana)}<span class="unidade">m</span>`;
   el('infografico-metros-mes').innerHTML = `${fmt1(stats.metrosMes)}<span class="unidade">m</span>`;
+  // Topografia é contagem de furos, não metros — número inteiro, sem casa decimal.
+  el('infografico-topo-hoje').innerHTML = `${stats.furosTopoHoje}<span class="unidade">furos</span>`;
+  el('infografico-topo-semana').innerHTML = `${stats.furosTopoSemana}<span class="unidade">furos</span>`;
+  el('infografico-topo-mes').innerHTML = `${stats.furosTopoMes}<span class="unidade">furos</span>`;
 
   // Percentuais de perfilagem/topografia — mesma base do checklist.
   const pctPerfilado = stats.totalFuros > 0 ? Math.round((stats.totalPerfilados/stats.totalFuros)*100) : 0;
@@ -3761,39 +3824,10 @@ function renderInfografico(){
   const vazio = el('infografico-vazio');
   if(vazio) vazio.style.display = stats.totalFuros === 0 ? 'block' : 'none';
 
-  // ---------- gráfico de área (mesmo estilo do usado na landing page) ----------
-  const w = 900, h = 170, pad = 8;
-  const max = Math.max(1, ...stats.serieDiaria.map(d=>d.metros)) * 1.15;
-  const passoX = (w - pad*2) / (stats.serieDiaria.length - 1);
-  const pontos = stats.serieDiaria.map((d,i)=>{
-    const x = pad + i * passoX;
-    const y = h - pad - ((d.metros / max) * (h - pad*2));
-    return [x,y];
-  });
-  const linhaPath = pontos.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const areaPath = linhaPath + ` L${pontos[pontos.length-1][0]},${h-pad} L${pontos[0][0]},${h-pad} Z`;
-
-  let svgHTML = `
-    <defs>
-      <linearGradient id="gradInfografico" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" style="stop-color:var(--amber); stop-opacity:0.35;"/>
-        <stop offset="100%" style="stop-color:var(--amber); stop-opacity:0;"/>
-      </linearGradient>
-    </defs>
-    <path d="${areaPath}" style="fill:url(#gradInfografico);"/>
-    <path d="${linhaPath}" style="fill:none; stroke:var(--amber); stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
-  `;
-  pontos.forEach((p,i)=>{
-    const ultimo = i === pontos.length - 1;
-    svgHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?'var(--amber)':'var(--surface)'}; stroke:var(--amber); stroke-width:2px;"/>`;
-  });
-  svg.innerHTML = svgHTML;
-
-  const eixoX = el('infografico-eixo-x');
-  if(eixoX){
-    // Mostra só a cada 2 dias, senão fica apertado demais em tela de celular.
-    eixoX.innerHTML = stats.serieDiaria.map((d,i)=> `<span style="${i % 2 !== 0 ? 'visibility:hidden;' : ''}">${d.dia}</span>`).join('');
-  }
+  // Dois gráficos separados — metros e contagem de furos não dividem o
+  // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
+  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)');
+  desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }
 
 // ---------- Autenticação (Supabase Auth) ----------

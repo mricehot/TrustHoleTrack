@@ -497,6 +497,7 @@
           <div class="config-body">
             <div class="hint">Baseado nas marcações do checklist de perfilagem e topografia — não nos dados reais lançados na aba Perfilagem.</div>
 
+            <div class="infografico-grupo-label" style="margin-top:4px;">Perfilagem</div>
             <div class="infografico-kpis">
               <div class="infografico-kpi">
                 <div class="label">Perfilado hoje</div>
@@ -512,10 +513,31 @@
               </div>
             </div>
 
+            <div class="infografico-grupo-label" style="margin-top:16px;">Topografia</div>
+            <div class="infografico-kpis">
+              <div class="infografico-kpi infografico-kpi-steel">
+                <div class="label">Topografado hoje</div>
+                <div class="valor" id="infografico-topo-hoje">0<span class="unidade">furos</span></div>
+              </div>
+              <div class="infografico-kpi infografico-kpi-steel">
+                <div class="label">Topografado essa semana</div>
+                <div class="valor" id="infografico-topo-semana">0<span class="unidade">furos</span></div>
+              </div>
+              <div class="infografico-kpi infografico-kpi-steel">
+                <div class="label">Topografado esse mês</div>
+                <div class="valor" id="infografico-topo-mes">0<span class="unidade">furos</span></div>
+              </div>
+            </div>
+
             <div class="card-titulo" style="margin-top:22px;">Metros perfilados por dia</div>
             <div class="hint">Últimos 14 dias, somando os furos marcados como perfilados no checklist com metragem preenchida.</div>
             <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-dia"></svg>
             <div class="chart-eixo-x" id="infografico-eixo-x"></div>
+
+            <div class="card-titulo" style="margin-top:22px;">Furos topografados por dia</div>
+            <div class="hint">Últimos 14 dias — quantos furos foram marcados como topografados no checklist a cada dia (contagem, não metros).</div>
+            <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-topo-dia"></svg>
+            <div class="chart-eixo-x" id="infografico-eixo-x-topo"></div>
 
             <div class="infografico-percentuais">
               <div>
