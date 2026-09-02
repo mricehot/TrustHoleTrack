@@ -1898,6 +1898,43 @@ function renderChecklist(){
   }).join('');
 }
 
+// Agrupa códigos consecutivos do mesmo tipo em intervalos (LQ01, LQ02, LQ03,
+// LQ04, LQ05 vira "LQ01 ao LQ05") — reduz bastante a poluição visual de
+// listas longas na mensagem do WhatsApp. Só vira intervalo a partir de 3
+// seguidos; com 1 ou 2, listar direto já é igual de curto ou mais claro.
+function compactarCodigosEmIntervalos(itens){
+  const porTipo = {};
+  itens.forEach(it=>{
+    if(!porTipo[it.tipo]) porTipo[it.tipo] = [];
+    porTipo[it.tipo].push(it.numero);
+  });
+
+  const blocos = [];
+  Object.keys(porTipo).forEach(tipo=>{
+    const prefixo = PREFIXO[tipo] || tipo;
+    // Ordena numericamente mas guarda o texto original (com zero à esquerda,
+    // tipo "01") pra exibir igual foi digitado.
+    const numeros = porTipo[tipo]
+      .map(n=> ({ texto: n, valor: parseInt(n, 10) }))
+      .sort((a,b)=> a.valor - b.valor);
+
+    let inicio = 0;
+    for(let i = 1; i <= numeros.length; i++){
+      const fimDaSequencia = i === numeros.length || numeros[i].valor !== numeros[i-1].valor + 1;
+      if(fimDaSequencia){
+        const grupo = numeros.slice(inicio, i);
+        if(grupo.length >= 3){
+          blocos.push(`${prefixo}${grupo[0].texto} ao ${prefixo}${grupo[grupo.length-1].texto}`);
+        }else{
+          grupo.forEach(g=> blocos.push(`${prefixo}${g.texto}`));
+        }
+        inicio = i;
+      }
+    }
+  });
+  return blocos;
+}
+
 // Monta o bloco de resumo (leques + furos) de UM realce — reaproveitado tanto
 // pra mandar um realce só quanto pra combinar vários no mesmo relatório.
 function montarBlocoRealceParaWhatsApp(anelId){
@@ -1914,24 +1951,20 @@ function montarBlocoRealceParaWhatsApp(anelId){
   const pctFuros = totalFuros > 0 ? Math.round((furosPerfilados / totalFuros) * 100) : 0;
   const pctTopo = totalFuros > 0 ? Math.round((furosTopografados / totalFuros) * 100) : 0;
 
-  const codigosPerfilados = itens.filter(c=>c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
-  const codigosPendentes = itens.filter(c=>!c.perfilado).map(c=> PREFIXO[c.tipo] + c.numero);
+  const codigosPerfilados = compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado));
+  const codigosPendentes = compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado));
 
   // Topografia por leque — usa os furos já marcados no checklist (não é um
   // campo novo): um leque conta como topografado quando tem furo lançado e
   // TODOS os furos dele já estão marcados como topografados.
-  const codigosTopografados = itens
-    .filter(c=>{
-      const furosDoLeque = checklistFurosDoLeque(c.id);
-      return furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado);
-    })
-    .map(c=> PREFIXO[c.tipo] + c.numero);
-  const codigosPendentesTopografia = itens
-    .filter(c=>{
-      const furosDoLeque = checklistFurosDoLeque(c.id);
-      return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado));
-    })
-    .map(c=> PREFIXO[c.tipo] + c.numero);
+  const codigosTopografados = compactarCodigosEmIntervalos(itens.filter(c=>{
+    const furosDoLeque = checklistFurosDoLeque(c.id);
+    return furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado);
+  }));
+  const codigosPendentesTopografia = compactarCodigosEmIntervalos(itens.filter(c=>{
+    const furosDoLeque = checklistFurosDoLeque(c.id);
+    return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado));
+  }));
 
   if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
     return `*Realce ${nomeRealce}*\nNada no checklist ainda.`;
