@@ -576,5 +576,19 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js?v=20260813185955"></script>
+<script>
+  // O app deixou de ser PWA — funciona só online agora. Esse bloco não
+  // registra nada novo; ele desfaz qualquer instalação anterior (de quando
+  // ainda tinha service worker), pra ninguém ficar travado numa versão
+  // antiga em cache sem saber o motivo.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registros) => {
+      registros.forEach((registro) => registro.unregister());
+    });
+  }
+  if ('caches' in window) {
+    caches.keys().then((nomes) => nomes.forEach((nome) => caches.delete(nome)));
+  }
+</script>
 </body>
 </html>
