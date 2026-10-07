@@ -8,10 +8,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='9' fill='%23ff431d'/%3E%3Cg stroke='%23ff431d' stroke-width='6' stroke-linecap='round'%3E%3Cline x1='50' y1='50' x2='50' y2='12'/%3E%3Cline x1='50' y1='50' x2='80' y2='28'/%3E%3Cline x1='50' y1='50' x2='88' y2='58'/%3E%3Cline x1='50' y1='50' x2='68' y2='84'/%3E%3Cline x1='50' y1='50' x2='32' y2='84'/%3E%3Cline x1='50' y1='50' x2='12' y2='58'/%3E%3Cline x1='50' y1='50' x2='20' y2='28'/%3E%3C/g%3E%3C/svg%3E">
 <title>BlastHole Manager</title>
-<link rel="stylesheet" href="style.css?v=20260813185955">
+<link rel="stylesheet" href="style.css?v=20261007181800">
 
 </head>
 <body>
+<div id="diag-erro" style="display:none;position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#c23b2f;color:#fff;padding:10px 12px;font:12px/1.4 monospace;border-radius:6px;white-space:pre-wrap;word-break:break-word;" onclick="this.style.display='none'"></div>
+<script>
+  // Diagnóstico: mostra na tela qualquer erro de JavaScript (útil no celular, onde não há console).
+  // Toque na caixa vermelha para fechar.
+  (function(){
+    function mostrar(txt){
+      var d = document.getElementById('diag-erro'); if(!d) return;
+      d.style.display = 'block';
+      d.textContent = (d.textContent ? d.textContent + '\n' : 'Erro no app (toque para fechar):\n') + txt;
+    }
+    window.__diagMostrar = mostrar;
+    window.addEventListener('error', function(e){
+      var onde = (e.filename || '').split('/').pop().split('?')[0];
+      mostrar((e.message || 'erro') + (onde ? ' [' + onde + ':' + (e.lineno || '?') + ']' : ''));
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      mostrar('Promise: ' + ((e.reason && e.reason.message) || e.reason));
+    });
+  })();
+</script>
 <div id="login-screen" class="login-screen">
   <div class="login-box">
     <div class="login-brand">
@@ -604,7 +624,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20260813185955"></script>
+<script src="script.js?v=20261007181800"></script>
+<script>
+  if(!window.__appCarregado && window.__diagMostrar){
+    window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
+  }
+</script>
 <script>
   // O app deixou de ser PWA — funciona só online agora. Esse bloco não
   // registra nada novo; ele desfaz qualquer instalação anterior (de quando
