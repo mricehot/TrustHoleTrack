@@ -17,15 +17,10 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 const el = id => document.getElementById(id);
 const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
-// Cada letra de turno tem uma dupla fixa de técnicos — usado pra preencher
-// "Técnicos" automaticamente e pra registrar quem abriu cada leque.
-const TECNICOS_POR_LETRA = {
-  A: 'Erbisson / Francisco',
-  B: 'Graziel / Bruno',
-  C: 'Caique / Jamerson',
-  D: 'Adeilsom / Atos',
-  E: 'Alexandre / Lucas'
-};
+// Antes cada letra de turno tinha uma dupla fixa de técnicos. Foi esvaziado a pedido:
+// as equipes agora são cadastradas por projeto (Infográfico > Gerenciar equipes).
+const TECNICOS_POR_LETRA = {}; // sem duplas fixas: os técnicos de cada turno são digitados à mão na aba Turno
+
 const ICONE_CADEADO = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const fmt3 = n => Number(n).toFixed(3);
 const pad2 = n => String(n).padStart(2,'0');
@@ -138,7 +133,12 @@ function syncEnd(){
 const _fetchOriginal = window.fetch.bind(window);
 window.fetch = function(...args){
   syncStart();
-  return _fetchOriginal(...args).finally(syncEnd);
+  // Garante que o contador de "sincronizando" sempre volta a zero, mesmo se a
+  // rede ficar pendurada sem responder (senão o selo ficava preso na tela).
+  let terminou = false;
+  const fim = ()=>{ if(!terminou){ terminou = true; syncEnd(); } };
+  const limite = setTimeout(fim, 20000);
+  return _fetchOriginal(...args).finally(()=>{ clearTimeout(limite); fim(); });
 };
 
 function atualizarStatusConexao(){
