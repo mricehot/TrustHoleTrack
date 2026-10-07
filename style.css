@@ -790,3 +790,48 @@ body.offline-leitura textarea{ cursor:not-allowed; }
 @media (prefers-reduced-motion:reduce){
   .status-salvamento.salvando .status-ponto{ animation:none; }
 }
+
+
+/* ================= Produtividade semanal por equipe ================= */
+.equipe-semana-nav{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:12px 0 10px; font-family:var(--mono); font-size:13px; font-weight:600; }
+.equipe-semana-nav button{ min-width:44px; min-height:40px; }
+.equipe-semana-nav button:disabled{ opacity:.35; cursor:not-allowed; }
+.equipe-lista{ display:flex; flex-direction:column; gap:10px; }
+.equipe-linha{ background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+.equipe-linha.equipe-vazia{ opacity:.55; }
+.equipe-topo{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+.equipe-nome{ font-weight:700; font-size:14px; }
+.equipe-lider{ font-size:11px; font-weight:600; color:var(--moss); margin-left:6px; }
+.equipe-tecnicos{ font-size:11.5px; color:var(--muted); }
+.equipe-metrica{ display:grid; grid-template-columns:78px 1fr auto; align-items:center; gap:8px; margin-top:4px; }
+.equipe-rotulo{ font-size:11.5px; color:var(--muted); }
+.equipe-trilho{ height:10px; background:var(--line); border-radius:999px; overflow:hidden; }
+.equipe-barra{ height:100%; border-radius:999px; min-width:0; transition:width .4s ease; }
+.equipe-barra-amber{ background:var(--amber); }
+.equipe-barra-steel{ background:var(--steel); }
+.equipe-valor{ font-family:var(--mono); font-size:12.5px; font-weight:700; text-align:right; min-width:92px; }
+.equipe-valor small{ font-weight:500; color:var(--muted); }
+.equipe-total{ margin-top:4px; font-size:12.5px; color:var(--muted); }
+.equipe-total b{ color:var(--text); font-family:var(--mono); }
+@media (prefers-reduced-motion:reduce){ .equipe-barra{ transition:none; } }
+
+.equipe-campo{ display:inline-flex; align-items:center; gap:4px; justify-content:flex-end; min-width:112px; }
+.equipe-campo input{ width:72px; min-height:38px; text-align:right; font-family:var(--mono); font-weight:700; font-size:14px; padding:4px 8px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--text); }
+.equipe-campo small{ font-size:11px; color:var(--muted); min-width:34px; }
+.equipe-total{ margin-top:10px; }
+
+.equipe-soma{ display:flex; justify-content:flex-end; gap:6px; margin:4px 0 2px; }
+.equipe-soma input{ width:104px; min-height:40px; text-align:right; font-family:var(--mono); font-size:14px; padding:4px 8px; border:1px dashed var(--line); border-radius:6px; background:var(--surface); color:var(--text); }
+.equipe-soma button{ min-height:40px; padding:0 14px; font-size:13px; font-weight:700; white-space:nowrap; }
+
+.equipe-semanas-lista{ font-size:11.5px; }
+
+.equipe-cabecalho{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:6px 0 8px; flex-wrap:wrap; }
+.equipe-vazio-box{ background:var(--surface-2); border:1px dashed var(--line); border-radius:8px; padding:14px; font-size:13px; }
+.equipe-vazio-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.modal-box-larga{ max-width:560px; width:calc(100vw - 32px); max-height:86vh; overflow-y:auto; }
+.equipe-edit-lista{ display:flex; flex-direction:column; gap:10px; margin:10px 0; }
+.equipe-edit-item{ background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.equipe-edit-item .field{ margin:0; }
+.equipe-edit-nova{ border-style:dashed; }
+.equipe-edit-item button{ min-height:40px; align-self:flex-end; }
