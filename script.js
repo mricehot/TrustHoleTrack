@@ -144,10 +144,55 @@ window.fetch = function(...args){
 function atualizarStatusConexao(){
   const banner = document.getElementById('offline-banner');
   if(banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+  // Sem internet o app vira "somente consulta": nada que altere dados é aceito,
+  // pra ninguém digitar/marcar achando que salvou.
+  document.body.classList.toggle('offline-leitura', !navigator.onLine);
+  if(typeof atualizarIndicadorSalvamento === 'function') atualizarIndicadorSalvamento();
 }
-window.addEventListener('online', atualizarStatusConexao);
+window.addEventListener('online', ()=>{
+  atualizarStatusConexao();
+  if(typeof falhasDeEnvio !== 'undefined' && falhasDeEnvio.size > 0) reenviarFalhas();
+});
 window.addEventListener('offline', atualizarStatusConexao);
-atualizarStatusConexao();
+
+// Controles que continuam funcionando sem internet (só consultam ou mudam a tela).
+const SELETOR_LIVRE_OFFLINE = [
+  '.tab-item', '#btn-tema', '#btn-historico-toast', '#btn-header-mais', '#btn-atualizar',
+  '#btn-logout', '#btn-reenviar-falhas', '#f-tipo', '#f-situacao', '#f-busca',
+  '.toggle-leque', '.checklist-leque-codigo', '#modal-cancelar', '#modal-overlay',
+  '[onclick*="toggleMenu"]', '[onclick*="toggleExpandir"]', '[onclick*="toggleLeque("]',
+  '[onclick*="exportarLeque"]', '#btn-csv', '#btn-exportar-turno', '#btn-exportar-selecionados', '#btn-limpar-selecao',
+  '#btn-enviar-whatsapp', '#btn-enviar-foto-infografico-whatsapp',
+  '#login-email', '#login-senha', '#btn-login'
+].join(',');
+let ultimoAvisoOffline = 0;
+function avisarSomenteConsulta(){
+  if(Date.now() - ultimoAvisoOffline < 2500) return;
+  ultimoAvisoOffline = Date.now();
+  showToast('Sem internet: modo somente consulta. Nada é alterado até o sinal voltar.');
+}
+function bloquearEdicaoOffline(e){
+  if(navigator.onLine) return;
+  const alvo = e.target && e.target.closest ? e.target.closest('button, input, select, textarea, label, [data-acao]') : null;
+  if(!alvo) return;
+  if(alvo.matches(SELETOR_LIVRE_OFFLINE) || alvo.closest(SELETOR_LIVRE_OFFLINE)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  avisarSomenteConsulta();
+}
+['click', 'change', 'input'].forEach(tipo=> document.addEventListener(tipo, bloquearEdicaoOffline, true));
+document.addEventListener('beforeinput', bloquearEdicaoOffline, true);
+
+// Avisa antes de fechar a aba se ainda há algo sem salvar.
+window.addEventListener('beforeunload', (e)=>{
+  if((typeof falhasDeEnvio !== 'undefined' && falhasDeEnvio.size > 0) || (typeof debouncesPendentes !== 'undefined' && debouncesPendentes.size > 0)){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+document.addEventListener('click', (e)=>{
+  if(e.target && e.target.closest && e.target.closest('#btn-reenviar-falhas')) reenviarFalhas();
+});
 
 // Sem fila de envio: qualquer alteração já vai direto pro servidor no
 // momento em que acontece (função enfileirar). Não há mais nada "pendente"
@@ -421,7 +466,60 @@ const NOME_TABELA_FILA = {
 const debouncesPendentes = new Map();
 const DEBOUNCE_MS = 500;
 
-async function executarEnvio(tabela, acao, registro){
+// ---------- Estado de salvamento ----------
+// Mostra no topo se está salvando, se está tudo salvo ou se algo FALHOU. Uma
+// falha fica na lista até ser reenviada com sucesso — não some como o toast.
+const falhasDeEnvio = new Map(); // "tabela:acao:id" -> { tabela, acao, registro, motivo }
+let enviosEmAndamento = 0;
+let reenviandoFalhas = false;
+const ORDEM_ACAO = { insert: 0, upsert: 1, update: 2, delete: 3 };
+
+function atualizarIndicadorSalvamento(){
+  const pill = document.getElementById('status-salvamento');
+  const alerta = document.getElementById('alerta-falhas');
+  const qtdFalhas = falhasDeEnvio.size;
+  const salvando = enviosEmAndamento > 0 || debouncesPendentes.size > 0;
+  if(pill){
+    let estado, texto;
+    if(qtdFalhas > 0){ estado = 'erro'; texto = `${qtdFalhas} sem salvar`; }
+    else if(!navigator.onLine){ estado = 'offline'; texto = 'sem internet'; }
+    else if(salvando){ estado = 'salvando'; texto = 'salvando...'; }
+    else { estado = 'salvo'; texto = 'salvo'; }
+    pill.className = 'status-salvamento ' + estado;
+    pill.querySelector('.status-texto').textContent = texto;
+    pill.setAttribute('role', 'status');
+    pill.setAttribute('aria-live', 'polite');
+  }
+  if(alerta){
+    if(qtdFalhas === 0){ alerta.style.display = 'none'; return; }
+    const nomes = Array.from(new Set(Array.from(falhasDeEnvio.values()).map(f=> NOME_TABELA_FILA[f.tabela] || f.tabela)));
+    alerta.querySelector('.alerta-falhas-texto').textContent =
+      `${qtdFalhas} alteração(ões) NÃO foram salvas (${nomes.join(', ')}). Não feche o app antes de reenviar.`;
+    alerta.style.display = 'flex';
+  }
+}
+
+async function reenviarFalhas(){
+  if(reenviandoFalhas || falhasDeEnvio.size === 0) return;
+  if(!navigator.onLine){ showToast('Sem internet. Quando o sinal voltar, toque em "Tentar de novo".'); return; }
+  reenviandoFalhas = true;
+  const btn = document.getElementById('btn-reenviar-falhas');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
+  const itens = Array.from(falhasDeEnvio.values()).sort((a,b)=> ORDEM_ACAO[a.acao] - ORDEM_ACAO[b.acao]);
+  for(const f of itens){
+    falhasDeEnvio.delete(f.chave);
+    await executarEnvio(f.tabela, f.acao, f.registro, true);
+  }
+  reenviandoFalhas = false;
+  if(btn){ btn.disabled = false; btn.textContent = 'Tentar de novo'; }
+  atualizarIndicadorSalvamento();
+  if(falhasDeEnvio.size === 0) showToast('Tudo salvo.');
+}
+
+async function executarEnvio(tabela, acao, registro, silencioso){
+  const chave = tabela + ':' + acao + ':' + registro.id;
+  enviosEmAndamento++;
+  atualizarIndicadorSalvamento();
   try{
     let error;
     if(acao === 'insert'){
@@ -435,10 +533,21 @@ async function executarEnvio(tabela, acao, registro){
       ({ error } = await db.from(tabela).delete().eq('id', registro.id));
     }
     if(error) throw error;
+    falhasDeEnvio.delete(chave);
+    if(acao === 'delete'){
+      // apagou o registro: falhas antigas desse mesmo registro não fazem mais sentido
+      Array.from(falhasDeEnvio.keys()).filter(k=> k.endsWith(':' + registro.id) && k.startsWith(tabela + ':')).forEach(k=> falhasDeEnvio.delete(k));
+    }
   }catch(err){
-    const nomeTabela = NOME_TABELA_FILA[tabela] || tabela;
     const motivo = err && err.message ? err.message : 'sem conexão';
-    showToast(`Não foi possível salvar (${nomeTabela}): ${motivo}`);
+    falhasDeEnvio.set(chave, { chave, tabela, acao, registro, motivo });
+    if(!silencioso){
+      const nomeTabela = NOME_TABELA_FILA[tabela] || tabela;
+      showToast(`Não foi possível salvar (${nomeTabela}): ${motivo}`);
+    }
+  }finally{
+    enviosEmAndamento = Math.max(0, enviosEmAndamento - 1);
+    atualizarIndicadorSalvamento();
   }
 }
 
@@ -462,7 +571,10 @@ function enfileirar(tabela, acao, registro){
     executarEnvio(tabela, acao, registro);
   }, DEBOUNCE_MS);
   debouncesPendentes.set(chave, novoTimer);
+  atualizarIndicadorSalvamento();
 }
+// estado inicial (online/offline) — só depois de falhasDeEnvio e debouncesPendentes existirem
+atualizarStatusConexao();
 
 // Antes cancelava um item pendente na fila (ex: ao apagar um leque, cancela o
 // furo dele que ainda não tinha sido enviado). Sem fila, isso não existe mais
