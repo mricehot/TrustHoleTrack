@@ -509,21 +509,35 @@ function definirAnelAtivo(novoId){
   if(el('f-busca')) el('f-busca').value = '';
 }
 
+// O Supabase devolve no maximo 1000 linhas por consulta; pagina ate trazer tudo
+// (sem isso, tabelas grandes como checklist_furos e furos ficam cortadas).
+async function buscarTudo(tabela){
+  const TAM = 1000;
+  let todas = [];
+  for(let de = 0; ; de += TAM){
+    const { data, error } = await db.from(tabela).select('*').order('criado_em').order('id').range(de, de + TAM - 1);
+    if(error) return { data: null, error };
+    todas = todas.concat(data || []);
+    if(!data || data.length < TAM) break;
+  }
+  return { data: todas, error: null };
+}
+
 // Busca a versão mais recente do servidor. Só sobrescreve o que está local
 // se não houver nada pendente (pra nunca perder alterações ainda não enviadas).
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   try{
     const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
-      db.from('aneis').select('*').order('criado_em'),
-      db.from('leques').select('*').order('criado_em'),
-      db.from('furos').select('*').order('criado_em'),
-      db.from('turno_observacoes').select('*').order('criado_em'),
-      db.from('fotos_turno').select('*').order('criado_em'),
-      db.from('checklist_leques').select('*').order('criado_em'),
-      db.from('checklist_furos').select('*').order('criado_em'),
-      db.from('checklist_observacoes_gerais').select('*').order('criado_em'),
-      db.from('projetos').select('*').order('criado_em')
+      buscarTudo('aneis'),
+      buscarTudo('leques'),
+      buscarTudo('furos'),
+      buscarTudo('turno_observacoes'),
+      buscarTudo('fotos_turno'),
+      buscarTudo('checklist_leques'),
+      buscarTudo('checklist_furos'),
+      buscarTudo('checklist_observacoes_gerais'),
+      buscarTudo('projetos')
     ]);
     if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9);
     aneis = (aneisData || []).map(mapAnel);
