@@ -536,6 +536,30 @@
               </div>
             </div>
 
+            <div class="card-titulo" style="margin-top:22px;">Produtividade semanal por equipe</div>
+            <div class="equipe-cabecalho">
+              <span class="tag" id="infografico-equipes-escopo">Geral</span>
+              <button type="button" class="ghost" onclick="abrirModalEquipes()">Gerenciar equipes</button>
+            </div>
+            <div class="hint">Cada projeto tem as suas equipes. Lançamento manual: digite os metros perfilados e os pontos topografados de cada equipe na semana (segunda a domingo). Salva sozinho ao sair do campo.</div>
+            <div class="equipe-semana-nav">
+              <button type="button" class="ghost" id="infografico-semana-ant" aria-label="semana anterior">◀</button>
+              <span id="infografico-semana-label">Esta semana</span>
+              <button type="button" class="ghost" id="infografico-semana-prox" aria-label="próxima semana">▶</button>
+            </div>
+            <div class="equipe-lista" id="infografico-equipes"></div>
+            <div class="equipe-total" id="infografico-equipes-total"></div>
+
+            <div class="card-titulo" style="margin-top:26px;">Produtividade mensal por equipe</div>
+            <div class="hint">Soma das semanas lançadas acima. Uma semana que atravessa dois meses conta no mês em que cai a maioria dos dias.</div>
+            <div class="equipe-semana-nav">
+              <button type="button" class="ghost" id="infografico-mes-ant" aria-label="mês anterior">◀</button>
+              <span id="infografico-mes-label">Mês atual</span>
+              <button type="button" class="ghost" id="infografico-mes-prox" aria-label="próximo mês">▶</button>
+            </div>
+            <div class="equipe-lista" id="infografico-equipes-mes"></div>
+            <div class="equipe-total" id="infografico-equipes-mes-total"></div>
+
             <div class="card-titulo" style="margin-top:22px;">Metros perfilados por dia</div>
             <div class="hint">Últimos 14 dias, somando os furos marcados como perfilados no checklist com metragem preenchida.</div>
             <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-dia"></svg>
