@@ -45,7 +45,12 @@
     <div class="hint" style="margin-top:14px; text-align:center;">Esqueceu a senha ou não tem conta? Fale com o supervisor.</div>
   </div>
 </div>
-<div class="offline-banner" id="offline-banner">Sem conexão — verifique sua internet. As últimas alterações podem não ter sido salvas.</div>
+<div class="offline-banner" id="offline-banner">Sem internet — modo somente consulta. Você pode ver os dados, mas não alterar até o sinal voltar.</div>
+<div class="alerta-falhas" id="alerta-falhas" role="alert" style="display:none;">
+  <span class="alerta-falhas-texto"></span>
+  <button type="button" id="btn-reenviar-falhas">Tentar de novo</button>
+</div>
+<div class="status-salvamento salvo" id="status-salvamento" role="status" aria-live="polite"><span class="status-ponto"></span><span class="status-texto">salvo</span></div>
 <div class="wrap" id="app-wrap" style="display:none;">
 
   <header>
