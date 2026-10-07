@@ -4212,18 +4212,8 @@ function htmlSemEquipes(){
     <div>O escopo <b>${escHtml(nomeEscopoEquipes())}</b> ainda não tem equipes cadastradas.</div>
     <div class="equipe-vazio-acoes">
       <button type="button" class="steel" onclick="abrirModalEquipes()">+ Cadastrar equipes</button>
-      <button type="button" class="ghost" onclick="criarEquipesPadrao()">Criar A–E padrão</button>
     </div></div>`;
 }
-function criarEquipesPadrao(){
-  const projeto = projetoDoEscopo();
-  if(equipesDoProjeto(projeto).length > 0) return;
-  Object.keys(TECNICOS_POR_LETRA).forEach(l=> criarEquipe(projeto, 'Equipe ' + l, TECNICOS_POR_LETRA[l]));
-  salvarEquipesLocal();
-  showToast('Equipes A–E criadas. Edite os nomes e integrantes em "Gerenciar equipes".');
-  renderInfografico();
-}
-
 function renderProdutividadeEquipes(){
   const box = el('infografico-equipes');
   if(!box) return;
@@ -4634,3 +4624,6 @@ document.addEventListener('click', (e)=>{
   if(t.id.startsWith('infografico-mes')) mudarMesInfografico(t.id === 'infografico-mes-ant' ? -1 : 1);
   else mudarSemanaInfografico(t.id === 'infografico-semana-ant' ? -1 : 1);
 });
+
+// marca que o script chegou até o fim sem erro (conferido no dash.html)
+window.__appCarregado = true;
