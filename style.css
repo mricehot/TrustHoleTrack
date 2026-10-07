@@ -184,7 +184,8 @@
     0%, 100%{ opacity:0.25; }
     50%{ opacity:1; }
   }
-  body.syncing .wrap{ opacity:0.55; pointer-events:none; transition:opacity 0.2s; }
+  /* Antes a tela inteira ficava apagada e sem resposta enquanto sincronizava — com sinal lento isso parecia travado. Agora só o selo "sincronizando..." aparece; o app continua usável. */
+  body.syncing .wrap{ opacity:1; pointer-events:auto; }
   .readout b{ display:block; color:var(--text); font-size:16px; font-weight:600; }
   .readout .alert b{ color:var(--rust); }
   .readout .neg b{ color:var(--rust); }
