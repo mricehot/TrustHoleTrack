@@ -2104,9 +2104,13 @@ async function enviarFotoInfograficoWhatsApp(){
 el('btn-enviar-foto-infografico-whatsapp').addEventListener('click', enviarFotoInfograficoWhatsApp);
 
 function abrirModalEscolherRealcesWhatsApp(){
-  const realcesVisiveis = aneis.filter(a=>!a.ocultoWhatsapp);
+  // só os realces do projeto ativo (ou todos, se nenhum projeto estiver selecionado)
+  const aneisDoEscopo = aneisNoEscopoAtual();
+  const realcesVisiveis = aneisDoEscopo.filter(a=>!a.ocultoWhatsapp);
   if(realcesVisiveis.length === 0){
-    showToast(aneis.length === 0 ? 'Nenhum realce cadastrado ainda.' : 'Todos os realces estão ocultos da lista de WhatsApp — libere algum em Realce › editar.');
+    showToast(aneisDoEscopo.length === 0
+      ? (configApp.projetoAtivo ? `Nenhum realce no projeto "${configApp.projetoAtivo}".` : 'Nenhum realce cadastrado ainda.')
+      : 'Todos os realces estão ocultos da lista de WhatsApp — libere algum em Realce › editar.');
     return;
   }
   if(!configApp.whatsapp){
@@ -2131,7 +2135,7 @@ function abrirModalEscolherRealcesWhatsApp(){
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal-box">
         <p style="font-weight:700;">Escolher realces para o relatório</p>
-        <p class="hint">Marque os realces que devem entrar na mensagem do WhatsApp.</p>
+        <p class="hint">Marque os realces que devem entrar na mensagem do WhatsApp.${configApp.projetoAtivo ? ' Projeto: <b>' + configApp.projetoAtivo + '</b>.' : ''}</p>
         <div class="realce-whatsapp-lista">${linhas}</div>
         <div class="modal-actions">
           <button class="ghost" id="modal-cancelar">Cancelar</button>
