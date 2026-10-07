@@ -748,3 +748,45 @@ button .icon-svg{ stroke:currentColor; }
   }
   .modal-box p{ font-size:14px; line-height:1.5; margin:0 0 18px 0; color:var(--text); }
   .modal-actions{ display:flex; justify-content:flex-end; gap:8px; }
+
+
+/* ================= Estado de salvamento / modo consulta ================= */
+.status-salvamento{
+  position:fixed; bottom:10px; right:10px; z-index:1900;
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:12px; padding:5px 10px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--line); color:var(--muted);
+  box-shadow:0 2px 8px rgba(0,0,0,0.08); pointer-events:none;
+}
+.status-salvamento .status-ponto{ width:8px; height:8px; border-radius:50%; background:var(--moss); }
+.status-salvamento.salvando .status-ponto{ background:var(--steel); animation:pulsoSalvando 1s ease-in-out infinite; }
+.status-salvamento.erro{ border-color:var(--rust); color:var(--rust); font-weight:700; }
+.status-salvamento.erro .status-ponto{ background:var(--rust); }
+.status-salvamento.offline{ border-color:var(--rust); color:var(--rust); }
+.status-salvamento.offline .status-ponto{ background:var(--rust); }
+@keyframes pulsoSalvando{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+
+.alerta-falhas{
+  position:sticky; top:0; z-index:2000; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap;
+  background:var(--rust); color:#fff; padding:10px 16px; font-size:13px; font-weight:600; font-family:var(--sans);
+}
+.alerta-falhas button{
+  background:#fff; color:var(--rust); border:0; border-radius:5px; padding:8px 14px;
+  min-height:40px; font-weight:700; cursor:pointer;
+}
+.alerta-falhas button:disabled{ opacity:.7; cursor:wait; }
+
+/* Sem internet: campos e opções de edição ficam apagados e sem resposta ao toque */
+body.offline-leitura input:not(#f-busca):not(.livre-offline),
+body.offline-leitura select:not(#f-tipo):not(#f-situacao),
+body.offline-leitura textarea,
+body.offline-leitura label:has(input[type="checkbox"]){
+  opacity:.55;
+}
+body.offline-leitura input:not(#f-busca),
+body.offline-leitura select:not(#f-tipo):not(#f-situacao),
+body.offline-leitura textarea{ cursor:not-allowed; }
+
+@media (prefers-reduced-motion:reduce){
+  .status-salvamento.salvando .status-ponto{ animation:none; }
+}
