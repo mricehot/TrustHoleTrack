@@ -162,7 +162,7 @@ const SELETOR_LIVRE_OFFLINE = [
   '.toggle-leque', '.checklist-leque-codigo', '#modal-cancelar', '#modal-overlay',
   '[onclick*="toggleMenu"]', '[onclick*="toggleExpandir"]', '[onclick*="toggleLeque("]',
   '[onclick*="exportarLeque"]', '#btn-csv', '#btn-exportar-turno', '#btn-exportar-selecionados', '#btn-limpar-selecao',
-  '#btn-enviar-whatsapp', '#btn-enviar-foto-infografico-whatsapp',
+  '#btn-enviar-whatsapp', '#btn-enviar-foto-infografico-whatsapp', '#infografico-semana-ant', '#infografico-semana-prox', '#infografico-mes-ant', '#infografico-mes-prox',
   '#login-email', '#login-senha', '#btn-login'
 ].join(',');
 let ultimoAvisoOffline = 0;
@@ -528,7 +528,9 @@ async function executarEnvio(tabela, acao, registro, silencioso){
       const { id, ...resto } = registro;
       ({ error } = await db.from(tabela).update(resto).eq('id', id));
     }else if(acao === 'upsert'){
-      ({ error } = await db.from(tabela).upsert(registro));
+      ({ error } = tabela === 'produtividade_semanal'
+        ? await db.from(tabela).upsert(registro, { onConflict: 'semana_inicio,equipe_id' })
+        : await db.from(tabela).upsert(registro));
     }else if(acao === 'delete'){
       ({ error } = await db.from(tabela).delete().eq('id', registro.id));
     }
@@ -640,6 +642,13 @@ async function buscarTudo(tabela){
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   try{
+    // produtividade_semanal é tolerante: se a tabela ainda não foi criada no Supabase, não derruba o resto da sincronização
+    const eqResp = await buscarTudo('equipes');
+    const prodResp = await buscarTudo('produtividade_semanal');
+    if(!eqResp.error && !prodResp.error){
+      equipes = (eqResp.data || []).map(mapEquipe);
+      produtividadeSemanal = (prodResp.data || []).map(mapProdutividade);
+    }
     const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
       buscarTudo('aneis'),
       buscarTudo('leques'),
@@ -671,6 +680,8 @@ async function atualizarDoServidor(){
     salvarChecklistFurosLocal();
     salvarChecklistObsGeralLocal();
     salvarProjetosLocal();
+    salvarEquipesLocal();
+    salvarProdutividadeLocal();
     renderAll();
     renderObservacoesTurno();
     renderFotosTurno();
@@ -1760,6 +1771,15 @@ async function removerProjeto(id){
     : `Remover o projeto "${p.nome}"?`;
   if(!(await confirmDialog(aviso, 'Remover'))) return;
   projetos = projetos.filter(x=>x.id!==id);
+  // as equipes (e a produtividade lançada) do projeto saem junto
+  const equipesDoProj = equipes.filter(e=>e.projeto===p.nome);
+  if(equipesDoProj.length){
+    const ids = new Set(equipesDoProj.map(e=>e.id));
+    equipes = equipes.filter(e=>!ids.has(e.id));
+    produtividadeSemanal = produtividadeSemanal.filter(r=>!ids.has(r.equipeId));
+    equipesDoProj.forEach(e=> enfileirar('equipes', 'delete', { id: e.id }));
+    salvarEquipesLocal(); salvarProdutividadeLocal();
+  }
   enfileirar('projetos', 'delete', { id });
   salvarProjetosLocal();
   renderProjetosConfig();
@@ -2135,7 +2155,54 @@ function montarRelatorioChecklistParaWhatsApp(idsRealces){
   msg += `${new Date().toLocaleString('pt-BR')}\n`;
   msg += `${idsRealces.length} realce${idsRealces.length>1?'s':''}\n\n`;
   msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n----------\n\n');
+  msg += '\n\n==========\n\n' + montarBlocoProdutividadeSemanalWhatsApp();
+  msg += '\n\n----------\n\n' + montarBlocoProdutividadeMensalWhatsApp();
   return msg.trim();
+}
+
+// Rodape do relatorio: produtividade da SEMANA ATUAL por equipe, com os nomes
+// dos integrantes. Texto so em ASCII (sem acentos), como o resto da mensagem.
+function montarBlocoProdutividadeSemanalWhatsApp(){
+  const inicio = inicioDaSemana(new Date());
+  const fim = new Date(inicio); fim.setDate(fim.getDate() + 6);
+  const semana = dataISOLocal(inicio);
+  const projeto = configApp.projetoAtivo || '';
+  const dd = d => String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
+  const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
+  const semAcento = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const lista = equipesDoProjeto();
+  let out = `*PRODUTIVIDADE SEMANAL*\n${dd(inicio)} a ${dd(fim)}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
+  if(lista.length === 0) return out + 'Nenhuma equipe cadastrada neste projeto.';
+  let totM = 0, totP = 0;
+  out += lista.map(e=>{
+    const r = registroProdutividade(semana, e.id) || {};
+    const m = r.metros || 0, p = r.pontos || 0;
+    totM += m; totP += p;
+    const dados = (r.metros == null && r.pontos == null) ? 'sem lancamento' : `${num(m)} m perfilados | ${plural(p, 'ponto topografado', 'pontos topografados')}`;
+    return `*${semAcento(e.nome)}*${e.integrantes ? ' (' + semAcento(e.integrantes) + ')' : ''}\n${dados}`;
+  }).join('\n\n');
+  out += `\n\n*Total da semana:* ${num(totM)} m perfilados | ${plural(totP, 'ponto topografado', 'pontos topografados')}`;
+  return out;
+}
+
+function montarBlocoProdutividadeMensalWhatsApp(){
+  const chave = chaveMesComOffset(0);
+  const semAcento = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
+  const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
+  const { lista, porEquipe, semanas } = calcularProdutividadeMensal(chave);
+  const projeto = configApp.projetoAtivo || '';
+  let out = `*PRODUTIVIDADE MENSAL*\n${semAcento(nomeMesDaChave(chave))}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
+  if(lista.length === 0) return out + 'Nenhuma equipe cadastrada neste projeto.';
+  let totM = 0, totP = 0;
+  out += lista.map(e=>{
+    const d = porEquipe[e.id]; totM += d.metros; totP += d.pontos;
+    return `*${semAcento(e.nome)}*${e.integrantes ? ' (' + semAcento(e.integrantes) + ')' : ''}\n${num(d.metros)} m perfilados | ${plural(d.pontos, 'ponto topografado', 'pontos topografados')}`;
+  }).join('\n\n');
+  out += `\n\n*Total do mes:* ${num(totM)} m perfilados | ${plural(totP, 'ponto topografado', 'pontos topografados')}`;
+  out += `\n(${semanas.length} ${semanas.length === 1 ? 'semana somada' : 'semanas somadas'})`;
+  return out;
 }
 
 function enviarRelatorioWhatsApp(idsRealces){
@@ -4023,6 +4090,353 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   }
 }
 
+// ---------- Equipes por projeto ----------
+// Cada projeto tem as suas equipes (nome + integrantes), cadastradas pelo próprio
+// app. A produtividade é lançada por equipe, então fica separada por projeto.
+// Escopo "sem projeto" (nenhum projeto ativo) = chave '' — vale como um grupo "Geral".
+const EQUIPES_LOCAL_KEY = 'perfilagem-equipes-v1';
+const PRODUTIVIDADE_LOCAL_KEY = 'perfilagem-produtividade-semanal-v2';
+let equipes = [];               // { id, projeto, nome, integrantes, ordem }
+let produtividadeSemanal = [];  // { id, semana, equipeId, metros, pontos }
+let infoSemanaOffset = 0;       // 0 = semana atual, -1 = semana passada...
+
+function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0 }; }
+function mapProdutividade(row){ return { id: row.id, semana: row.semana_inicio, equipeId: row.equipe_id, metros: row.metros_perfilados != null ? Number(row.metros_perfilados) : null, pontos: row.pontos_topografados != null ? Number(row.pontos_topografados) : null }; }
+function carregarEquipesLocal(){
+  try{ equipes = JSON.parse(localStorage.getItem(EQUIPES_LOCAL_KEY) || '[]'); }catch(e){ equipes = []; }
+  try{ produtividadeSemanal = JSON.parse(localStorage.getItem(PRODUTIVIDADE_LOCAL_KEY) || '[]'); }catch(e){ produtividadeSemanal = []; }
+}
+function salvarEquipesLocal(){
+  try{ localStorage.setItem(EQUIPES_LOCAL_KEY, JSON.stringify(equipes)); }catch(e){}
+}
+function salvarProdutividadeLocal(){
+  try{ localStorage.setItem(PRODUTIVIDADE_LOCAL_KEY, JSON.stringify(produtividadeSemanal)); }catch(e){}
+}
+carregarEquipesLocal();
+
+function projetoDoEscopo(){ return configApp.projetoAtivo || ''; }
+function equipesDoProjeto(projeto){
+  const p = projeto == null ? projetoDoEscopo() : projeto;
+  return equipes.filter(e=> e.projeto === p).sort((x,y)=> (x.ordem - y.ordem) || x.nome.localeCompare(y.nome, 'pt-BR'));
+}
+function nomeEscopoEquipes(){ return projetoDoEscopo() || 'Geral (sem projeto)'; }
+function escHtml(t){ return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function criarEquipe(projeto, nome, integrantes){
+  const ordem = equipesDoProjeto(projeto).reduce((m,e)=> Math.max(m, e.ordem), 0) + 1;
+  const e = { id: uuidv4(), projeto, nome, integrantes, ordem };
+  equipes.push(e);
+  enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem });
+  return e;
+}
+
+function dataISOLocal(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function intervaloSemanaInfografico(){
+  const inicio = inicioDaSemana(new Date()); // segunda-feira
+  inicio.setDate(inicio.getDate() + infoSemanaOffset * 7);
+  const fim = new Date(inicio); fim.setDate(fim.getDate() + 6); // domingo
+  return { inicio, fim, semana: dataISOLocal(inicio) };
+}
+function registroProdutividade(semana, equipeId){
+  return produtividadeSemanal.find(r=> r.semana === semana && r.equipeId === equipeId);
+}
+function lancarProdutividade(equipeId, campo, valorTexto){
+  const { semana } = intervaloSemanaInfografico();
+  const limpo = String(valorTexto).trim().replace(',', '.');
+  let num = limpo === '' ? null : parseFloat(limpo);
+  if(num !== null && (isNaN(num) || num < 0)){ showToast('Digite um número válido (0 ou mais).'); renderProdutividadeEquipes(); return; }
+  if(campo === 'pontos' && num !== null) num = Math.round(num);
+  let r = registroProdutividade(semana, equipeId);
+  if(!r){
+    r = { id: uuidv4(), semana, equipeId, metros: null, pontos: null };
+    produtividadeSemanal.push(r);
+  }
+  r[campo] = num;
+  salvarProdutividadeLocal();
+  enfileirar('produtividade_semanal', 'upsert', {
+    id: r.id, semana_inicio: r.semana, equipe_id: r.equipeId,
+    metros_perfilados: r.metros, pontos_topografados: r.pontos
+  });
+  atualizarBarrasEResumoProdutividade();
+}
+// Soma um valor ao que já está lançado (ex.: +45 m no fim de um turno).
+function somarProdutividade(equipeId, campo, valorTexto){
+  const limpo = String(valorTexto).trim().replace(',', '.');
+  let add = parseFloat(limpo);
+  if(limpo === '' || isNaN(add) || add <= 0){ showToast('Digite quanto somar (maior que 0).'); return; }
+  if(campo === 'pontos') add = Math.round(add);
+  const { semana } = intervaloSemanaInfografico();
+  const r = registroProdutividade(semana, equipeId);
+  const antes = r && r[campo] != null ? r[campo] : null;
+  const total = Math.round(((antes || 0) + add) * 100) / 100;
+  lancarProdutividade(equipeId, campo, String(total));
+  renderProdutividadeEquipes();
+  const eq = equipes.find(e=>e.id===equipeId);
+  const unidade = campo === 'metros' ? 'm' : (add === 1 ? 'ponto' : 'pontos');
+  const fmtV = v => String(v).replace('.', ',');
+  showToast(`+${fmtV(add)} ${unidade} em ${eq ? eq.nome : 'equipe'} (total ${fmtV(total)})`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=>{ lancarProdutividade(equipeId, campo, antes == null ? '' : String(antes)); renderProdutividadeEquipes(); }
+  });
+}
+function somarDoCampo(botao){
+  const wrap = botao.closest('.equipe-soma');
+  somarProdutividade(wrap.dataset.equipe, wrap.dataset.campo, wrap.querySelector('input').value);
+}
+function mudarSemanaInfografico(delta){
+  infoSemanaOffset = Math.min(0, infoSemanaOffset + delta); // não deixa ir pro futuro
+  renderInfografico();
+}
+const fmtPontos = n => n + (n === 1 ? ' ponto' : ' pontos');
+
+// Atualiza só barras/total (sem recriar os campos — não tira o foco de quem está digitando).
+function atualizarBarrasEResumoProdutividade(){
+  const { semana } = intervaloSemanaInfografico();
+  const dados = equipesDoProjeto().map(e=>{ const r = registroProdutividade(semana, e.id); return { id: e.id, m: r && r.metros || 0, p: r && r.pontos || 0 }; });
+  const maxM = Math.max(1, ...dados.map(d=>d.m)), maxP = Math.max(1, ...dados.map(d=>d.p));
+  const lider = dados.reduce((best,d)=> d.m > (best ? best.m : 0) ? d : best, null);
+  dados.forEach(d=>{
+    const bm = document.getElementById('barra-metros-' + d.id), bp = document.getElementById('barra-pontos-' + d.id), tag = document.getElementById('lider-' + d.id);
+    if(bm) bm.style.width = (d.m / maxM * 100) + '%';
+    if(bp) bp.style.width = (d.p / maxP * 100) + '%';
+    if(tag) tag.style.display = lider && lider.id === d.id && d.m > 0 ? 'inline' : 'none';
+  });
+  const totM = dados.reduce((a,d)=>a+d.m,0), totP = dados.reduce((a,d)=>a+d.p,0);
+  el('infografico-equipes-total').innerHTML = dados.length ? `Total da semana: <b>${fmt1(totM).replace('.', ',')} m</b> perfilados · <b>${fmtPontos(totP)}</b> topografados` : '';
+  renderProdutividadeMensal();
+}
+
+// Mensagem quando o projeto ainda não tem equipes.
+function htmlSemEquipes(){
+  return `<div class="equipe-vazio-box">
+    <div>O escopo <b>${escHtml(nomeEscopoEquipes())}</b> ainda não tem equipes cadastradas.</div>
+    <div class="equipe-vazio-acoes">
+      <button type="button" class="steel" onclick="abrirModalEquipes()">+ Cadastrar equipes</button>
+      <button type="button" class="ghost" onclick="criarEquipesPadrao()">Criar A–E padrão</button>
+    </div></div>`;
+}
+function criarEquipesPadrao(){
+  const projeto = projetoDoEscopo();
+  if(equipesDoProjeto(projeto).length > 0) return;
+  Object.keys(TECNICOS_POR_LETRA).forEach(l=> criarEquipe(projeto, 'Equipe ' + l, TECNICOS_POR_LETRA[l]));
+  salvarEquipesLocal();
+  showToast('Equipes A–E criadas. Edite os nomes e integrantes em "Gerenciar equipes".');
+  renderInfografico();
+}
+
+function renderProdutividadeEquipes(){
+  const box = el('infografico-equipes');
+  if(!box) return;
+  const escopoTag = el('infografico-equipes-escopo');
+  if(escopoTag) escopoTag.textContent = nomeEscopoEquipes();
+  const { inicio, fim, semana } = intervaloSemanaInfografico();
+  const f2 = d => String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+  el('infografico-semana-label').textContent = (infoSemanaOffset === 0 ? 'Esta semana' : infoSemanaOffset === -1 ? 'Semana passada' : `${-infoSemanaOffset} semanas atrás`) + ` · ${f2(inicio)} a ${f2(fim)}`;
+  el('infografico-semana-prox').disabled = infoSemanaOffset >= 0;
+  const lista = equipesDoProjeto();
+  if(lista.length === 0){ box.innerHTML = htmlSemEquipes(); atualizarBarrasEResumoProdutividade(); return; }
+  const valorInput = v => v == null ? '' : String(v).replace('.', ',');
+  box.innerHTML = lista.map(e=>{
+    const r = registroProdutividade(semana, e.id) || {};
+    return `
+      <div class="equipe-linha">
+        <div class="equipe-topo">
+          <span class="equipe-nome">${escHtml(e.nome)} <span class="equipe-lider" id="lider-${e.id}" style="display:none;">▲ mais metros</span></span>
+          <span class="equipe-tecnicos">${escHtml(e.integrantes)}</span>
+        </div>
+        <div class="equipe-metrica">
+          <span class="equipe-rotulo">Perfilado</span>
+          <div class="equipe-trilho"><div class="equipe-barra equipe-barra-amber" id="barra-metros-${e.id}"></div></div>
+          <span class="equipe-campo"><input type="text" inputmode="decimal" placeholder="0" value="${valorInput(r.metros)}" aria-label="Metros perfilados de ${escHtml(e.nome)}" onchange="lancarProdutividade('${e.id}','metros',this.value)"><small>m</small></span>
+        </div>
+        <div class="equipe-soma" data-equipe="${e.id}" data-campo="metros">
+          <input type="text" inputmode="decimal" placeholder="+ metros" aria-label="Somar metros em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
+          <button type="button" class="steel" onclick="somarDoCampo(this)">+ Somar</button>
+        </div>
+        <div class="equipe-metrica">
+          <span class="equipe-rotulo">Topografado</span>
+          <div class="equipe-trilho"><div class="equipe-barra equipe-barra-steel" id="barra-pontos-${e.id}"></div></div>
+          <span class="equipe-campo"><input type="text" inputmode="numeric" placeholder="0" value="${valorInput(r.pontos)}" aria-label="Pontos topografados de ${escHtml(e.nome)}" onchange="lancarProdutividade('${e.id}','pontos',this.value)"><small>pontos</small></span>
+        </div>
+        <div class="equipe-soma" data-equipe="${e.id}" data-campo="pontos">
+          <input type="text" inputmode="numeric" placeholder="+ pontos" aria-label="Somar pontos em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
+          <button type="button" class="steel" onclick="somarDoCampo(this)">+ Somar</button>
+        </div>
+      </div>`;
+  }).join('');
+  atualizarBarrasEResumoProdutividade();
+}
+
+// ---------- Produtividade mensal por equipe ----------
+// Soma das semanas lançadas. Uma semana (segunda a domingo) pode ficar entre dois
+// meses; ela conta no mês em que cai a MAIORIA dos dias — o mês da quinta-feira.
+let infoMesOffset = 0; // 0 = mês atual, -1 = mês passado...
+const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function chaveMesDaSemana(semanaISO){
+  const [a,m,d] = semanaISO.split('-').map(Number);
+  const quinta = new Date(a, m-1, d + 3);
+  return quinta.getFullYear() + '-' + String(quinta.getMonth()+1).padStart(2,'0');
+}
+function chaveMesComOffset(offset){
+  const hoje = new Date();
+  const d = new Date(hoje.getFullYear(), hoje.getMonth() + offset, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function nomeMesDaChave(chave){
+  const [a,m] = chave.split('-').map(Number);
+  return NOMES_MESES[m-1] + '/' + a;
+}
+function calcularProdutividadeMensal(chaveMes){
+  const lista = equipesDoProjeto();
+  const porEquipe = {}; lista.forEach(e=> porEquipe[e.id] = { metros: 0, pontos: 0 });
+  const semanas = new Set();
+  produtividadeSemanal.forEach(r=>{
+    if(!porEquipe[r.equipeId] || chaveMesDaSemana(r.semana) !== chaveMes) return;
+    if(r.metros == null && r.pontos == null) return;
+    porEquipe[r.equipeId].metros += r.metros || 0;
+    porEquipe[r.equipeId].pontos += r.pontos || 0;
+    semanas.add(r.semana);
+  });
+  return { lista, porEquipe, semanas: Array.from(semanas).sort() };
+}
+function mudarMesInfografico(delta){
+  infoMesOffset = Math.min(0, infoMesOffset + delta);
+  renderProdutividadeMensal();
+}
+function renderProdutividadeMensal(){
+  const box = el('infografico-equipes-mes');
+  if(!box) return;
+  const chave = chaveMesComOffset(infoMesOffset);
+  el('infografico-mes-label').textContent = nomeMesDaChave(chave) + (infoMesOffset === 0 ? ' · mês atual' : '');
+  el('infografico-mes-prox').disabled = infoMesOffset >= 0;
+  const { lista, porEquipe, semanas } = calcularProdutividadeMensal(chave);
+  if(lista.length === 0){ box.innerHTML = ''; el('infografico-equipes-mes-total').innerHTML = ''; return; }
+  const maxM = Math.max(1, ...lista.map(e=>porEquipe[e.id].metros)), maxP = Math.max(1, ...lista.map(e=>porEquipe[e.id].pontos));
+  const lider = lista.reduce((best,e)=> porEquipe[e.id].metros > (best ? porEquipe[best.id].metros : 0) ? e : best, null);
+  const fm = n => fmt1(n).replace('.', ',');
+  box.innerHTML = lista.map(e=>{
+    const d = porEquipe[e.id];
+    return `
+      <div class="equipe-linha${d.metros === 0 && d.pontos === 0 ? ' equipe-vazia' : ''}">
+        <div class="equipe-topo">
+          <span class="equipe-nome">${escHtml(e.nome)}${lider && e.id === lider.id && d.metros > 0 ? ' <span class="equipe-lider">▲ mais metros</span>' : ''}</span>
+          <span class="equipe-tecnicos">${escHtml(e.integrantes)}</span>
+        </div>
+        <div class="equipe-metrica">
+          <span class="equipe-rotulo">Perfilado</span>
+          <div class="equipe-trilho"><div class="equipe-barra equipe-barra-amber" style="width:${d.metros / maxM * 100}%"></div></div>
+          <span class="equipe-valor">${fm(d.metros)} m</span>
+        </div>
+        <div class="equipe-metrica">
+          <span class="equipe-rotulo">Topografado</span>
+          <div class="equipe-trilho"><div class="equipe-barra equipe-barra-steel" style="width:${d.pontos / maxP * 100}%"></div></div>
+          <span class="equipe-valor">${fmtPontos(d.pontos)}</span>
+        </div>
+      </div>`;
+  }).join('');
+  const totM = lista.reduce((a,e)=>a+porEquipe[e.id].metros,0), totP = lista.reduce((a,e)=>a+porEquipe[e.id].pontos,0);
+  const ddmm = iso => iso.slice(8,10) + '/' + iso.slice(5,7);
+  el('infografico-equipes-mes-total').innerHTML = `Total do mês: <b>${fm(totM)} m</b> perfilados · <b>${fmtPontos(totP)}</b> topografados`
+    + `<br><span class="equipe-semanas-lista">${semanas.length ? 'Semanas somadas (início na segunda): ' + semanas.map(ddmm).join(', ') : 'Nenhuma semana lançada neste mês.'}</span>`;
+}
+
+// ---------- Gerenciar equipes (adicionar / editar / apagar) ----------
+function abrirModalEquipes(){
+  const root = el('modal-root');
+  const projeto = projetoDoEscopo();
+  const lista = equipesDoProjeto(projeto);
+  const linhas = lista.map(e=>`
+    <div class="equipe-edit-item" data-id="${e.id}">
+      <div class="field"><label>Nome da equipe</label><input type="text" class="eq-nome" value="${escHtml(e.nome)}" maxlength="40"></div>
+      <div class="field"><label>Integrantes</label><input type="text" class="eq-integrantes" value="${escHtml(e.integrantes)}" maxlength="120" placeholder="ex.: João / Maria"></div>
+      <button type="button" class="ghost perigo eq-apagar" data-id="${e.id}">Apagar equipe</button>
+    </div>`).join('');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box modal-box-larga">
+        <p style="font-weight:700;">Equipes do projeto: ${escHtml(nomeEscopoEquipes())}</p>
+        <p class="hint">Cada projeto tem as suas equipes. Alterar o nome ou os integrantes vale para a produtividade já lançada.</p>
+        <div class="equipe-edit-lista">${linhas || '<div class="hint">Nenhuma equipe ainda — adicione abaixo.</div>'}</div>
+        <div class="equipe-edit-item equipe-edit-nova">
+          <div class="field"><label>Nova equipe — nome</label><input type="text" id="eq-novo-nome" maxlength="40" placeholder="ex.: Equipe F"></div>
+          <div class="field"><label>Integrantes</label><input type="text" id="eq-novo-integrantes" maxlength="120" placeholder="ex.: João / Maria"></div>
+          <button type="button" class="steel" id="eq-adicionar">+ Adicionar equipe</button>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost" id="modal-cancelar">Cancelar</button>
+          <button class="steel" id="modal-salvar-equipes">Salvar</button>
+        </div>
+      </div>
+    </div>`;
+  const fechar = ()=>{ root.innerHTML = ''; renderInfografico(); };
+  el('modal-cancelar').addEventListener('click', fechar);
+  el('modal-overlay').addEventListener('click', (ev)=>{ if(ev.target.id === 'modal-overlay') fechar(); });
+
+  // Salva nome/integrantes editados de todas as equipes listadas.
+  const salvarEdicoes = ()=>{
+    let alterou = false;
+    root.querySelectorAll('.equipe-edit-lista .equipe-edit-item').forEach(item=>{
+      const e = equipes.find(x=>x.id === item.dataset.id);
+      if(!e) return;
+      const nome = item.querySelector('.eq-nome').value.trim();
+      const integrantes = item.querySelector('.eq-integrantes').value.trim();
+      if(!nome) return; // nome vazio: mantém o anterior
+      if(nome !== e.nome || integrantes !== e.integrantes){
+        e.nome = nome; e.integrantes = integrantes; alterou = true;
+        enfileirar('equipes', 'update', { id: e.id, nome: e.nome, integrantes: e.integrantes });
+      }
+    });
+    if(alterou) salvarEquipesLocal();
+    return alterou;
+  };
+  const adicionarDaLinhaNova = ()=>{
+    const nome = el('eq-novo-nome').value.trim();
+    if(!nome) return false;
+    if(equipesDoProjeto(projeto).some(e=> e.nome.toLowerCase() === nome.toLowerCase())){ showToast('Já existe uma equipe com esse nome neste projeto.'); return null; }
+    criarEquipe(projeto, nome, el('eq-novo-integrantes').value.trim());
+    salvarEquipesLocal();
+    return true;
+  };
+  el('eq-adicionar').addEventListener('click', ()=>{
+    salvarEdicoes();
+    if(!el('eq-novo-nome').value.trim()){ showToast('Digite o nome da nova equipe.'); return; }
+    const r = adicionarDaLinhaNova();
+    if(r){ showToast('Equipe adicionada.'); abrirModalEquipes(); }
+  });
+  el('modal-salvar-equipes').addEventListener('click', ()=>{
+    salvarEdicoes();
+    if(el('eq-novo-nome').value.trim()){ const r = adicionarDaLinhaNova(); if(r === null) return; }
+    showToast('Equipes salvas.');
+    fechar();
+  });
+  root.querySelectorAll('.eq-apagar').forEach(btn=> btn.addEventListener('click', async ()=>{
+    salvarEdicoes();
+    const e = equipes.find(x=>x.id === btn.dataset.id);
+    if(!e) return;
+    const qtd = produtividadeSemanal.filter(r=>r.equipeId === e.id).length;
+    const msg = `Apagar "${e.nome}"?` + (qtd > 0 ? ` Os ${qtd} lançamento(s) semanais dela também serão apagados.` : '');
+    if(!(await confirmDialog(msg, 'Apagar'))){ abrirModalEquipes(); return; }
+    const lancamentos = produtividadeSemanal.filter(r=>r.equipeId === e.id);
+    equipes = equipes.filter(x=>x.id !== e.id);
+    produtividadeSemanal = produtividadeSemanal.filter(r=>r.equipeId !== e.id);
+    enfileirar('equipes', 'delete', { id: e.id }); // no servidor, os lançamentos saem em cascata
+    salvarEquipesLocal(); salvarProdutividadeLocal();
+    abrirModalEquipes();
+    showToast('Equipe apagada.', { acaoLabel: 'Desfazer', onAcao: ()=>{
+      if(equipes.some(x=>x.id === e.id)) return;
+      equipes.push(e);
+      enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem });
+      lancamentos.forEach(r=>{
+        produtividadeSemanal.push(r);
+        enfileirar('produtividade_semanal', 'upsert', { id: r.id, semana_inicio: r.semana, equipe_id: r.equipeId, metros_perfilados: r.metros, pontos_topografados: r.pontos });
+      });
+      salvarEquipesLocal(); salvarProdutividadeLocal();
+      renderInfografico();
+      showToast('Equipe restaurada.');
+    }});
+  }));
+}
+
 function renderInfografico(){
   const svg = el('infografico-chart-dia');
   if(!svg) return; // view ainda não foi montada na tela
@@ -4030,6 +4444,7 @@ function renderInfografico(){
   const tagEscopo = el('infografico-escopo-tag');
   if(tagEscopo) tagEscopo.textContent = configApp.projetoAtivo ? `projeto: ${configApp.projetoAtivo}` : 'todos os projetos';
 
+  renderProdutividadeEquipes();
   const stats = calcularEstatisticasInfografico();
 
   el('infografico-metros-hoje').innerHTML = `${fmt1(stats.metrosHoje)}<span class="unidade">m</span>`;
@@ -4212,3 +4627,10 @@ db.auth.onAuthStateChange((evento, session)=>{
 });
 
 verificarSessaoInicial();
+
+document.addEventListener('click', (e)=>{
+  const t = e.target && e.target.closest ? e.target.closest('#infografico-semana-ant, #infografico-semana-prox, #infografico-mes-ant, #infografico-mes-prox') : null;
+  if(!t) return;
+  if(t.id.startsWith('infografico-mes')) mudarMesInfografico(t.id === 'infografico-mes-ant' ? -1 : 1);
+  else mudarSemanaInfografico(t.id === 'infografico-semana-ant' ? -1 : 1);
+});
