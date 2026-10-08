@@ -1062,3 +1062,85 @@ body[data-view]:not([data-view="perfilagem"]) #breadcrumb{ display:none; }
 .ck-acoes-lote .ghost{ color:#fff; border-color:rgba(255,255,255,.55); background:transparent; }
 .ck-acoes-lote button:disabled{ opacity:.45; cursor:not-allowed; }
 .ck-acoes-lote .ghost:hover, .ck-acoes-lote .ghost:focus, .ck-acoes-lote .ghost:active{ background:rgba(255,255,255,.14); color:#fff; filter:none; }
+
+/* ===== Prioridade média (itens 7–12) ===== */
+
+/* 7 — ajuda recolhível "?" */
+.ajuda{ display:inline-block; }
+.ajuda > summary{
+  list-style:none; cursor:pointer; width:28px; height:28px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--muted);
+  font-weight:700; font-size:14px; user-select:none;
+}
+.ajuda > summary::-webkit-details-marker{ display:none; }
+.ajuda[open] > summary{ color:var(--text); border-color:var(--steel); }
+.ajuda[open]{ display:block; }
+.ajuda[open] > .hint{ margin-top:8px; }
+.ck-form-topo{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.ck-form-topo .ajuda[open]{ flex-basis:100%; order:3; }
+.ck-form-titulo{ font-size:13px; font-weight:700; }
+
+/* 8 — formulário de adicionar leque em duas linhas, botão sempre visível */
+.ck-form-linha1{ display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:8px; }
+.ck-form-linha2{ display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,.8fr) minmax(0,2.2fr); gap:8px; margin-top:8px; }
+.ck-form-linha1 .field, .ck-form-linha2 .field{ margin:0; min-width:0; }
+.ck-form-linha1 label, .ck-form-linha2 label{ font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ck-form-acao{
+  position:sticky; bottom:calc(64px + env(safe-area-inset-bottom)); z-index:5;
+  margin-top:10px; padding:8px 0; background:linear-gradient(to top, var(--surface) 75%, transparent);
+}
+.ck-form-acao button{ width:100%; min-height:46px; }
+@media (min-width:701px){ .ck-form-acao{ position:static; background:none; padding:0; } .ck-form-acao button{ width:auto; } }
+
+/* 9 — selos acessíveis (formato + ícone, não só cor) */
+.ck-obstr{
+  background:repeating-linear-gradient(135deg, rgba(179,38,30,.16) 0 4px, rgba(179,38,30,.04) 4px 8px);
+  border-width:2px; border-radius:6px;
+}
+.ck-prog-linha .num{ width:42px; }
+
+/* 10 — infográfico: KPIs 4 (2×2 no celular), setas e rótulos do gráfico */
+.infografico-kpis{ grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.infografico-kpi{ padding:12px 12px; }
+.infografico-kpi .valor{ font-size:22px; }
+.kpi-vs{ margin-top:6px; font-size:11px; font-weight:700; font-family:var(--sans); }
+.kpi-vs:empty{ display:none; }
+.kpi-vs.subiu{ color:var(--moss); }
+.kpi-vs.desceu{ color:#b3261e; }
+.kpi-vs.igual{ color:var(--muted); }
+@media (max-width:640px){
+  .infografico-kpis{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .infografico-kpi .valor{ font-size:24px; }
+}
+.chart-eixo-x{ font-size:11px; gap:0; }
+.chart-eixo-x span{ flex:1 1 0; min-width:0; text-align:center; display:flex; flex-direction:column; align-items:center; line-height:1.25; }
+.chart-eixo-x span b{ font-size:11.5px; color:var(--text); font-weight:700; }
+.chart-eixo-x span.oculto{ visibility:hidden; }
+@media (max-width:640px){ .chart-eixo-x span:nth-child(odd):not(:last-child){ } .chart-eixo-x{ font-size:10.5px; } }
+
+/* 11 — produtividade por equipe: total + "+" + botão na mesma linha */
+.equipe-bloco{ margin-top:8px; }
+.equipe-bloco-topo{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:4px; }
+.equipe-meta-txt{ font-family:var(--mono); font-size:12px; color:var(--muted); }
+.equipe-meta-txt b{ color:var(--text); }
+.equipe-meta-txt .sem-meta{ opacity:.8; }
+.equipe-barra.meta-batida{ background:var(--moss); }
+.equipe-bloco .equipe-soma{ display:flex; align-items:center; justify-content:flex-start; gap:8px; margin:8px 0 0; }
+.equipe-bloco .equipe-campo{ min-width:0; flex:1 1 0; justify-content:flex-start; }
+.equipe-bloco .equipe-campo input{ width:100%; min-width:0; text-align:right; }
+.equipe-bloco .equipe-soma .inp-somar{ flex:1 1 0; min-width:0; width:auto; }
+.equipe-bloco .equipe-soma .btn-somar{ flex:0 0 auto; min-width:44px; min-height:40px; padding:0 12px; font-size:18px; line-height:1; }
+
+/* 12 — avisos: no topo, nunca cobrindo botões de baixo; erros ficam até o OK */
+.toast{
+  top:calc(8px + env(safe-area-inset-top)); bottom:auto !important; z-index:2500;
+  box-shadow:0 6px 22px rgba(0,0,0,.28);
+}
+.toast.erro{ border-color:#b3261e; border-width:2px; background:var(--surface); }
+.toast.erro > span::before{ content:'⚠ '; }
+.toast .toast-ok{ background:#b3261e; }
+.titulo-ajuda{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.titulo-ajuda .ajuda[open]{ flex-basis:100%; }
+.titulo-ajuda .ajuda > summary{ width:24px; height:24px; font-size:12px; }
+.toast{ width:max-content; max-width:calc(100vw - 24px); }
