@@ -528,9 +528,7 @@ async function executarEnvio(tabela, acao, registro, silencioso){
       const { id, ...resto } = registro;
       ({ error } = await db.from(tabela).update(resto).eq('id', id));
     }else if(acao === 'upsert'){
-      ({ error } = tabela === 'produtividade_semanal'
-        ? await db.from(tabela).upsert(registro, { onConflict: 'semana_inicio,equipe_id' })
-        : await db.from(tabela).upsert(registro));
+      ({ error } = await db.from(tabela).upsert(registro));
     }else if(acao === 'delete'){
       ({ error } = await db.from(tabela).delete().eq('id', registro.id));
     }
@@ -642,12 +640,12 @@ async function buscarTudo(tabela){
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   try{
-    // produtividade_semanal é tolerante: se a tabela ainda não foi criada no Supabase, não derruba o resto da sincronização
+    // produtividade_lancamentos é tolerante: se a tabela ainda não foi criada no Supabase, não derruba o resto da sincronização
     const eqResp = await buscarTudo('equipes');
-    const prodResp = await buscarTudo('produtividade_semanal');
+    const prodResp = await buscarTudo('produtividade_lancamentos');
     if(!eqResp.error && !prodResp.error){
       equipes = (eqResp.data || []).map(mapEquipe);
-      produtividadeSemanal = (prodResp.data || []).map(mapProdutividade);
+      lancamentosProd = (prodResp.data || []).map(mapLancamento);
     }
     const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
       buscarTudo('aneis'),
@@ -1776,7 +1774,7 @@ async function removerProjeto(id){
   if(equipesDoProj.length){
     const ids = new Set(equipesDoProj.map(e=>e.id));
     equipes = equipes.filter(e=>!ids.has(e.id));
-    produtividadeSemanal = produtividadeSemanal.filter(r=>!ids.has(r.equipeId));
+    lancamentosProd = lancamentosProd.filter(r=>!ids.has(r.equipeId));
     equipesDoProj.forEach(e=> enfileirar('equipes', 'delete', { id: e.id }));
     salvarEquipesLocal(); salvarProdutividadeLocal();
   }
@@ -2120,11 +2118,13 @@ function montarBlocoRealceParaWhatsApp(anelId){
   if(itens.length > 0){
     bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
     bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) - ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
-    if(codigosPerfilados.length) bloco += `[PERFILADOS] ${codigosPerfilados.join(', ')}\n`;
-    if(codigosPendentes.length) bloco += `[PENDENTES] ${codigosPendentes.join(', ')}\n`;
+    // Cada intervalo (ou leque avulso) vai numa linha própria, pra ler de relance.
+    const lista = (rotulo, codigos)=> codigos.length ? `[${rotulo}]\n${codigos.join('\n')}\n` : '';
+    bloco += lista('PERFILADOS', codigosPerfilados);
+    bloco += lista('PENDENTES', codigosPendentes);
     bloco += `\n`;
-    if(codigosTopografados.length) bloco += `[TOPOGRAFADOS] ${codigosTopografados.join(', ')}\n`;
-    if(codigosPendentesTopografia.length) bloco += `[PENDENTES TOPOGRAFIA] ${codigosPendentesTopografia.join(', ')}`;
+    bloco += lista('TOPOGRAFADOS', codigosTopografados);
+    bloco += lista('PENDENTES TOPOGRAFIA', codigosPendentesTopografia);
     bloco = bloco.trim();
   }
 
@@ -2143,7 +2143,6 @@ function montarBlocoRealceParaWhatsApp(anelId){
     bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
   }
 
-  return bloco.trim();
   return bloco.trim();
 }
 
@@ -2176,10 +2175,10 @@ function montarBlocoProdutividadeSemanalWhatsApp(){
   if(lista.length === 0) return out + 'Nenhuma equipe cadastrada neste projeto.';
   let totM = 0, totP = 0;
   out += lista.map(e=>{
-    const r = registroProdutividade(semana, e.id) || {};
-    const m = r.metros || 0, p = r.pontos || 0;
+    const r = somaLancamentos(e.id, dataISOLocal(inicio), dataISOLocal(fim));
+    const m = r.metros, p = r.pontos;
     totM += m; totP += p;
-    const dados = (r.metros == null && r.pontos == null) ? 'sem lancamento' : `${num(m)} m perfilados | ${plural(p, 'ponto topografado', 'pontos topografados')}`;
+    const dados = (r.qtd === 0) ? 'sem lancamento' : `${num(m)} m perfilados | ${plural(p, 'ponto topografado', 'pontos topografados')}`;
     return `*${semAcento(e.nome)}*${e.integrantes ? ' (' + semAcento(e.integrantes) + ')' : ''}\n${dados}`;
   }).join('\n\n');
   out += `\n\n*Total da semana:* ${num(totM)} m perfilados | ${plural(totP, 'ponto topografado', 'pontos topografados')}`;
@@ -2201,7 +2200,7 @@ function montarBlocoProdutividadeMensalWhatsApp(){
     return `*${semAcento(e.nome)}*${e.integrantes ? ' (' + semAcento(e.integrantes) + ')' : ''}\n${num(d.metros)} m perfilados | ${plural(d.pontos, 'ponto topografado', 'pontos topografados')}`;
   }).join('\n\n');
   out += `\n\n*Total do mes:* ${num(totM)} m perfilados | ${plural(totP, 'ponto topografado', 'pontos topografados')}`;
-  out += `\n(${semanas.length} ${semanas.length === 1 ? 'semana somada' : 'semanas somadas'})`;
+  out += `\n(${semanas.length} ${semanas.length === 1 ? 'dia com lancamento' : 'dias com lancamento'})`;
   return out;
 }
 
@@ -4003,18 +4002,21 @@ function calcularEstatisticasInfografico(){
   const porDia = {}; // chaveDia -> soma de metros perfilados
   const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
 
+  const iniSemanaISO = dataISOLocal(inicioSemana), iniMesISO = dataISOLocal(inicioMes);
+  const somaMetros = (chave, metros)=>{
+    porDia[chave] = (porDia[chave] || 0) + metros;
+    if(chave === hojeChave) metrosHoje += metros;
+    if(chave >= iniSemanaISO) metrosSemana += metros;
+    if(chave >= iniMesISO) metrosMes += metros;
+  };
+  // 1) Metros lançados pelas equipes (cada lançamento tem data) — é o que entra no gráfico diário.
+  const idsEquipesEscopo = new Set((configApp.projetoAtivo ? equipes.filter(e=>e.projeto === configApp.projetoAtivo) : equipes).map(e=>e.id));
+  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
+
   furos.forEach(f=>{
-    const metros = f.metragem != null ? f.metragem : 0;
-    if(f.perfiladoEm){
-      const dataMarcacao = new Date(f.perfiladoEm);
-      const chave = chaveDia(f.perfiladoEm);
-      porDia[chave] = (porDia[chave] || 0) + metros;
-      if(chave === hojeChave) metrosHoje += metros;
-      if(dataMarcacao >= inicioSemana) metrosSemana += metros;
-      if(dataMarcacao >= inicioMes) metrosMes += metros;
-    }
-    // Topografia é contagem de furos marcados, não soma de metros — não faz
-    // sentido "medir metros topografados", faz sentido contar pontos.
+    // 2) Metragem digitada direto no furo do checklist (se houver) soma junto, na data em que foi marcado perfilado.
+    if(f.perfiladoEm && f.metragem != null) somaMetros(chaveDia(f.perfiladoEm), f.metragem);
+    // Topografia continua sendo contagem de furos marcados no checklist (não metros).
     if(f.topografadoEm){
       const dataMarcacaoTopo = new Date(f.topografadoEm);
       const chaveTopo = chaveDia(f.topografadoEm);
@@ -4095,22 +4097,22 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
 // app. A produtividade é lançada por equipe, então fica separada por projeto.
 // Escopo "sem projeto" (nenhum projeto ativo) = chave '' — vale como um grupo "Geral".
 const EQUIPES_LOCAL_KEY = 'perfilagem-equipes-v1';
-const PRODUTIVIDADE_LOCAL_KEY = 'perfilagem-produtividade-semanal-v2';
+const PRODUTIVIDADE_LOCAL_KEY = 'perfilagem-lancamentos-produtividade-v3';
 let equipes = [];               // { id, projeto, nome, integrantes, ordem }
-let produtividadeSemanal = [];  // { id, semana, equipeId, metros, pontos }
+let lancamentosProd = [];  // { id, equipeId, data (AAAA-MM-DD), metros, pontos } — cada lançamento do turno, com data
 let infoSemanaOffset = 0;       // 0 = semana atual, -1 = semana passada...
 
 function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0 }; }
-function mapProdutividade(row){ return { id: row.id, semana: row.semana_inicio, equipeId: row.equipe_id, metros: row.metros_perfilados != null ? Number(row.metros_perfilados) : null, pontos: row.pontos_topografados != null ? Number(row.pontos_topografados) : null }; }
+function mapLancamento(row){ return { id: row.id, equipeId: row.equipe_id, data: String(row.data).slice(0,10), metros: Number(row.metros || 0), pontos: Number(row.pontos || 0) }; }
 function carregarEquipesLocal(){
   try{ equipes = JSON.parse(localStorage.getItem(EQUIPES_LOCAL_KEY) || '[]'); }catch(e){ equipes = []; }
-  try{ produtividadeSemanal = JSON.parse(localStorage.getItem(PRODUTIVIDADE_LOCAL_KEY) || '[]'); }catch(e){ produtividadeSemanal = []; }
+  try{ lancamentosProd = JSON.parse(localStorage.getItem(PRODUTIVIDADE_LOCAL_KEY) || '[]'); }catch(e){ lancamentosProd = []; }
 }
 function salvarEquipesLocal(){
   try{ localStorage.setItem(EQUIPES_LOCAL_KEY, JSON.stringify(equipes)); }catch(e){}
 }
 function salvarProdutividadeLocal(){
-  try{ localStorage.setItem(PRODUTIVIDADE_LOCAL_KEY, JSON.stringify(produtividadeSemanal)); }catch(e){}
+  try{ localStorage.setItem(PRODUTIVIDADE_LOCAL_KEY, JSON.stringify(lancamentosProd)); }catch(e){}
 }
 carregarEquipesLocal();
 
@@ -4137,46 +4139,67 @@ function intervaloSemanaInfografico(){
   const fim = new Date(inicio); fim.setDate(fim.getDate() + 6); // domingo
   return { inicio, fim, semana: dataISOLocal(inicio) };
 }
-function registroProdutividade(semana, equipeId){
-  return produtividadeSemanal.find(r=> r.semana === semana && r.equipeId === equipeId);
-}
-function lancarProdutividade(equipeId, campo, valorTexto){
-  const { semana } = intervaloSemanaInfografico();
-  const limpo = String(valorTexto).trim().replace(',', '.');
-  let num = limpo === '' ? null : parseFloat(limpo);
-  if(num !== null && (isNaN(num) || num < 0)){ showToast('Digite um número válido (0 ou mais).'); renderProdutividadeEquipes(); return; }
-  if(campo === 'pontos' && num !== null) num = Math.round(num);
-  let r = registroProdutividade(semana, equipeId);
-  if(!r){
-    r = { id: uuidv4(), semana, equipeId, metros: null, pontos: null };
-    produtividadeSemanal.push(r);
-  }
-  r[campo] = num;
-  salvarProdutividadeLocal();
-  enfileirar('produtividade_semanal', 'upsert', {
-    id: r.id, semana_inicio: r.semana, equipe_id: r.equipeId,
-    metros_perfilados: r.metros, pontos_topografados: r.pontos
+const arred2 = n => Math.round(n * 100) / 100;
+function somaLancamentos(equipeId, iniISO, fimISO){
+  let m = 0, p = 0, q = 0;
+  lancamentosProd.forEach(l=>{
+    if(l.equipeId === equipeId && l.data >= iniISO && l.data <= fimISO){ m += l.metros; p += l.pontos; q++; }
   });
+  return { metros: arred2(m), pontos: Math.round(p), qtd: q };
+}
+function somaDaSemanaSelecionada(equipeId){
+  const { inicio, fim } = intervaloSemanaInfografico();
+  return somaLancamentos(equipeId, dataISOLocal(inicio), dataISOLocal(fim));
+}
+// Data em que um novo lançamento é gravado: hoje, se a semana mostrada é a atual;
+// senão o último dia (domingo) da semana que está na tela.
+function dataLancamentoAtual(){
+  const { inicio, fim } = intervaloSemanaInfografico();
+  const hoje = dataISOLocal(new Date());
+  return (hoje >= dataISOLocal(inicio) && hoje <= dataISOLocal(fim)) ? hoje : dataISOLocal(fim);
+}
+// Cada lançamento fica com a DATA — é isso que alimenta o gráfico diário do infográfico.
+function registrarLancamento(equipeId, metros, pontos){
+  const l = { id: uuidv4(), equipeId, data: dataLancamentoAtual(), metros: arred2(metros), pontos: Math.round(pontos) };
+  lancamentosProd.push(l);
+  salvarProdutividadeLocal();
+  enfileirar('produtividade_lancamentos', 'insert', { id: l.id, equipe_id: l.equipeId, data: l.data, metros: l.metros, pontos: l.pontos });
+  return l;
+}
+function desfazerLancamento(id){
+  const l = lancamentosProd.find(x=>x.id === id);
+  if(!l) return;
+  lancamentosProd = lancamentosProd.filter(x=>x.id !== id);
+  salvarProdutividadeLocal();
+  enfileirar('produtividade_lancamentos', 'delete', { id });
+}
+// Quem digita o TOTAL da semana: grava a diferença como um lançamento (pode ser negativo, p/ corrigir).
+function lancarProdutividade(equipeId, campo, valorTexto){
+  const limpo = String(valorTexto).trim().replace(',', '.');
+  let num = limpo === '' ? 0 : parseFloat(limpo);
+  if(isNaN(num) || num < 0){ showToast('Digite um número válido (0 ou mais).'); renderProdutividadeEquipes(); return; }
+  if(campo === 'pontos') num = Math.round(num);
+  const atual = somaDaSemanaSelecionada(equipeId)[campo];
+  const delta = arred2(num - atual);
+  if(Math.abs(delta) < 0.005){ atualizarBarrasEResumoProdutividade(); return; }
+  registrarLancamento(equipeId, campo === 'metros' ? delta : 0, campo === 'pontos' ? delta : 0);
   atualizarBarrasEResumoProdutividade();
 }
-// Soma um valor ao que já está lançado (ex.: +45 m no fim de um turno).
+// Soma um valor ao total (ex.: +45 m no fim do turno). Entra no gráfico diário na hora.
 function somarProdutividade(equipeId, campo, valorTexto){
   const limpo = String(valorTexto).trim().replace(',', '.');
   let add = parseFloat(limpo);
   if(limpo === '' || isNaN(add) || add <= 0){ showToast('Digite quanto somar (maior que 0).'); return; }
   if(campo === 'pontos') add = Math.round(add);
-  const { semana } = intervaloSemanaInfografico();
-  const r = registroProdutividade(semana, equipeId);
-  const antes = r && r[campo] != null ? r[campo] : null;
-  const total = Math.round(((antes || 0) + add) * 100) / 100;
-  lancarProdutividade(equipeId, campo, String(total));
+  const l = registrarLancamento(equipeId, campo === 'metros' ? add : 0, campo === 'pontos' ? add : 0);
   renderProdutividadeEquipes();
+  const total = somaDaSemanaSelecionada(equipeId)[campo];
   const eq = equipes.find(e=>e.id===equipeId);
   const unidade = campo === 'metros' ? 'm' : (add === 1 ? 'ponto' : 'pontos');
   const fmtV = v => String(v).replace('.', ',');
-  showToast(`+${fmtV(add)} ${unidade} em ${eq ? eq.nome : 'equipe'} (total ${fmtV(total)})`, {
+  showToast(`+${fmtV(add)} ${unidade} em ${eq ? eq.nome : 'equipe'} (total da semana ${fmtV(total)})`, {
     acaoLabel: 'Desfazer',
-    onAcao: ()=>{ lancarProdutividade(equipeId, campo, antes == null ? '' : String(antes)); renderProdutividadeEquipes(); }
+    onAcao: ()=>{ desfazerLancamento(l.id); renderProdutividadeEquipes(); }
   });
 }
 function somarDoCampo(botao){
@@ -4191,19 +4214,19 @@ const fmtPontos = n => n + (n === 1 ? ' ponto' : ' pontos');
 
 // Atualiza só barras/total (sem recriar os campos — não tira o foco de quem está digitando).
 function atualizarBarrasEResumoProdutividade(){
-  const { semana } = intervaloSemanaInfografico();
-  const dados = equipesDoProjeto().map(e=>{ const r = registroProdutividade(semana, e.id); return { id: e.id, m: r && r.metros || 0, p: r && r.pontos || 0 }; });
+  const dados = equipesDoProjeto().map(e=>{ const r = somaDaSemanaSelecionada(e.id); return { id: e.id, m: r.metros, p: r.pontos }; });
   const maxM = Math.max(1, ...dados.map(d=>d.m)), maxP = Math.max(1, ...dados.map(d=>d.p));
   const lider = dados.reduce((best,d)=> d.m > (best ? best.m : 0) ? d : best, null);
   dados.forEach(d=>{
     const bm = document.getElementById('barra-metros-' + d.id), bp = document.getElementById('barra-pontos-' + d.id), tag = document.getElementById('lider-' + d.id);
-    if(bm) bm.style.width = (d.m / maxM * 100) + '%';
-    if(bp) bp.style.width = (d.p / maxP * 100) + '%';
+    if(bm) bm.style.width = (Math.max(0, d.m) / maxM * 100) + '%';
+    if(bp) bp.style.width = (Math.max(0, d.p) / maxP * 100) + '%';
     if(tag) tag.style.display = lider && lider.id === d.id && d.m > 0 ? 'inline' : 'none';
   });
   const totM = dados.reduce((a,d)=>a+d.m,0), totP = dados.reduce((a,d)=>a+d.p,0);
   el('infografico-equipes-total').innerHTML = dados.length ? `Total da semana: <b>${fmt1(totM).replace('.', ',')} m</b> perfilados · <b>${fmtPontos(totP)}</b> topografados` : '';
   renderProdutividadeMensal();
+  renderInfograficoResumo(); // KPIs e gráficos diários acompanham o lançamento
 }
 
 // Mensagem quando o projeto ainda não tem equipes.
@@ -4225,9 +4248,9 @@ function renderProdutividadeEquipes(){
   el('infografico-semana-prox').disabled = infoSemanaOffset >= 0;
   const lista = equipesDoProjeto();
   if(lista.length === 0){ box.innerHTML = htmlSemEquipes(); atualizarBarrasEResumoProdutividade(); return; }
-  const valorInput = v => v == null ? '' : String(v).replace('.', ',');
+  const valorInput = v => (v == null || v === 0) ? '' : String(v).replace('.', ',');
   box.innerHTML = lista.map(e=>{
-    const r = registroProdutividade(semana, e.id) || {};
+    const r = somaDaSemanaSelecionada(e.id);
     return `
       <div class="equipe-linha">
         <div class="equipe-topo">
@@ -4279,15 +4302,15 @@ function nomeMesDaChave(chave){
 function calcularProdutividadeMensal(chaveMes){
   const lista = equipesDoProjeto();
   const porEquipe = {}; lista.forEach(e=> porEquipe[e.id] = { metros: 0, pontos: 0 });
-  const semanas = new Set();
-  produtividadeSemanal.forEach(r=>{
-    if(!porEquipe[r.equipeId] || chaveMesDaSemana(r.semana) !== chaveMes) return;
-    if(r.metros == null && r.pontos == null) return;
-    porEquipe[r.equipeId].metros += r.metros || 0;
-    porEquipe[r.equipeId].pontos += r.pontos || 0;
-    semanas.add(r.semana);
+  const dias = new Set();
+  lancamentosProd.forEach(l=>{
+    if(!porEquipe[l.equipeId] || l.data.slice(0,7) !== chaveMes) return;
+    porEquipe[l.equipeId].metros += l.metros;
+    porEquipe[l.equipeId].pontos += l.pontos;
+    dias.add(l.data);
   });
-  return { lista, porEquipe, semanas: Array.from(semanas).sort() };
+  lista.forEach(e=>{ porEquipe[e.id].metros = arred2(porEquipe[e.id].metros); porEquipe[e.id].pontos = Math.round(porEquipe[e.id].pontos); });
+  return { lista, porEquipe, semanas: Array.from(dias).sort() }; // "semanas" agora = dias com lançamento
 }
 function mudarMesInfografico(delta){
   infoMesOffset = Math.min(0, infoMesOffset + delta);
@@ -4327,7 +4350,7 @@ function renderProdutividadeMensal(){
   const totM = lista.reduce((a,e)=>a+porEquipe[e.id].metros,0), totP = lista.reduce((a,e)=>a+porEquipe[e.id].pontos,0);
   const ddmm = iso => iso.slice(8,10) + '/' + iso.slice(5,7);
   el('infografico-equipes-mes-total').innerHTML = `Total do mês: <b>${fm(totM)} m</b> perfilados · <b>${fmtPontos(totP)}</b> topografados`
-    + `<br><span class="equipe-semanas-lista">${semanas.length ? 'Semanas somadas (início na segunda): ' + semanas.map(ddmm).join(', ') : 'Nenhuma semana lançada neste mês.'}</span>`;
+    + `<br><span class="equipe-semanas-lista">${semanas.length ? 'Dias com lançamento: ' + semanas.map(ddmm).join(', ') : 'Nenhum lançamento neste mês.'}</span>`;
 }
 
 // ---------- Gerenciar equipes (adicionar / editar / apagar) ----------
@@ -4403,12 +4426,12 @@ function abrirModalEquipes(){
     salvarEdicoes();
     const e = equipes.find(x=>x.id === btn.dataset.id);
     if(!e) return;
-    const qtd = produtividadeSemanal.filter(r=>r.equipeId === e.id).length;
-    const msg = `Apagar "${e.nome}"?` + (qtd > 0 ? ` Os ${qtd} lançamento(s) semanais dela também serão apagados.` : '');
+    const qtd = lancamentosProd.filter(r=>r.equipeId === e.id).length;
+    const msg = `Apagar "${e.nome}"?` + (qtd > 0 ? ` Os ${qtd} lançamento(s) dela também serão apagados.` : '');
     if(!(await confirmDialog(msg, 'Apagar'))){ abrirModalEquipes(); return; }
-    const lancamentos = produtividadeSemanal.filter(r=>r.equipeId === e.id);
+    const lancamentos = lancamentosProd.filter(r=>r.equipeId === e.id);
     equipes = equipes.filter(x=>x.id !== e.id);
-    produtividadeSemanal = produtividadeSemanal.filter(r=>r.equipeId !== e.id);
+    lancamentosProd = lancamentosProd.filter(r=>r.equipeId !== e.id);
     enfileirar('equipes', 'delete', { id: e.id }); // no servidor, os lançamentos saem em cascata
     salvarEquipesLocal(); salvarProdutividadeLocal();
     abrirModalEquipes();
@@ -4417,8 +4440,8 @@ function abrirModalEquipes(){
       equipes.push(e);
       enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem });
       lancamentos.forEach(r=>{
-        produtividadeSemanal.push(r);
-        enfileirar('produtividade_semanal', 'upsert', { id: r.id, semana_inicio: r.semana, equipe_id: r.equipeId, metros_perfilados: r.metros, pontos_topografados: r.pontos });
+        lancamentosProd.push(r);
+        enfileirar('produtividade_lancamentos', 'insert', { id: r.id, equipe_id: r.equipeId, data: r.data, metros: r.metros, pontos: r.pontos });
       });
       salvarEquipesLocal(); salvarProdutividadeLocal();
       renderInfografico();
@@ -4434,7 +4457,11 @@ function renderInfografico(){
   const tagEscopo = el('infografico-escopo-tag');
   if(tagEscopo) tagEscopo.textContent = configApp.projetoAtivo ? `projeto: ${configApp.projetoAtivo}` : 'todos os projetos';
 
-  renderProdutividadeEquipes();
+  renderProdutividadeEquipes(); // já atualiza o resumo (KPIs e gráficos) no fim
+}
+
+function renderInfograficoResumo(){
+  if(!el('infografico-chart-dia')) return;
   const stats = calcularEstatisticasInfografico();
 
   el('infografico-metros-hoje').innerHTML = `${fmt1(stats.metrosHoje)}<span class="unidade">m</span>`;
@@ -4454,7 +4481,7 @@ function renderInfografico(){
   el('infografico-pct-topografado-barra').style.width = pctTopografado + '%';
 
   const vazio = el('infografico-vazio');
-  if(vazio) vazio.style.display = stats.totalFuros === 0 ? 'block' : 'none';
+  if(vazio) vazio.style.display = (stats.totalFuros === 0 && !stats.serieDiaria.some(d=>d.metros > 0)) ? 'block' : 'none';
 
   // Dois gráficos separados — metros e contagem de furos não dividem o
   // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
