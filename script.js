@@ -744,6 +744,10 @@ function showToast(msg, opcoes){
   const t = el('toast');
   clearTimeout(t._timer);
 
+  // Erros não somem sozinhos: ficam até a pessoa tocar em "OK" (em subsolo,
+  // ninguém está olhando a tela no segundo em que o aviso aparece).
+  const ehErro = opcoes.erro != null ? opcoes.erro : /^(N[ãa]o foi poss[íi]vel|Erro|Sem conex[ãa]o|Falha)/i.test(msg);
+  t.classList.toggle('erro', ehErro);
   if(opcoes.acaoLabel && opcoes.onAcao){
     t.innerHTML = `<span>${escHtml(msg)}</span><button type="button" class="toast-acao">${opcoes.acaoLabel}</button>`;
     t.querySelector('.toast-acao').addEventListener('click', ()=>{
@@ -751,6 +755,9 @@ function showToast(msg, opcoes){
       t.classList.remove('show');
       opcoes.onAcao();
     });
+  }else if(ehErro){
+    t.innerHTML = `<span>${escHtml(msg)}</span><button type="button" class="toast-acao toast-ok">OK</button>`;
+    t.querySelector('.toast-ok').addEventListener('click', ()=>{ clearTimeout(t._timer); t.classList.remove('show'); });
   }else{
     t.textContent = msg;
   }
@@ -758,8 +765,8 @@ function showToast(msg, opcoes){
   t.classList.add('show');
   // com botão de ação, fica mais tempo na tela — precisa de uma folga pra dar
   // tempo de ler e decidir se quer desfazer, não só "ver passar".
-  const duracao = opcoes.acaoLabel ? 5000 : 2200;
-  t._timer = setTimeout(()=> t.classList.remove('show'), duracao);
+  const duracao = opcoes.acaoLabel ? 7000 : 2600;
+  if(!ehErro) t._timer = setTimeout(()=> t.classList.remove('show'), duracao);
 
   historicoToasts.unshift({ texto: msg, ts: Date.now() });
   if(historicoToasts.length > 30) historicoToasts.length = 30;
@@ -2155,8 +2162,8 @@ function htmlCardChecklist(c, agrupado){
     : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="marcar ${codigo} como perfilado" title="marcar leque como perfilado"></label>`;
   const progresso = furos.length ? `
       <div class="ck-progresso">
-        <div class="ck-prog-linha"><span class="rot">perf</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos}/${furos.length}</span></div>
-        <div class="ck-prog-linha topo"><span class="rot">topo</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo}/${furos.length}</span></div>
+        <div class="ck-prog-linha"><span class="rot">perf</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos===furos.length ? '✓' : ''}${feitos}/${furos.length}</span></div>
+        <div class="ck-prog-linha topo"><span class="rot">topo</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo===furos.length ? '✓' : ''}${topo}/${furos.length}</span></div>
       </div>`
     : `<div class="ck-progresso"><span class="ck-sem-furos">sem furos ainda</span></div>`;
   const local = (c.localizacao||'').trim();
@@ -2226,7 +2233,7 @@ function htmlCardChecklist(c, agrupado){
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
         ${progresso}
-        ${obstr ? `<span class="ck-obstr" title="furos obstruídos neste leque">✕ ${obstr}</span>` : ''}
+        ${obstr ? `<span class="ck-obstr" title="furos obstruídos por rocha ou tela neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>` : ''}
       </div>
       ${resumo}
       ${corpo}
@@ -2806,11 +2813,30 @@ function adicionarAoChecklist(){
   }
   el('checklist-numero-de').value = '';
   el('checklist-numero-ate').value = '';
+  lembrarFormChecklist();
   const totalFuros = regsFuros.length;
   if(adicionados === 0) showToast('Nada adicionado — todos já estavam no checklist.');
   else showToast(`${adicionados} leque(s) adicionado(s)${totalFuros ? ' com '+totalFuros+' furo(s)' : ''}.${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
 }
 el('btn-add-checklist').addEventListener('click', adicionarAoChecklist);
+
+// Lembra o último tipo e a última localização usados (por aparelho) — quem
+// cadastra 30 leques da mesma galeria não precisa escolher tudo de novo.
+const CK_FORM_KEY = 'perfilagem-checklist-form-v1';
+function lembrarFormChecklist(){
+  try{
+    localStorage.setItem(CK_FORM_KEY, JSON.stringify({ tipo: el('checklist-tipo').value, localizacao: (el('checklist-localizacao').value || '').trim() }));
+  }catch(e){}
+}
+function restaurarFormChecklist(){
+  try{
+    const m = JSON.parse(localStorage.getItem(CK_FORM_KEY) || 'null');
+    if(!m) return;
+    if(m.tipo && Array.from(el('checklist-tipo').options).some(o=>o.value===m.tipo)) el('checklist-tipo').value = m.tipo;
+    if(m.localizacao && !el('checklist-localizacao').value) el('checklist-localizacao').value = m.localizacao;
+  }catch(e){}
+}
+restaurarFormChecklist();
 
 function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
@@ -4544,16 +4570,19 @@ function calcularEstatisticasInfografico(){
   const inicioSemana = inicioDaSemana(agora);
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
 
-  let metrosHoje = 0, metrosSemana = 0, metrosMes = 0;
-  let furosTopoHoje = 0, furosTopoSemana = 0, furosTopoMes = 0;
+  let metrosHoje = 0, metrosSemana = 0, metrosMes = 0, metrosSemanaAnt = 0;
+  let furosTopoHoje = 0, furosTopoSemana = 0, furosTopoMes = 0, furosTopoSemanaAnt = 0;
   const porDia = {}; // chaveDia -> soma de metros perfilados
   const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
 
   const iniSemanaISO = dataISOLocal(inicioSemana), iniMesISO = dataISOLocal(inicioMes);
+  const inicioSemanaAnt = new Date(inicioSemana); inicioSemanaAnt.setDate(inicioSemanaAnt.getDate() - 7);
+  const iniSemanaAntISO = dataISOLocal(inicioSemanaAnt);
   const somaMetros = (chave, metros)=>{
     porDia[chave] = (porDia[chave] || 0) + metros;
     if(chave === hojeChave) metrosHoje += metros;
     if(chave >= iniSemanaISO) metrosSemana += metros;
+    else if(chave >= iniSemanaAntISO) metrosSemanaAnt += metros;
     if(chave >= iniMesISO) metrosMes += metros;
   };
   // 1) Metros lançados pelas equipes (cada lançamento tem data) — é o que entra no gráfico diário.
@@ -4570,6 +4599,7 @@ function calcularEstatisticasInfografico(){
       porDiaTopo[chaveTopo] = (porDiaTopo[chaveTopo] || 0) + 1;
       if(chaveTopo === hojeChave) furosTopoHoje++;
       if(dataMarcacaoTopo >= inicioSemana) furosTopoSemana++;
+      else if(dataMarcacaoTopo >= inicioSemanaAnt) furosTopoSemanaAnt++;
       if(dataMarcacaoTopo >= inicioMes) furosTopoMes++;
     }
   });
@@ -4592,8 +4622,8 @@ function calcularEstatisticasInfografico(){
   const totalTopografados = furos.filter(f=>f.topografado).length;
 
   return {
-    metrosHoje, metrosSemana, metrosMes,
-    furosTopoHoje, furosTopoSemana, furosTopoMes,
+    metrosHoje, metrosSemana, metrosMes, metrosSemanaAnt,
+    furosTopoHoje, furosTopoSemana, furosTopoMes, furosTopoSemanaAnt,
     serieDiaria, totalFuros, totalPerfilados, totalTopografados
   };
 }
@@ -4604,7 +4634,7 @@ function calcularEstatisticasInfografico(){
 function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVar){
   const svg = el(idSvg);
   if(!svg) return;
-  const w = 900, h = 170, pad = 8;
+  const w = 900, h = 170, pad = 18;
   const max = Math.max(1, ...serie.map(d=>d[chaveValor])) * 1.15;
   const passoX = (w - pad*2) / (serie.length - 1);
   const pontos = serie.map((d,i)=>{
@@ -4624,7 +4654,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       </linearGradient>
     </defs>
     <path d="${areaPath}" style="fill:url(#${idGrad});"/>
-    <path d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
+    <path d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke;"/>
   `;
   pontos.forEach((p,i)=>{
     const ultimo = i === pontos.length - 1;
@@ -4634,8 +4664,13 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
 
   const eixoX = el(idEixoX);
   if(eixoX){
-    // Mostra só a cada 2 dias, senão fica apertado demais em tela de celular.
-    eixoX.innerHTML = serie.map((d,i)=> `<span style="${i % 2 !== 0 ? 'visibility:hidden;' : ''}">${d.dia}</span>`).join('');
+    // Um rótulo a cada 2 dias, contando de trás pra frente: o último dia (hoje)
+    // sempre aparece. Cada rótulo mostra o valor do dia em cima da data.
+    const fmtV = v => chaveValor === 'metros' ? (Math.round(v*10)/10).toString().replace('.', ',') : String(v);
+    eixoX.innerHTML = serie.map((d,i)=>{
+      const visivel = (serie.length - 1 - i) % 2 === 0;
+      return `<span class="${visivel ? '' : 'oculto'}"><b>${d[chaveValor] ? fmtV(d[chaveValor]) : '·'}</b>${d.dia}</span>`;
+    }).join('');
   }
 }
 
@@ -4649,7 +4684,7 @@ let equipes = [];               // { id, projeto, nome, integrantes, ordem }
 let lancamentosProd = [];  // { id, equipeId, data (AAAA-MM-DD), metros, pontos } — cada lançamento do turno, com data
 let infoSemanaOffset = 0;       // 0 = semana atual, -1 = semana passada...
 
-function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0 }; }
+function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0, metaSemanal: row.meta_semanal_metros != null ? Number(row.meta_semanal_metros) : null }; }
 function mapLancamento(row){ return { id: row.id, equipeId: row.equipe_id, data: String(row.data).slice(0,10), metros: Number(row.metros || 0), pontos: Number(row.pontos || 0) }; }
 function carregarEquipesLocal(){
   try{ equipes = JSON.parse(localStorage.getItem(EQUIPES_LOCAL_KEY) || '[]'); }catch(e){ equipes = []; }
@@ -4751,7 +4786,7 @@ function somarProdutividade(equipeId, campo, valorTexto){
 }
 function somarDoCampo(botao){
   const wrap = botao.closest('.equipe-soma');
-  somarProdutividade(wrap.dataset.equipe, wrap.dataset.campo, wrap.querySelector('input').value);
+  somarProdutividade(wrap.dataset.equipe, wrap.dataset.campo, wrap.querySelector('.inp-somar').value);
 }
 function mudarSemanaInfografico(delta){
   infoSemanaOffset = Math.min(0, infoSemanaOffset + delta); // não deixa ir pro futuro
@@ -4761,12 +4796,25 @@ const fmtPontos = n => n + (n === 1 ? ' ponto' : ' pontos');
 
 // Atualiza só barras/total (sem recriar os campos — não tira o foco de quem está digitando).
 function atualizarBarrasEResumoProdutividade(){
-  const dados = equipesDoProjeto().map(e=>{ const r = somaDaSemanaSelecionada(e.id); return { id: e.id, m: r.metros, p: r.pontos }; });
+  const dados = equipesDoProjeto().map(e=>{ const r = somaDaSemanaSelecionada(e.id); return { id: e.id, m: r.metros, p: r.pontos, meta: e.metaSemanal > 0 ? e.metaSemanal : 0 }; });
   const maxM = Math.max(1, ...dados.map(d=>d.m)), maxP = Math.max(1, ...dados.map(d=>d.p));
   const lider = dados.reduce((best,d)=> d.m > (best ? best.m : 0) ? d : best, null);
   dados.forEach(d=>{
     const bm = document.getElementById('barra-metros-' + d.id), bp = document.getElementById('barra-pontos-' + d.id), tag = document.getElementById('lider-' + d.id);
-    if(bm) bm.style.width = (Math.max(0, d.m) / maxM * 100) + '%';
+    // Com meta semanal cadastrada, a barra é "realizado ÷ meta"; sem meta, compara com a melhor equipe.
+    if(bm){
+      bm.style.width = (d.meta ? Math.min(100, Math.max(0, d.m) / d.meta * 100) : Math.max(0, d.m) / maxM * 100) + '%';
+      bm.classList.toggle('meta-batida', !!d.meta && d.m >= d.meta);
+    }
+    const mt = document.getElementById('meta-txt-' + d.id);
+    if(mt){
+      if(d.meta){
+        const pct = Math.round(d.m / d.meta * 100);
+        mt.innerHTML = `<b>${fmt1(d.m).replace('.', ',')}</b> / ${String(d.meta).replace('.', ',')} m · ${d.m >= d.meta ? '✓ ' : ''}${pct}%`;
+      }else{
+        mt.innerHTML = `<b>${fmt1(d.m).replace('.', ',')}</b> m <span class="sem-meta">· sem meta</span>`;
+      }
+    }
     if(bp) bp.style.width = (Math.max(0, d.p) / maxP * 100) + '%';
     if(tag) tag.style.display = lider && lider.id === d.id && d.m > 0 ? 'inline' : 'none';
   });
@@ -4804,23 +4852,23 @@ function renderProdutividadeEquipes(){
           <span class="equipe-nome">${escHtml(e.nome)} <span class="equipe-lider" id="lider-${e.id}" style="display:none;">▲ mais metros</span></span>
           <span class="equipe-tecnicos">${escHtml(e.integrantes)}</span>
         </div>
-        <div class="equipe-metrica">
-          <span class="equipe-rotulo">Perfilado</span>
+        <div class="equipe-bloco">
+          <div class="equipe-bloco-topo"><span class="equipe-rotulo">Perfilado</span><span class="equipe-meta-txt" id="meta-txt-${e.id}"></span></div>
           <div class="equipe-trilho"><div class="equipe-barra equipe-barra-amber" id="barra-metros-${e.id}"></div></div>
-          <span class="equipe-campo"><input type="text" inputmode="decimal" placeholder="0" value="${valorInput(r.metros)}" aria-label="Metros perfilados de ${escHtml(e.nome)}" onchange="lancarProdutividade('${e.id}','metros',this.value)"><small>m</small></span>
+          <div class="equipe-soma" data-equipe="${e.id}" data-campo="metros">
+            <span class="equipe-campo"><input type="text" inputmode="decimal" placeholder="0" value="${valorInput(r.metros)}" aria-label="Total de metros perfilados de ${escHtml(e.nome)} na semana" onchange="lancarProdutividade('${e.id}','metros',this.value)"><small>m</small></span>
+            <input type="text" class="inp-somar" inputmode="decimal" placeholder="+ m" aria-label="Somar metros em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
+            <button type="button" class="steel btn-somar" onclick="somarDoCampo(this)" aria-label="Somar metros em ${escHtml(e.nome)}">＋</button>
+          </div>
         </div>
-        <div class="equipe-soma" data-equipe="${e.id}" data-campo="metros">
-          <input type="text" inputmode="decimal" placeholder="+ metros" aria-label="Somar metros em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
-          <button type="button" class="steel" onclick="somarDoCampo(this)">+ Somar</button>
-        </div>
-        <div class="equipe-metrica">
-          <span class="equipe-rotulo">Topografado</span>
+        <div class="equipe-bloco">
+          <div class="equipe-bloco-topo"><span class="equipe-rotulo">Topografado</span></div>
           <div class="equipe-trilho"><div class="equipe-barra equipe-barra-steel" id="barra-pontos-${e.id}"></div></div>
-          <span class="equipe-campo"><input type="text" inputmode="numeric" placeholder="0" value="${valorInput(r.pontos)}" aria-label="Pontos topografados de ${escHtml(e.nome)}" onchange="lancarProdutividade('${e.id}','pontos',this.value)"><small>pontos</small></span>
-        </div>
-        <div class="equipe-soma" data-equipe="${e.id}" data-campo="pontos">
-          <input type="text" inputmode="numeric" placeholder="+ pontos" aria-label="Somar pontos em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
-          <button type="button" class="steel" onclick="somarDoCampo(this)">+ Somar</button>
+          <div class="equipe-soma" data-equipe="${e.id}" data-campo="pontos">
+            <span class="equipe-campo"><input type="text" inputmode="numeric" placeholder="0" value="${valorInput(r.pontos)}" aria-label="Total de pontos topografados de ${escHtml(e.nome)} na semana" onchange="lancarProdutividade('${e.id}','pontos',this.value)"><small>pts</small></span>
+            <input type="text" class="inp-somar" inputmode="numeric" placeholder="+ pts" aria-label="Somar pontos em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
+            <button type="button" class="steel btn-somar" onclick="somarDoCampo(this)" aria-label="Somar pontos em ${escHtml(e.nome)}">＋</button>
+          </div>
         </div>
       </div>`;
   }).join('');
@@ -4909,6 +4957,7 @@ function abrirModalEquipes(){
     <div class="equipe-edit-item" data-id="${e.id}">
       <div class="field"><label>Nome da equipe</label><input type="text" class="eq-nome" value="${escHtml(e.nome)}" maxlength="40"></div>
       <div class="field"><label>Integrantes</label><input type="text" class="eq-integrantes" value="${escHtml(e.integrantes)}" maxlength="120" placeholder="ex.: João / Maria"></div>
+      <div class="field"><label>Meta semanal de metros (opcional)</label><input type="text" inputmode="decimal" class="eq-meta" value="${e.metaSemanal > 0 ? String(e.metaSemanal).replace('.', ',') : ''}" maxlength="8" placeholder="ex.: 120"></div>
       <button type="button" class="ghost perigo eq-apagar" data-id="${e.id}">Apagar equipe</button>
     </div>`).join('');
   root.innerHTML = `
@@ -4920,6 +4969,7 @@ function abrirModalEquipes(){
         <div class="equipe-edit-item equipe-edit-nova">
           <div class="field"><label>Nova equipe — nome</label><input type="text" id="eq-novo-nome" maxlength="40" placeholder="ex.: Equipe F"></div>
           <div class="field"><label>Integrantes</label><input type="text" id="eq-novo-integrantes" maxlength="120" placeholder="ex.: João / Maria"></div>
+          <div class="field"><label>Meta semanal de metros (opcional)</label><input type="text" inputmode="decimal" id="eq-novo-meta" maxlength="8" placeholder="ex.: 120"></div>
           <button type="button" class="steel" id="eq-adicionar">+ Adicionar equipe</button>
         </div>
         <div class="modal-actions">
@@ -4941,9 +4991,12 @@ function abrirModalEquipes(){
       const nome = item.querySelector('.eq-nome').value.trim();
       const integrantes = item.querySelector('.eq-integrantes').value.trim();
       if(!nome) return; // nome vazio: mantém o anterior
-      if(nome !== e.nome || integrantes !== e.integrantes){
-        e.nome = nome; e.integrantes = integrantes; alterou = true;
-        enfileirar('equipes', 'update', { id: e.id, nome: e.nome, integrantes: e.integrantes });
+      const metaTxt = item.querySelector('.eq-meta').value.trim().replace(',', '.');
+      const metaNum = parseFloat(metaTxt);
+      const meta = metaTxt !== '' && !isNaN(metaNum) && metaNum > 0 ? metaNum : null;
+      if(nome !== e.nome || integrantes !== e.integrantes || meta !== (e.metaSemanal > 0 ? e.metaSemanal : null)){
+        e.nome = nome; e.integrantes = integrantes; e.metaSemanal = meta; alterou = true;
+        enfileirar('equipes', 'update', { id: e.id, nome: e.nome, integrantes: e.integrantes, meta_semanal_metros: meta });
       }
     });
     if(alterou) salvarEquipesLocal();
@@ -4953,7 +5006,12 @@ function abrirModalEquipes(){
     const nome = el('eq-novo-nome').value.trim();
     if(!nome) return false;
     if(equipesDoProjeto(projeto).some(e=> e.nome.toLowerCase() === nome.toLowerCase())){ showToast('Já existe uma equipe com esse nome neste projeto.'); return null; }
-    criarEquipe(projeto, nome, el('eq-novo-integrantes').value.trim());
+    const nova = criarEquipe(projeto, nome, el('eq-novo-integrantes').value.trim());
+    const mTxt = el('eq-novo-meta').value.trim().replace(',', '.'), mNum = parseFloat(mTxt);
+    if(mTxt !== '' && !isNaN(mNum) && mNum > 0){
+      nova.metaSemanal = mNum;
+      enfileirar('equipes', 'update', { id: nova.id, meta_semanal_metros: mNum });
+    }
     salvarEquipesLocal();
     return true;
   };
@@ -4985,7 +5043,7 @@ function abrirModalEquipes(){
     showToast('Equipe apagada.', { acaoLabel: 'Desfazer', onAcao: ()=>{
       if(equipes.some(x=>x.id === e.id)) return;
       equipes.push(e);
-      enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem });
+      enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem, meta_semanal_metros: e.metaSemanal > 0 ? e.metaSemanal : null });
       lancamentos.forEach(r=>{
         lancamentosProd.push(r);
         enfileirar('produtividade_lancamentos', 'insert', { id: r.id, equipe_id: r.equipeId, data: r.data, metros: r.metros, pontos: r.pontos });
@@ -5018,6 +5076,20 @@ function renderInfograficoResumo(){
   el('infografico-topo-hoje').innerHTML = `${stats.furosTopoHoje}<span class="unidade">furos</span>`;
   el('infografico-topo-semana').innerHTML = `${stats.furosTopoSemana}<span class="unidade">furos</span>`;
   el('infografico-topo-mes').innerHTML = `${stats.furosTopoMes}<span class="unidade">furos</span>`;
+  el('infografico-metros-ant').innerHTML = `${fmt1(stats.metrosSemanaAnt)}<span class="unidade">m</span>`;
+  el('infografico-topo-ant').innerHTML = `${stats.furosTopoSemanaAnt}<span class="unidade">furos</span>`;
+  // Compara a semana atual (até agora) com a semana passada inteira.
+  const setaVs = (idEl, atual, anterior)=>{
+    const e = el(idEl); if(!e) return;
+    if(!anterior && !atual){ e.className = 'kpi-vs igual'; e.textContent = ''; return; }
+    if(!anterior){ e.className = 'kpi-vs subiu'; e.textContent = '▲ sem dado na semana passada'; return; }
+    const pct = Math.round(((atual - anterior) / anterior) * 100);
+    if(pct === 0){ e.className = 'kpi-vs igual'; e.textContent = '= igual à semana passada'; return; }
+    e.className = 'kpi-vs ' + (pct > 0 ? 'subiu' : 'desceu');
+    e.textContent = (pct > 0 ? '▲ +' : '▼ ') + pct + '% vs semana passada';
+  };
+  setaVs('infografico-metros-semana-vs', stats.metrosSemana, stats.metrosSemanaAnt);
+  setaVs('infografico-topo-semana-vs', stats.furosTopoSemana, stats.furosTopoSemanaAnt);
 
   // Percentuais de perfilagem/topografia — mesma base do checklist.
   const pctPerfilado = stats.totalFuros > 0 ? Math.round((stats.totalPerfilados/stats.totalFuros)*100) : 0;
