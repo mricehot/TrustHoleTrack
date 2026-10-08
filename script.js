@@ -413,7 +413,7 @@ function renderTurnoLequesChecklist(){
         <input type="checkbox" class="turno-leque-check" data-id="${l.id}" ${marcado ? 'checked' : ''}>
         <span class="info">
           <span class="code">${lequeCode(l)}</span>
-          <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+l.nome : ''} · ${qtdFuros} furo(s)</span>
+          <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+escHtml(l.nome) : ''} · ${qtdFuros} furo(s)</span>
         </span>
       </label>
     `;
@@ -730,7 +730,7 @@ function showToast(msg, opcoes){
   clearTimeout(t._timer);
 
   if(opcoes.acaoLabel && opcoes.onAcao){
-    t.innerHTML = `<span>${msg}</span><button type="button" class="toast-acao">${opcoes.acaoLabel}</button>`;
+    t.innerHTML = `<span>${escHtml(msg)}</span><button type="button" class="toast-acao">${opcoes.acaoLabel}</button>`;
     t.querySelector('.toast-acao').addEventListener('click', ()=>{
       clearTimeout(t._timer);
       t.classList.remove('show');
@@ -778,7 +778,7 @@ function abrirModalHistoricoToasts(){
     const linhas = historicoToasts.map(item=>`
       <div class="fila-item">
         <span class="hint" style="white-space:nowrap;">${tempoRelativo(item.ts)}</span>
-        <span class="desc">${item.texto}</span>
+        <span class="desc">${escHtml(item.texto)}</span>
       </div>
     `).join('');
     root.innerHTML = `
@@ -852,7 +852,7 @@ function editFuroModal(furo){
           </div>
           <div class="field" style="margin-bottom:16px;">
             <label for="edit-furo-observacao">Observação (opcional)</label>
-            <input id="edit-furo-observacao" type="text" value="${furo.observacao || ''}" maxlength="300" placeholder="ex: desviou por veio de água">
+            <input id="edit-furo-observacao" type="text" value="${escHtml(furo.observacao || '')}" maxlength="300" placeholder="ex: desviou por veio de água">
           </div>
           <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
             <input id="edit-furo-refazer" type="checkbox" style="width:17px; height:17px; accent-color:var(--amber);" ${furo.precisaRefazer ? 'checked' : ''}>
@@ -952,7 +952,7 @@ function renderAvisoRefazer(){
   aviso.style.display = 'block';
   aviso.innerHTML = `
     <b>${pendentes.length} furo(s) precisando ser refeito(s):</b>
-    ${pendentes.map(p=> `<span class="aviso-refazer-item">${p.leque ? p.leque.nome ? lequeCode(p.leque)+' ('+p.leque.nome+')' : lequeCode(p.leque) : '-'} · ${p.codigo}</span>`).join('')}
+    ${pendentes.map(p=> `<span class="aviso-refazer-item">${p.leque ? p.leque.nome ? lequeCode(p.leque)+' ('+escHtml(p.leque.nome)+')' : lequeCode(p.leque) : '-'} · ${p.codigo}</span>`).join('')}
   `;
 }
 
@@ -1014,7 +1014,7 @@ function editLequeModal(leque){
             </div>
             <div class="field">
               <label for="edit-leque-nome">Observação (opcional)</label>
-              <input id="edit-leque-nome" type="text" value="${leque.nome || ''}">
+              <input id="edit-leque-nome" type="text" value="${escHtml(leque.nome || '')}">
             </div>
           </div>
           <div class="field" style="margin-bottom:14px;">
@@ -1160,7 +1160,7 @@ function renderAneisMenu(){
     const ativo = a.id === anelAtivoId;
     return `
       <div class="anel-row ${ativo?'ativo':''}">
-        <span class="nome">${a.nome}</span>
+        <span class="nome">${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${a.nivel}</span>` : ''}
         ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
         <span class="spacer"></span>
@@ -1266,7 +1266,7 @@ function editAnelModal(anel){
           <p style="font-weight:700;">Editar realce</p>
           <div class="field" style="margin-bottom:14px;">
             <label for="edit-anel-nome">Nome</label>
-            <input id="edit-anel-nome" type="text" value="${anel.nome}">
+            <input id="edit-anel-nome" type="text" value="${escHtml(anel.nome)}">
           </div>
           <div class="field" style="margin-bottom:16px;">
             <label for="edit-anel-nivel">Nível</label>
@@ -1276,7 +1276,7 @@ function editAnelModal(anel){
             <label for="edit-anel-projeto">Projeto</label>
             <select id="edit-anel-projeto">
               <option value="">sem projeto</option>
-              ${projetos.map(p=> `<option value="${p.nome}" ${anel.projeto===p.nome ? 'selected' : ''}>${p.nome}</option>`).join('')}
+              ${projetos.map(p=> `<option value="${escHtml(p.nome)}" ${anel.projeto===p.nome ? 'selected' : ''}>${escHtml(p.nome)}</option>`).join('')}
             </select>
           </div>
           <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
@@ -1376,7 +1376,7 @@ function renderBreadcrumb(){
     return;
   }
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
-  bc.innerHTML = `Realce <b>${anelAtivo.nome}</b>` +
+  bc.innerHTML = `Realce <b>${escHtml(anelAtivo.nome)}</b>` +
     (lequeAberto
       ? ` <span class="arrow">›</span> leque aberto <b>${lequeCode(lequeAberto)}</b> (${tipoLabel(lequeAberto.tipo)})`
       : ` <span class="arrow">›</span> <span class="warn">nenhum leque aberto</span>`);
@@ -1404,7 +1404,7 @@ function renderPainelTrabalho(){
     boxAtual.innerHTML = `
       <div class="leque-atual">
         <span class="code">${lequeCode(lequeAberto)}</span>
-        <span>${tipoLabel(lequeAberto.tipo)}${lequeAberto.nome ? ' · '+lequeAberto.nome : ''}</span>
+        <span>${tipoLabel(lequeAberto.tipo)}${lequeAberto.nome ? ' · '+escHtml(lequeAberto.nome) : ''}</span>
         <span class="hint">${furosDoLeque.length} furo(s) registrados</span>
         <span class="spacer"></span>
         ${podeFinalizar
@@ -1717,7 +1717,7 @@ function preencherSelectsDeProjeto(){
   const selectAtivo = el('anel-projeto-ativo');
   if(selectAtivo){
     selectAtivo.innerHTML = `<option value="">Todos os projetos</option>` +
-      projetos.map(p=> `<option value="${p.nome}" ${configApp.projetoAtivo===p.nome ? 'selected' : ''}>${p.nome}</option>`).join('');
+      projetos.map(p=> `<option value="${escHtml(p.nome)}" ${configApp.projetoAtivo===p.nome ? 'selected' : ''}>${escHtml(p.nome)}</option>`).join('');
   }
 }
 
@@ -1732,7 +1732,7 @@ function renderProjetosConfig(){
     if(vazio) vazio.style.display = 'none';
     lista.innerHTML = projetos.map(p=>`
       <div class="obs-item">
-        <span class="texto">${p.nome}</span>
+        <span class="texto">${escHtml(p.nome)}</span>
         <button class="icon icon-remover" onclick="removerProjeto('${p.id}')" title="remover">✕</button>
       </div>
     `).join('');
@@ -1798,7 +1798,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
-function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', ts: row.criado_em }; }
+function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
@@ -1854,7 +1854,7 @@ function renderObservacoesGeraisChecklist(){
   if(vazio) vazio.style.display = 'none';
   lista.innerHTML = obs.map(o=>`
     <div class="obs-item">
-      <span class="texto">${o.texto}</span>
+      <span class="texto">${escHtml(o.texto)}</span>
       <button class="icon icon-editar" onclick="editarObservacaoGeralChecklist('${o.id}')" title="editar">✎</button>
       <button class="icon icon-remover" onclick="removerObservacaoGeralChecklist('${o.id}')" title="remover">✕</button>
     </div>
@@ -1919,7 +1919,8 @@ function desfazerRemocaoObservacaoGeralChecklist(obsRemovida){
 function checklistDoAnel(anelId){
   return checklistLeques
     .filter(c=>c.anelId===anelId)
-    .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true}));
+    .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true})
+      || (a.localizacao||'').localeCompare(b.localizacao||'', 'pt-BR', {numeric:true}));
 }
 function checklistDoAnelAtivo(){
   return checklistDoAnel(anelAtivoId);
@@ -2003,9 +2004,17 @@ function renderChecklist(){
           <span class="spacer"></span>
           <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
         </div>
+        <div class="checklist-leque-local">
+          ${c.localizacao ? `
+            <span class="local-rotulo">Local:</span><span class="texto">${escHtml(c.localizacao)}</span>
+            <button type="button" class="icon icon-editar" onclick="editarLocalizacaoChecklistLeque('${c.id}')" title="editar localização">✎</button>
+          ` : `
+            <button type="button" class="link-obs" onclick="editarLocalizacaoChecklistLeque('${c.id}')">+ localização</button>
+          `}
+        </div>
         <div class="checklist-leque-obs">
           ${c.observacao ? `
-            <span class="texto">${c.observacao}</span>
+            <span class="texto">${escHtml(c.observacao)}</span>
             <button type="button" class="icon icon-editar" onclick="editarObservacaoChecklistLeque('${c.id}')" title="editar observação">✎</button>
             <button type="button" class="icon icon-remover" onclick="removerObservacaoChecklistLeque('${c.id}')" title="remover observação">✕</button>
           ` : `
@@ -2081,10 +2090,67 @@ function compactarCodigosEmIntervalos(itens){
 
 // Monta o bloco de resumo (leques + furos) de UM realce — reaproveitado tanto
 // pra mandar um realce só quanto pra combinar vários no mesmo relatório.
+function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+// Resumo (leques + furos + listas) de um conjunto de leques do checklist.
+function resumoChecklistItens(itens){
+  const feitos = itens.filter(c=>c.perfilado).length;
+  const ids = new Set(itens.map(c=>c.id));
+  const todosFuros = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
+  const fp = todosFuros.filter(f=>f.perfilado).length;
+  const ft = todosFuros.filter(f=>f.topografado).length;
+  const total = todosFuros.length;
+  const pf = total > 0 ? Math.round((fp / total) * 100) : 0;
+  const pt = total > 0 ? Math.round((ft / total) * 100) : 0;
+  const topo = c=>{ const fl = checklistFurosDoLeque(c.id); return fl.length > 0 && fl.every(f=>f.topografado); };
+  const lista = (rotulo, codigos)=> codigos.length ? `[${rotulo}]\n${codigos.join('\n')}\n` : '';
+  let t = `Leques: ${feitos}/${itens.length} perfilados\n`;
+  t += `Furos: ${fp}/${total} perfilados (${pf}%) - ${ft}/${total} topografados (${pt}%)\n`;
+  t += lista('PERFILADOS', compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado)));
+  t += lista('PENDENTES', compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado)));
+  t += `\n`;
+  t += lista('TOPOGRAFADOS', compactarCodigosEmIntervalos(itens.filter(topo)));
+  t += lista('PENDENTES TOPOGRAFIA', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c))));
+  return t.trim();
+}
+
+// Realce com leques em áreas diferentes: cada localização vira uma seção própria
+// (o mesmo número de leque pode existir em mais de uma área).
+function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
+  const grupos = new Map();
+  itens.forEach(c=>{
+    const chave = (c.localizacao || '').trim();
+    if(!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(c);
+  });
+  const chaves = [...grupos.keys()].sort((a,b)=>{
+    if(!a) return -1; if(!b) return 1;
+    return a.localeCompare(b, 'pt-BR', {numeric:true});
+  });
+  let bloco = `*Realce ${semAcento(nomeRealce)}*\n`;
+  const partes = chaves.map(k=>{
+    const titulo = k ? `*Local: ${semAcento(k)}*` : `*Local nao informado*`;
+    return `${titulo}\n${resumoChecklistItens(grupos.get(k))}`;
+  });
+  bloco += partes.join('\n\n');
+  const comObs = itens.filter(c=>c.observacao);
+  if(comObs.length){
+    bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
+    bloco += comObs.map(c=> `${PREFIXO[c.tipo]}${c.numero}${c.localizacao ? ' ('+semAcento(c.localizacao)+')' : ''}: ${c.observacao}`).join('\n');
+  }
+  const obsGerais = checklistObsGeraisDoAnel(anelId);
+  if(obsGerais.length){
+    bloco += `\n\n[OBSERVACOES GERAIS]\n`;
+    bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
+  }
+  return bloco.trim();
+}
+
 function montarBlocoRealceParaWhatsApp(anelId){
   const anel = aneis.find(a=>a.id===anelId);
   const nomeRealce = anel ? anel.nome : '-';
   const itens = checklistDoAnel(anelId);
+  if(itens.some(c=>(c.localizacao||'').trim())) return montarBlocoRealceComLocais(anelId, itens, nomeRealce);
   const feitos = itens.filter(c=>c.perfilado).length;
 
   const idsLequesChecklist = new Set(itens.map(c=>c.id));
@@ -2303,7 +2369,7 @@ function abrirModalEscolherRealcesWhatsApp(){
     return `
       <label class="realce-whatsapp-item">
         <input type="checkbox" value="${a.id}" ${marcadoPorPadrao ? 'checked' : ''}>
-        <span>${a.nome}</span>
+        <span>${escHtml(a.nome)}</span>
         <span class="hint">${qtd > 0 ? qtd + ' no checklist' : 'sem checklist'}${qtdObsGerais > 0 ? ' · ' + qtdObsGerais + ' obs.' : ''}</span>
       </label>
     `;
@@ -2352,15 +2418,19 @@ function adicionarAoChecklist(){
   if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
   if(ate - de > 200){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 200).'); return; }
 
+  const localizacao = (el('checklist-localizacao').value || '').trim();
+  const chaveLocal = localizacao.toLowerCase();
   let adicionados = 0, duplicados = 0;
   for(let n = de; n <= ate; n++){
     const numero = normalizarNumero(String(n));
-    const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero);
+    // O mesmo leque pode existir em áreas diferentes do realce: só é duplicado
+    // se tipo, número E localização forem iguais.
+    const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero && (c.localizacao||'').trim().toLowerCase()===chaveLocal);
     if(jaExiste){ duplicados++; continue; }
     const novoId = uuidv4();
-    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', ts: new Date().toISOString() };
+    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', localizacao, ts: new Date().toISOString() };
     checklistLeques.push(novoItem);
-    enfileirar('checklist_leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false });
+    enfileirar('checklist_leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false, localizacao: localizacao || null });
     adicionados++;
   }
   salvarChecklistLocal();
@@ -2391,6 +2461,51 @@ async function editarObservacaoChecklistLeque(id){
   salvarChecklistLocal();
   renderChecklist();
   showToast('Observação salva.');
+}
+
+function editarLocalizacaoModal(valorAtual){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-box">
+          <p style="font-weight:700;">Localização do leque</p>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="local-leque-input">Onde fica (deixe vazio para limpar)</label>
+            <input id="local-leque-input" type="text" maxlength="120" placeholder="ex: galeria norte, nível 540" value="${escHtml(valorAtual || '')}">
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="modal-cancelar">Cancelar</button>
+            <button class="steel" id="modal-salvar">Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const fechar = (r)=>{ root.innerHTML = ''; resolve(r); };
+    el('modal-cancelar').addEventListener('click', ()=> fechar(null));
+    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=> fechar(el('local-leque-input').value.trim());
+    el('modal-salvar').addEventListener('click', salvar);
+    el('local-leque-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    el('local-leque-input').focus();
+  });
+}
+
+async function editarLocalizacaoChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  const novo = await editarLocalizacaoModal(c.localizacao);
+  if(novo === null || novo === (c.localizacao || '')) return;
+  const chave = novo.toLowerCase();
+  if(checklistLeques.some(x=>x.id!==c.id && x.anelId===c.anelId && x.tipo===c.tipo && x.numero===c.numero && (x.localizacao||'').trim().toLowerCase()===chave)){
+    showToast(`Já existe ${PREFIXO[c.tipo]}${c.numero} com essa localização neste realce.`);
+    return;
+  }
+  c.localizacao = novo;
+  enfileirar('checklist_leques', 'update', { id: c.id, localizacao: novo || null });
+  salvarChecklistLocal();
+  renderChecklist();
+  showToast(novo ? 'Localização salva.' : 'Localização removida.');
 }
 
 async function removerObservacaoChecklistLeque(id){
@@ -2432,7 +2547,8 @@ function desfazerRemocaoChecklist(itemRemovido, furosRemovidos){
   checklistLeques.push(itemRemovido);
   restaurarNaFila('checklist_leques', itemRemovido.id, {
     id: itemRemovido.id, anel_id: itemRemovido.anelId, tipo: itemRemovido.tipo,
-    numero: itemRemovido.numero, perfilado: itemRemovido.perfilado
+    numero: itemRemovido.numero, perfilado: itemRemovido.perfilado,
+    observacao: itemRemovido.observacao || null, localizacao: itemRemovido.localizacao || null
   });
   (furosRemovidos || []).forEach(f=>{
     checklistFuros.push(f);
@@ -2728,7 +2844,7 @@ function renderObservacoesTurno(){
   lista.innerHTML = obs.map(o=>{
     return `
       <div class="obs-item">
-        <span class="texto">${o.texto}</span>
+        <span class="texto">${escHtml(o.texto)}</span>
         <button class="icon icon-editar" onclick="editarObservacaoTurno('${o.id}')" title="editar">✎</button>
         <button class="icon icon-remover" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
       </div>
@@ -2852,7 +2968,7 @@ function renderFotosTurno(){
       <a href="${f.url}" target="_blank" rel="noopener"><img src="${f.url}" alt="foto do turno" title="ver em tamanho maior"></a>
       <button class="icon icon-remover" onclick="removerFotoTurno('${f.id}')" title="remover">✕</button>
       <button class="foto-turno-obs" onclick="editarDescricaoFotoTurno('${f.id}')" title="clique pra ${f.descricao ? 'editar' : 'adicionar'} a observação">
-        ${f.descricao ? f.descricao : '+ observação'}
+        ${f.descricao ? escHtml(f.descricao) : '+ observação'}
       </button>
     </div>
   `).join('');
@@ -3762,7 +3878,7 @@ function render(){
         </tr>
         ${f.observacao ? `
         <tr class="linha-obs">
-          <td colspan="6">obs: ${f.observacao}</td>
+          <td colspan="6">obs: ${escHtml(f.observacao)}</td>
         </tr>` : ''}`;
       }).join('');
 
@@ -3783,7 +3899,7 @@ function render(){
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
               <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
-              ${l.nome ? `<span class="hint">${l.nome}</span>` : ''}
+              ${l.nome ? `<span class="hint">${escHtml(l.nome)}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
             </div>
             <div class="leque-head-line2">
@@ -3824,7 +3940,7 @@ function render(){
       algumConteudo = true;
       html += `
         <div class="anel-section">
-          <div class="anel-section-head"><b>${a.nome}</b></div>
+          <div class="anel-section-head"><b>${escHtml(a.nome)}</b></div>
           ${gruposHTML}
         </div>
       `;
@@ -4653,4 +4769,19 @@ document.addEventListener('click', (e)=>{
 });
 
 // marca que o script chegou até o fim sem erro (conferido no dash.html)
+
+// Ao voltar para a aba/app (ex.: celular desbloqueado depois de um tempo), puxa as
+// mudanças das outras equipes, mas só se não houver nada pendente de envio e se o
+// usuário não estiver com uma janela de edição aberta.
+let ultimoRefreshFoco = Date.now();
+document.addEventListener('visibilitychange', async ()=>{
+  if(document.visibilityState !== 'visible') return;
+  if(!usuarioAtual || !navigator.onLine) return;
+  if(Date.now() - ultimoRefreshFoco < 60000) return;
+  if(falhasDeEnvio.size > 0 || enviosEmAndamento > 0) return;
+  if(document.querySelector('.modal-overlay')) return;
+  ultimoRefreshFoco = Date.now();
+  try{ await atualizarDoServidor(); }catch(e){}
+});
+
 window.__appCarregado = true;
