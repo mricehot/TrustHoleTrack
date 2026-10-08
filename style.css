@@ -836,3 +836,8 @@ body.offline-leitura textarea{ cursor:not-allowed; }
 .equipe-edit-item .field{ margin:0; }
 .equipe-edit-nova{ border-style:dashed; }
 .equipe-edit-item button{ min-height:40px; align-self:flex-end; }
+
+/* Localização do leque no checklist */
+.checklist-leque-local{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 0 2px; font-size:13px; }
+.checklist-leque-local .local-rotulo{ color:var(--muted, #8a8f98); font-weight:600; }
+.checklist-leque-local .texto{ flex:1; color:var(--text); font-weight:600; }
