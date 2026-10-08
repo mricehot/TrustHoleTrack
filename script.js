@@ -457,7 +457,8 @@ function carregarLocal(){
 // que exatamente não foi salvo.
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
-  turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno'
+  turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno',
+  usuario_realce_ativo: 'Realce ativo'
 };
 
 // Pequeno atraso (debounce) só pras ações de update/upsert — evita mandar uma
@@ -603,15 +604,17 @@ function sincronizarLocalComNivelDoAnel(){
   saveTurnoInfo();
 }
 
+// Realce ativo é POR USUÁRIO: cada pessoa tem o seu, guardado na tabela
+// usuario_realce_ativo (1 linha por usuário). A coluna aneis.ativo não é mais
+// escrita — só serve de ponto de partida pra quem ainda não escolheu nenhum.
+function gravarRealceAtivoDoUsuario(anelId){
+  if(!usuarioAtual || !usuarioAtual.id) return;
+  enfileirar('usuario_realce_ativo', 'upsert', { id: usuarioAtual.id, anel_id: anelId || null, atualizado_em: new Date().toISOString() });
+}
+
 function definirAnelAtivo(novoId){
-  aneis.forEach(a=>{
-    const novoAtivo = a.id === novoId;
-    if(a.ativo !== novoAtivo){
-      a.ativo = novoAtivo;
-      enfileirar('aneis', 'update', { id: a.id, ativo: novoAtivo });
-    }
-  });
   anelAtivoId = novoId;
+  gravarRealceAtivoDoUsuario(novoId);
   sincronizarLocalComNivelDoAnel();
   // Limpa os filtros da lista de furos ao trocar de anel — um filtro (principalmente
   // a busca por texto) que fizesse sentido no anel anterior pode não bater com nada
@@ -668,8 +671,20 @@ async function atualizarDoServidor(){
     checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
     checklistObservacoesGerais = (checklistObsGeralData || []).map(mapObservacaoGeralChecklist);
     projetos = (projetosData || []).map(mapProjeto);
-    const ativo = aneis.find(a=>a.ativo);
-    anelAtivoId = ativo ? ativo.id : (aneis[0] ? aneis[0].id : null);
+    // Realce ativo do usuário logado: 1) o que ele escolheu (servidor), 2) o que
+    // estava ativo neste aparelho, 3) o antigo "ativo" global, 4) o primeiro.
+    let escolhaServidor = null;
+    if(usuarioAtual && usuarioAtual.id){
+      const { data: linha, error: eU } = await db.from('usuario_realce_ativo').select('anel_id').eq('id', usuarioAtual.id).maybeSingle();
+      if(!eU && linha) escolhaServidor = linha.anel_id;
+    }
+    const existe = id => id && aneis.some(a=>a.id===id);
+    const legado = aneis.find(a=>a.ativo);
+    const escolhido = existe(escolhaServidor) ? escolhaServidor
+      : existe(anelAtivoId) ? anelAtivoId
+      : legado ? legado.id : (aneis[0] ? aneis[0].id : null);
+    anelAtivoId = escolhido;
+    if(escolhido && escolhido !== escolhaServidor) gravarRealceAtivoDoUsuario(escolhido);
     sincronizarLocalComNivelDoAnel();
     salvarLocal();
     salvarObsLocal();
@@ -1162,7 +1177,7 @@ function renderAneisMenu(){
       <div class="anel-row ${ativo?'ativo':''}">
         <span class="nome">${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${a.nivel}</span>` : ''}
-        ${ativo ? '<span class="badge-ativo">ativo</span>' : ''}
+        ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
         <span class="spacer"></span>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
         <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
@@ -1251,7 +1266,7 @@ function desfazerRemocaoAnel(anelRemovido, lequesRemovidos, furosRemovidos, eraA
     });
   });
 
-  if(eraAnelAtivo) anelAtivoId = anelRemovido.id;
+  if(eraAnelAtivo){ anelAtivoId = anelRemovido.id; gravarRealceAtivoDoUsuario(anelRemovido.id); }
   salvarLocal();
   renderAll();
   showToast(`Realce "${anelRemovido.nome}" restaurado.`);
@@ -1344,24 +1359,20 @@ function criarAnel(){
     return;
   }
   const novoId = uuidv4();
-  aneis.forEach(a=>{
-    if(a.ativo){
-      a.ativo = false;
-      enfileirar('aneis', 'update', { id: a.id, ativo: false });
-    }
-  });
-  aneis.push({ id: novoId, nome, ativo: true, nivel, projeto, ocultoWhatsapp: false });
+  aneis.push({ id: novoId, nome, ativo: false, nivel, projeto, ocultoWhatsapp: false });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
   sincronizarLocalComNivelDoAnel();
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: true, nivel, projeto });
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: false, nivel, projeto });
+  // o FK exige o realce já gravado; o upsert tem debounce, então chega depois do insert
+  gravarRealceAtivoDoUsuario(novoId);
   campoNome.value = '';
   el('anel-nivel').value = '';
   salvarLocal();
   renderAll();
-  showToast('Realce criado e definido como ativo.');
+  showToast('Realce criado e definido como seu realce ativo.');
   mostrarView('perfilagem');
 }
 el('btn-criar-anel').addEventListener('click', criarAnel);
