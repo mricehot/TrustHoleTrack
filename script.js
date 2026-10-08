@@ -1916,11 +1916,26 @@ function desfazerRemocaoObservacaoGeralChecklist(obsRemovida){
   showToast('Observação restaurada.');
 }
 
+// Leques na ordem em que foram colocados no checklist (não em ordem alfabética).
+// Leques criados juntos (mesma faixa, enviados em paralelo ao servidor) chegam com
+// horários quase iguais e embaralhados; por isso, os que ficaram a menos de 0,4 s
+// um do outro contam como um mesmo "lote" e dentro dele vão em ordem numérica.
+function ordenarPorInsercao(lista){
+  const comTempo = lista.map((c, i)=> ({ c, i, t: c.ts ? new Date(c.ts).getTime() : 0 }))
+    .sort((a, b)=> (a.t - b.t) || (a.i - b.i));
+  let lote = 0, anterior = null;
+  comTempo.forEach(x=>{
+    if(anterior !== null && x.t - anterior > 400) lote++;
+    x.lote = lote;
+    anterior = x.t;
+  });
+  comTempo.sort((a, b)=> (a.lote - b.lote)
+    || (a.c.tipo + a.c.numero).localeCompare(b.c.tipo + b.c.numero, undefined, {numeric:true})
+    || (a.t - b.t) || (a.i - b.i));
+  return comTempo.map(x=>x.c);
+}
 function checklistDoAnel(anelId){
-  return checklistLeques
-    .filter(c=>c.anelId===anelId)
-    .sort((a,b)=> (a.tipo+a.numero).localeCompare(b.tipo+b.numero, undefined, {numeric:true})
-      || (a.localizacao||'').localeCompare(b.localizacao||'', 'pt-BR', {numeric:true}));
+  return ordenarPorInsercao(checklistLeques.filter(c=>c.anelId===anelId));
 }
 function checklistDoAnelAtivo(){
   return checklistDoAnel(anelAtivoId);
@@ -2017,10 +2032,7 @@ function renderChecklist(){
       if(!grupos.has(k)) grupos.set(k, []);
       grupos.get(k).push(c);
     });
-    const chaves = [...grupos.keys()].sort((a,b)=>{
-      if(!a) return 1; if(!b) return -1; // "sem localização" por último
-      return a.localeCompare(b, 'pt-BR', {numeric:true});
-    });
+    const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
     window.__ckGrupos = chaves;
     grid.innerHTML = chaves.map((k, idx)=>{
       const lista = grupos.get(k);
@@ -2198,7 +2210,7 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''}" id="ck-card-${c.id}">
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
@@ -2404,10 +2416,7 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
     if(!grupos.has(chave)) grupos.set(chave, []);
     grupos.get(chave).push(c);
   });
-  const chaves = [...grupos.keys()].sort((a,b)=>{
-    if(!a) return -1; if(!b) return 1;
-    return a.localeCompare(b, 'pt-BR', {numeric:true});
-  });
+  const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
   let bloco = `*Realce ${semAcento(nomeRealce)}*\n`;
   const partes = chaves.map(k=>{
     const titulo = k ? `*Local: ${semAcento(k)}*` : `*Local nao informado*`;
@@ -2692,6 +2701,37 @@ function toggleExpandirChecklist(id){
 }
 
 
+// Leques e furos criados juntos: o furo depende do leque já existir no servidor,
+// então vão em duas etapas (leques, depois furos), em lotes. Se algo falhar, tudo
+// que faltou entra na lista de pendências na mesma ordem pro "Tentar de novo".
+async function inserirLequesEFuros(regsLeques, regsFuros){
+  const registrarFalha = (tabela, regs, motivo)=> regs.forEach(r=>{
+    const chave = tabela + ':insert:' + r.id;
+    falhasDeEnvio.set(chave, { chave, tabela, acao:'insert', registro:r, motivo });
+  });
+  enviosEmAndamento++;
+  atualizarIndicadorSalvamento();
+  let motivo = '';
+  try{
+    for(let i = 0; i < regsLeques.length; i += 500){
+      const { error } = await db.from('checklist_leques').insert(regsLeques.slice(i, i + 500));
+      if(error){ motivo = error.message || 'erro'; registrarFalha('checklist_leques', regsLeques.slice(i), motivo); registrarFalha('checklist_furos', regsFuros, motivo); return; }
+    }
+    for(let i = 0; i < regsFuros.length; i += 500){
+      const { error } = await db.from('checklist_furos').insert(regsFuros.slice(i, i + 500));
+      if(error){ motivo = error.message || 'erro'; registrarFalha('checklist_furos', regsFuros.slice(i), motivo); return; }
+    }
+  }catch(err){
+    motivo = err && err.message ? err.message : 'sem conexão';
+    registrarFalha('checklist_leques', regsLeques, motivo);
+    registrarFalha('checklist_furos', regsFuros, motivo);
+  }finally{
+    enviosEmAndamento = Math.max(0, enviosEmAndamento - 1);
+    atualizarIndicadorSalvamento();
+    if(motivo) showToast(`Não foi possível salvar o checklist: ${motivo}`);
+  }
+}
+
 function adicionarAoChecklist(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
@@ -2705,6 +2745,20 @@ function adicionarAoChecklist(){
 
   const localizacao = (el('checklist-localizacao').value || '').trim();
   const chaveLocal = localizacao.toLowerCase();
+
+  // Furos criados junto com os leques (opcional)
+  const furoDeTxt = el('checklist-furo-de').value.trim();
+  const furoAteTxt = el('checklist-furo-ate').value.trim();
+  let furoDe = null, furoAte = null;
+  if(furoDeTxt || furoAteTxt){
+    furoDe = parseInt(furoDeTxt || furoAteTxt, 10);
+    furoAte = furoAteTxt ? parseInt(furoAteTxt, 10) : furoDe;
+    if(isNaN(furoDe) || isNaN(furoAte) || furoAte < furoDe){ showToast('Confira os números dos furos ("de" menor ou igual a "até").'); return; }
+    if(furoAte - furoDe > 200){ showToast('Furos demais por leque (máximo 200).'); return; }
+  }
+  const base = Date.now(); // carimbos crescentes: guardam a ordem em que os leques foram colocados
+  const regsLeques = [], regsFuros = [];
+  let ultimoCriado = null;
   let adicionados = 0, duplicados = 0;
   for(let n = de; n <= ate; n++){
     const numero = normalizarNumero(String(n));
@@ -2713,17 +2767,37 @@ function adicionarAoChecklist(){
     const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero && (c.localizacao||'').trim().toLowerCase()===chaveLocal);
     if(jaExiste){ duplicados++; continue; }
     const novoId = uuidv4();
-    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', localizacao, ts: new Date().toISOString() };
+    const tsLeque = new Date(base + adicionados).toISOString();
+    const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', localizacao, ts: tsLeque };
     checklistLeques.push(novoItem);
-    enfileirar('checklist_leques', 'insert', { id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false, localizacao: localizacao || null });
+    regsLeques.push({ id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false, localizacao: localizacao || null, criado_em: tsLeque });
+    if(furoDe !== null){
+      for(let fn = furoDe; fn <= furoAte; fn++){
+        const fid = uuidv4();
+        const numeroFuro = normalizarNumero(String(fn));
+        const tsFuro = new Date(base + 100000 + regsFuros.length).toISOString();
+        checklistFuros.push({ id: fid, checklistLequeId: novoId, numero: numeroFuro, perfilado: false, topografado: false, metragem: null, perfiladoEm: null, topografadoEm: null, obstruido: '', ts: tsFuro });
+        regsFuros.push({ id: fid, checklist_leque_id: novoId, numero: numeroFuro, perfilado: false, topografado: false, criado_em: tsFuro });
+      }
+    }
+    ultimoCriado = novoId;
     adicionados++;
   }
+  if(regsLeques.length) inserirLequesEFuros(regsLeques, regsFuros);
+  // Um leque só: já abre pra mexer nos furos, sem precisar procurar na lista.
+  if(adicionados === 1) checklistExpandido.add(ultimoCriado);
   salvarChecklistLocal();
+  salvarChecklistFurosLocal();
   renderChecklist();
+  if(ultimoCriado){
+    const cartao = document.getElementById('ck-card-' + ultimoCriado);
+    if(cartao) cartao.scrollIntoView({ block:'center', behavior:'smooth' });
+  }
   el('checklist-numero-de').value = '';
   el('checklist-numero-ate').value = '';
+  const totalFuros = regsFuros.length;
   if(adicionados === 0) showToast('Nada adicionado — todos já estavam no checklist.');
-  else showToast(`${adicionados} adicionado(s) ao checklist.${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
+  else showToast(`${adicionados} leque(s) adicionado(s)${totalFuros ? ' com '+totalFuros+' furo(s)' : ''}.${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
 }
 el('btn-add-checklist').addEventListener('click', adicionarAoChecklist);
 
