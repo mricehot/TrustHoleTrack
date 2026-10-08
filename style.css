@@ -862,3 +862,203 @@ body.offline-leitura textarea{ cursor:not-allowed; }
 .checklist-leque-meta .local-rotulo{ flex-basis:100%; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
 .checklist-leque-meta .texto{ flex:1 1 100%; line-height:1.35; }
 .checklist-leque-meta .icon{ min-width:0; min-height:0; width:auto; padding:2px 8px 2px 0; }
+
+/* Furo obstruído (rocha/tela) no checklist */
+.select-obstruido{ min-width:84px; padding:4px 6px; font-size:12.5px; min-height:32px; }
+.select-obstruido.ativo{ color:#b3261e; border-color:#b3261e; font-weight:700; }
+.checklist-furos-tabela tr.obstruido td{ background:rgba(179,38,30,.08); }
+.mini-selo-obstruido{ color:#b3261e; border-color:#b3261e; background:rgba(179,38,30,.08); }
+/* Ajustes de largura no celular (tabela de furos com coluna Obstruído) */
+.checklist-leque-cabecalho{ flex-wrap:wrap; row-gap:6px; }
+.checklist-furos-body{ padding-left:12px; overflow-x:auto; }
+table.checklist-furos-tabela{ max-width:none; }
+table.checklist-furos-tabela th, table.checklist-furos-tabela td{ padding-left:5px; padding-right:5px; }
+.select-obstruido{ min-width:0; width:76px; padding:4px 2px; font-size:12px; }
+.input-metragem-checklist{ width:56px; }
+.checklist-leque-card{ position:relative; }
+.checklist-leque-cabecalho{ padding-right:40px; }
+.checklist-leque-cabecalho .spacer{ display:none; }
+.checklist-leque-cabecalho > .icon-remover{ position:absolute; top:10px; right:10px; }
+/* Telas maiores: tabela de furos mais arejada (celular continua compacto) */
+@media (min-width:600px){
+  table.checklist-furos-tabela{ width:100%; max-width:680px; border-collapse:separate; border-spacing:0; }
+  table.checklist-furos-tabela th{ padding:8px 18px 8px 10px; font-size:11px; }
+  table.checklist-furos-tabela td{ padding:10px 18px 10px 10px; }
+  table.checklist-furos-tabela th:first-child, table.checklist-furos-tabela td:first-child{ width:70px; }
+  table.checklist-furos-tabela input[type="checkbox"]{ width:18px; height:18px; }
+  .select-obstruido{ width:104px; }
+  .input-metragem-checklist{ width:80px; }
+  .checklist-furos-body{ padding-left:39px; }
+}
+
+/* =====================================================================
+   Fase I — cabeçalho compacto, abas inferiores, contadores por aba
+   ===================================================================== */
+.menu-mais-info{
+  padding:9px 14px; font-size:11.5px; color:var(--muted); border-bottom:1px solid var(--line);
+  max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.menu-mais-info:empty{ display:none; }
+/* Contadores do topo só fazem sentido na Perfilagem e no Realce */
+body[data-view]:not([data-view="perfilagem"]):not([data-view="aneis"]) .readout{ display:none; }
+/* "Realce > leque aberto" só vale na Perfilagem */
+body[data-view]:not([data-view="perfilagem"]) #breadcrumb{ display:none; }
+
+.tab-mais{ display:none; }
+.tab-mais-sheet{ display:none; }
+.sheet-item{
+  display:flex; align-items:center; gap:12px; width:100%; min-height:48px; padding:0 14px;
+  background:transparent; border:none; border-radius:8px; color:var(--text);
+  font-family:var(--sans); font-size:14px; font-weight:600; text-transform:none; letter-spacing:0;
+  box-shadow:none; cursor:pointer; text-align:left;
+}
+.sheet-item:hover, .sheet-item.active{ background:var(--surface-2); }
+.sheet-item .icon-svg{ width:20px; height:20px; margin:0; }
+
+@media (max-width:700px){
+  body{ padding:12px 12px calc(86px + env(safe-area-inset-bottom)); }
+  header{
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:4px 10px;
+    padding-bottom:8px; margin-bottom:10px;
+  }
+  .brand{ gap:8px; min-width:0; }
+  .brand-icon{ width:26px; height:26px; }
+  header h1{ flex-direction:row; gap:6px; font-size:13px; letter-spacing:1.2px; line-height:1.1; flex-wrap:wrap; }
+  header .sub{ display:none; }
+  .header-right{ display:contents; }
+  #usuario-logado-label{ display:none; }
+  .header-actions{
+    grid-column:2; grid-row:1; align-self:center; flex-direction:row !important;
+    flex-wrap:nowrap; width:auto; gap:6px;
+  }
+  .header-actions button, .header-actions .menu-mais-wrap{ width:auto !important; }
+  .header-actions button{ min-height:44px; min-width:44px; padding:0 12px; }
+  .header-actions .btn-texto{ display:none; }
+  .header-actions .icon-svg{ margin-right:0; width:18px; height:18px; }
+  #readout-label{ grid-column:1; grid-row:2; text-align:left; margin:0 !important; font-size:12px; }
+  #ultima-sync-label{ grid-column:2; grid-row:2; text-align:right; margin:0 !important; font-size:11px; }
+  .sync-badge{ grid-column:1 / -1; justify-self:start; }
+  .readout{ grid-column:1 / -1; justify-content:space-between; gap:6px; text-align:left; }
+  .readout b{ font-size:15px; }
+
+  /* Barra de abas fixa embaixo: alcançável com o polegar */
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:1500; margin:0; gap:0;
+    padding:0 4px env(safe-area-inset-bottom); overflow:visible; justify-content:space-around;
+    background:var(--surface); border-top:1px solid var(--line); border-bottom:none;
+    box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  }
+  .tab-item{
+    flex:1 1 0; flex-direction:column; justify-content:center; gap:3px; min-width:0;
+    padding:8px 2px 7px; min-height:60px; font-size:10.5px; margin:0;
+    border-bottom:none; border-top:3px solid transparent;
+  }
+  .tab-item.active, .tab-item[data-view].active{ border-bottom-color:transparent; border-top-color:currentColor; }
+  .tab-label{ display:block !important; font-size:10.5px; line-height:1.1; letter-spacing:0; }
+  .tab-icon .icon-svg{ width:22px; height:22px; }
+  .tab-secundaria{ display:none; }
+  .tab-mais{ display:flex; }
+  .tab-mais-sheet.open{
+    display:flex; flex-direction:column; gap:2px; position:fixed; right:8px;
+    bottom:calc(68px + env(safe-area-inset-bottom)); z-index:1600; min-width:200px; padding:6px;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 8px 28px rgba(0,0,0,.22);
+  }
+  /* Avisos flutuantes sobem para não ficarem atrás da barra */
+  .toast{ bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .status-salvamento{ bottom:calc(70px + env(safe-area-inset-bottom)); }
+  .export-bar{ bottom:calc(76px + env(safe-area-inset-bottom)); }
+}
+
+/* =====================================================================
+   Fase I — checklist compacto, filtros, grupos e seleção em lote
+   ===================================================================== */
+.checklist-progresso-resumo{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:420px){ .checklist-progresso-resumo{ gap:8px; } .checklist-progresso-furos-topo{ font-size:12px; } }
+.ck-detalhes{ border:1px solid var(--line); border-radius:8px; background:var(--surface); }
+.ck-detalhes > summary{
+  list-style:none; cursor:pointer; min-height:44px; padding:0 14px; display:flex; align-items:center;
+  gap:8px; font-weight:700; font-size:13.5px; color:var(--steel);
+}
+.ck-detalhes > summary::-webkit-details-marker{ display:none; }
+.ck-detalhes[open] > summary{ border-bottom:1px solid var(--line); }
+.ck-detalhes-corpo{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+
+.ck-filtros{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.ck-chips{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+.ck-chips::-webkit-scrollbar{ display:none; }
+.ck-chip{
+  flex-shrink:0; min-height:44px; padding:0 14px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--text); font-family:var(--sans); font-size:13px; font-weight:600;
+  text-transform:none; letter-spacing:0; box-shadow:none; cursor:pointer; white-space:nowrap;
+}
+.ck-chip .n{ font-family:var(--mono); margin-left:6px; opacity:.75; }
+.ck-chip.ativo{ background:var(--steel); border-color:var(--steel); color:#fff; }
+.ck-chip.alerta.ativo{ background:var(--rust); border-color:var(--rust); }
+.ck-filtros-linha{ display:grid; grid-template-columns:1fr 1fr auto; gap:8px; }
+.ck-filtros-linha input, .ck-filtros-linha select, .ck-filtros-linha button{ min-height:44px; font-size:14px; }
+@media (max-width:420px){ .ck-filtros-linha{ grid-template-columns:1fr 1fr; } .ck-filtros-linha button{ grid-column:1 / -1; } }
+
+.checklist-grid{ display:block; }
+.ck-grupo{ margin-top:12px; }
+.ck-grupo-cab{
+  display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding:6px 12px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:8px; text-align:left;
+  font-family:var(--sans); font-size:13.5px; font-weight:700; color:var(--text);
+  text-transform:none; letter-spacing:0; box-shadow:none; cursor:pointer;
+}
+.ck-grupo-cab .seta{ font-size:11px; color:var(--muted); }
+.ck-grupo-cab .resumo{ margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:600; color:var(--muted); white-space:nowrap; }
+.ck-lista{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+
+.checklist-leque-card{ padding:0; overflow:hidden; }
+.checklist-leque-card.selecionado{ outline:2px solid var(--steel); outline-offset:-2px; }
+.ck-cab{ display:flex; align-items:center; gap:10px; padding:6px 12px 6px 6px; min-height:60px; cursor:pointer; }
+.ck-check{ display:flex; align-items:center; justify-content:center; width:44px; height:44px; flex-shrink:0; cursor:pointer; }
+.ck-check input[type="checkbox"]{ width:24px; height:24px; margin:0; accent-color:var(--moss); cursor:pointer; }
+.ck-check input.ck-sel{ accent-color:var(--steel); }
+.ck-codigo{ font-family:var(--mono); font-weight:700; font-size:16px; min-width:58px; display:flex; align-items:center; gap:5px; color:var(--text); }
+.checklist-leque-card.feito .ck-codigo{ color:var(--moss); }
+.ck-codigo .seta{ font-size:10px; color:var(--muted); }
+.ck-progresso{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.ck-prog-linha{ display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+.ck-prog-linha .rot{ width:30px; flex-shrink:0; }
+.ck-prog-linha .num{ width:34px; text-align:right; color:var(--text); flex-shrink:0; }
+.ck-prog-bar{ flex:1; height:7px; border-radius:4px; background:var(--surface); border:1px solid var(--line); overflow:hidden; }
+.ck-prog-bar i{ display:block; height:100%; background:var(--moss); }
+.ck-prog-linha.topo .ck-prog-bar i{ background:var(--steel); }
+.ck-sem-furos{ font-size:12px; color:var(--muted); font-family:var(--sans); }
+.ck-obstr{
+  flex-shrink:0; font-family:var(--mono); font-size:11.5px; font-weight:700; color:#b3261e;
+  border:1px solid #b3261e; background:rgba(179,38,30,.08); border-radius:999px; padding:3px 8px; white-space:nowrap;
+}
+.ck-resumo-texto{
+  padding:0 14px 9px 56px; font-size:12px; color:var(--muted); font-family:var(--sans);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ck-resumo-texto b{ color:var(--text); font-weight:600; }
+.ck-corpo{ border-top:1px solid var(--line); padding:10px 12px 14px; display:flex; flex-direction:column; gap:12px; }
+.ck-corpo .checklist-leque-meta{ padding:0; }
+.ck-corpo .checklist-furos-body{ padding:0; border-top:none; overflow-x:auto; }
+.ck-ferramentas{ display:flex; flex-wrap:wrap; gap:8px; }
+.ck-ferramentas button{ min-height:44px; font-size:13px; padding:0 14px; }
+.ck-ferramentas .perigo{ margin-left:auto; color:var(--rust); border-color:var(--rust); }
+
+.ck-acoes-lote{
+  position:fixed; left:8px; right:8px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:1700;
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; border-radius:12px;
+  background:var(--navy, #191231); color:#fff; box-shadow:0 8px 24px rgba(25,18,49,.4);
+  font-family:var(--sans); font-size:13px; font-weight:700;
+}
+.ck-acoes-lote .qtd{ flex:1 1 100%; }
+.ck-acoes-lote button{ min-height:44px; padding:0 14px; font-size:13px; flex:1 1 auto; }
+@media (min-width:701px){
+  .ck-acoes-lote{ left:50%; right:auto; transform:translateX(-50%); width:min(640px, calc(100% - 32px)); bottom:16px; }
+  .ck-acoes-lote .qtd{ flex:0 0 auto; }
+}
+.ck-chip{ padding:0 12px; font-size:12.5px; flex:1 1 auto; justify-content:center; }
+.ck-corpo .checklist-leque-meta .texto{ flex:1 1 0; min-width:0; }
+.ck-corpo .checklist-leque-meta .local-rotulo{ flex-basis:100%; }
+.ck-acoes-lote .ghost{ color:#fff; border-color:rgba(255,255,255,.55); background:transparent; }
+.ck-acoes-lote button:disabled{ opacity:.45; cursor:not-allowed; }
+.ck-acoes-lote .ghost:hover, .ck-acoes-lote .ghost:focus, .ck-acoes-lote .ghost:active{ background:rgba(255,255,255,.14); color:#fff; filter:none; }
