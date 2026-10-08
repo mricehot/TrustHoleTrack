@@ -849,3 +849,16 @@ body.offline-leitura textarea{ cursor:not-allowed; }
   font-family:var(--sans); font-size:12.5px; min-height:0; box-shadow:none;
 }
 .checklist-leque-local .link-obs:hover{ text-decoration:underline; }
+
+/* Localização e observação lado a lado (duas colunas) */
+.checklist-leque-meta{
+  display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-items:start;
+  padding:0 12px 10px 39px;
+}
+.checklist-leque-meta .checklist-leque-local,
+.checklist-leque-meta .checklist-leque-obs{ padding:0; min-width:0; flex-wrap:wrap; }
+.checklist-leque-meta .texto{ overflow-wrap:anywhere; min-width:0; }
+.checklist-leque-meta .checklist-leque-obs{ border-left:1px solid var(--line); padding-left:12px; }
+.checklist-leque-meta .local-rotulo{ flex-basis:100%; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+.checklist-leque-meta .texto{ flex:1 1 100%; line-height:1.35; }
+.checklist-leque-meta .icon{ min-width:0; min-height:0; width:auto; padding:2px 8px 2px 0; }
