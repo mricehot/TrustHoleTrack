@@ -1978,86 +1978,345 @@ function renderChecklist(){
     barraTopo.style.width = percentual + '%';
   }
 
+  const detAdicionar = el('checklist-adicionar');
+  if(detAdicionar && !detAdicionar.dataset.tocado && detAdicionar.open !== (itens.length === 0)){
+    detAdicionar.dataset.prog = '1'; // abertura automática: não conta como escolha do usuário
+    detAdicionar.open = itens.length === 0;
+  }
+  const contObs = el('checklist-obs-geral-contagem');
+  if(contObs) contObs.textContent = checklistObsGeraisDoAnel(anelAtivoId).length || '';
+  renderSugestoesLocalChecklist(itens);
+
   if(itens.length === 0){
     grid.innerHTML = '';
     if(vazio) vazio.style.display = 'block';
+    el('checklist-filtros').style.display = 'none';
+    renderBarraLoteChecklist([]);
     return;
   }
   if(vazio) vazio.style.display = 'none';
-  grid.innerHTML = itens.map(c=>{
-    const codigo = PREFIXO[c.tipo] + c.numero;
-    const expandido = checklistExpandido.has(c.id);
-    const furosDoLeque = checklistFurosDoLeque(c.id);
-    const furosFeitos = furosDoLeque.filter(f=>f.perfilado).length;
-    const furosTopoFeitos = furosDoLeque.filter(f=>f.topografado).length;
-    return `
-      <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''}">
-        <div class="checklist-leque-cabecalho">
-          <input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" title="marcar leque como perfilado">
-          <button type="button" class="checklist-leque-codigo" onclick="toggleExpandirChecklist('${c.id}')">
-            ${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span>
+  el('checklist-filtros').style.display = '';
+
+  const visiveis = filtrarItensChecklist(itens);
+  renderFiltrosChecklist(itens);
+  window.__ckVisiveisIds = visiveis.map(c=>c.id);
+
+  if(visiveis.length === 0){
+    grid.innerHTML = '<div class="hint" style="margin-top:12px;">Nenhum leque com esse filtro. Toque em "Todos" para ver a lista completa.</div>';
+    renderBarraLoteChecklist(visiveis);
+    return;
+  }
+
+  const temLocal = visiveis.some(c=>(c.localizacao||'').trim());
+  if(!temLocal){
+    grid.innerHTML = `<div class="ck-lista">${visiveis.map(c=>htmlCardChecklist(c, false)).join('')}</div>`;
+  }else{
+    const grupos = new Map();
+    visiveis.forEach(c=>{
+      const k = (c.localizacao||'').trim();
+      if(!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(c);
+    });
+    const chaves = [...grupos.keys()].sort((a,b)=>{
+      if(!a) return 1; if(!b) return -1; // "sem localização" por último
+      return a.localeCompare(b, 'pt-BR', {numeric:true});
+    });
+    window.__ckGrupos = chaves;
+    grid.innerHTML = chaves.map((k, idx)=>{
+      const lista = grupos.get(k);
+      const chave = anelAtivoId + '|' + k;
+      const fechado = checklistGruposFechados.has(chave);
+      const feitos = lista.filter(c=>c.perfilado).length;
+      return `
+        <div class="ck-grupo">
+          <button type="button" class="ck-grupo-cab" onclick="alternarGrupoChecklist(${idx})" aria-expanded="${fechado ? 'false' : 'true'}">
+            <span class="seta">${fechado ? '▸' : '▾'}</span>
+            <span>${k ? escHtml(k) : 'Sem localização'}</span>
+            <span class="resumo">${feitos}/${lista.length} perfilados</span>
           </button>
-          ${furosDoLeque.length ? `
-          <span class="mini-selo mini-selo-moss" style="--pct:${Math.round((furosFeitos/furosDoLeque.length)*100)}%" title="furos perfilados neste leque">${furosFeitos}/${furosDoLeque.length} perfilado${furosDoLeque.length===1?'':'s'}</span>
-          <span class="mini-selo mini-selo-steel" style="--pct:${Math.round((furosTopoFeitos/furosDoLeque.length)*100)}%" title="furos topografados neste leque">${furosTopoFeitos}/${furosDoLeque.length} topografado${furosDoLeque.length===1?'':'s'}</span>
-          ` : `<span class="hint">sem furos ainda</span>`}
-          ${furosDoLeque.some(f=>f.obstruido) ? `<span class="mini-selo mini-selo-obstruido" title="furos obstruídos neste leque">✕ ${furosDoLeque.filter(f=>f.obstruido).length} obstruído${furosDoLeque.filter(f=>f.obstruido).length===1?'':'s'}</span>` : ''}
-          <span class="spacer"></span>
-          <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
-        </div>
-        <div class="checklist-leque-meta">
-        <div class="checklist-leque-local">
-          ${c.localizacao ? `
-            <span class="local-rotulo">Local:</span><span class="texto">${escHtml(c.localizacao)}</span>
-            <button type="button" class="icon icon-editar" onclick="editarLocalizacaoChecklistLeque('${c.id}')" title="editar localização">✎</button>
-          ` : `
-            <button type="button" class="link-obs" onclick="editarLocalizacaoChecklistLeque('${c.id}')">+ localização</button>
-          `}
-        </div>
-        <div class="checklist-leque-obs">
-          ${c.observacao ? `
-            <span class="texto">${escHtml(c.observacao)}</span>
-            <button type="button" class="icon icon-editar" onclick="editarObservacaoChecklistLeque('${c.id}')" title="editar observação">✎</button>
-            <button type="button" class="icon icon-remover" onclick="removerObservacaoChecklistLeque('${c.id}')" title="remover observação">✕</button>
-          ` : `
-            <button type="button" class="link-obs" onclick="editarObservacaoChecklistLeque('${c.id}')">+ observação</button>
-          `}
-        </div>
-        </div>
-        ${expandido ? `
-        <div class="checklist-furos-body">
-          <div class="checklist-furos-add">
-            <input type="text" inputmode="numeric" placeholder="de" id="cf-de-${c.id}">
-            <input type="text" inputmode="numeric" placeholder="até (opcional)" id="cf-ate-${c.id}">
-            <button type="button" onclick="adicionarFurosAoChecklist('${c.id}')">+ Adicionar furos</button>
-          </div>
-          ${furosDoLeque.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
+          ${fechado ? '' : `<div class="ck-lista">${lista.map(c=>htmlCardChecklist(c, !!k)).join('')}</div>`}
+        </div>`;
+    }).join('');
+  }
+  renderBarraLoteChecklist(visiveis);
+}
+
+// ---------- Checklist: filtros, grupos e seleção em lote ----------
+let checklistFiltro = { status:'todos', local:'', busca:'' };
+const checklistGruposFechados = new Set(); // "anelId|localização" — só na sessão
+let checklistModoSelecao = false;
+const checklistSelecionados = new Set();
+
+function lequePendentePerfilagem(c){ return !c.perfilado; }
+function lequePendenteTopografia(c){
+  const fl = checklistFurosDoLeque(c.id);
+  return !(fl.length > 0 && fl.every(f=>f.topografado));
+}
+function lequeTemObstruido(c){ return checklistFurosDoLeque(c.id).some(f=>f.obstruido); }
+
+function filtrarItensChecklist(itens){
+  const f = checklistFiltro;
+  const busca = f.busca.trim().replace(/^0+/, '');
+  return itens.filter(c=>{
+    if(f.status === 'pend-perf' && !lequePendentePerfilagem(c)) return false;
+    if(f.status === 'pend-topo' && !lequePendenteTopografia(c)) return false;
+    if(f.status === 'obstruidos' && !lequeTemObstruido(c)) return false;
+    const loc = (c.localizacao||'').trim();
+    if(f.local === '__sem__' && loc) return false;
+    if(f.local && f.local !== '__sem__' && loc !== f.local) return false;
+    if(busca && !String(c.numero).replace(/^0+/, '').includes(busca)) return false;
+    return true;
+  });
+}
+
+function renderFiltrosChecklist(itens){
+  const cont = {
+    todos: itens.length,
+    'pend-perf': itens.filter(lequePendentePerfilagem).length,
+    'pend-topo': itens.filter(lequePendenteTopografia).length,
+    obstruidos: itens.filter(lequeTemObstruido).length
+  };
+  const chips = [
+    ['todos','Todos',''], ['pend-perf','Perfilar',''], ['pend-topo','Topografar',''], ['obstruidos','Obstruídos','alerta']
+  ];
+  el('checklist-chips').innerHTML = chips.map(([v, rot, cls])=>
+    `<button type="button" class="ck-chip ${cls} ${checklistFiltro.status===v ? 'ativo' : ''}" onclick="definirFiltroChecklist('${v}')" aria-pressed="${checklistFiltro.status===v}" title="${v==='pend-perf' ? 'leques que ainda faltam perfilar' : v==='pend-topo' ? 'leques que ainda faltam topografar' : ''}">${rot}<span class="n">${cont[v]}</span></button>`
+  ).join('');
+
+  const locais = [...new Set(itens.map(c=>(c.localizacao||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const sel = el('checklist-filtro-local');
+  const haSemLocal = itens.some(c=>!(c.localizacao||'').trim());
+  if(locais.length === 0){ sel.style.display = 'none'; checklistFiltro.local = ''; }
+  else{
+    sel.style.display = '';
+    sel.innerHTML = '<option value="">Todos os locais</option>' +
+      locais.map(l=>`<option value="${escHtml(l)}">${escHtml(l)}</option>`).join('') +
+      (haSemLocal ? '<option value="__sem__">Sem localização</option>' : '');
+    if(![...sel.options].some(o=>o.value === checklistFiltro.local)) checklistFiltro.local = '';
+    sel.value = checklistFiltro.local;
+  }
+  el('btn-checklist-selecionar').textContent = checklistModoSelecao ? 'Concluir seleção' : 'Selecionar';
+}
+
+function renderSugestoesLocalChecklist(itens){
+  const dl = el('checklist-locais-sugeridos');
+  if(!dl) return;
+  const locais = [...new Set(itens.map(c=>(c.localizacao||'').trim()).filter(Boolean))];
+  dl.innerHTML = locais.map(l=>`<option value="${escHtml(l)}"></option>`).join('');
+}
+
+function definirFiltroChecklist(status){
+  checklistFiltro.status = status;
+  renderChecklist();
+}
+function alternarGrupoChecklist(idx){
+  const k = (window.__ckGrupos || [])[idx];
+  if(k === undefined) return;
+  const chave = anelAtivoId + '|' + k;
+  if(checklistGruposFechados.has(chave)) checklistGruposFechados.delete(chave);
+  else checklistGruposFechados.add(chave);
+  renderChecklist();
+}
+
+function htmlCardChecklist(c, agrupado){
+  const codigo = PREFIXO[c.tipo] + c.numero;
+  const expandido = checklistExpandido.has(c.id);
+  const furos = checklistFurosDoLeque(c.id);
+  const feitos = furos.filter(f=>f.perfilado).length;
+  const topo = furos.filter(f=>f.topografado).length;
+  const obstr = furos.filter(f=>f.obstruido).length;
+  const pct = n=> furos.length ? Math.round((n / furos.length) * 100) : 0;
+  const sel = checklistSelecionados.has(c.id);
+  const caixa = checklistModoSelecao
+    ? `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" class="ck-sel" ${sel ? 'checked' : ''} onchange="alternarSelecaoLeque('${c.id}')" aria-label="selecionar ${codigo}"></label>`
+    : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="marcar ${codigo} como perfilado" title="marcar leque como perfilado"></label>`;
+  const progresso = furos.length ? `
+      <div class="ck-progresso">
+        <div class="ck-prog-linha"><span class="rot">perf</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos}/${furos.length}</span></div>
+        <div class="ck-prog-linha topo"><span class="rot">topo</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo}/${furos.length}</span></div>
+      </div>`
+    : `<div class="ck-progresso"><span class="ck-sem-furos">sem furos ainda</span></div>`;
+  const local = (c.localizacao||'').trim();
+  const localNoResumo = local && !agrupado ? `<b>Local:</b> ${escHtml(local)}` : '';
+  const resumo = (localNoResumo || c.observacao) && !expandido
+    ? `<div class="ck-resumo-texto">${localNoResumo}${localNoResumo && c.observacao ? ' · ' : ''}${c.observacao ? `<b>Obs:</b> ${escHtml(c.observacao)}` : ''}</div>` : '';
+
+  let corpo = '';
+  if(expandido){
+    const tabela = furos.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
             <thead><tr><th>Furo</th><th title="perfilado">Perf.</th><th title="topografado">Topo</th><th title="obstruído por rocha ou tela">Obstr.</th><th>Metros</th><th></th></tr></thead>
             <tbody>
-              ${furosDoLeque.map(f=>`
+              ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
                   <td>F${f.numero}</td>
-                  <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado"></td>
-                  <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado"></td>
-                  <td><select class="select-obstruido ${f.obstruido ? 'ativo' : ''}" onchange="definirObstrucaoChecklistFuro('${f.id}', this.value)" title="furo obstruído por rocha ou tela">
+                  <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
+                  <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
+                  <td><select class="select-obstruido ${f.obstruido ? 'ativo' : ''}" onchange="definirObstrucaoChecklistFuro('${f.id}', this.value)" title="furo obstruído por rocha ou tela" aria-label="F${f.numero} obstruído">
                     <option value="" ${!f.obstruido ? 'selected' : ''}>—</option>
                     <option value="rocha" ${f.obstruido==='rocha' ? 'selected' : ''}>✕ Rocha</option>
                     <option value="tela" ${f.obstruido==='tela' ? 'selected' : ''}>✕ Tela</option>
                   </select></td>
-                  <td><input type="text" inputmode="decimal" class="input-metragem-checklist" value="${f.metragem != null ? f.metragem : ''}" placeholder="0.0" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" title="metros perfilados nesse furo"></td>
-                  <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover">✕</button></td>
+                  <td><input type="text" inputmode="decimal" class="input-metragem-checklist" value="${f.metragem != null ? f.metragem : ''}" placeholder="0.0" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" title="metros perfilados nesse furo" aria-label="metros de F${f.numero}"></td>
+                  <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
               `).join('')}
             </tbody>
-          </table>
-          `}
+          </table>`;
+    corpo = `
+      <div class="ck-corpo">
+        <div class="checklist-leque-meta">
+          <div class="checklist-leque-local">
+            ${c.localizacao ? `
+              <span class="local-rotulo">Local:</span><span class="texto">${escHtml(c.localizacao)}</span>
+              <button type="button" class="icon icon-editar" onclick="editarLocalizacaoChecklistLeque('${c.id}')" title="editar localização" aria-label="editar localização">✎</button>
+            ` : `<button type="button" class="link-obs" onclick="editarLocalizacaoChecklistLeque('${c.id}')">+ localização</button>`}
+          </div>
+          <div class="checklist-leque-obs">
+            ${c.observacao ? `
+              <span class="texto">${escHtml(c.observacao)}</span>
+              <button type="button" class="icon icon-editar" onclick="editarObservacaoChecklistLeque('${c.id}')" title="editar observação" aria-label="editar observação">✎</button>
+              <button type="button" class="icon icon-remover" onclick="removerObservacaoChecklistLeque('${c.id}')" title="remover observação" aria-label="remover observação">✕</button>
+            ` : `<button type="button" class="link-obs" onclick="editarObservacaoChecklistLeque('${c.id}')">+ observação</button>`}
+          </div>
         </div>
-        ` : ''}
+        <div class="checklist-furos-body">
+          <div class="checklist-furos-add">
+            <input type="text" inputmode="numeric" placeholder="de" id="cf-de-${c.id}" aria-label="furo inicial">
+            <input type="text" inputmode="numeric" placeholder="até (opcional)" id="cf-ate-${c.id}" aria-label="furo final">
+            <button type="button" onclick="adicionarFurosAoChecklist('${c.id}')">+ Adicionar furos</button>
+          </div>
+          ${tabela}
+        </div>
+        <div class="ck-ferramentas">
+          ${furos.length ? `
+            <button type="button" class="ghost" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
+            <button type="button" class="ghost" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
+          <button type="button" class="ghost perigo" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''}">
+      <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
+        ${caixa}
+        <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
+        ${progresso}
+        ${obstr ? `<span class="ck-obstr" title="furos obstruídos neste leque">✕ ${obstr}</span>` : ''}
       </div>
-    `;
-  }).join('');
+      ${resumo}
+      ${corpo}
+    </div>`;
 }
+
+// Seleção em lote: marca vários leques de uma vez (respeitando os filtros).
+function alternarModoSelecaoChecklist(){
+  checklistModoSelecao = !checklistModoSelecao;
+  if(!checklistModoSelecao) checklistSelecionados.clear();
+  renderChecklist();
+}
+function alternarSelecaoLeque(id){
+  if(checklistSelecionados.has(id)) checklistSelecionados.delete(id);
+  else checklistSelecionados.add(id);
+  renderChecklist();
+}
+function selecionarVisiveisChecklist(){
+  (window.__ckVisiveisIds || []).forEach(id=> checklistSelecionados.add(id));
+  renderChecklist();
+}
+function renderBarraLoteChecklist(visiveis){
+  const barra = el('checklist-acoes-lote');
+  if(!barra) return;
+  if(!checklistModoSelecao){ barra.style.display = 'none'; barra.innerHTML = ''; return; }
+  barra.style.display = 'flex';
+  const n = checklistSelecionados.size;
+  barra.innerHTML = `
+    <span class="qtd">${n} leque${n===1?'':'s'} selecionado${n===1?'':'s'}</span>
+    <button type="button" class="ghost" onclick="selecionarVisiveisChecklist()">Selecionar visíveis (${visiveis.length})</button>
+    <button type="button" class="steel" onclick="aplicarLoteChecklist('perfilado')" ${n?'':'disabled'}>Marcar perfilados</button>
+    <button type="button" class="steel" onclick="aplicarLoteChecklist('topografado')" ${n?'':'disabled'}>Marcar topografados</button>
+    <button type="button" class="ghost" onclick="aplicarLoteChecklist('limpar')" ${n?'':'disabled'}>Limpar marcas</button>`;
+}
+
+// Aplica uma marcação a todos os furos dos leques informados (ou dos selecionados).
+// Furos obstruídos (rocha/tela) ficam de fora: não dá pra perfilar/topografar.
+async function aplicarLoteChecklist(acao, idsExplicitos){
+  const ids = idsExplicitos || [...checklistSelecionados];
+  const leques = ids.map(id=> checklistLeques.find(c=>c.id===id)).filter(Boolean);
+  if(!leques.length) return;
+  if(acao === 'limpar' && !(await confirmDialog(`Limpar as marcas de perfilagem e topografia de ${leques.length} leque(s)?`, 'Limpar'))) return;
+
+  const agora = new Date().toISOString();
+  const snapLeques = [], snapFuros = [];
+  let furosAlterados = 0, puladosObstruidos = 0;
+  leques.forEach(c=>{
+    snapLeques.push({ id:c.id, perfilado:c.perfilado });
+    const furos = checklistFurosDoLeque(c.id);
+    if(acao === 'perfilado' && !c.perfilado){
+      c.perfilado = true; enfileirar('checklist_leques', 'update', { id:c.id, perfilado:true });
+    }
+    if(acao === 'limpar' && c.perfilado){
+      c.perfilado = false; enfileirar('checklist_leques', 'update', { id:c.id, perfilado:false });
+    }
+    furos.forEach(f=>{
+      const antes = { id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm };
+      let mudou = false;
+      if(acao === 'limpar'){
+        if(f.perfilado || f.topografado){
+          f.perfilado = false; f.perfiladoEm = null; f.topografado = false; f.topografadoEm = null; mudou = true;
+        }
+      }else if(f.obstruido){
+        puladosObstruidos++;
+      }else if(acao === 'perfilado' && !f.perfilado){
+        f.perfilado = true; f.perfiladoEm = agora; mudou = true;
+      }else if(acao === 'topografado' && !f.topografado){
+        f.topografado = true; f.topografadoEm = agora; mudou = true;
+      }
+      if(mudou){
+        snapFuros.push(antes); furosAlterados++;
+        enfileirar('checklist_furos', 'update', { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm });
+      }
+    });
+  });
+  salvarChecklistLocal();
+  salvarChecklistFurosLocal();
+  if(!idsExplicitos){ checklistSelecionados.clear(); checklistModoSelecao = false; }
+  renderChecklist();
+
+  const rot = acao === 'perfilado' ? 'perfilados' : acao === 'topografado' ? 'topografados' : 'limpos';
+  showToast(`${furosAlterados} furo(s) de ${leques.length} leque(s) marcados como ${rot}.${puladosObstruidos ? ' ('+puladosObstruidos+' obstruído(s) ignorado(s))' : ''}`, {
+    acaoLabel: 'Desfazer',
+    onAcao: ()=> desfazerLoteChecklist(snapLeques, snapFuros)
+  });
+}
+function desfazerLoteChecklist(snapLeques, snapFuros){
+  snapLeques.forEach(s=>{
+    const c = checklistLeques.find(x=>x.id===s.id);
+    if(c && c.perfilado !== s.perfilado){ c.perfilado = s.perfilado; enfileirar('checklist_leques', 'update', { id:c.id, perfilado:c.perfilado }); }
+  });
+  snapFuros.forEach(s=>{
+    const f = checklistFuros.find(x=>x.id===s.id);
+    if(!f) return;
+    f.perfilado = s.perfilado; f.perfiladoEm = s.perfiladoEm; f.topografado = s.topografado; f.topografadoEm = s.topografadoEm;
+    enfileirar('checklist_furos', 'update', { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm });
+  });
+  salvarChecklistLocal();
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast('Desfeito.');
+}
+
+(function ligarFiltrosChecklist(){
+  const busca = document.getElementById('checklist-busca');
+  const local = document.getElementById('checklist-filtro-local');
+  const sel = document.getElementById('btn-checklist-selecionar');
+  const det = document.getElementById('checklist-adicionar');
+  if(busca) busca.addEventListener('input', ()=>{ checklistFiltro.busca = busca.value; renderChecklist(); });
+  if(local) local.addEventListener('change', ()=>{ checklistFiltro.local = local.value; renderChecklist(); });
+  if(sel) sel.addEventListener('click', alternarModoSelecaoChecklist);
+  if(det) det.addEventListener('toggle', ()=>{ if(det.dataset.prog){ delete det.dataset.prog; return; } det.dataset.tocado = '1'; });
+})();
 
 // Agrupa códigos consecutivos do mesmo tipo em intervalos (LQ01, LQ02, LQ03,
 // LQ04, LQ05 vira "LQ01 ao LQ05") — reduz bastante a poluição visual de
@@ -4116,18 +4375,66 @@ async function exportarTurnoOuCombinado(){
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
+const VIEWS_SECUNDARIAS = ['historico','config','tecnico'];
 function mostrarView(viewId){
+  document.body.dataset.view = viewId; // CSS usa isto pra mostrar contadores/trilha só onde fazem sentido
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.tab-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
+  const abaMais = document.getElementById('tab-mais');
+  if(abaMais) abaMais.classList.toggle('active', VIEWS_SECUNDARIAS.includes(viewId));
+  document.querySelectorAll('#tab-mais-sheet .sheet-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
+  fecharSheetMais();
   // O infográfico não recalcula sozinho a cada marcação no checklist (só
   // renderChecklist roda nesse caso) — então garante dado fresco toda vez
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
 }
 
-document.querySelectorAll('.tab-item').forEach(btn=>{
+document.querySelectorAll('.tab-item[data-view]').forEach(btn=>{
   btn.addEventListener('click', ()=> mostrarView(btn.dataset.view));
 });
+
+// "Mais": no celular a barra de baixo mostra só as abas principais; Histórico,
+// Config e Técnico ficam num painel que abre acima da barra.
+function fecharSheetMais(){
+  const sheet = document.getElementById('tab-mais-sheet');
+  const btn = document.getElementById('tab-mais');
+  if(sheet) sheet.classList.remove('open');
+  if(btn) btn.setAttribute('aria-expanded', 'false');
+}
+(function montarSheetMais(){
+  const sheet = document.getElementById('tab-mais-sheet');
+  const btn = document.getElementById('tab-mais');
+  if(!sheet || !btn) return;
+  document.querySelectorAll('.tab-item.tab-secundaria').forEach(orig=>{
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'sheet-item';
+    item.dataset.view = orig.dataset.view;
+    item.setAttribute('role', 'menuitem');
+    item.innerHTML = orig.querySelector('.tab-icon').innerHTML + '<span>' + orig.querySelector('.tab-label').textContent + '</span>';
+    item.addEventListener('click', ()=> mostrarView(item.dataset.view));
+    sheet.appendChild(item);
+  });
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const abrir = !sheet.classList.contains('open');
+    sheet.classList.toggle('open', abrir);
+    btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  });
+  document.addEventListener('click', (e)=>{ if(!sheet.contains(e.target) && e.target !== btn && !btn.contains(e.target)) fecharSheetMais(); });
+})();
+document.body.dataset.view = 'perfilagem';
+
+// O rótulo do usuário fica escondido no cabeçalho do celular; espelha no menu ⋮.
+(function espelharUsuarioNoMenu(){
+  const origem = document.getElementById('usuario-logado-label');
+  const destino = document.getElementById('menu-usuario-info');
+  if(!origem || !destino) return;
+  const copiar = ()=>{ destino.textContent = origem.textContent; };
+  new MutationObserver(copiar).observe(origem, { childList:true, characterData:true, subtree:true });
+  copiar();
+})();
 
 // ---------- Infográfico ----------
 // Data local (sem hora) no formato AAAA-MM-DD, usada pra agrupar por dia
