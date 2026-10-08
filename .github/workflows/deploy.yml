@@ -1,0 +1,71 @@
+name: Deploy no GitHub Pages
+
+on:
+  push:
+    branches: [Dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-e-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar pasta de saída
+        run: |
+          mkdir -p site
+          cp dash.html index.html script.js style.css site/
+          [ -f manifest.json ] && cp manifest.json site/ || true
+          [ -f sw.js ] && cp sw.js site/ || true
+          [ -d icons ] && cp -r icons site/ || true
+
+      - name: Substituir a URL e a chave do Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Faltam os Secrets SUPABASE_URL / SUPABASE_ANON_KEY no repositório."
+            exit 1
+          fi
+          sed -i "s|__SUPABASE_URL__|${SUPABASE_URL}|g" site/script.js site/index.html
+          sed -i "s|__SUPABASE_ANON_KEY__|${SUPABASE_ANON_KEY}|g" site/script.js site/index.html
+
+      - name: Confirmar que a substituição aconteceu
+        run: |
+          if grep -q "__SUPABASE_URL__\|__SUPABASE_ANON_KEY__" site/script.js site/index.html; then
+            echo "Ainda sobrou marcador não substituído — confira o NOME dos Secrets."
+            exit 1
+          fi
+          echo "Substituição confirmada."
+
+      - name: Atualizar a versão de cache (?v=...)
+        run: |
+          VERSAO="${{ github.run_number }}-${GITHUB_SHA::7}"
+          sed -i -E "s/(script\.js\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
+          sed -i -E "s/(style\.css\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
+
+      - name: Configurar o Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empacotar os arquivos
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
