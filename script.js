@@ -1799,7 +1799,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', ts: row.criado_em }; }
-function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -2001,6 +2001,7 @@ function renderChecklist(){
           <span class="mini-selo mini-selo-moss" style="--pct:${Math.round((furosFeitos/furosDoLeque.length)*100)}%" title="furos perfilados neste leque">${furosFeitos}/${furosDoLeque.length} perfilado${furosDoLeque.length===1?'':'s'}</span>
           <span class="mini-selo mini-selo-steel" style="--pct:${Math.round((furosTopoFeitos/furosDoLeque.length)*100)}%" title="furos topografados neste leque">${furosTopoFeitos}/${furosDoLeque.length} topografado${furosDoLeque.length===1?'':'s'}</span>
           ` : `<span class="hint">sem furos ainda</span>`}
+          ${furosDoLeque.some(f=>f.obstruido) ? `<span class="mini-selo mini-selo-obstruido" title="furos obstruídos neste leque">✕ ${furosDoLeque.filter(f=>f.obstruido).length} obstruído${furosDoLeque.filter(f=>f.obstruido).length===1?'':'s'}</span>` : ''}
           <span class="spacer"></span>
           <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
         </div>
@@ -2032,13 +2033,18 @@ function renderChecklist(){
           </div>
           ${furosDoLeque.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th>Perfilado</th><th>Topografado</th><th>Metros</th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th title="perfilado">Perf.</th><th title="topografado">Topo</th><th title="obstruído por rocha ou tela">Obstr.</th><th>Metros</th><th></th></tr></thead>
             <tbody>
               ${furosDoLeque.map(f=>`
-                <tr class="${f.perfilado ? 'feito' : ''}">
+                <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
                   <td>F${f.numero}</td>
                   <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado"></td>
                   <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado"></td>
+                  <td><select class="select-obstruido ${f.obstruido ? 'ativo' : ''}" onchange="definirObstrucaoChecklistFuro('${f.id}', this.value)" title="furo obstruído por rocha ou tela">
+                    <option value="" ${!f.obstruido ? 'selected' : ''}>—</option>
+                    <option value="rocha" ${f.obstruido==='rocha' ? 'selected' : ''}>✕ Rocha</option>
+                    <option value="tela" ${f.obstruido==='tela' ? 'selected' : ''}>✕ Tela</option>
+                  </select></td>
                   <td><input type="text" inputmode="decimal" class="input-metragem-checklist" value="${f.metragem != null ? f.metragem : ''}" placeholder="0.0" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" title="metros perfilados nesse furo"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover">✕</button></td>
                 </tr>
@@ -2092,6 +2098,20 @@ function compactarCodigosEmIntervalos(itens){
 
 // Monta o bloco de resumo (leques + furos) de UM realce — reaproveitado tanto
 // pra mandar um realce só quanto pra combinar vários no mesmo relatório.
+// Furos obstruídos (rocha ou tela) dos leques informados, um leque por linha:
+// "LQ01 (Galeria Norte): F02 rocha, F05 tela". Vazio se não houver nenhum.
+function blocoObstruidosWhatsApp(itens){
+  const linhas = [];
+  itens.forEach(c=>{
+    const obs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
+    if(!obs.length) return;
+    const local = (c.localizacao||'').trim();
+    const furos = obs.map(f=>`F${f.numero} ${f.obstruido}`).join(', ');
+    linhas.push(`${PREFIXO[c.tipo]}${c.numero}${local ? ' ('+semAcento(local)+')' : ''}: ${furos}`);
+  });
+  return linhas.length ? `[FUROS OBSTRUIDOS]\n${linhas.join('\n')}` : '';
+}
+
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
 // Resumo (leques + furos + listas) de um conjunto de leques do checklist.
@@ -2135,6 +2155,8 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
     return `${titulo}\n${resumoChecklistItens(grupos.get(k))}`;
   });
   bloco += partes.join('\n\n');
+  const obstruidos = blocoObstruidosWhatsApp(itens);
+  if(obstruidos) bloco += `\n\n${obstruidos}`;
   const comObs = itens.filter(c=>c.observacao);
   if(comObs.length){
     bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
@@ -2198,6 +2220,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
 
   // Observações lançadas em cada leque do checklist — ajuda quem lê a
   // entender o "porquê" por trás dos números, não só o placar.
+  const obstruidosTxt = blocoObstruidosWhatsApp(itens);
+  if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
   if(lequesComObs.length){
     bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
@@ -2555,7 +2579,8 @@ function desfazerRemocaoChecklist(itemRemovido, furosRemovidos){
   (furosRemovidos || []).forEach(f=>{
     checklistFuros.push(f);
     restaurarNaFila('checklist_furos', f.id, {
-      id: f.id, checklist_leque_id: f.checklistLequeId, numero: f.numero, perfilado: f.perfilado, topografado: f.topografado
+      id: f.id, checklist_leque_id: f.checklistLequeId, numero: f.numero, perfilado: f.perfilado, topografado: f.topografado,
+      obstruido: f.obstruido || null
     });
   });
   salvarChecklistLocal();
@@ -2615,6 +2640,17 @@ function toggleChecklistFuroTopografado(id){
   renderChecklist();
 }
 
+function definirObstrucaoChecklistFuro(id, motivo){
+  const f = checklistFuros.find(x=>x.id===id);
+  if(!f) return;
+  const valor = (motivo === 'rocha' || motivo === 'tela') ? motivo : '';
+  f.obstruido = valor;
+  enfileirar('checklist_furos', 'update', { id: f.id, obstruido: valor || null });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(valor ? `F${f.numero} marcado como obstruído por ${valor}.` : `F${f.numero} liberado.`);
+}
+
 function atualizarMetragemChecklistFuro(id, valorTexto){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
@@ -2645,7 +2681,8 @@ function desfazerRemocaoChecklistFuro(furoRemovido){
   checklistFuros.push(furoRemovido);
   restaurarNaFila('checklist_furos', furoRemovido.id, {
     id: furoRemovido.id, checklist_leque_id: furoRemovido.checklistLequeId,
-    numero: furoRemovido.numero, perfilado: furoRemovido.perfilado, topografado: furoRemovido.topografado
+    numero: furoRemovido.numero, perfilado: furoRemovido.perfilado, topografado: furoRemovido.topografado,
+    obstruido: furoRemovido.obstruido || null
   });
   salvarChecklistFurosLocal();
   renderChecklist();
