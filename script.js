@@ -2004,6 +2004,7 @@ function renderChecklist(){
           <span class="spacer"></span>
           <button type="button" class="icon icon-remover" onclick="removerChecklistLeque('${c.id}')" title="remover do checklist">✕</button>
         </div>
+        <div class="checklist-leque-meta">
         <div class="checklist-leque-local">
           ${c.localizacao ? `
             <span class="local-rotulo">Local:</span><span class="texto">${escHtml(c.localizacao)}</span>
@@ -2020,6 +2021,7 @@ function renderChecklist(){
           ` : `
             <button type="button" class="link-obs" onclick="editarObservacaoChecklistLeque('${c.id}')">+ observação</button>
           `}
+        </div>
         </div>
         ${expandido ? `
         <div class="checklist-furos-body">
