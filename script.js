@@ -758,6 +758,7 @@ function definirAnelAtivo(novoId){
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
+  if(typeof atualizarContadorFiltros === 'function') atualizarContadorFiltros();
 }
 
 // O Supabase devolve no maximo 1000 linhas por consulta; pagina ate trazer tudo
@@ -2279,7 +2280,7 @@ function renderChecklist(){
     const furosFeitosNoRealce = todosFurosDoRealce.filter(f=>f.perfilado).length;
     const totalFurosNoRealce = todosFurosDoRealce.length;
     const percentual = totalFurosNoRealce > 0 ? Math.round((furosFeitosNoRealce / totalFurosNoRealce) * 100) : 0;
-    textoFurosBarra.textContent = `${furosFeitosNoRealce}/${totalFurosNoRealce}`;
+    textoFurosBarra.textContent = `${furosFeitosNoRealce}/${totalFurosNoRealce} · ${percentual}%`;
     barraFuros.style.width = percentual + '%';
   }
 
@@ -2289,7 +2290,7 @@ function renderChecklist(){
     const topografadosNoRealce = todosFurosDoRealce.filter(f=>f.topografado).length;
     const totalFurosNoRealce = todosFurosDoRealce.length;
     const percentual = totalFurosNoRealce > 0 ? Math.round((topografadosNoRealce / totalFurosNoRealce) * 100) : 0;
-    textoTopoBarra.textContent = `${topografadosNoRealce}/${totalFurosNoRealce}`;
+    textoTopoBarra.textContent = `${topografadosNoRealce}/${totalFurosNoRealce} · ${percentual}%`;
     barraTopo.style.width = percentual + '%';
   }
 
@@ -3031,18 +3032,24 @@ async function gerarImagemInfografico(){
       // Gráficos SVG: o html2canvas não resolve var(--cor) dentro do SVG nem respeita
       // preserveAspectRatio="none" (cortava a direita e deixava o gráfico vazio). Aqui
       // fixamos cores reais (tema claro) e um tamanho em pixels proporcional ao viewBox.
-      const coresClaras = { '--amber':'#e08a00', '--steel':'#3b6ea5', '--surface':'#ffffff', '--ok':'#1f9d55', '--accent':'#ff431d' };
       card.querySelectorAll('svg.infografico-chart').forEach(s=>{
         const larg = 800; // card tem 860px de largura menos o padding interno
-        s.setAttribute('viewBox', '0 0 900 170');
+        const vb = (s.getAttribute('viewBox') || '0 0 900 170').split(/\s+/).map(Number);
+        const alt = Math.round(larg * (vb[3] || 170) / (vb[2] || 900));
         s.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        s.setAttribute('width', String(larg));
-        s.setAttribute('height', String(Math.round(larg * 170 / 900)));
-        s.style.width = larg + 'px'; s.style.height = Math.round(larg * 170 / 900) + 'px';
-        s.innerHTML = s.innerHTML.replace(/var\((--[\w-]+)\)/g, (m, v)=>{
-          const real = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-          return coresClaras[v] || real || '#888';
-        });
+        s.setAttribute('width', String(larg)); s.setAttribute('height', String(alt));
+        s.style.width = larg + 'px'; s.style.height = alt + 'px';
+        // O html2canvas copia as cores já calculadas (do tema escuro, se for o caso) para dentro
+        // do SVG; aqui cada parte volta para as cores do tema claro da imagem.
+        const cor = s.dataset.corExport || '#ff431d';
+        const pinta = (sel, props)=> s.querySelectorAll(sel).forEach(n=> Object.entries(props).forEach(([k,v])=> n.style.setProperty(k, v)));
+        pinta('[data-exp="stop"]', { 'stop-color': cor });
+        pinta('[data-exp="linha"]', { stroke: cor });
+        pinta('[data-exp="ponto"]', { fill: '#ffffff', stroke: cor });
+        pinta('[data-exp="ponto-ultimo"]', { fill: cor, stroke: cor });
+        pinta('[data-exp="valor"]', { fill: '#191231' });
+        pinta('[data-exp="meta"]', { fill: '#565668', stroke: '#565668' });
+        s.querySelectorAll('line[data-exp="meta"]').forEach(n=> n.style.setProperty('fill', 'none'));
       });
       // Campos de total viram texto simples (no PDF/imagem não se digita).
       card.querySelectorAll('.equipe-campo input').forEach(i=>{ i.style.border = 'none'; i.style.background = 'transparent'; });
@@ -3478,6 +3485,15 @@ function desfazerMarcaFuro(antes){
   showToast(`F${f.numero} voltou ao que estava.`);
 }
 
+// Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
+function pulsarMarcaFuro(f, funcao){
+  try{
+    const alvo = document.querySelector(`input[onchange*="${funcao}('${f.id}')"]`);
+    if(alvo) alvo.classList.add('pulso');
+    const card = document.getElementById('ck-card-' + f.checklistLequeId);
+    if(card) card.querySelectorAll('.ck-prog-linha .num').forEach(n=> n.classList.add('pulso'));
+  }catch(e){}
+}
 function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
@@ -3491,6 +3507,7 @@ function toggleChecklistFuro(id){
   enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado, perfilado_em: f.perfiladoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
+  pulsarMarcaFuro(f, 'toggleChecklistFuro');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.`);
 }
 
@@ -3504,6 +3521,7 @@ function toggleChecklistFuroTopografado(id){
   enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
+  pulsarMarcaFuro(f, 'toggleChecklistFuroTopografado');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.topografado ? 'topografado' : 'topografado desmarcado'}.`);
 }
 
@@ -4739,7 +4757,7 @@ function render(){
   const lista = el('lista');
 
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="empty">Nenhum realce criado ainda.<br>Clique na aba "Realce" para começar.</div>`;
+    lista.innerHTML = htmlEstadoVazio('Nenhum realce criado', 'Crie o primeiro realce para começar a registrar leques e furos.', 'Ir para Realce', "mostrarView('aneis')");
     return;
   }
 
@@ -4878,6 +4896,20 @@ function renderAll(){
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
+
+// Filtros da lista: no celular ficam recolhidos atrás do botão "Filtros", que mostra quantos
+// estão ativos; no computador ficam sempre à vista.
+function atualizarContadorFiltros(){
+  const n = ['f-tipo','f-situacao','f-busca'].filter(id=> el(id) && el(id).value.trim() !== '').length;
+  const b = el('filtros-ativos'); if(!b) return;
+  b.textContent = String(n); b.hidden = n === 0;
+}
+['f-tipo','f-situacao','f-busca'].forEach(id=>{ const c = el(id); if(c){ c.addEventListener('input', atualizarContadorFiltros); c.addEventListener('change', atualizarContadorFiltros); } });
+el('btn-filtros').addEventListener('click', ()=>{
+  const f = document.querySelector('.filters'); const aberto = f.classList.toggle('aberto');
+  el('btn-filtros').setAttribute('aria-expanded', String(aberto));
+});
+atualizarContadorFiltros();
 
 // PDF do realce ativo, a partir da mesma lista que a pessoa está vendo: respeita tipo de leque,
 // situação do furo e busca. Cada leque entra inteiro, com os furos e os subtotais.
@@ -5170,42 +5202,59 @@ function calcularEstatisticasInfografico(){
 // Desenha um gráfico de área+linha genérico dentro de um <svg> — reaproveitado
 // pros dois gráficos do infográfico (metros perfilados e furos topografados),
 // que têm unidades diferentes e por isso não podem dividir o mesmo eixo.
-function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVar){
+function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVar, meta){
   const svg = el(idSvg);
   if(!svg) return;
-  const w = 900, h = 170, pad = 18;
-  const max = Math.max(1, ...serie.map(d=>d[chaveValor])) * 1.15;
+  // Usa a largura real do gráfico na tela (sem esticar), pra textos e círculos não distorcerem.
+  const w = Math.max(280, Math.round(svg.getBoundingClientRect().width) || 900), h = 170, pad = 18, topo = 22;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const maxSerie = Math.max(1, ...serie.map(d=>d[chaveValor]));
+  const max = Math.max(maxSerie, meta || 0) * 1.1;
   const passoX = (w - pad*2) / (serie.length - 1);
-  const pontos = serie.map((d,i)=>{
-    const x = pad + i * passoX;
-    const y = h - pad - ((d[chaveValor] / max) * (h - pad*2));
-    return [x,y];
-  });
+  const yDe = v => h - pad - ((v / max) * (h - pad - topo));
+  const pontos = serie.map((d,i)=> [pad + i * passoX, yDe(d[chaveValor])]);
   const linhaPath = pontos.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
   const areaPath = linhaPath + ` L${pontos[pontos.length-1][0]},${h-pad} L${pontos[0][0]},${h-pad} Z`;
   const idGrad = 'grad-' + idSvg;
+  const fmtV = v => chaveValor === 'metros' ? (Math.round(v*10)/10).toString().replace('.', ',') : String(v);
 
   let svgHTML = `
     <defs>
       <linearGradient id="${idGrad}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" style="stop-color:${corVar}; stop-opacity:0.35;"/>
-        <stop offset="100%" style="stop-color:${corVar}; stop-opacity:0;"/>
+        <stop data-exp="stop" offset="0%" style="stop-color:${corVar}; stop-opacity:0.35;"/>
+        <stop data-exp="stop" offset="100%" style="stop-color:${corVar}; stop-opacity:0;"/>
       </linearGradient>
     </defs>
     <path d="${areaPath}" style="fill:url(#${idGrad});"/>
-    <path d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke;"/>
+    <path data-exp="linha" d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
   `;
+  // Linha de meta tracejada (só quando existe meta)
+  if(meta && meta > 0){
+    const ym = yDe(meta);
+    svgHTML += `<line data-exp="meta" x1="${pad}" x2="${w-pad}" y1="${ym}" y2="${ym}" style="stroke:var(--muted); stroke-width:1.5px; stroke-dasharray:6 5;"/>`
+      + `<text data-exp="meta" x="${pad+2}" y="${ym-5}" style="fill:var(--muted); font-size:12px; font-family:var(--mono);">meta/dia ${fmtV(meta)}</text>`;
+  }
   pontos.forEach((p,i)=>{
     const ultimo = i === pontos.length - 1;
-    svgHTML += `<circle cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
+    svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}" cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
+  });
+  // Valores marcados: o maior e o último dia (quando maiores que zero)
+  const iMax = serie.reduce((b,d,i)=> d[chaveValor] > serie[b][chaveValor] ? i : b, 0);
+  const marcar = new Set([serie.length - 1]); if(serie[iMax][chaveValor] > 0) marcar.add(iMax);
+  marcar.forEach(i=>{
+    const v = serie[i][chaveValor]; if(!v) return;
+    const x = Math.min(w - pad - 4, Math.max(pad + 4, pontos[i][0]));
+    const ancora = x > w - 40 ? 'end' : (x < 40 ? 'start' : 'middle');
+    svgHTML += `<text data-exp="valor" x="${ancora==='end' ? pontos[i][0]+4 : x}" y="${pontos[i][1]-9}" text-anchor="${ancora}" style="fill:var(--text); font-size:13px; font-weight:700; font-family:var(--mono);">${fmtV(v)}</text>`;
   });
   svg.innerHTML = svgHTML;
+  svg.dataset.corExport = corVar === 'var(--amber)' ? '#ff431d' : '#2f6690'; // cor da série na imagem (tema claro)
 
   const eixoX = el(idEixoX);
   if(eixoX){
     // Um rótulo a cada 2 dias, contando de trás pra frente: o último dia (hoje)
     // sempre aparece. Cada rótulo mostra o valor do dia em cima da data.
-    const fmtV = v => chaveValor === 'metros' ? (Math.round(v*10)/10).toString().replace('.', ',') : String(v);
     eixoX.innerHTML = serie.map((d,i)=>{
       const visivel = (serie.length - 1 - i) % 2 === 0;
       return `<span class="${visivel ? '' : 'oculto'}"><b>${d[chaveValor] ? fmtV(d[chaveValor]) : '·'}</b>${d.dia}</span>`;
@@ -5243,6 +5292,11 @@ function equipesDoProjeto(projeto){
   return equipes.filter(e=> e.projeto === p).sort((x,y)=> (x.ordem - y.ordem) || x.nome.localeCompare(y.nome, 'pt-BR'));
 }
 function nomeEscopoEquipes(){ return projetoDoEscopo() || 'Geral (sem projeto)'; }
+// Estado vazio com ícone e botão de ação (em vez de só um texto cinza solto).
+function htmlEstadoVazio(titulo, texto, rotuloBotao, acaoJs){
+  return `<div class="estado-vazio"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+    <strong>${titulo}</strong><span>${texto}</span>${rotuloBotao ? `<button type="button" onclick="${acaoJs}">${rotuloBotao}</button>` : ''}</div>`;
+}
 function escHtml(t){ return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function criarEquipe(projeto, nome, integrantes){
@@ -5652,7 +5706,8 @@ function renderInfograficoResumo(){
 
   // Dois gráficos separados — metros e contagem de furos não dividem o
   // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
-  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)');
+  const metaSemanalTotal = equipesDoProjeto().reduce((t,e)=> t + (e.metaSemanal > 0 ? e.metaSemanal : 0), 0);
+  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }
 

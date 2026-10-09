@@ -1326,3 +1326,38 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
   background:var(--steel); color:#fff; font-family:var(--mono); font-size:12px; font-weight:700; line-height:18px; text-align:center;
 }
 .tab-badge[hidden]{ display:none; }
+
+/* ---- Melhorias visuais (progresso fixo, estados vazios, filtros, gráficos, pulso) ---- */
+/* 2 — progresso do realce fixo ao rolar o checklist */
+#view-checklist .view-card{ overflow:visible; }
+#view-checklist .checklist-progresso-resumo{
+  position:sticky; top:0; z-index:40; background:var(--surface); padding:10px 0 10px; margin:-4px 0 6px;
+  border-bottom:1px solid var(--line);
+}
+@media (min-width:701px){ #view-checklist .checklist-progresso-resumo{ top:48px; } }
+/* 3 — estado vazio com ícone e ação */
+.estado-vazio{
+  display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+  padding:26px 16px; border:1px dashed var(--line); border-radius:8px; background:var(--surface-2); color:var(--muted);
+}
+.estado-vazio .icon-svg{ width:34px; height:34px; margin:0; color:var(--steel); }
+.estado-vazio strong{ color:var(--text); font-size:15px; }
+.estado-vazio span{ max-width:34ch; }
+.estado-vazio button{ margin-top:6px; min-height:44px; }
+/* 5 — filtros recolhidos no celular */
+#filtros-campos{ display:contents; }
+#btn-filtros{ display:none; }
+@media (max-width:700px){
+  #btn-filtros{ display:inline-flex; align-items:center; gap:6px; min-height:44px; }
+  #filtros-campos{ display:none; flex-direction:column; gap:10px; width:100%; order:5; }
+  .filters.aberto #filtros-campos{ display:flex; }
+  #filtros-campos > *{ width:100%; }
+}
+/* 7 — pulso curto ao marcar */
+@keyframes pulsoMarca{ 0%{ transform:scale(1); } 40%{ transform:scale(1.35); } 100%{ transform:scale(1); } }
+input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
+@media (prefers-reduced-motion: reduce){ input.pulso, .ck-prog-linha .num.pulso{ animation:none; } }
+@media (max-width:700px){
+  .filters #btn-filtros, .filters #btn-pdf-lista, .filters #btn-csv{ flex:1 1 30%; justify-content:center; padding-inline:8px; }
+  .filters .spacer{ display:none; }
+}
