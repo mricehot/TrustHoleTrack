@@ -5567,7 +5567,7 @@ function renderInfograficoResumo(){
   const setaVs = (idEl, atual, anterior)=>{
     const e = el(idEl); if(!e) return;
     if(!anterior && !atual){ e.className = 'kpi-vs igual'; e.textContent = ''; return; }
-    if(!anterior){ e.className = 'kpi-vs subiu'; e.textContent = '▲ sem dado na semana passada'; return; }
+    if(!anterior){ e.className = 'kpi-vs subiu'; e.textContent = '▲ sem base ant.'; return; }
     const pct = Math.round(((atual - anterior) / anterior) * 100);
     if(pct === 0){ e.className = 'kpi-vs igual'; e.textContent = '= igual à semana passada'; return; }
     e.className = 'kpi-vs ' + (pct > 0 ? 'subiu' : 'desceu');

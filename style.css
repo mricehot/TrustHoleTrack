@@ -1271,3 +1271,17 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
     box-shadow:0 2px 8px rgba(0,0,0,.06);
   }
 }
+
+/* ---- Cabeçalho da Perfilagem e cartões do Infográfico (mais legíveis) ---- */
+@media (max-width:700px){
+  /* número grande em cima, nome da medida embaixo, 5 colunas iguais */
+  .readout{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; text-align:center; }
+  .readout > div{ display:flex; flex-direction:column-reverse; align-items:center; justify-content:flex-end; gap:2px; min-width:0; }
+  .readout > div span{ font-size:12px; line-height:1.15; white-space:normal; overflow-wrap:normal; }
+  .readout b{ font-size:19px; line-height:1.1; }
+}
+/* Cartões do Infográfico: menos ar em volta, número em destaque */
+.infografico-kpi{ padding:10px 12px; }
+.infografico-kpi .label{ margin-bottom:4px; }
+.infografico-kpi .valor{ line-height:1.15; }
+.kpi-vs{ margin-top:3px; }
