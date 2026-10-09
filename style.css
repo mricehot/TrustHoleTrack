@@ -777,16 +777,11 @@ button .icon-svg{ stroke:currentColor; }
 }
 .alerta-falhas button:disabled{ opacity:.7; cursor:wait; }
 
-/* Sem internet: campos e opções de edição ficam apagados e sem resposta ao toque */
-body.offline-leitura input:not(#f-busca):not(.livre-offline),
-body.offline-leitura select:not(#f-tipo):not(#f-situacao),
-body.offline-leitura textarea,
-body.offline-leitura label:has(input[type="checkbox"]){
-  opacity:.55;
-}
-body.offline-leitura input:not(#f-busca),
-body.offline-leitura select:not(#f-tipo):not(#f-situacao),
-body.offline-leitura textarea{ cursor:not-allowed; }
+/* Sem internet o app continua editando (fila guardada no aparelho); só foto e conta ficam apagadas */
+body.offline-leitura #btn-escolher-foto-leque, body.offline-leitura #btn-escolher-foto-turno,
+body.offline-leitura [onclick*="selecionarFotoLeque"], body.offline-leitura [onclick*="removerFotoLeque"],
+body.offline-leitura #btn-alterar-senha, body.offline-leitura #btn-salvar-perfil,
+body.offline-leitura #tecnico-nome{ opacity:.45; cursor:not-allowed; }
 
 @media (prefers-reduced-motion:reduce){
   .status-salvamento.salvando .status-ponto{ animation:none; }
@@ -1223,3 +1218,12 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
 .ck-lista.em-arraste{ user-select:none; -webkit-user-select:none; }
 .ck-lista.em-arraste .checklist-leque-card:not(.arrastando){ transition:none; }
 .ck-ferramentas .ghost{ min-height:44px; }
+
+/* Resumo do turno */
+.resumo-turno-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.resumo-turno-acoes button{ min-height:48px; }
+#btn-resumo-turno-whatsapp{ flex:1 1 100%; font-size:15px; }
+.resumo-turno-texto{
+  margin:0; padding:10px; white-space:pre-wrap; word-break:break-word; font-family:var(--mono); font-size:12.5px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:8px; max-height:50vh; overflow:auto; color:var(--text);
+}
