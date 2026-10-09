@@ -1316,3 +1316,13 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
 .com-apagar{ min-height:36px; padding:0 12px; background:none; color:#b3261e; border:1px solid var(--line); box-shadow:none; text-transform:none; letter-spacing:0; }
 .com-enc summary{ cursor:pointer; min-height:36px; display:flex; align-items:center; color:var(--muted); font-size:13px; }
 .com-enc[open] > .com{ margin-top:8px; }
+
+/* Aviso de alterações paradas há mais de 10 min: mais forte */
+.alerta-falhas.longo{ background:#8c1d14; font-size:14px; }
+/* Contador de pendências na aba Checklist */
+.tab-item .tab-icon{ position:relative; }
+.tab-badge{
+  position:absolute; top:-6px; right:-12px; min-width:18px; height:18px; padding:0 5px; border-radius:9px;
+  background:var(--steel); color:#fff; font-family:var(--mono); font-size:12px; font-weight:700; line-height:18px; text-align:center;
+}
+.tab-badge[hidden]{ display:none; }

@@ -474,7 +474,9 @@ function carregarLocal(){
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno',
-  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado'
+  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado',
+  checklist_furos: 'Marcação do checklist', checklist_leques: 'Leque do checklist', checklist_observacoes_gerais: 'Observação do checklist',
+  equipes: 'Equipe', produtividade_lancamentos: 'Produção da equipe', projetos: 'Projeto', fotos_turno: 'Foto do turno'
 };
 
 // Pequeno atraso (debounce) só pras ações de update/upsert — evita mandar uma
@@ -503,7 +505,7 @@ function itensDaFila(){
     const [tabela, acao] = k.split(':');
     mapa.set(k, { chave:k, tabela, acao, registro:reg });
   });
-  falhasDeEnvio.forEach((v,k)=> mapa.set(k, { chave:v.chave, tabela:v.tabela, acao:v.acao, registro:v.registro }));
+  falhasDeEnvio.forEach((v,k)=> mapa.set(k, { chave:v.chave, tabela:v.tabela, acao:v.acao, registro:v.registro, desde:v.desde }));
   return Array.from(mapa.values());
 }
 let filaRestauradaPara = null; // só grava a fila depois de ler a que já estava guardada (senão apagaria)
@@ -528,7 +530,7 @@ function restaurarFilaPersistida(){
       if(!it || !it.tabela || !it.acao || !it.registro) return;
       const chave = it.chave || (it.tabela + ':' + it.acao + ':' + it.registro.id);
       if(falhasDeEnvio.has(chave)) return;
-      falhasDeEnvio.set(chave, { chave, tabela:it.tabela, acao:it.acao, registro:it.registro, motivo:'guardado no aparelho' });
+      falhasDeEnvio.set(chave, { chave, tabela:it.tabela, acao:it.acao, registro:it.registro, motivo:'guardado no aparelho', desde: it.desde || Date.now() });
       n++;
     });
   }catch(e){}
@@ -542,7 +544,7 @@ function registrarFalhaNaFila(chave, tabela, acao, registro, motivo){
   const anterior = falhasDeEnvio.get(chave);
   // Duas alterações do mesmo registro enquanto offline viram UMA, com todos os campos.
   if(anterior && (acao === 'update' || acao === 'upsert')) registro = Object.assign({}, anterior.registro, registro);
-  falhasDeEnvio.set(chave, { chave, tabela, acao, registro, motivo });
+  falhasDeEnvio.set(chave, { chave, tabela, acao, registro, motivo, desde: (anterior && anterior.desde) || Date.now() });
 }
 let enviosEmAndamento = 0;
 let reenviandoFalhas = false;
@@ -572,8 +574,16 @@ function atualizarIndicadorSalvamento(){
   if(alerta){
     if(qtdFalhas === 0){ alerta.style.display = 'none'; return; }
     const nomes = Array.from(new Set(Array.from(falhasDeEnvio.values()).map(f=> NOME_TABELA_FILA[f.tabela] || f.tabela)));
-    alerta.querySelector('.alerta-falhas-texto').textContent =
-      `${qtdFalhas} alteração(ões) guardada(s) neste aparelho, ainda não enviadas (${nomes.join(', ')}). Sobem sozinhas quando houver sinal — não precisa ficar com o app aberto.`;
+    // Há quanto tempo a alteração mais antiga está parada: passando de 10 min, o aviso pede
+    // pra subir até um ponto com sinal antes de trocar de turno (o que está só no aparelho
+    // não chega ao gestor nem ao turno seguinte).
+    const maisAntiga = Math.min(...Array.from(falhasDeEnvio.values()).map(f=> f.desde || Date.now()));
+    const minParado = Math.floor((Date.now() - maisAntiga) / 60000);
+    const longo = minParado >= 10;
+    alerta.classList.toggle('longo', longo);
+    alerta.querySelector('.alerta-falhas-texto').textContent = longo
+      ? `⚠ ${qtdFalhas} alteração(ões) sem enviar há ${minParado} min (${nomes.join(', ')}). Suba até um ponto com sinal antes de trocar de turno, senão o próximo turno não vê o que você marcou.`
+      : `${qtdFalhas} alteração(ões) guardada(s) neste aparelho, ainda não enviadas (${nomes.join(', ')}). Sobem sozinhas quando houver sinal — não precisa ficar com o app aberto.`;
     alerta.style.display = 'flex';
   }
 }
@@ -877,6 +887,9 @@ async function loadData(){
   }
   await atualizarDoServidor();
 }
+
+// Atualiza o texto do aviso de alterações paradas (minutos sem enviar) a cada minuto.
+setInterval(()=>{ if(falhasDeEnvio.size > 0) atualizarIndicadorSalvamento(); }, 60000);
 
 // Tentativa automática: com pendências e rede disponível, reenvia a cada 30 s
 // (cobre Wi-Fi sem internet que "volta" sem disparar o evento online).
@@ -2224,7 +2237,26 @@ function checklistFurosNoEscopoAtual(){
   return checklistFuros.filter(f=>idsLeques.has(f.checklistLequeId));
 }
 
+// Número na aba Checklist: quantos leques do realce ativo ainda têm furo (não obstruído) por
+// perfilar ou topografar. Dá pra ver o que falta sem abrir a tela.
+function atualizarContadorAbaChecklist(){
+  const aba = document.querySelector('.tab-item[data-view="checklist"]'); if(!aba) return;
+  let n = 0;
+  try{
+    checklistDoAnelAtivo().forEach(c=>{
+      const fl = checklistFurosDoLeque(c.id).filter(f=>!f.obstruido);
+      if(fl.some(f=>!f.perfilado || !f.topografado)) n++;
+    });
+  }catch(e){}
+  let sel = aba.querySelector('.tab-badge');
+  if(!sel){ sel = document.createElement('span'); sel.className = 'tab-badge'; aba.querySelector('.tab-icon').appendChild(sel); }
+  sel.textContent = n > 99 ? '99+' : String(n);
+  sel.hidden = n === 0;
+  aba.setAttribute('aria-label', n ? `Checklist, ${n} leque(s) com pendência` : 'Checklist');
+}
+
 function renderChecklist(){
+  atualizarContadorAbaChecklist();
   const grid = el('checklist-grid');
   const vazio = el('checklist-vazio');
   const progresso = el('checklist-progresso');
