@@ -2436,8 +2436,8 @@ function htmlCardChecklist(c, agrupado){
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
                   <td>F${f.numero}</td>
-                  <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
-                  <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
+                  <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
+                  <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
@@ -3414,6 +3414,7 @@ function adicionarFurosAoChecklist(checklistLequeId){
 function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
+  if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
   f.perfilado = !f.perfilado;
   // Guarda quando foi marcado (ou limpa, se desmarcar) — é isso que permite
   // depois calcular "quanto foi perfilado hoje/essa semana/esse mês" de
@@ -3427,6 +3428,7 @@ function toggleChecklistFuro(id){
 function toggleChecklistFuroTopografado(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
+  if(f.obstruido){ renderChecklist(); return; }
   f.topografado = !f.topografado;
   f.topografadoEm = f.topografado ? new Date().toISOString() : null;
   enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
