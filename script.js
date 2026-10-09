@@ -2404,6 +2404,11 @@ function textoQuemQuando(f){
   if(f.obstruido && f.obstruidoPor) partes.push(`obstruído por ${f.obstruidoPor}`);
   return partes.join(' · ');
 }
+// Vários furos obstruídos no mesmo leque costumam indicar problema da região (queda de rocha,
+// tela fechada), não do furo. Alerta a partir de 3 obstruídos, ou 2 se for metade do leque ou mais.
+function obstrucaoAlta(obstr, total){
+  return obstr >= 3 || (obstr >= 2 && total > 0 && obstr / total >= 0.5);
+}
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
   const expandido = checklistExpandido.has(c.id);
@@ -2485,13 +2490,15 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''}" id="ck-card-${c.id}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}">
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
         ${progresso}
-        ${obstr ? `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>` : ''}
+        ${obstr ? (obstrucaoAlta(obstr, furos.length)
+          ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length} obstr.</span>`
+          : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
       </div>
       ${resumo}
       ${corpo}
@@ -2657,7 +2664,9 @@ function blocoObstruidosWhatsApp(itens){
     if(!obs.length) return;
     const local = (c.localizacao||'').trim();
     const furos = obs.map(f=>`F${f.numero}`).join(', ');
-    linhas.push(`${PREFIXO[c.tipo]}${c.numero}${local ? ' ('+semAcento(local)+')' : ''}: ${furos}`);
+    const total = checklistFurosDoLeque(c.id).length;
+    const alerta = obstrucaoAlta(obs.length, total) ? ` -> ATENCAO: ${obs.length} de ${total} furos obstruidos` : '';
+    linhas.push(`${PREFIXO[c.tipo]}${c.numero}${local ? ' ('+semAcento(local)+')' : ''}: ${furos}${alerta}`);
   });
   return linhas.length ? `[FUROS OBSTRUIDOS]\n${linhas.join('\n')}` : '';
 }
@@ -3411,10 +3420,29 @@ function adicionarFurosAoChecklist(checklistLequeId){
   else showToast(`${adicionados} furo(s) adicionado(s).${duplicados ? ' ('+duplicados+' já existiam)' : ''}`);
 }
 
+// Foto do estado de um furo antes de uma marcação, pra poder desfazer só aquele toque (com luva
+// e tela suja, marcar o furo errado acontece). Vale só pra última marcação: o aviso some em 7 s.
+function fotoFuro(f){ return { id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm, obstruido:f.obstruido || '' }; }
+function avisoDesfazerFuro(f, antes, texto){
+  showToast(texto, { acaoLabel:'Desfazer', onAcao: ()=> desfazerMarcaFuro(antes) });
+}
+function desfazerMarcaFuro(antes){
+  const f = checklistFuros.find(x=>x.id===antes.id);
+  if(!f) return;
+  f.perfilado = antes.perfilado; f.perfiladoEm = antes.perfiladoEm;
+  f.topografado = antes.topografado; f.topografadoEm = antes.topografadoEm;
+  f.obstruido = antes.obstruido;
+  enfileirar('checklist_furos', 'update', { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm, obstruido:f.obstruido || null });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(`F${f.numero} voltou ao que estava.`);
+}
+
 function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
+  const antes = fotoFuro(f);
   f.perfilado = !f.perfilado;
   // Guarda quando foi marcado (ou limpa, se desmarcar) — é isso que permite
   // depois calcular "quanto foi perfilado hoje/essa semana/esse mês" de
@@ -3423,17 +3451,20 @@ function toggleChecklistFuro(id){
   enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado, perfilado_em: f.perfiladoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
+  avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.`);
 }
 
 function toggleChecklistFuroTopografado(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; }
+  const antes = fotoFuro(f);
   f.topografado = !f.topografado;
   f.topografadoEm = f.topografado ? new Date().toISOString() : null;
   enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
+  avisoDesfazerFuro(f, antes, `F${f.numero} ${f.topografado ? 'topografado' : 'topografado desmarcado'}.`);
 }
 
 // Rocha e tela são um motivo só ("obstruído"). No banco o valor continua 'rocha' (a coluna só
@@ -3443,11 +3474,12 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   const valor = motivo ? OBSTRUIDO_VALOR : '';
+  const antes = fotoFuro(f);
   f.obstruido = valor;
   enfileirar('checklist_furos', 'update', { id: f.id, obstruido: valor || null });
   salvarChecklistFurosLocal();
   renderChecklist();
-  showToast(valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
+  avisoDesfazerFuro(f, antes, valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
 }
 
 function atualizarMetragemChecklistFuro(id, valorTexto){

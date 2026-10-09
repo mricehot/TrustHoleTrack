@@ -1238,3 +1238,7 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
   content:''; position:absolute; left:0; right:0; top:50%; height:3px; margin-top:-1.5px;
   background:#b3261e; border-radius:2px; pointer-events:none;
 }
+
+/* Leque com vários furos obstruídos: destaque forte (cor + ícone + texto, não só cor) */
+.ck-obstr.alta{ background:#b3261e; color:#fff; border-color:#b3261e; }
+.checklist-leque-card.obstr-alta{ border-left:5px solid #b3261e; }
