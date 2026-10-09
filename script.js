@@ -4213,10 +4213,11 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
 // Compartilha o PDF como arquivo de verdade (evita cair um link "blob:" no WhatsApp/redes sociais).
 // Quando o navegador suporta Web Share API com arquivos, abre o menu nativo de compartilhamento.
 // Caso contrário, cai no download tradicional (o arquivo vai para a pasta de Downloads do aparelho).
-async function baixarOuCompartilharPDF(doc, nomeArquivo){
+async function baixarOuCompartilharPDF(doc, nomeArquivo, forcarDownload){
   const blob = doc.output('blob');
 
   try{
+    if(forcarDownload) throw { name:'BaixarDireto' }; // pula o compartilhar e cai no download
     const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
     if(navigator.canShare && navigator.canShare({ files: [arquivo] })){
       await navigator.share({ files: [arquivo], title: nomeArquivo });
@@ -4531,7 +4532,8 @@ async function exportarLequePDF(id){
     : 'PDF de ' + lequeCode(l) + ' exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
 }
 
-async function exportarLequesPDF(ids){
+async function exportarLequesPDF(ids, opcoes){
+  const baixar = !!(opcoes && opcoes.baixar);
   if(!ids || ids.length === 0){ showToast('Selecione ao menos um leque para exportar.'); return; }
   let selecionados = leques.filter(l=>ids.includes(l.id));
   if(selecionados.length === 0){ showToast('Nenhum leque válido selecionado.'); return; }
@@ -4665,7 +4667,7 @@ async function exportarLequesPDF(ids){
   adicionarNumeracaoPaginas(doc);
 
   const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
-  await baixarOuCompartilharPDF(doc, nomeArquivo);
+  await baixarOuCompartilharPDF(doc, nomeArquivo, baixar);
   const salvoNoHistorico = await registrarExportacao({
     tipo:'combinado',
     leques: selecionados.map(l=>lequeCode(l)).join(', '),
@@ -4862,7 +4864,7 @@ el('btn-pdf-lista').addEventListener('click', async ()=>{
   if(ids.length === 0){ showToast('Nenhum leque pra exportar com esse filtro.'); return; }
   const btn = el('btn-pdf-lista'); const txt = btn.textContent;
   btn.disabled = true; btn.textContent = 'Gerando PDF...';
-  try{ await exportarLequesPDF(ids); }
+  try{ await exportarLequesPDF(ids, { baixar:true }); }
   catch(e){ showToast('Não foi possível gerar o PDF: ' + (e && e.message ? e.message : 'erro desconhecido')); }
   finally{ btn.disabled = false; btn.textContent = txt; }
 });
@@ -4936,6 +4938,9 @@ el('lista').addEventListener('change', (e)=>{
 el('btn-limpar-selecao').addEventListener('click', limparSelecaoLeques);
 el('btn-exportar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados));
+});
+el('btn-baixar-selecionados').addEventListener('click', ()=>{
+  exportarLequesPDF(Array.from(lequesSelecionados), { baixar:true });
 });
 document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{

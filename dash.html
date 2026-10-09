@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261009163000">
+<link rel="stylesheet" href="style.css?v=20261009165000">
 
 </head>
 <body>
@@ -715,7 +715,8 @@
   <span id="export-bar-count">0 leques selecionados</span>
   <div class="actions">
     <button class="ghost" type="button" id="btn-limpar-selecao">Limpar</button>
-    <button class="steel" type="button" id="btn-exportar-selecionados">Exportar PDF combinado</button>
+    <button class="steel" type="button" id="btn-baixar-selecionados" title="baixa o arquivo PDF direto no aparelho">Baixar PDF</button>
+    <button class="ghost" type="button" id="btn-exportar-selecionados" title="abre compartilhar (WhatsApp, e-mail) quando o aparelho permite">Compartilhar PDF</button>
   </div>
 </div>
 <div id="modal-root"></div>
@@ -723,7 +724,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261009163000"></script>
+<script src="script.js?v=20261009165000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
