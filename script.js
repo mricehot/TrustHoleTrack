@@ -152,6 +152,12 @@ function atualizarStatusConexao(){
 window.addEventListener('online', ()=>{
   atualizarStatusConexao();
   if(typeof falhasDeEnvio !== 'undefined' && falhasDeEnvio.size > 0) reenviarFalhas();
+  // Sinal voltou (saiu do subsolo): se não há nada pendente, puxa o que os outros fizeram.
+  setTimeout(async ()=>{
+    if(typeof usuarioAtual === 'undefined' || !usuarioAtual) return;
+    if(falhasDeEnvio.size > 0 || enviosEmAndamento > 0 || document.querySelector('.modal-overlay')) return;
+    try{ if(await atualizarDoServidor()) showToast('Sinal voltou — dados atualizados.'); }catch(e){}
+  }, 2500);
 });
 window.addEventListener('offline', atualizarStatusConexao);
 
@@ -200,22 +206,35 @@ document.addEventListener('click', (e)=>{
 
 // ---------- Tema claro/escuro ----------
 const TEMA_KEY = 'perfilagem-tema-v1';
+// Três modos: "auto" (segue o sistema do aparelho — escuro à noite se o celular
+// estiver configurado assim), "claro" e "escuro". O botão alterna entre os três.
+const ICONE_LUA = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const ICONE_SOL = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+const ICONE_AUTO = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>';
+let temaEscolhido = 'auto';
+const mqEscuro = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 function aplicarTema(tema){
-  document.body.classList.toggle('dark-mode', tema === 'escuro');
+  if(tema !== 'claro' && tema !== 'escuro') tema = 'auto';
+  temaEscolhido = tema;
+  const escuro = tema === 'escuro' || (tema === 'auto' && !!(mqEscuro && mqEscuro.matches));
+  document.body.classList.toggle('dark-mode', escuro);
   const btn = el('btn-tema');
-  const ICONE_LUA = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-  const ICONE_SOL = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
-  if(btn) btn.innerHTML = tema === 'escuro' ? (ICONE_SOL + 'Modo claro') : (ICONE_LUA + 'Modo escuro');
+  if(btn) btn.innerHTML = tema === 'auto' ? (ICONE_AUTO + 'Tema: automático') : tema === 'escuro' ? (ICONE_LUA + 'Tema: escuro') : (ICONE_SOL + 'Tema: claro');
   try{ localStorage.setItem(TEMA_KEY, tema); }catch(e){}
 }
 function alternarTema(){
-  const atual = document.body.classList.contains('dark-mode') ? 'escuro' : 'claro';
-  aplicarTema(atual === 'escuro' ? 'claro' : 'escuro');
+  const prox = { auto: 'claro', claro: 'escuro', escuro: 'auto' };
+  aplicarTema(prox[temaEscolhido] || 'auto');
+  showToast('Tema: ' + (temaEscolhido === 'auto' ? 'automático (segue o aparelho)' : temaEscolhido));
 }
 (function iniciarTema(){
   let salvo = null;
   try{ salvo = localStorage.getItem(TEMA_KEY); }catch(e){}
-  aplicarTema(salvo === 'escuro' ? 'escuro' : 'claro');
+  aplicarTema(salvo);
+  if(mqEscuro){
+    const aoMudar = ()=>{ if(temaEscolhido === 'auto') aplicarTema('auto'); };
+    if(mqEscuro.addEventListener) mqEscuro.addEventListener('change', aoMudar); else if(mqEscuro.addListener) mqEscuro.addListener(aoMudar);
+  }
 })();
 el('btn-tema').addEventListener('click', alternarTema);
 
@@ -465,6 +484,7 @@ const NOME_TABELA_FILA = {
 // chamada de rede a cada letra digitada em campos como Local/Técnicos/DDS.
 // Inserção e remoção continuam indo na hora, sem atraso nenhum.
 const debouncesPendentes = new Map();
+const registrosPendentes = new Map(); // chave -> registro acumulado esperando o debounce
 const DEBOUNCE_MS = 500;
 
 // ---------- Estado de salvamento ----------
@@ -552,7 +572,28 @@ async function executarEnvio(tabela, acao, registro, silencioso){
   }
 }
 
+// Quem fez a marcação: nome (ou e-mail) de quem está logado. Vai junto com cada
+// marcação do checklist pra equipe saber quem perfilou/topografou cada furo.
+function nomeDoUsuario(){
+  if(!usuarioAtual) return '';
+  return usuarioAtual.nome || (usuarioAtual.email ? usuarioAtual.email.split('@')[0] : '');
+}
+function carimbarAutor(tabela, acao, registro){
+  if(acao !== 'update' || !usuarioAtual) return;
+  const eu = nomeDoUsuario();
+  if(tabela === 'checklist_furos'){
+    const f = checklistFuros.find(x=>x.id===registro.id);
+    if('perfilado' in registro){ registro.perfilado_por = registro.perfilado ? eu : null; if(f) f.perfiladoPor = registro.perfilado ? eu : ''; }
+    if('topografado' in registro){ registro.topografado_por = registro.topografado ? eu : null; if(f) f.topografadoPor = registro.topografado ? eu : ''; }
+    if('obstruido' in registro){ registro.obstruido_por = registro.obstruido ? eu : null; if(f) f.obstruidoPor = registro.obstruido ? eu : ''; }
+  }else if(tabela === 'checklist_leques' && 'perfilado' in registro){
+    const c = checklistLeques.find(x=>x.id===registro.id);
+    registro.perfilado_por = registro.perfilado ? eu : null; if(c) c.perfiladoPor = registro.perfilado ? eu : '';
+  }
+}
+
 function enfileirar(tabela, acao, registro){
+  carimbarAutor(tabela, acao, registro);
   // Insert e delete são ações discretas (um clique, não uma tecla) — vão na
   // hora, sem debounce, e cancelam qualquer debounce pendente pro mesmo registro.
   if(acao === 'insert' || acao === 'delete'){
@@ -567,8 +608,14 @@ function enfileirar(tabela, acao, registro){
   const chave = tabela + ':' + acao + ':' + registro.id;
   const timerAnterior = debouncesPendentes.get(chave);
   if(timerAnterior) clearTimeout(timerAnterior);
+  // Duas alterações seguidas no mesmo registro (ex.: perfilado e depois topografado)
+  // viram UM envio com os dois campos — antes a segunda apagava a primeira.
+  const anterior = registrosPendentes.get(chave);
+  if(anterior) registro = Object.assign({}, anterior, registro);
+  registrosPendentes.set(chave, registro);
   const novoTimer = setTimeout(()=>{
     debouncesPendentes.delete(chave);
+    registrosPendentes.delete(chave);
     executarEnvio(tabela, acao, registro);
   }, DEBOUNCE_MS);
   debouncesPendentes.set(chave, novoTimer);
@@ -1816,8 +1863,8 @@ function desfazerRemocaoProjeto(projetoRemovido){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
-function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', ts: row.criado_em }; }
-function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', ts: row.criado_em }; }
+function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -1952,8 +1999,106 @@ function ordenarPorInsercao(lista){
     || (a.t - b.t) || (a.i - b.i));
   return comTempo.map(x=>x.c);
 }
+// Ordem final: quem já foi posicionado à mão (campo "ordem") vem primeiro, na
+// ordem escolhida; leques novos (sem ordem) entram depois, na ordem em que foram criados.
 function checklistDoAnel(anelId){
-  return ordenarPorInsercao(checklistLeques.filter(c=>c.anelId===anelId));
+  const base = ordenarPorInsercao(checklistLeques.filter(c=>c.anelId===anelId));
+  const fixos = base.filter(c=>c.ordem != null).sort((a,b)=> a.ordem - b.ordem);
+  if(!fixos.length) return base;
+  return fixos.concat(base.filter(c=>c.ordem == null));
+}
+
+// ---------- Reorganizar a sequência dos leques (arrastar ou ▲▼) ----------
+let arrastandoChecklist = false;
+// ids = nova ordem dos leques de UMA lista (um grupo de localização, ou a lista toda).
+// Os demais leques mantêm suas posições; só as vagas ocupadas por esses ids são reembaralhadas.
+function aplicarNovaOrdemChecklist(ids){
+  const todos = checklistDoAnelAtivo();
+  const conjunto = new Set(ids);
+  const posicoes = [];
+  todos.forEach((c, i)=>{ if(conjunto.has(c.id)) posicoes.push(i); });
+  if(posicoes.length !== ids.length) return false;
+  const novo = todos.slice();
+  posicoes.forEach((pos, k)=>{ novo[pos] = checklistLeques.find(c=>c.id===ids[k]); });
+  let mudou = 0;
+  novo.forEach((c, i)=>{
+    if(c.ordem !== i){
+      c.ordem = i; mudou++;
+      enfileirar('checklist_leques', 'update', { id: c.id, ordem: i });
+    }
+  });
+  if(mudou){ salvarChecklistLocal(); }
+  return mudou > 0;
+}
+function moverLequeChecklist(id, delta){
+  const c = checklistLeques.find(x=>x.id===id);
+  if(!c) return;
+  const local = (c.localizacao||'').trim();
+  const lista = filtrarItensChecklist(checklistDoAnelAtivo()).filter(x=> (x.localizacao||'').trim() === local);
+  const i = lista.findIndex(x=>x.id===id), j = i + delta;
+  if(i < 0 || j < 0 || j >= lista.length){ showToast(delta < 0 ? 'Já é o primeiro desta lista.' : 'Já é o último desta lista.'); return; }
+  const ids = lista.map(x=>x.id);
+  ids.splice(j, 0, ids.splice(i, 1)[0]);
+  aplicarNovaOrdemChecklist(ids);
+  renderChecklist();
+  const cartao = document.getElementById('ck-card-' + id);
+  if(cartao) cartao.scrollIntoView({ block:'nearest', behavior:'smooth' });
+}
+// Arrastar pela alça ⠿: funciona com dedo e mouse (pointer events), com rolagem automática.
+function iniciarArrasteChecklist(ev, id){
+  if(ev.button != null && ev.button !== 0) return;
+  const alca = ev.currentTarget;
+  const card = document.getElementById('ck-card-' + id);
+  const lista = card && card.parentElement;
+  if(!card || !lista) return;
+  ev.preventDefault(); ev.stopPropagation();
+  arrastandoChecklist = true;
+  const idsAntes = [...lista.querySelectorAll(':scope > .checklist-leque-card')].map(x=>x.id.replace('ck-card-',''));
+  const rect0 = card.getBoundingClientRect();
+  const pegada = ev.clientY - rect0.top;
+  let ultimoY = ev.clientY;
+  card.classList.add('arrastando'); lista.classList.add('em-arraste');
+  try{ alca.setPointerCapture(ev.pointerId); }catch(e){}
+  if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
+
+  const posicionar = ()=>{
+    card.style.transform = 'none';
+    const natural = card.getBoundingClientRect();
+    card.style.transform = `translateY(${ultimoY - pegada - natural.top}px)`;
+    const centro = ultimoY - pegada + natural.height / 2;
+    const irmaos = [...lista.querySelectorAll(':scope > .checklist-leque-card')];
+    const idx = irmaos.indexOf(card);
+    const ant = irmaos[idx - 1], prox = irmaos[idx + 1];
+    if(ant){ const r = ant.getBoundingClientRect(); if(centro < r.top + r.height/2){ lista.insertBefore(ant, card.nextSibling); return posicionar(); } }
+    if(prox){ const r = prox.getBoundingClientRect(); if(centro > r.top + r.height/2){ lista.insertBefore(prox, card); return posicionar(); } }
+  };
+  let rolagem = null;
+  const aoMover = e=>{
+    ultimoY = e.clientY;
+    posicionar();
+    clearInterval(rolagem);
+    if(e.clientY < 90) rolagem = setInterval(()=>{ window.scrollBy(0,-14); posicionar(); }, 16);
+    else if(e.clientY > window.innerHeight - 130) rolagem = setInterval(()=>{ window.scrollBy(0,14); posicionar(); }, 16);
+  };
+  const terminar = ()=>{
+    clearInterval(rolagem);
+    window.removeEventListener('pointermove', aoMover);
+    window.removeEventListener('pointerup', terminar);
+    window.removeEventListener('pointercancel', terminar);
+    card.classList.remove('arrastando'); lista.classList.remove('em-arraste'); card.style.transform = '';
+    arrastandoChecklist = false;
+    const idsDepois = [...lista.querySelectorAll(':scope > .checklist-leque-card')].map(x=>x.id.replace('ck-card-',''));
+    if(idsDepois.join() !== idsAntes.join()){
+      aplicarNovaOrdemChecklist(idsDepois);
+      showToast('Sequência dos leques alterada.');
+    }
+    renderChecklist();
+  };
+  // O cartão arrastado nunca sai do DOM (só os vizinhos mudam de lugar) — assim o
+  // dedo/mouse não perde a captura do ponteiro no meio do arraste.
+  window.addEventListener('pointermove', aoMover);
+  window.addEventListener('pointerup', terminar);
+  window.addEventListener('pointercancel', terminar);
 }
 function checklistDoAnelAtivo(){
   return checklistDoAnel(anelAtivoId);
@@ -2148,6 +2293,20 @@ function alternarGrupoChecklist(idx){
   renderChecklist();
 }
 
+function horaCurta(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const hoje = new Date();
+  const hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  return d.toDateString() === hoje.toDateString() ? hh : String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + ' ' + hh;
+}
+function textoQuemQuando(f){
+  const partes = [];
+  if(f.perfilado && (f.perfiladoPor || f.perfiladoEm)) partes.push(`perfilado${f.perfiladoPor ? ' por ' + f.perfiladoPor : ''} ${horaCurta(f.perfiladoEm)}`.trim());
+  if(f.topografado && (f.topografadoPor || f.topografadoEm)) partes.push(`topografado${f.topografadoPor ? ' por ' + f.topografadoPor : ''} ${horaCurta(f.topografadoEm)}`.trim());
+  if(f.obstruido && f.obstruidoPor) partes.push(`obstrução (${f.obstruido}) por ${f.obstruidoPor}`);
+  return partes.join(' · ');
+}
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
   const expandido = checklistExpandido.has(c.id);
@@ -2192,7 +2351,11 @@ function htmlCardChecklist(c, agrupado){
                 </tr>
               `).join('')}
             </tbody>
-          </table>`;
+          </table>
+          ${(()=>{
+            const linhas = furos.map(f=>({ f, t: textoQuemQuando(f) })).filter(x=>x.t);
+            return linhas.length ? `<details class="ck-quem"><summary>Quem marcou (${linhas.length})</summary>${linhas.map(x=>`<div><b>F${escHtml(x.f.numero)}</b> ${escHtml(x.t)}</div>`).join('')}</details>` : '';
+          })()}`;
     corpo = `
       <div class="ck-corpo">
         <div class="checklist-leque-meta">
@@ -2219,6 +2382,8 @@ function htmlCardChecklist(c, agrupado){
           ${tabela}
         </div>
         <div class="ck-ferramentas">
+          <button type="button" class="ghost" onclick="moverLequeChecklist('${c.id}', -1)" aria-label="mover ${codigo} para cima">▲ Subir</button>
+          <button type="button" class="ghost" onclick="moverLequeChecklist('${c.id}', 1)" aria-label="mover ${codigo} para baixo">▼ Descer</button>
           ${furos.length ? `
             <button type="button" class="ghost" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
             <button type="button" class="ghost" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
@@ -2230,6 +2395,7 @@ function htmlCardChecklist(c, agrupado){
   return `
     <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''}" id="ck-card-${c.id}">
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
+        ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
         ${progresso}
@@ -2305,7 +2471,10 @@ async function aplicarLoteChecklist(acao, idsExplicitos){
       }
       if(mudou){
         snapFuros.push(antes); furosAlterados++;
-        enfileirar('checklist_furos', 'update', { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm });
+        const reg = { id:f.id };
+        if(acao !== 'topografado'){ reg.perfilado = f.perfilado; reg.perfilado_em = f.perfiladoEm; }
+        if(acao !== 'perfilado'){ reg.topografado = f.topografado; reg.topografado_em = f.topografadoEm; }
+        enfileirar('checklist_furos', 'update', reg);
       }
     });
   });
@@ -5142,6 +5311,7 @@ function mostrarApp(user){
 }
 
 function mostrarLogin(mensagemErro){
+  if(typeof pararTempoReal === 'function') pararTempoReal();
   usuarioAtual = null;
   el('login-screen').style.display = 'flex';
   el('app-wrap').style.display = 'none';
@@ -5171,6 +5341,7 @@ function iniciarApp(){
   renderPerfilTecnico();
   loadTurnoInfo();
   loadData();
+  iniciarTempoReal();
   loadHistoricoExportacoes();
 }
 
@@ -5286,5 +5457,99 @@ document.addEventListener('visibilitychange', async ()=>{
   ultimoRefreshFoco = Date.now();
   try{ await atualizarDoServidor(); }catch(e){}
 });
+
+// ---------- Tempo real: dois técnicos no mesmo realce ----------
+// O Supabase avisa quando alguém marca/desmarca algo no checklist. A tela
+// atualiza sozinha e mostra quem fez, sem esperar o toque em "Atualizar".
+let canalChecklist = null;
+let renderChecklistPendente = false;
+function renderChecklistSeguro(){
+  if(arrastandoChecklist){ renderChecklistPendente = true; return; }
+  // Não recria a lista enquanto a pessoa digita num campo dela (perderia o foco/texto).
+  const ativo = document.activeElement;
+  if(ativo && ativo.closest && ativo.closest('#checklist-grid') && /^(INPUT|SELECT|TEXTAREA)$/.test(ativo.tagName) && ativo.type !== 'checkbox'){
+    renderChecklistPendente = true; return;
+  }
+  renderChecklistPendente = false;
+  renderChecklist();
+}
+document.addEventListener('pointerup', ()=>{ if(renderChecklistPendente && !arrastandoChecklist) setTimeout(()=>renderChecklistSeguro(), 300); });
+document.addEventListener('focusout', ()=>{ if(renderChecklistPendente) setTimeout(()=>{ if(renderChecklistPendente) renderChecklistSeguro(); }, 250); });
+
+function tenhoEdicaoPendente(tabela, id){
+  for(const k of debouncesPendentes.keys()) if(k.startsWith(tabela + ':') && k.endsWith(':' + id)) return true;
+  for(const f of falhasDeEnvio.values()) if(f.tabela === tabela && f.registro && f.registro.id === id) return true;
+  return false;
+}
+function codigoDoChecklistLeque(id){
+  const c = checklistLeques.find(x=>x.id===id);
+  return c ? (PREFIXO[c.tipo] || '') + c.numero : '';
+}
+function aoMudarFuroTempoReal(p){
+  try{
+    if(p.eventType === 'DELETE'){
+      const id = p.old && p.old.id;
+      if(id && checklistFuros.some(x=>x.id===id)){ checklistFuros = checklistFuros.filter(x=>x.id!==id); salvarChecklistFurosLocal(); renderChecklistSeguro(); }
+      return;
+    }
+    const row = p.new; if(!row || !row.id) return;
+    if(tenhoEdicaoPendente('checklist_furos', row.id)) return;
+    const novo = mapChecklistFuro(row);
+    const atual = checklistFuros.find(x=>x.id===row.id);
+    if(!atual){
+      if(checklistLeques.some(c=>c.id===novo.checklistLequeId)){ checklistFuros.push(novo); salvarChecklistFurosLocal(); renderChecklistSeguro(); }
+      return;
+    }
+    const eu = nomeDoUsuario();
+    const mudancas = [];
+    if(atual.perfilado !== novo.perfilado) mudancas.push({ por: novo.perfiladoPor, txt: novo.perfilado ? 'perfilado' : 'desmarcou perfilado' });
+    if(atual.topografado !== novo.topografado) mudancas.push({ por: novo.topografadoPor, txt: novo.topografado ? 'topografado' : 'desmarcou topografado' });
+    if((atual.obstruido||'') !== (novo.obstruido||'')) mudancas.push({ por: novo.obstruidoPor, txt: novo.obstruido ? 'obstruído (' + novo.obstruido + ')' : 'liberado' });
+    const metrDiff = atual.metragem !== novo.metragem;
+    if(!mudancas.length && !metrDiff) return; // eco da minha própria gravação
+    Object.assign(atual, novo);
+    salvarChecklistFurosLocal();
+    renderChecklistSeguro();
+    const dosOutros = mudancas.filter(m=> m.por && m.por !== eu);
+    if(dosOutros.length){
+      const m = dosOutros[0];
+      showToast(`${m.por}: F${atual.numero} de ${codigoDoChecklistLeque(atual.checklistLequeId)} ${m.txt}.`, { erro:false });
+    }
+  }catch(e){}
+}
+function aoMudarLequeTempoReal(p){
+  try{
+    if(p.eventType === 'DELETE'){
+      const id = p.old && p.old.id;
+      if(id && checklistLeques.some(x=>x.id===id)){ checklistLeques = checklistLeques.filter(x=>x.id!==id); checklistFuros = checklistFuros.filter(f=>f.checklistLequeId!==id); salvarChecklistLocal(); salvarChecklistFurosLocal(); renderChecklistSeguro(); }
+      return;
+    }
+    const row = p.new; if(!row || !row.id) return;
+    if(tenhoEdicaoPendente('checklist_leques', row.id)) return;
+    const novo = mapChecklistLeque(row);
+    const atual = checklistLeques.find(x=>x.id===row.id);
+    if(!atual){ checklistLeques.push(novo); salvarChecklistLocal(); renderChecklistSeguro(); return; }
+    const mudou = atual.perfilado !== novo.perfilado || atual.observacao !== novo.observacao || (atual.localizacao||'') !== (novo.localizacao||'') || atual.ordem !== novo.ordem;
+    if(!mudou) return;
+    const perfMudou = atual.perfilado !== novo.perfilado;
+    Object.assign(atual, novo);
+    salvarChecklistLocal();
+    renderChecklistSeguro();
+    if(perfMudou && novo.perfiladoPor && novo.perfiladoPor !== nomeDoUsuario()) showToast(`${novo.perfiladoPor}: ${(PREFIXO[novo.tipo]||'')}${novo.numero} ${novo.perfilado ? 'perfilado' : 'desmarcado'}.`);
+  }catch(e){}
+}
+function iniciarTempoReal(){
+  if(canalChecklist || typeof db.channel !== 'function') return;
+  try{
+    canalChecklist = db.channel('checklist-tempo-real')
+      .on('postgres_changes', { event:'*', schema:'public', table:'checklist_furos' }, aoMudarFuroTempoReal)
+      .on('postgres_changes', { event:'*', schema:'public', table:'checklist_leques' }, aoMudarLequeTempoReal)
+      .subscribe();
+  }catch(e){ canalChecklist = null; }
+}
+function pararTempoReal(){
+  try{ if(canalChecklist && typeof db.removeChannel === 'function') db.removeChannel(canalChecklist); }catch(e){}
+  canalChecklist = null;
+}
 
 window.__appCarregado = true;
