@@ -1262,3 +1262,12 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
 /* Equipes por cor: faixa lateral + bolinha ao lado do nome (forma e posição, não só cor) */
 .equipe-linha[style*="--eq-cor"]{ border-left:5px solid var(--eq-cor); }
 .eq-ponto{ display:inline-block; width:10px; height:10px; border-radius:3px; background:var(--eq-cor); margin-right:7px; vertical-align:0; }
+
+/* Menu de abas sempre à vista: em telas largas (computador, tablet, celular deitado) ele não
+   é a barra de baixo, e antes rolava junto com a página e sumia. Agora gruda no topo. */
+@media (min-width:701px){
+  .tabbar{
+    position:sticky; top:0; z-index:1500; background:var(--surface);
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+}
