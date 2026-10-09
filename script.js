@@ -474,7 +474,7 @@ function carregarLocal(){
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno',
-  usuario_realce_ativo: 'Realce ativo'
+  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado'
 };
 
 // Pequeno atraso (debounce) só pras ações de update/upsert — evita mandar uma
@@ -779,6 +779,8 @@ async function atualizarDoServidor(){
       equipes = (eqResp.data || []).map(mapEquipe);
       lancamentosProd = (prodResp.data || []).map(mapLancamento);
     }
+    const comResp = await buscarTudo('comunicados');
+    if(!comResp.error){ comunicados = (comResp.data || []).map(mapComunicado); salvarComunicadosLocal(); }
     const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
       buscarTudo('aneis'),
       buscarTudo('leques'),
@@ -825,6 +827,7 @@ async function atualizarDoServidor(){
     salvarEquipesLocal();
     salvarProdutividadeLocal();
     renderAll();
+    renderComunicados();
     renderObservacoesTurno();
     renderFotosTurno();
     registrarSincronizacaoOk();
@@ -4836,6 +4839,7 @@ function renderAll(){
   renderAvisoRefazer();
   preencherSelectsDeProjeto();
   renderInfografico();
+  renderComunicados();
   if(document.body.dataset.view === 'turno') renderResumoTurno();
 }
 
@@ -5855,12 +5859,127 @@ function aoMudarLequeTempoReal(p){
     if(perfMudou && novo.perfiladoPor && novo.perfiladoPor !== nomeDoUsuario()) showToast(`${novo.perfiladoPor}: ${(PREFIXO[novo.tipo]||'')}${novo.numero} ${novo.perfilado ? 'perfilado' : 'desmarcado'}.`);
   }catch(e){}
 }
+// ---------- Comunicados do gestor ----------
+// Avisos importantes que o gestor publica para os turnos. Aparecem numa faixa no topo de todas as
+// telas (urgentes em vermelho) até vencer a validade, e chegam na hora aos outros aparelhos.
+const COMUNICADOS_LOCAL_KEY = 'perfilagem-comunicados-v1';
+let comunicados = [];            // { id, projeto, titulo, texto, prioridade, validoAte, criadoPor, ts }
+let comunicadoPrioridade = 'normal';
+let avisoGestorAberto = false;
+
+function mapComunicado(row){ return { id: row.id, projeto: row.projeto || '', titulo: row.titulo || '', texto: row.texto || '', prioridade: row.prioridade === 'urgente' ? 'urgente' : 'normal', validoAte: row.valido_ate, criadoPor: row.criado_por || '', ts: row.criado_em }; }
+function carregarComunicadosLocal(){ try{ comunicados = JSON.parse(localStorage.getItem(COMUNICADOS_LOCAL_KEY) || '[]'); }catch(e){ comunicados = []; } }
+function salvarComunicadosLocal(){ try{ localStorage.setItem(COMUNICADOS_LOCAL_KEY, JSON.stringify(comunicados)); }catch(e){} }
+carregarComunicadosLocal();
+
+function comunicadoVigente(c){ return new Date(c.validoAte).getTime() > Date.now(); }
+// Sem projeto escolhido vê tudo; com projeto, vê os de "todos os projetos" e os dele.
+function comunicadoDoEscopo(c){ const p = configApp.projetoAtivo; return !c.projeto || !p || c.projeto === p; }
+function comunicadosVigentesNoEscopo(){
+  return comunicados.filter(c=> comunicadoVigente(c) && comunicadoDoEscopo(c))
+    .sort((a,b)=> (b.prioridade==='urgente') - (a.prioridade==='urgente') || new Date(b.ts) - new Date(a.ts));
+}
+function textoRestanteComunicado(c){
+  const ms = new Date(c.validoAte).getTime() - Date.now();
+  if(ms <= 0) return 'encerrado';
+  const dias = Math.ceil(ms / 86400000);
+  return dias <= 1 ? 'vence em até 1 dia' : `vence em ${dias} dias`;
+}
+function htmlCartaoComunicado(c, podeApagar){
+  const quando = c.ts ? new Date(c.ts).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+  return `<article class="com ${c.prioridade==='urgente' ? 'urgente' : ''}">
+    <div class="com-topo">${c.prioridade==='urgente' ? '<span class="com-etq u">⚠ URGENTE</span>' : ''}<span class="com-etq">${c.projeto ? escHtml(c.projeto) : 'Todos os projetos'}</span></div>
+    <h3>${escHtml(c.titulo)}</h3>
+    ${c.texto ? `<p>${escHtml(c.texto)}</p>` : ''}
+    <div class="com-meta"><span>${escHtml(c.criadoPor || 'gestor')}${quando ? ' · ' + quando : ''} · ${textoRestanteComunicado(c)}</span>${podeApagar ? `<button type="button" class="com-apagar" onclick="apagarComunicado('${c.id}')" aria-label="apagar comunicado ${escHtml(c.titulo)}">Apagar</button>` : ''}</div>
+  </article>`;
+}
+function renderAvisoGestor(){
+  const box = el('aviso-gestor'); if(!box) return;
+  const ativos = comunicadosVigentesNoEscopo();
+  if(!ativos.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  const urg = ativos.some(c=>c.prioridade==='urgente');
+  box.style.display = 'block';
+  box.className = 'aviso-gestor' + (urg ? ' urgente' : '');
+  box.innerHTML = `<button type="button" class="aviso-gestor-cab" onclick="alternarAvisoGestor()" aria-expanded="${avisoGestorAberto}">
+      <span class="rot">${urg ? '⚠ Urgente' : 'Gestor'}</span><span class="ult">${escHtml(ativos[0].titulo)}</span>
+      <span class="mais">${ativos.length > 1 ? '+' + (ativos.length - 1) + ' ' : ''}${avisoGestorAberto ? '▴' : '▾'}</span></button>
+    ${avisoGestorAberto ? `<div class="aviso-gestor-corpo">${ativos.map(c=>htmlCartaoComunicado(c, false)).join('')}</div>` : ''}`;
+}
+function alternarAvisoGestor(){ avisoGestorAberto = !avisoGestorAberto; renderAvisoGestor(); }
+
+function renderComunicados(){
+  renderAvisoGestor();
+  const lista = el('comunicados-lista'); if(!lista) return;
+  const ativos = comunicadosVigentesNoEscopo();
+  const enc = comunicados.filter(c=> !comunicadoVigente(c) && comunicadoDoEscopo(c)).sort((a,b)=> new Date(b.validoAte) - new Date(a.validoAte)).slice(0, 10);
+  el('comunicados-cont').textContent = ativos.length;
+  lista.innerHTML = (ativos.length ? ativos.map(c=>htmlCartaoComunicado(c, true)).join('') : '<div class="hint">Nenhum comunicado em vigor.</div>')
+    + (enc.length ? `<details class="com-enc"><summary>Encerrados (${enc.length})</summary>${enc.map(c=>htmlCartaoComunicado(c, true)).join('')}</details>` : '');
+  const sel = el('com-projeto');
+  if(sel){
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todos os projetos</option>' + projetos.map(p=>`<option value="${escHtml(p.nome)}">${escHtml(p.nome)}</option>`).join('');
+    sel.value = atual && projetos.some(p=>p.nome===atual) ? atual : (configApp.projetoAtivo || '');
+  }
+}
+function definirPrioridadeComunicado(v){
+  comunicadoPrioridade = v === 'urgente' ? 'urgente' : 'normal';
+  document.querySelectorAll('#com-prioridade button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.p === comunicadoPrioridade)));
+}
+function publicarComunicado(){
+  const titulo = el('com-titulo').value.trim(), texto = el('com-texto').value.trim();
+  if(!titulo){ showToast('Escreva um título para o comunicado.', { erro:false }); el('com-titulo').focus(); return; }
+  const dias = Math.min(60, Math.max(1, parseInt(el('com-dias').value, 10) || 7));
+  const c = { id: uuidv4(), projeto: el('com-projeto').value || '', titulo, texto, prioridade: comunicadoPrioridade,
+    validoAte: new Date(Date.now() + dias * 86400000).toISOString(), criadoPor: nomeDoUsuario(), ts: new Date().toISOString() };
+  comunicados.push(c);
+  salvarComunicadosLocal();
+  enfileirar('comunicados', 'insert', { id: c.id, projeto: c.projeto, titulo: c.titulo, texto: c.texto, prioridade: c.prioridade, valido_ate: c.validoAte, criado_por: c.criadoPor });
+  el('com-titulo').value = ''; el('com-texto').value = '';
+  definirPrioridadeComunicado('normal');
+  avisoGestorAberto = true;
+  renderComunicados();
+  showToast('Comunicado publicado para os turnos.');
+}
+function apagarComunicado(id){
+  const c = comunicados.find(x=>x.id===id); if(!c) return;
+  comunicados = comunicados.filter(x=>x.id!==id);
+  salvarComunicadosLocal();
+  enfileirar('comunicados', 'delete', { id });
+  renderComunicados();
+  showToast('Comunicado apagado.', { acaoLabel:'Desfazer', onAcao: ()=>{
+    comunicados.push(c); salvarComunicadosLocal();
+    enfileirar('comunicados', 'insert', { id: c.id, projeto: c.projeto, titulo: c.titulo, texto: c.texto, prioridade: c.prioridade, valido_ate: c.validoAte, criado_por: c.criadoPor });
+    renderComunicados();
+  }});
+}
+function aoMudarComunicadoTempoReal(p){
+  try{
+    if(p.eventType === 'DELETE'){
+      const id = p.old && p.old.id;
+      if(id && comunicados.some(x=>x.id===id)){ comunicados = comunicados.filter(x=>x.id!==id); salvarComunicadosLocal(); renderComunicados(); }
+      return;
+    }
+    const row = p.new; if(!row || !row.id) return;
+    const novo = mapComunicado(row);
+    const i = comunicados.findIndex(x=>x.id===row.id);
+    if(i >= 0) comunicados[i] = novo; else comunicados.push(novo);
+    salvarComunicadosLocal();
+    renderComunicados();
+    if(i < 0 && novo.criadoPor !== nomeDoUsuario() && comunicadoVigente(novo) && comunicadoDoEscopo(novo)){
+      showToast(`${novo.prioridade==='urgente' ? '⚠ URGENTE: ' : 'Comunicado: '}${novo.titulo}`, { erro:false });
+    }
+  }catch(e){}
+}
+
 function iniciarTempoReal(){
   if(canalChecklist || typeof db.channel !== 'function') return;
   try{
     canalChecklist = db.channel('checklist-tempo-real')
       .on('postgres_changes', { event:'*', schema:'public', table:'checklist_furos' }, aoMudarFuroTempoReal)
       .on('postgres_changes', { event:'*', schema:'public', table:'checklist_leques' }, aoMudarLequeTempoReal)
+      .on('postgres_changes', { event:'*', schema:'public', table:'comunicados' }, aoMudarComunicadoTempoReal)
       .subscribe();
   }catch(e){ canalChecklist = null; }
 }

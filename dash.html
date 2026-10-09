@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261009125000">
+<link rel="stylesheet" href="style.css?v=20261009130000">
 
 </head>
 <body>
@@ -140,6 +140,7 @@
 
   <div class="app-shell">
     <div class="main-content">
+      <div id="aviso-gestor" style="display:none;" aria-live="polite"></div>
       <div class="breadcrumb" id="breadcrumb"></div>
       <div class="aviso-refazer" id="aviso-refazer" style="display:none;"></div>
 
@@ -286,6 +287,31 @@
       </section>
 
       <section class="view" id="view-turno">
+        <div class="view-card accent-amber" id="card-comunicados">
+          <div class="view-card-header">
+            <span class="view-card-label">Comunicados do gestor</span>
+            <span class="tag" id="comunicados-cont">0</span>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" id="btn-novo-comunicado" aria-expanded="false" onclick="const f=document.getElementById('form-comunicado');f.hidden=!f.hidden;this.setAttribute('aria-expanded',String(!f.hidden));this.textContent=f.hidden?'Novo comunicado':'Fechar'">Novo comunicado</button>
+          </div>
+          <div class="turno-body">
+            <form id="form-comunicado" hidden onsubmit="publicarComunicado();return false;">
+              <div class="field"><label for="com-titulo">Título</label><input id="com-titulo" type="text" maxlength="80" placeholder="ex: Galeria N-203 bloqueada"></div>
+              <div class="field"><label for="com-texto">Mensagem</label><textarea id="com-texto" maxlength="600" rows="3" placeholder="O que o turno precisa saber e fazer"></textarea></div>
+              <div class="field"><label id="com-prio-rot">Prioridade</label>
+                <div class="com-seg" id="com-prioridade" role="group" aria-labelledby="com-prio-rot">
+                  <button type="button" data-p="normal" aria-pressed="true" onclick="definirPrioridadeComunicado('normal')">Normal</button>
+                  <button type="button" data-p="urgente" class="u" aria-pressed="false" onclick="definirPrioridadeComunicado('urgente')">Urgente</button>
+                </div></div>
+              <div class="grid-2">
+                <div class="field"><label for="com-projeto">Vale para</label><select id="com-projeto"><option value="">Todos os projetos</option></select></div>
+                <div class="field"><label for="com-dias">Validade (dias)</label><input id="com-dias" type="number" min="1" max="60" value="7" inputmode="numeric"></div>
+              </div>
+              <button type="submit" id="btn-publicar-comunicado">Publicar comunicado</button>
+            </form>
+            <div id="comunicados-lista"></div>
+          </div>
+        </div>
         <div class="view-card accent-amber">
           <div class="view-card-header">
             <span class="view-card-label">Dados do Turno</span>
@@ -696,7 +722,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261009125000"></script>
+<script src="script.js?v=20261009130000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
