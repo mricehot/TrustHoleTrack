@@ -1230,3 +1230,11 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
 
 /* Obstruído agora é uma caixa de marcação (rocha e tela viraram um motivo só) */
 .checklist-furos-tabela .chk-obstruido{ accent-color:#b3261e; }
+
+/* Furo obstruído: risco vermelho cortando as caixas de perfilado/topografado, que ficam travadas */
+.checklist-furos-tabela td.bloq{ position:relative; }
+.checklist-furos-tabela td.bloq input[type=checkbox]{ opacity:.45; cursor:not-allowed; }
+.checklist-furos-tabela td.bloq::after{
+  content:''; position:absolute; left:0; right:0; top:50%; height:3px; margin-top:-1.5px;
+  background:#b3261e; border-radius:2px; pointer-events:none;
+}
