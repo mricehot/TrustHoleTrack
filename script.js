@@ -4845,6 +4845,28 @@ function renderAll(){
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
 
+// PDF do realce ativo, a partir da mesma lista que a pessoa está vendo: respeita tipo de leque,
+// situação do furo e busca. Cada leque entra inteiro, com os furos e os subtotais.
+el('btn-pdf-lista').addEventListener('click', async ()=>{
+  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
+  if(!anelAtivo){ showToast('Selecione um realce ativo primeiro.'); return; }
+  const tipoFiltro = el('f-tipo').value, situacaoFiltro = el('f-situacao').value, busca = el('f-busca').value.trim().toUpperCase();
+  let doAnel = leques.filter(l=>l.anelId===anelAtivo.id);
+  if(tipoFiltro) doAnel = doAnel.filter(l=>l.tipo===tipoFiltro);
+  const ids = doAnel.filter(l=>{
+    let fl = furos.filter(f=>f.lequeId===l.id);
+    if(situacaoFiltro) fl = fl.filter(f=>f.situacao===situacaoFiltro);
+    if(busca) fl = fl.filter(f=>furoCode(l,f).includes(busca) || lequeCode(l).includes(busca));
+    return fl.length > 0;
+  }).map(l=>l.id);
+  if(ids.length === 0){ showToast('Nenhum leque pra exportar com esse filtro.'); return; }
+  const btn = el('btn-pdf-lista'); const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando PDF...';
+  try{ await exportarLequesPDF(ids); }
+  catch(e){ showToast('Não foi possível gerar o PDF: ' + (e && e.message ? e.message : 'erro desconhecido')); }
+  finally{ btn.disabled = false; btn.textContent = txt; }
+});
+
 el('btn-csv').addEventListener('click', ()=>{
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo){ showToast('Selecione um realce ativo primeiro.'); return; }
