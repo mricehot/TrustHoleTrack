@@ -2401,7 +2401,7 @@ function textoQuemQuando(f){
   const partes = [];
   if(f.perfilado && (f.perfiladoPor || f.perfiladoEm)) partes.push(`perfilado${f.perfiladoPor ? ' por ' + f.perfiladoPor : ''} ${horaCurta(f.perfiladoEm)}`.trim());
   if(f.topografado && (f.topografadoPor || f.topografadoEm)) partes.push(`topografado${f.topografadoPor ? ' por ' + f.topografadoPor : ''} ${horaCurta(f.topografadoEm)}`.trim());
-  if(f.obstruido && f.obstruidoPor) partes.push(`obstrução (${f.obstruido}) por ${f.obstruidoPor}`);
+  if(f.obstruido && f.obstruidoPor) partes.push(`obstruído por ${f.obstruidoPor}`);
   return partes.join(' · ');
 }
 function htmlCardChecklist(c, agrupado){
@@ -2431,19 +2431,14 @@ function htmlCardChecklist(c, agrupado){
   if(expandido){
     const tabela = furos.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th title="perfilado">Perf.</th><th title="topografado">Topo</th><th title="obstruído por rocha ou tela">Obstr.</th><th>Metros</th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th title="perfilado">Perf.</th><th title="topografado">Topo</th><th title="obstruído (rocha ou tela)">Obstr.</th><th></th></tr></thead>
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
                   <td>F${f.numero}</td>
                   <td><input type="checkbox" ${f.perfilado ? 'checked' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td><input type="checkbox" ${f.topografado ? 'checked' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
-                  <td><select class="select-obstruido ${f.obstruido ? 'ativo' : ''}" onchange="definirObstrucaoChecklistFuro('${f.id}', this.value)" title="furo obstruído por rocha ou tela" aria-label="F${f.numero} obstruído">
-                    <option value="" ${!f.obstruido ? 'selected' : ''}>—</option>
-                    <option value="rocha" ${f.obstruido==='rocha' ? 'selected' : ''}>✕ Rocha</option>
-                    <option value="tela" ${f.obstruido==='tela' ? 'selected' : ''}>✕ Tela</option>
-                  </select></td>
-                  <td><input type="text" inputmode="decimal" class="input-metragem-checklist" value="${f.metragem != null ? f.metragem : ''}" placeholder="0.0" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" title="metros perfilados nesse furo" aria-label="metros de F${f.numero}"></td>
+                  <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
               `).join('')}
@@ -2496,7 +2491,7 @@ function htmlCardChecklist(c, agrupado){
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
         ${progresso}
-        ${obstr ? `<span class="ck-obstr" title="furos obstruídos por rocha ou tela neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>` : ''}
+        ${obstr ? `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>` : ''}
       </div>
       ${resumo}
       ${corpo}
@@ -2654,14 +2649,14 @@ function compactarCodigosEmIntervalos(itens){
 // Monta o bloco de resumo (leques + furos) de UM realce — reaproveitado tanto
 // pra mandar um realce só quanto pra combinar vários no mesmo relatório.
 // Furos obstruídos (rocha ou tela) dos leques informados, um leque por linha:
-// "LQ01 (Galeria Norte): F02 rocha, F05 tela". Vazio se não houver nenhum.
+// "LQ01 (Galeria Norte): F02, F05". Vazio se não houver nenhum.
 function blocoObstruidosWhatsApp(itens){
   const linhas = [];
   itens.forEach(c=>{
     const obs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
     if(!obs.length) return;
     const local = (c.localizacao||'').trim();
-    const furos = obs.map(f=>`F${f.numero} ${f.obstruido}`).join(', ');
+    const furos = obs.map(f=>`F${f.numero}`).join(', ');
     linhas.push(`${PREFIXO[c.tipo]}${c.numero}${local ? ' ('+semAcento(local)+')' : ''}: ${furos}`);
   });
   return linhas.length ? `[FUROS OBSTRUIDOS]\n${linhas.join('\n')}` : '';
@@ -2871,13 +2866,12 @@ function montarResumoTurnoWhatsApp(){
   const furosEscopo = checklistFuros.filter(f=>lequesEscopo.has(f.checklistLequeId));
   const porPessoa = new Map();
   const pessoa = nome => { const k = nome || '(sem nome)'; if(!porPessoa.has(k)) porPessoa.set(k, { perf:0, topo:0 }); return porPessoa.get(k); };
-  let perfDia = 0, topoDia = 0, metrosFuros = 0;
+  let perfDia = 0, topoDia = 0;
   furosEscopo.forEach(f=>{
-    if(f.perfilado && noDia(f.perfiladoEm)){ perfDia++; pessoa(f.perfiladoPor).perf++; if(f.metragem != null) metrosFuros += f.metragem; }
+    if(f.perfilado && noDia(f.perfiladoEm)){ perfDia++; pessoa(f.perfiladoPor).perf++; }
     if(f.topografado && noDia(f.topografadoEm)){ topoDia++; pessoa(f.topografadoPor).topo++; }
   });
   t += `\n*FEITO NO DIA*\nFuros perfilados: ${perfDia}\nFuros topografados: ${topoDia}\n`;
-  if(metrosFuros > 0) t += `Metros digitados nos furos: ${num(metrosFuros)} m\n`;
   if(porPessoa.size > 1 || (porPessoa.size === 1 && !porPessoa.has('(sem nome)'))){
     t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
   }
@@ -3440,15 +3434,18 @@ function toggleChecklistFuroTopografado(id){
   renderChecklist();
 }
 
+// Rocha e tela são um motivo só ("obstruído"). No banco o valor continua 'rocha' (a coluna só
+// aceita 'rocha'/'tela'), então não precisa mexer no Supabase; na tela aparece só "Obstruído".
+const OBSTRUIDO_VALOR = 'rocha';
 function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
-  const valor = (motivo === 'rocha' || motivo === 'tela') ? motivo : '';
+  const valor = motivo ? OBSTRUIDO_VALOR : '';
   f.obstruido = valor;
   enfileirar('checklist_furos', 'update', { id: f.id, obstruido: valor || null });
   salvarChecklistFurosLocal();
   renderChecklist();
-  showToast(valor ? `F${f.numero} marcado como obstruído por ${valor}.` : `F${f.numero} liberado.`);
+  showToast(valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
 }
 
 function atualizarMetragemChecklistFuro(id, valorTexto){
@@ -5020,10 +5017,18 @@ function calcularEstatisticasInfografico(){
   // 1) Metros lançados pelas equipes (cada lançamento tem data) — é o que entra no gráfico diário.
   const idsEquipesEscopo = new Set((configApp.projetoAtivo ? equipes.filter(e=>e.projeto === configApp.projetoAtivo) : equipes).map(e=>e.id));
   lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
+  // Topografia lançada pelas equipes (pontos por dia) entra junto com os furos marcados no checklist
+  // — antes só o checklist contava, e o gráfico ficava parado quando a equipe lançava só o total do dia.
+  const somaTopo = (chave, n)=>{
+    porDiaTopo[chave] = (porDiaTopo[chave] || 0) + n;
+    if(chave === hojeChave) furosTopoHoje += n;
+    if(chave >= iniSemanaISO) furosTopoSemana += n;
+    else if(chave >= iniSemanaAntISO) furosTopoSemanaAnt += n;
+    if(chave >= iniMesISO) furosTopoMes += n;
+  };
+  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.pontos) somaTopo(l.data, Number(l.pontos)); });
 
   furos.forEach(f=>{
-    // 2) Metragem digitada direto no furo do checklist (se houver) soma junto, na data em que foi marcado perfilado.
-    if(f.perfiladoEm && f.metragem != null) somaMetros(chaveDia(f.perfiladoEm), f.metragem);
     // Topografia continua sendo contagem de furos marcados no checklist (não metros).
     if(f.topografadoEm){
       const dataMarcacaoTopo = new Date(f.topografadoEm);
@@ -5768,7 +5773,7 @@ function aoMudarFuroTempoReal(p){
     const mudancas = [];
     if(atual.perfilado !== novo.perfilado) mudancas.push({ por: novo.perfiladoPor, txt: novo.perfilado ? 'perfilado' : 'desmarcou perfilado' });
     if(atual.topografado !== novo.topografado) mudancas.push({ por: novo.topografadoPor, txt: novo.topografado ? 'topografado' : 'desmarcou topografado' });
-    if((atual.obstruido||'') !== (novo.obstruido||'')) mudancas.push({ por: novo.obstruidoPor, txt: novo.obstruido ? 'obstruído (' + novo.obstruido + ')' : 'liberado' });
+    if((atual.obstruido||'') !== (novo.obstruido||'')) mudancas.push({ por: novo.obstruidoPor, txt: novo.obstruido ? 'obstruído' : 'liberado' });
     const metrDiff = atual.metragem !== novo.metragem;
     if(!mudancas.length && !metrDiff) return; // eco da minha própria gravação
     Object.assign(atual, novo);
