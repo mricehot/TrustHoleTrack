@@ -1361,3 +1361,15 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
   .filters #btn-filtros, .filters #btn-pdf-lista, .filters #btn-csv{ flex:1 1 30%; justify-content:center; padding-inline:8px; }
   .filters .spacer{ display:none; }
 }
+
+/* Equipes no checklist */
+.ck-equipes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
+.ck-equipes label{display:flex;flex-direction:column;gap:3px;font-size:.72rem;color:var(--muted,#8a94a6);text-transform:uppercase;letter-spacing:.03em}
+.ck-equipes select,.ck-furo-eq select{width:100%;min-height:40px;font-size:.9rem;text-transform:none;letter-spacing:0}
+@media(max-width:420px){.ck-equipes{grid-template-columns:1fr}}
+.ck-furo-num{background:none;border:0;padding:6px 4px;min-height:36px;color:inherit;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.ck-furo-num i{font-style:normal;color:var(--amber,#f5a524);font-size:.6rem;margin-left:3px;vertical-align:super}
+.ck-furo-eq td{background:rgba(127,127,127,.08);padding:6px 8px}
+.ck-furo-eq td{display:table-cell}
+.ck-furo-eq label{display:flex;flex-direction:column;gap:2px;font-size:.7rem;margin:0 0 6px;width:100%;text-transform:uppercase}
+.equipe-checklist{margin-top:6px;font-size:.78rem;opacity:.85}

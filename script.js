@@ -1982,8 +1982,8 @@ function desfazerRemocaoProjeto(projetoRemovido){
 
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
-function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, ts: row.criado_em }; }
-function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', ts: row.criado_em }; }
+function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -2470,8 +2470,10 @@ function htmlCardChecklist(c, agrupado){
     : `<div class="ck-progresso"><span class="ck-sem-furos">sem furos ainda</span></div>`;
   const local = (c.localizacao||'').trim();
   const localNoResumo = local && !agrupado ? `<b>Local:</b> ${escHtml(local)}` : '';
-  const resumo = (localNoResumo || c.observacao) && !expandido
-    ? `<div class="ck-resumo-texto">${localNoResumo}${localNoResumo && c.observacao ? ' · ' : ''}${c.observacao ? `<b>Obs:</b> ${escHtml(c.observacao)}` : ''}</div>` : '';
+  const eqTxt = textoEquipesLeque(c);
+  const partesResumo = [localNoResumo, c.observacao ? `<b>Obs:</b> ${escHtml(c.observacao)}` : '', eqTxt].filter(Boolean);
+  const resumo = partesResumo.length && !expandido
+    ? `<div class="ck-resumo-texto">${partesResumo.join(' · ')}</div>` : '';
 
   let corpo = '';
   if(expandido){
@@ -2481,12 +2483,16 @@ function htmlCardChecklist(c, agrupado){
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
-                  <td>F${f.numero}</td>
+                  <td><button type="button" class="ck-furo-num ${(f.equipePerfId||f.equipeTopoId) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${(f.equipePerfId||f.equipeTopoId) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
                   <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
+                ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
+                  <label>Perfilagem<select onchange="definirEquipeFuro('${f.id}','perf',this.value)" aria-label="F${f.numero} equipe da perfilagem">${htmlOpcoesEquipe(f.equipePerfId,'Igual ao leque')}</select></label>
+                  <label>Topografia<select onchange="definirEquipeFuro('${f.id}','topo',this.value)" aria-label="F${f.numero} equipe da topografia">${htmlOpcoesEquipe(f.equipeTopoId,'Igual ao leque')}</select></label>
+                </td></tr>` : ''}
               `).join('')}
             </tbody>
           </table>
@@ -2496,6 +2502,7 @@ function htmlCardChecklist(c, agrupado){
           })()}`;
     corpo = `
       <div class="ck-corpo">
+        ${htmlSeletoresEquipeLeque(c)}
         <div class="checklist-leque-meta">
           <div class="checklist-leque-local">
             ${c.localizacao ? `
@@ -2754,6 +2761,8 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   bloco += partes.join('\n\n');
   const obstruidos = blocoObstruidosWhatsApp(itens);
   if(obstruidos) bloco += `\n\n${obstruidos}`;
+  const porEquipe = blocoEquipesWhatsApp(itens);
+  if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
   if(comObs.length){
     bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
@@ -2819,6 +2828,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
   // entender o "porquê" por trás dos números, não só o placar.
   const obstruidosTxt = blocoObstruidosWhatsApp(itens);
   if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
+  const porEquipeTxt = blocoEquipesWhatsApp(itens);
+  if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
   if(lequesComObs.length){
     bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
@@ -2947,6 +2958,8 @@ function montarResumoTurnoWhatsApp(){
         t += resumoChecklistItens(itens) + '\n';
         const obstr = blocoObstruidosWhatsApp(itens);
         if(obstr) t += `\n${obstr}\n`;
+        const porEq = blocoEquipesWhatsApp(itens);
+        if(porEq) t += `\n${porEq}\n`;
         const obsG = checklistObsGeraisDoAnel(anel.id);
         if(obsG.length) t += `\n[OBSERVACOES GERAIS]\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
       }
@@ -3365,6 +3378,67 @@ function editarLocalizacaoModal(valorAtual){
     el('local-leque-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
     el('local-leque-input').focus();
   });
+}
+
+// ---------- Equipe que perfilou / que topografou (por leque, com exceção por furo) ----------
+const furosComEquipeAberta = new Set();
+function nomeDaEquipeId(id){ const e = id ? equipes.find(x=>x.id===id) : null; return e ? e.nome : ''; }
+function equipePerfEfetivaId(f){ if(f.equipePerfId) return f.equipePerfId; const c = checklistLeques.find(x=>x.id===f.checklistLequeId); return c ? (c.equipePerfId||null) : null; }
+function equipeTopoEfetivaId(f){ if(f.equipeTopoId) return f.equipeTopoId; const c = checklistLeques.find(x=>x.id===f.checklistLequeId); return c ? (c.equipeTopoId||null) : null; }
+function htmlOpcoesEquipe(selecionado, rotuloVazio){
+  const lista = equipesDoProjeto();
+  const ids = new Set(lista.map(e=>e.id));
+  let extra = '';
+  if(selecionado && !ids.has(selecionado) && nomeDaEquipeId(selecionado)) extra = `<option value="${selecionado}" selected>${escHtml(nomeDaEquipeId(selecionado))}</option>`;
+  return `<option value="">${rotuloVazio}</option>` + extra + lista.map(e=>`<option value="${e.id}" ${e.id===selecionado ? 'selected' : ''}>${escHtml(e.nome)}</option>`).join('');
+}
+function htmlSeletoresEquipeLeque(c){
+  if(!equipesDoProjeto().length && !c.equipePerfId && !c.equipeTopoId){
+    return `<div class="ck-equipes"><span class="hint">Cadastre equipes na aba Produtividade para marcar quem perfilou e quem topografou.</span></div>`;
+  }
+  return `<div class="ck-equipes">
+    <label>Equipe da perfilagem<select onchange="definirEquipeLeque('${c.id}','perf',this.value)" aria-label="equipe da perfilagem">${htmlOpcoesEquipe(c.equipePerfId,'—')}</select></label>
+    <label>Equipe da topografia<select onchange="definirEquipeLeque('${c.id}','topo',this.value)" aria-label="equipe da topografia">${htmlOpcoesEquipe(c.equipeTopoId,'—')}</select></label>
+  </div>`;
+}
+function definirEquipeLeque(id, campo, valor){
+  const c = checklistLeques.find(x=>x.id===id); if(!c) return;
+  const v = valor || null;
+  if(campo === 'perf'){ c.equipePerfId = v; enfileirar('checklist_leques', 'update', { id, equipe_perfilagem_id: v }); }
+  else { c.equipeTopoId = v; enfileirar('checklist_leques', 'update', { id, equipe_topografia_id: v }); }
+  salvarChecklistLocal();
+  renderChecklist();
+}
+function definirEquipeFuro(id, campo, valor){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const v = valor || null;
+  if(campo === 'perf'){ f.equipePerfId = v; enfileirar('checklist_furos', 'update', { id, equipe_perfilagem_id: v }); }
+  else { f.equipeTopoId = v; enfileirar('checklist_furos', 'update', { id, equipe_topografia_id: v }); }
+  salvarChecklistFurosLocal();
+  renderChecklist();
+}
+function alternarEquipeFuro(id){
+  if(furosComEquipeAberta.has(id)) furosComEquipeAberta.delete(id); else furosComEquipeAberta.add(id);
+  renderChecklist();
+}
+// Bloco para o WhatsApp: furos por equipe (exceções por furo valem sobre a equipe do leque).
+function blocoEquipesWhatsApp(itens){
+  const perf = new Map(), topo = new Map();
+  itens.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{
+    if(f.perfilado){ const n = nomeDaEquipeId(equipePerfEfetivaId(f)); if(n) perf.set(n, (perf.get(n)||0)+1); }
+    if(f.topografado){ const n = nomeDaEquipeId(equipeTopoEfetivaId(f)); if(n) topo.set(n, (topo.get(n)||0)+1); }
+  }));
+  const linhas = [];
+  perf.forEach((q,n)=> linhas.push(`Perfilagem - ${semAcento(n)}: ${q} furo(s)`));
+  topo.forEach((q,n)=> linhas.push(`Topografia - ${semAcento(n)}: ${q} furo(s)`));
+  return linhas.length ? `[POR EQUIPE]\n${linhas.join('\n')}` : '';
+}
+function textoEquipesLeque(c){
+  const p = nomeDaEquipeId(c.equipePerfId), t = nomeDaEquipeId(c.equipeTopoId);
+  const partes = [];
+  if(p) partes.push(`<b>Perf.:</b> ${escHtml(p)}`);
+  if(t) partes.push(`<b>Topo:</b> ${escHtml(t)}`);
+  return partes.join(' · ');
 }
 
 async function editarLocalizacaoChecklistLeque(id){
@@ -5434,6 +5508,21 @@ function htmlSemEquipes(){
       <button type="button" class="steel" onclick="abrirModalEquipes()">+ Cadastrar equipes</button>
     </div></div>`;
 }
+// Furos do checklist atribuídos a uma equipe (perfilados / topografados) dentro de um período.
+function furosChecklistDaEquipe(equipeId, iniISO, fimISO){
+  let p = 0, t = 0;
+  const dentro = v=>{ if(!v) return false; const d = dataISOLocal(new Date(v)); return d >= iniISO && d <= fimISO; };
+  checklistFuros.forEach(f=>{
+    if(f.perfilado && dentro(f.perfiladoEm) && equipePerfEfetivaId(f) === equipeId) p++;
+    if(f.topografado && dentro(f.topografadoEm) && equipeTopoEfetivaId(f) === equipeId) t++;
+  });
+  return { p, t };
+}
+function htmlLinhaChecklistEquipe(equipeId, iniISO, fimISO){
+  const { p, t } = furosChecklistDaEquipe(equipeId, iniISO, fimISO);
+  if(!p && !t) return '';
+  return `<div class="equipe-checklist" data-exp="1">Checklist: <b>${p}</b> furo${p===1?'':'s'} perfilado${p===1?'':'s'} · <b>${t}</b> topografado${t===1?'':'s'}</div>`;
+}
 function renderProdutividadeEquipes(){
   const box = el('infografico-equipes');
   if(!box) return;
@@ -5448,6 +5537,8 @@ function renderProdutividadeEquipes(){
   const valorInput = v => (v == null || v === 0) ? '' : String(v).replace('.', ',');
   box.innerHTML = lista.map(e=>{
     const r = somaDaSemanaSelecionada(e.id);
+    const _iv = intervaloSemanaInfografico();
+    const linhaCk = htmlLinhaChecklistEquipe(e.id, dataISOLocal(_iv.inicio), dataISOLocal(_iv.fim));
     return `
       <div class="equipe-linha" style="--eq-cor:${corDaEquipe(e)}">
         <div class="equipe-topo">
@@ -5472,6 +5563,7 @@ function renderProdutividadeEquipes(){
             <button type="button" class="steel btn-somar" onclick="somarDoCampo(this)" aria-label="Somar pontos em ${escHtml(e.nome)}">＋</button>
           </div>
         </div>
+        ${linhaCk}
       </div>`;
   }).join('');
   atualizarBarrasEResumoProdutividade();
@@ -5526,6 +5618,7 @@ function renderProdutividadeMensal(){
   const fm = n => fmt1(n).replace('.', ',');
   box.innerHTML = lista.map(e=>{
     const d = porEquipe[e.id];
+    const linhaCk = htmlLinhaChecklistEquipe(e.id, chave + '-01', chave + '-31');
     return `
       <div class="equipe-linha${d.metros === 0 && d.pontos === 0 ? ' equipe-vazia' : ''}" style="--eq-cor:${corDaEquipe(e)}">
         <div class="equipe-topo">
@@ -5542,6 +5635,7 @@ function renderProdutividadeMensal(){
           <div class="equipe-trilho"><div class="equipe-barra equipe-barra-steel" style="width:${d.pontos / maxP * 100}%"></div></div>
           <span class="equipe-valor">${fmtPontos(d.pontos)}</span>
         </div>
+        ${linhaCk}
       </div>`;
   }).join('');
   const totM = lista.reduce((a,e)=>a+porEquipe[e.id].metros,0), totP = lista.reduce((a,e)=>a+porEquipe[e.id].pontos,0);
@@ -5940,7 +6034,7 @@ function aoMudarFuroTempoReal(p){
     if(atual.perfilado !== novo.perfilado) mudancas.push({ por: novo.perfiladoPor, txt: novo.perfilado ? 'perfilado' : 'desmarcou perfilado' });
     if(atual.topografado !== novo.topografado) mudancas.push({ por: novo.topografadoPor, txt: novo.topografado ? 'topografado' : 'desmarcou topografado' });
     if((atual.obstruido||'') !== (novo.obstruido||'')) mudancas.push({ por: novo.obstruidoPor, txt: novo.obstruido ? 'obstruído' : 'liberado' });
-    const metrDiff = atual.metragem !== novo.metragem;
+    const metrDiff = atual.metragem !== novo.metragem || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
     if(!mudancas.length && !metrDiff) return; // eco da minha própria gravação
     Object.assign(atual, novo);
     salvarChecklistFurosLocal();
@@ -5964,7 +6058,7 @@ function aoMudarLequeTempoReal(p){
     const novo = mapChecklistLeque(row);
     const atual = checklistLeques.find(x=>x.id===row.id);
     if(!atual){ checklistLeques.push(novo); salvarChecklistLocal(); renderChecklistSeguro(); return; }
-    const mudou = atual.perfilado !== novo.perfilado || atual.observacao !== novo.observacao || (atual.localizacao||'') !== (novo.localizacao||'') || atual.ordem !== novo.ordem;
+    const mudou = atual.perfilado !== novo.perfilado || atual.observacao !== novo.observacao || (atual.localizacao||'') !== (novo.localizacao||'') || atual.ordem !== novo.ordem || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
     if(!mudou) return;
     const perfMudou = atual.perfilado !== novo.perfilado;
     Object.assign(atual, novo);
