@@ -5301,6 +5301,15 @@ function atualizarBarrasEResumoProdutividade(){
 }
 
 // Mensagem quando o projeto ainda não tem equipes.
+// Cada equipe ganha uma cor fixa pela posição dela no projeto (1ª, 2ª, 3ª...), pra bater o olho
+// e saber quem é quem sem ler o nome. As cores são da paleta do sistema e mudam com o tema.
+function corDaEquipe(e){
+  const irmas = equipes.filter(x=> x.projeto === e.projeto).sort((a,b)=> (a.ordem||0) - (b.ordem||0));
+  const i = Math.max(0, irmas.findIndex(x=> x.id === e.id));
+  return `var(--eq-${(i % 6) + 1})`;
+}
+function marcaDaEquipe(e){ return `<span class="eq-ponto" aria-hidden="true"></span>`; }
+
 function htmlSemEquipes(){
   return `<div class="equipe-vazio-box">
     <div>O escopo <b>${escHtml(nomeEscopoEquipes())}</b> ainda não tem equipes cadastradas.</div>
@@ -5323,9 +5332,9 @@ function renderProdutividadeEquipes(){
   box.innerHTML = lista.map(e=>{
     const r = somaDaSemanaSelecionada(e.id);
     return `
-      <div class="equipe-linha">
+      <div class="equipe-linha" style="--eq-cor:${corDaEquipe(e)}">
         <div class="equipe-topo">
-          <span class="equipe-nome">${escHtml(e.nome)} <span class="equipe-lider" id="lider-${e.id}" style="display:none;">▲ mais metros</span></span>
+          <span class="equipe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)} <span class="equipe-lider" id="lider-${e.id}" style="display:none;">▲ mais metros</span></span>
           <span class="equipe-tecnicos">${escHtml(e.integrantes)}</span>
         </div>
         <div class="equipe-bloco">
@@ -5401,9 +5410,9 @@ function renderProdutividadeMensal(){
   box.innerHTML = lista.map(e=>{
     const d = porEquipe[e.id];
     return `
-      <div class="equipe-linha${d.metros === 0 && d.pontos === 0 ? ' equipe-vazia' : ''}">
+      <div class="equipe-linha${d.metros === 0 && d.pontos === 0 ? ' equipe-vazia' : ''}" style="--eq-cor:${corDaEquipe(e)}">
         <div class="equipe-topo">
-          <span class="equipe-nome">${escHtml(e.nome)}${lider && e.id === lider.id && d.metros > 0 ? ' <span class="equipe-lider">▲ mais metros</span>' : ''}</span>
+          <span class="equipe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)}${lider && e.id === lider.id && d.metros > 0 ? ' <span class="equipe-lider">▲ mais metros</span>' : ''}</span>
           <span class="equipe-tecnicos">${escHtml(e.integrantes)}</span>
         </div>
         <div class="equipe-metrica">
