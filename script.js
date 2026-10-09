@@ -2960,58 +2960,116 @@ function enviarRelatorioWhatsApp(idsRealces){
 // imagem já pronta, só falta escolher o WhatsApp na lista. Em telas sem esse
 // recurso (a maioria dos desktops), baixa a imagem e abre o WhatsApp Web,
 // pra colar manualmente.
+// Gera a imagem do infográfico: sempre em tema claro, largura fixa (igual em celular e
+// computador), sem botões, campos de lançamento nem textos de ajuda — só o que é relatório.
+async function gerarImagemInfografico(){
+  const cardEl = document.querySelector('#view-infografico .view-card');
+  if(!cardEl) throw new Error('infográfico não encontrado');
+  if(typeof html2canvas !== 'function') throw new Error('biblioteca de imagem não carregou (precisa de internet na primeira vez)');
+  const agora = new Date();
+  const dataTxt = String(agora.getDate()).padStart(2,'0') + '/' + String(agora.getMonth()+1).padStart(2,'0') + '/' + agora.getFullYear()
+    + ' ' + String(agora.getHours()).padStart(2,'0') + ':' + String(agora.getMinutes()).padStart(2,'0');
+  const escopo = configApp.projetoAtivo ? 'Projeto ' + configApp.projetoAtivo : 'Todos os projetos';
+  const quem = nomeDoUsuario();
+  const canvas = await html2canvas(cardEl, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+    windowWidth: 900,
+    onclone: (doc)=>{
+      doc.body.classList.remove('dark-mode');
+      doc.body.style.background = '#ffffff';
+      const card = doc.querySelector('#view-infografico .view-card');
+      if(!card) return;
+      card.style.width = '860px'; card.style.maxWidth = 'none'; card.style.margin = '0'; card.style.border = 'none'; card.style.boxShadow = 'none';
+      // Tira tudo que é controle (botões, lançamento, ajuda, navegação) — fica só o relatório.
+      card.querySelectorAll('button, .ajuda, .inp-somar, .equipe-soma, .ck-form-topo, .view-card-header .spacer, #infografico-vazio').forEach(n=> n.remove());
+      card.querySelectorAll('.equipe-semana-nav').forEach(n=>{ n.style.justifyContent = 'center'; });
+      // Gráficos SVG: o html2canvas não resolve var(--cor) dentro do SVG nem respeita
+      // preserveAspectRatio="none" (cortava a direita e deixava o gráfico vazio). Aqui
+      // fixamos cores reais (tema claro) e um tamanho em pixels proporcional ao viewBox.
+      const coresClaras = { '--amber':'#e08a00', '--steel':'#3b6ea5', '--surface':'#ffffff', '--ok':'#1f9d55', '--accent':'#ff431d' };
+      card.querySelectorAll('svg.infografico-chart').forEach(s=>{
+        const larg = 800; // card tem 860px de largura menos o padding interno
+        s.setAttribute('viewBox', '0 0 900 170');
+        s.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        s.setAttribute('width', String(larg));
+        s.setAttribute('height', String(Math.round(larg * 170 / 900)));
+        s.style.width = larg + 'px'; s.style.height = Math.round(larg * 170 / 900) + 'px';
+        s.innerHTML = s.innerHTML.replace(/var\((--[\w-]+)\)/g, (m, v)=>{
+          const real = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+          return coresClaras[v] || real || '#888';
+        });
+      });
+      // Campos de total viram texto simples (no PDF/imagem não se digita).
+      card.querySelectorAll('.equipe-campo input').forEach(i=>{ i.style.border = 'none'; i.style.background = 'transparent'; });
+      const topo = doc.createElement('div');
+      topo.style.cssText = 'padding:18px 20px 12px; border-bottom:2px solid #ff431d; margin-bottom:6px; font-family:Segoe UI,system-ui,sans-serif; color:#191231;';
+      topo.innerHTML = '<div style="font-size:22px;font-weight:800;letter-spacing:.3px;">BlastHole Manager &mdash; Infogr&aacute;fico</div>'
+        + '<div style="font-size:13px;color:#565668;margin-top:4px;">' + escHtml(escopo) + ' &middot; gerado em ' + dataTxt + (quem ? ' &middot; por ' + escHtml(quem) : '') + '</div>';
+      card.insertBefore(topo, card.firstChild);
+    }
+  });
+  const blob = await new Promise(res=> canvas.toBlob(res, 'image/png'));
+  if(!blob) throw new Error('não foi possível gerar a imagem');
+  const nomeArquivo = `infografico-${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}.png`;
+  return { blob, nomeArquivo };
+}
+
+function baixarBlob(blob, nomeArquivo){
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = nomeArquivo;
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+
+// Baixa a imagem como arquivo PNG (computador ou celular), sem abrir WhatsApp.
+async function baixarImagemInfografico(){
+  const btn = el('btn-baixar-imagem-infografico');
+  const original = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Gerando imagem...'; }
+  try{
+    const { blob, nomeArquivo } = await gerarImagemInfografico();
+    baixarBlob(blob, nomeArquivo);
+    showToast('Imagem baixada: ' + nomeArquivo, { erro:false });
+  }catch(err){
+    showToast('Erro ao gerar a imagem: ' + (err && err.message ? err.message : err));
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = original; }
+  }
+}
+el('btn-baixar-imagem-infografico').addEventListener('click', baixarImagemInfografico);
+
 async function enviarFotoInfograficoWhatsApp(){
   if(!configApp.whatsapp){
     showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
     return;
   }
-  const cardEl = document.querySelector('#view-infografico .view-card');
   const btn = el('btn-enviar-foto-infografico-whatsapp');
-  if(!cardEl || !btn) return;
-
+  if(!btn) return;
   const htmlOriginal = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = 'Gerando imagem...';
-  btn.style.visibility = 'hidden'; // não aparece na própria foto
-
   try{
-    const canvas = await html2canvas(cardEl, {
-      backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
-      scale: 2,
-      useCORS: true
-    });
-    btn.style.visibility = '';
-
-    canvas.toBlob(async (blob)=>{
-      btn.disabled = false;
-      btn.innerHTML = htmlOriginal;
-      if(!blob){ showToast('Não foi possível gerar a imagem.'); return; }
-
-      const nomeArquivo = `infografico-${new Date().toISOString().slice(0,10)}.png`;
-      const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
-
-      if(navigator.canShare && navigator.canShare({ files: [arquivo] })){
-        try{
-          await navigator.share({ files: [arquivo], title: 'Infográfico' });
-        }catch(err){
-          if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.');
-        }
-      }else{
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = nomeArquivo;
-        link.click();
-        URL.revokeObjectURL(url);
-        window.open(`https://wa.me/${configApp.whatsapp}`, '_blank');
-        showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.');
+    const { blob, nomeArquivo } = await gerarImagemInfografico();
+    const arquivo = new File([blob], nomeArquivo, { type: 'image/png' });
+    if(navigator.canShare && navigator.canShare({ files: [arquivo] })){
+      try{
+        await navigator.share({ files: [arquivo], title: 'Infográfico' });
+      }catch(err){
+        if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.');
       }
-    }, 'image/png');
+    }else{
+      baixarBlob(blob, nomeArquivo);
+      window.open(`https://wa.me/${configApp.whatsapp}`, '_blank');
+      showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.', { erro:false });
+    }
   }catch(err){
-    btn.style.visibility = '';
+    showToast('Erro ao gerar a imagem: ' + (err && err.message ? err.message : err));
+  }finally{
     btn.disabled = false;
     btn.innerHTML = htmlOriginal;
-    showToast('Erro ao gerar a imagem: ' + (err && err.message ? err.message : err));
   }
 }
 el('btn-enviar-foto-infografico-whatsapp').addEventListener('click', enviarFotoInfograficoWhatsApp);
