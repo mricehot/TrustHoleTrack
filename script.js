@@ -561,6 +561,11 @@ function atualizarIndicadorSalvamento(){
     else { estado = 'salvo'; texto = 'salvo'; }
     pill.className = 'status-salvamento ' + estado;
     pill.querySelector('.status-texto').textContent = texto;
+    // "salvo" some depois de 2,5 s pra não ficar cobrindo campos e a barra de abas; qualquer
+    // outro estado (salvando, sem internet, falha) continua visível até resolver.
+    clearTimeout(pill._timerOculta);
+    pill.classList.remove('discreto');
+    if(estado === 'salvo') pill._timerOculta = setTimeout(()=> pill.classList.add('discreto'), 2500);
     pill.setAttribute('role', 'status');
     pill.setAttribute('aria-live', 'polite');
   }

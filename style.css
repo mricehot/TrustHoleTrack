@@ -1242,3 +1242,16 @@ select, input[type="text"], input[type="search"], input:not([type]){ min-height:
 /* Leque com vários furos obstruídos: destaque forte (cor + ícone + texto, não só cor) */
 .ck-obstr.alta{ background:#b3261e; color:#fff; border-color:#b3261e; }
 .checklist-leque-card.obstr-alta{ border-left:5px solid #b3261e; }
+
+/* ---- Interface e usabilidade ---- */
+/* Indicador "salvo" discreto: some sozinho depois de salvar */
+.status-salvamento{ transition:opacity .4s ease; }
+.status-salvamento.salvo.discreto{ opacity:0; }
+@media (prefers-reduced-motion: reduce){ .status-salvamento{ transition:none; } }
+/* Filtros do checklist: quebram em linhas em vez de esconder "Obstruídos" fora da tela */
+.ck-chips{ flex-wrap:wrap; overflow-x:visible; }
+/* Abas de baixo no celular: rótulos longos não colam um no outro */
+@media (max-width:560px){
+  .tab-label{ letter-spacing:-.2px; white-space:nowrap; }
+  .tab-item{ padding-left:0; padding-right:0; }
+}
