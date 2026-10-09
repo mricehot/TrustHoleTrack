@@ -144,8 +144,7 @@ window.fetch = function(...args){
 function atualizarStatusConexao(){
   const banner = document.getElementById('offline-banner');
   if(banner) banner.style.display = navigator.onLine ? 'none' : 'block';
-  // Sem internet o app vira "somente consulta": nada que altere dados é aceito,
-  // pra ninguém digitar/marcar achando que salvou.
+  // Sem internet: as alterações ficam guardadas neste aparelho (fila) — o banner avisa.
   document.body.classList.toggle('offline-leitura', !navigator.onLine);
   if(typeof atualizarIndicadorSalvamento === 'function') atualizarIndicadorSalvamento();
 }
@@ -161,27 +160,25 @@ window.addEventListener('online', ()=>{
 });
 window.addEventListener('offline', atualizarStatusConexao);
 
-// Controles que continuam funcionando sem internet (só consultam ou mudam a tela).
-const SELETOR_LIVRE_OFFLINE = [
-  '.tab-item', '#btn-tema', '#btn-historico-toast', '#btn-header-mais', '#btn-atualizar',
-  '#btn-logout', '#btn-reenviar-falhas', '#f-tipo', '#f-situacao', '#f-busca',
-  '.toggle-leque', '.checklist-leque-codigo', '#modal-cancelar', '#modal-overlay',
-  '[onclick*="toggleMenu"]', '[onclick*="toggleExpandir"]', '[onclick*="toggleLeque("]',
-  '[onclick*="exportarLeque"]', '#btn-csv', '#btn-exportar-turno', '#btn-exportar-selecionados', '#btn-limpar-selecao',
-  '#btn-enviar-whatsapp', '#btn-enviar-foto-infografico-whatsapp', '#infografico-semana-ant', '#infografico-semana-prox', '#infografico-mes-ant', '#infografico-mes-prox',
-  '#login-email', '#login-senha', '#btn-login'
+// Sem internet o app continua EDITANDO: toda alteração entra na fila guardada no
+// aparelho e sobe sozinha quando o sinal voltar. Só o que depende da rede de verdade
+// fica bloqueado: fotos (upload), senha e nome de exibição (conta).
+const SELETOR_SO_ONLINE = [
+  '#btn-escolher-foto-leque', '#leque-foto-input', '#btn-escolher-foto-turno', '#foto-turno-input',
+  '[onclick*="selecionarFotoLeque"]', '[onclick*="removerFotoLeque"]',
+  '#btn-alterar-senha', '#btn-salvar-perfil', '#tecnico-nome', '#tecnico-senha-nova', '#tecnico-senha-confirma'
 ].join(',');
 let ultimoAvisoOffline = 0;
 function avisarSomenteConsulta(){
   if(Date.now() - ultimoAvisoOffline < 2500) return;
   ultimoAvisoOffline = Date.now();
-  showToast('Sem internet: modo somente consulta. Nada é alterado até o sinal voltar.');
+  showToast('Isso precisa de internet (foto, senha ou nome). O resto você pode fazer — fica guardado e sobe quando o sinal voltar.');
 }
 function bloquearEdicaoOffline(e){
   if(navigator.onLine) return;
   const alvo = e.target && e.target.closest ? e.target.closest('button, input, select, textarea, label, [data-acao]') : null;
   if(!alvo) return;
-  if(alvo.matches(SELETOR_LIVRE_OFFLINE) || alvo.closest(SELETOR_LIVRE_OFFLINE)) return;
+  if(!(alvo.matches(SELETOR_SO_ONLINE) || alvo.closest(SELETOR_SO_ONLINE))) return;
   e.preventDefault();
   e.stopImmediatePropagation();
   avisarSomenteConsulta();
@@ -491,6 +488,62 @@ const DEBOUNCE_MS = 500;
 // Mostra no topo se está salvando, se está tudo salvo ou se algo FALHOU. Uma
 // falha fica na lista até ser reenviada com sucesso — não some como o toast.
 const falhasDeEnvio = new Map(); // "tabela:acao:id" -> { tabela, acao, registro, motivo }
+const enviosEmVoo = new Map();   // pedidos já disparados e ainda sem resposta (também vão pra fila guardada)
+
+// ---------- Fila guardada no aparelho ----------
+// Tudo que ainda não chegou ao servidor (falhou, está esperando o debounce ou está
+// a caminho) é gravado no aparelho. Se o app fechar, o celular reiniciar ou o sinal
+// só voltar amanhã, nada se perde: na próxima abertura a fila é restaurada e reenviada.
+const FILA_KEY_PREFIXO = 'perfilagem-fila-v1:';
+function chaveFilaDoUsuario(){ return (typeof usuarioAtual !== 'undefined' && usuarioAtual && usuarioAtual.id) ? FILA_KEY_PREFIXO + usuarioAtual.id : null; }
+function itensDaFila(){
+  const mapa = new Map();
+  enviosEmVoo.forEach((v,k)=> mapa.set(k, v));
+  if(typeof registrosPendentes !== 'undefined') registrosPendentes.forEach((reg, k)=>{
+    const [tabela, acao] = k.split(':');
+    mapa.set(k, { chave:k, tabela, acao, registro:reg });
+  });
+  falhasDeEnvio.forEach((v,k)=> mapa.set(k, { chave:v.chave, tabela:v.tabela, acao:v.acao, registro:v.registro }));
+  return Array.from(mapa.values());
+}
+let filaRestauradaPara = null; // só grava a fila depois de ler a que já estava guardada (senão apagaria)
+let filaRestauradaQtd = 0;
+function persistirFila(){
+  const k = chaveFilaDoUsuario(); if(!k) return;
+  if(typeof usuarioAtual === 'undefined' || !usuarioAtual || filaRestauradaPara !== usuarioAtual.id) return;
+  try{
+    const itens = itensDaFila();
+    if(itens.length) localStorage.setItem(k, JSON.stringify(itens));
+    else localStorage.removeItem(k);
+  }catch(e){}
+}
+function restaurarFilaPersistida(){
+  const k = chaveFilaDoUsuario(); if(!k) return 0;
+  if(filaRestauradaPara === usuarioAtual.id) return 0;
+  filaRestauradaPara = usuarioAtual.id;
+  let n = 0;
+  try{
+    const itens = JSON.parse(localStorage.getItem(k) || '[]');
+    itens.forEach(it=>{
+      if(!it || !it.tabela || !it.acao || !it.registro) return;
+      const chave = it.chave || (it.tabela + ':' + it.acao + ':' + it.registro.id);
+      if(falhasDeEnvio.has(chave)) return;
+      falhasDeEnvio.set(chave, { chave, tabela:it.tabela, acao:it.acao, registro:it.registro, motivo:'guardado no aparelho' });
+      n++;
+    });
+  }catch(e){}
+  filaRestauradaQtd += n;
+  atualizarIndicadorSalvamento();
+  persistirFila();
+  return n;
+}
+function ehErroDeRede(msg){ return /failed to fetch|networkerror|load failed|network request failed|sem conex|timeout|fetch/i.test(String(msg||'')); }
+function registrarFalhaNaFila(chave, tabela, acao, registro, motivo){
+  const anterior = falhasDeEnvio.get(chave);
+  // Duas alterações do mesmo registro enquanto offline viram UMA, com todos os campos.
+  if(anterior && (acao === 'update' || acao === 'upsert')) registro = Object.assign({}, anterior.registro, registro);
+  falhasDeEnvio.set(chave, { chave, tabela, acao, registro, motivo });
+}
 let enviosEmAndamento = 0;
 let reenviandoFalhas = false;
 const ORDEM_ACAO = { insert: 0, upsert: 1, update: 2, delete: 3 };
@@ -515,7 +568,7 @@ function atualizarIndicadorSalvamento(){
     if(qtdFalhas === 0){ alerta.style.display = 'none'; return; }
     const nomes = Array.from(new Set(Array.from(falhasDeEnvio.values()).map(f=> NOME_TABELA_FILA[f.tabela] || f.tabela)));
     alerta.querySelector('.alerta-falhas-texto').textContent =
-      `${qtdFalhas} alteração(ões) NÃO foram salvas (${nomes.join(', ')}). Não feche o app antes de reenviar.`;
+      `${qtdFalhas} alteração(ões) guardada(s) neste aparelho, ainda não enviadas (${nomes.join(', ')}). Sobem sozinhas quando houver sinal — não precisa ficar com o app aberto.`;
     alerta.style.display = 'flex';
   }
 }
@@ -530,16 +583,30 @@ async function reenviarFalhas(){
   for(const f of itens){
     falhasDeEnvio.delete(f.chave);
     await executarEnvio(f.tabela, f.acao, f.registro, true);
+    // Sem rede de verdade: não adianta tentar os outros agora (cada um esperaria o tempo limite).
+    const voltou = falhasDeEnvio.get(f.chave);
+    if(voltou && ehErroDeRede(voltou.motivo)) break;
   }
+  persistirFila();
   reenviandoFalhas = false;
   if(btn){ btn.disabled = false; btn.textContent = 'Tentar de novo'; }
   atualizarIndicadorSalvamento();
   if(falhasDeEnvio.size === 0) showToast('Tudo salvo.');
 }
 
+let ultimoToastFalha = 0;
 async function executarEnvio(tabela, acao, registro, silencioso){
   const chave = tabela + ':' + acao + ':' + registro.id;
+  // Sem internet: nem tenta a rede — guarda na fila, sem barulho. O indicador "N sem salvar" já mostra.
+  if(typeof navigator !== 'undefined' && navigator.onLine === false){
+    registrarFalhaNaFila(chave, tabela, acao, registro, 'sem conexão');
+    persistirFila();
+    atualizarIndicadorSalvamento();
+    return;
+  }
   enviosEmAndamento++;
+  enviosEmVoo.set(chave, { chave, tabela, acao, registro });
+  persistirFila();
   atualizarIndicadorSalvamento();
   try{
     let error;
@@ -561,13 +628,19 @@ async function executarEnvio(tabela, acao, registro, silencioso){
     }
   }catch(err){
     const motivo = err && err.message ? err.message : 'sem conexão';
-    falhasDeEnvio.set(chave, { chave, tabela, acao, registro, motivo });
-    if(!silencioso){
+    registrarFalhaNaFila(chave, tabela, acao, registro, motivo);
+    // Falha de rede repetida não enche a tela de avisos: um aviso a cada 30 s no máximo.
+    // O indicador "N sem salvar" continua mostrando que há pendências.
+    const rede = ehErroDeRede(motivo);
+    if(!silencioso && (!rede || Date.now() - ultimoToastFalha > 30000)){
+      ultimoToastFalha = Date.now();
       const nomeTabela = NOME_TABELA_FILA[tabela] || tabela;
-      showToast(`Não foi possível salvar (${nomeTabela}): ${motivo}`);
+      showToast(rede ? 'Sem sinal: as alterações ficam guardadas neste aparelho e sobem quando a conexão voltar.' : `Não foi possível salvar (${nomeTabela}): ${motivo}`, { erro: !rede });
     }
   }finally{
+    enviosEmVoo.delete(chave);
     enviosEmAndamento = Math.max(0, enviosEmAndamento - 1);
+    persistirFila();
     atualizarIndicadorSalvamento();
   }
 }
@@ -613,10 +686,11 @@ function enfileirar(tabela, acao, registro){
   const anterior = registrosPendentes.get(chave);
   if(anterior) registro = Object.assign({}, anterior, registro);
   registrosPendentes.set(chave, registro);
+  persistirFila();
   const novoTimer = setTimeout(()=>{
     debouncesPendentes.delete(chave);
     registrosPendentes.delete(chave);
-    executarEnvio(tabela, acao, registro);
+    executarEnvio(tabela, acao, registro); // já entra em "em voo" (e na fila guardada) de forma síncrona
   }, DEBOUNCE_MS);
   debouncesPendentes.set(chave, novoTimer);
   atualizarIndicadorSalvamento();
@@ -689,6 +763,9 @@ async function buscarTudo(tabela){
 // se não houver nada pendente (pra nunca perder alterações ainda não enviadas).
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
+  // Nunca troca os dados locais pelos do servidor enquanto houver alteração sua
+  // ainda não enviada — senão as marcações feitas sem sinal "sumiriam" da tela.
+  if(falhasDeEnvio.size > 0 || debouncesPendentes.size > 0 || enviosEmAndamento > 0) return false;
   try{
     // produtividade_lancamentos é tolerante: se a tabela ainda não foi criada no Supabase, não derruba o resto da sincronização
     const eqResp = await buscarTudo('equipes');
@@ -761,10 +838,12 @@ async function sincronizarDoServidor(){
   btn.disabled = true;
   const htmlOriginal = btn.innerHTML;
   btn.innerHTML = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Atualizando...';
-  const ok = await atualizarDoServidor();
+  if(falhasDeEnvio.size > 0) await reenviarFalhas();
+  const pendente = falhasDeEnvio.size > 0 || debouncesPendentes.size > 0 || enviosEmAndamento > 0;
+  const ok = pendente ? false : await atualizarDoServidor();
   btn.disabled = false;
   btn.innerHTML = htmlOriginal;
-  showToast(ok ? 'Dados atualizados a partir do servidor.' : 'Não foi possível atualizar agora. Tente de novo.');
+  showToast(ok ? 'Dados atualizados a partir do servidor.' : pendente ? 'Ainda há alterações suas sem enviar. Elas sobem quando houver sinal; só então os dados são atualizados.' : 'Não foi possível atualizar agora. Tente de novo.', { erro: false });
 }
 
 el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
@@ -781,8 +860,26 @@ async function loadData(){
   sincronizarLocalComNivelDoAnel();
   renderAll();
   atualizarLabelUltimaSync();
+  // Alterações que ficaram guardadas (app fechado/sem sinal) sobem antes de qualquer atualização.
+  const restauradas = restaurarFilaPersistida() + filaRestauradaQtd;
+  filaRestauradaQtd = 0;
+  if(restauradas > 0){
+    showToast(`${restauradas} alteração(ões) guardada(s) de antes: ${navigator.onLine ? 'enviando agora…' : 'sobem quando o sinal voltar.'}`, { erro:false });
+    if(navigator.onLine) await reenviarFalhas();
+  }
   await atualizarDoServidor();
 }
+
+// Tentativa automática: com pendências e rede disponível, reenvia a cada 30 s
+// (cobre Wi-Fi sem internet que "volta" sem disparar o evento online).
+setInterval(()=>{
+  if(typeof usuarioAtual === 'undefined' || !usuarioAtual) return;
+  if(!navigator.onLine || reenviandoFalhas || falhasDeEnvio.size === 0 || enviosEmAndamento > 0) return;
+  reenviarFalhas().then(()=>{ if(falhasDeEnvio.size === 0 && debouncesPendentes.size === 0) atualizarDoServidor(); });
+}, 30000);
+// Ao esconder o app (trocar de app, bloquear a tela), garante que a fila está gravada.
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') persistirFila(); });
+window.addEventListener('pagehide', persistirFila);
 
 const historicoToasts = []; // { texto, ts } — últimos avisos, pra quem perdeu o toast na hora
 
@@ -2751,6 +2848,97 @@ function montarBlocoProdutividadeMensalWhatsApp(){
   return out;
 }
 
+// ---------- Resumo de fim de turno (um toque) ----------
+// Junta num só texto: dados do turno, o que foi feito HOJE (por pessoa), metros das
+// equipes, situação do realce ativo (pendentes, obstruídos) e as observações do turno.
+function montarResumoTurnoWhatsApp(){
+  const A = semAcento;
+  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
+  const dia = dataBRParaISO(turnoInfo.data) || chaveDia(new Date());
+  const [ano, mes, dd] = dia.split('-');
+  const noDia = iso => iso && chaveDia(iso) === dia;
+  const turnoTxt = turnoInfo.turnoNumero ? `Turno ${turnoInfo.turnoNumero}${turnoInfo.turnoLetra ? ' ' + turnoInfo.turnoLetra : ''}` : 'Turno nao informado';
+  let t = `*RESUMO DO TURNO*\n${dd}/${mes}/${ano} - ${turnoTxt}\n`;
+  if(turnoInfo.projeto) t += `Projeto: ${A(turnoInfo.projeto)}\n`;
+  if(turnoInfo.local) t += `Local: ${A(turnoInfo.local)}\n`;
+  if(turnoInfo.tecnicos) t += `Tecnicos: ${A(turnoInfo.tecnicos)}\n`;
+  if(turnoInfo.supervisor) t += `Supervisor: ${A(turnoInfo.supervisor)}\n`;
+  if(turnoInfo.dds) t += `DDS: ${A(turnoInfo.dds)}\n`;
+
+  // O que foi marcado no dia, por pessoa
+  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
+  const lequesEscopo = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
+  const furosEscopo = checklistFuros.filter(f=>lequesEscopo.has(f.checklistLequeId));
+  const porPessoa = new Map();
+  const pessoa = nome => { const k = nome || '(sem nome)'; if(!porPessoa.has(k)) porPessoa.set(k, { perf:0, topo:0 }); return porPessoa.get(k); };
+  let perfDia = 0, topoDia = 0, metrosFuros = 0;
+  furosEscopo.forEach(f=>{
+    if(f.perfilado && noDia(f.perfiladoEm)){ perfDia++; pessoa(f.perfiladoPor).perf++; if(f.metragem != null) metrosFuros += f.metragem; }
+    if(f.topografado && noDia(f.topografadoEm)){ topoDia++; pessoa(f.topografadoPor).topo++; }
+  });
+  t += `\n*FEITO NO DIA*\nFuros perfilados: ${perfDia}\nFuros topografados: ${topoDia}\n`;
+  if(metrosFuros > 0) t += `Metros digitados nos furos: ${num(metrosFuros)} m\n`;
+  if(porPessoa.size > 1 || (porPessoa.size === 1 && !porPessoa.has('(sem nome)'))){
+    t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
+  }
+
+  // Metros lançados pelas equipes no dia
+  const eqs = equipesDoProjeto();
+  const linhasEq = eqs.map(e=>{
+    let m = 0, p = 0;
+    lancamentosProd.forEach(l=>{ if(l.equipeId === e.id && l.data === dia){ m += l.metros; p += l.pontos; } });
+    return (m || p) ? `- ${A(e.nome)}: ${num(m)} m perfilados | ${Math.round(p)} pontos topografados` : '';
+  }).filter(Boolean);
+  if(linhasEq.length) t += `\n*PRODUCAO DAS EQUIPES*\n${linhasEq.join('\n')}\n`;
+
+  // Situação do realce ativo (pendências e obstruídos)
+  const anel = aneis.find(a=>a.id===anelAtivoId);
+  if(anel){
+    const itens = checklistDoAnel(anel.id);
+    if(itens.length){
+      t += `\n*SITUACAO DO REALCE ${A(anel.nome)}*\n`;
+      const temLocal = itens.some(c=>(c.localizacao||'').trim());
+      if(temLocal) t += montarBlocoRealceComLocais(anel.id, itens, anel.nome).replace(/^\*Realce [^\n]*\*\n/, '') + '\n';
+      else{
+        t += resumoChecklistItens(itens) + '\n';
+        const obstr = blocoObstruidosWhatsApp(itens);
+        if(obstr) t += `\n${obstr}\n`;
+        const obsG = checklistObsGeraisDoAnel(anel.id);
+        if(obsG.length) t += `\n[OBSERVACOES GERAIS]\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
+      }
+    }
+  }
+
+  const obs = observacoesDoTurnoAtual();
+  if(obs.length) t += `\n*OBSERVACOES DO TURNO*\n${obs.map(o=>'- '+A(o.texto)).join('\n')}\n`;
+  const nFotos = fotosDoTurnoAtual().length;
+  if(nFotos) t += `\nFotos registradas no turno: ${nFotos}\n`;
+  return A(t.trim());
+}
+function renderResumoTurno(){
+  const pre = el('resumo-turno-texto');
+  if(pre) pre.textContent = montarResumoTurnoWhatsApp();
+}
+async function copiarTextoResumo(texto){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(texto); return true; }
+  }catch(e){}
+  try{
+    const ta = document.createElement('textarea'); ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  }catch(e){ return false; }
+}
+el('btn-resumo-turno-copiar').addEventListener('click', async ()=>{
+  const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp());
+  showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar. Use "Enviar no WhatsApp".', { erro:false });
+});
+el('btn-resumo-turno-whatsapp').addEventListener('click', ()=>{
+  const texto = montarResumoTurnoWhatsApp();
+  const numero = configApp.whatsapp;
+  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+});
+el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTurno(); showToast('Resumo atualizado.', { erro:false }); });
+
 function enviarRelatorioWhatsApp(idsRealces){
   if(!configApp.whatsapp){
     showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
@@ -2896,6 +3084,16 @@ async function inserirLequesEFuros(regsLeques, regsFuros){
     const chave = tabela + ':insert:' + r.id;
     falhasDeEnvio.set(chave, { chave, tabela, acao:'insert', registro:r, motivo });
   });
+  // Tudo entra na fila guardada antes de ir: se o app fechar no meio, o resto sobe depois.
+  const todos = [['checklist_leques', regsLeques], ['checklist_furos', regsFuros]];
+  todos.forEach(([t, regs])=> regs.forEach(r=> enviosEmVoo.set(t + ':insert:' + r.id, { chave: t + ':insert:' + r.id, tabela:t, acao:'insert', registro:r })));
+  persistirFila();
+  if(navigator.onLine === false){
+    todos.forEach(([t, regs])=> registrarFalha(t, regs, 'sem conexão'));
+    todos.forEach(([t, regs])=> regs.forEach(r=> enviosEmVoo.delete(t + ':insert:' + r.id)));
+    persistirFila(); atualizarIndicadorSalvamento();
+    return;
+  }
   enviosEmAndamento++;
   atualizarIndicadorSalvamento();
   let motivo = '';
@@ -2913,9 +3111,14 @@ async function inserirLequesEFuros(regsLeques, regsFuros){
     registrarFalha('checklist_leques', regsLeques, motivo);
     registrarFalha('checklist_furos', regsFuros, motivo);
   }finally{
+    todos.forEach(([t, regs])=> regs.forEach(r=> enviosEmVoo.delete(t + ':insert:' + r.id)));
     enviosEmAndamento = Math.max(0, enviosEmAndamento - 1);
+    persistirFila();
     atualizarIndicadorSalvamento();
-    if(motivo) showToast(`Não foi possível salvar o checklist: ${motivo}`);
+    if(motivo){
+      if(ehErroDeRede(motivo)){ if(Date.now() - ultimoToastFalha > 30000){ ultimoToastFalha = Date.now(); showToast('Sem sinal: o checklist fica guardado neste aparelho e sobe quando a conexão voltar.', { erro:false }); } }
+      else showToast(`Não foi possível salvar o checklist: ${motivo}`);
+    }
   }
 }
 
@@ -4539,6 +4742,7 @@ function renderAll(){
   renderAvisoRefazer();
   preencherSelectsDeProjeto();
   renderInfografico();
+  if(document.body.dataset.view === 'turno') renderResumoTurno();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -4668,6 +4872,7 @@ function mostrarView(viewId){
   // renderChecklist roda nesse caso) — então garante dado fresco toda vez
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
+  if(viewId === 'turno') renderResumoTurno();
 }
 
 document.querySelectorAll('.tab-item[data-view]').forEach(btn=>{
@@ -5304,6 +5509,7 @@ function limparSessaoCache(){
 function mostrarApp(user){
   usuarioAtual = user ? { id: user.id, email: user.email, nome: (user.user_metadata && user.user_metadata.nome) || '' } : null;
   if(usuarioAtual) salvarSessaoCache(usuarioAtual);
+  restaurarFilaPersistida(); // logo ao entrar: antes de qualquer outra gravação
   el('login-screen').style.display = 'none';
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
