@@ -1,0 +1,17 @@
+{
+  "name": "BlastHole Manager",
+  "short_name": "BlastHole",
+  "description": "Perfilagem de furos de lavra — funciona sem sinal e envia quando a conexão voltar.",
+  "start_url": "./dash.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#191231",
+  "theme_color": "#191231",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
