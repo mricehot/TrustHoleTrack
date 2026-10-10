@@ -258,21 +258,22 @@ async function aplicarLoteChecklist(acao, idsExplicitos){
 
   const agora = new Date().toISOString();
   const snapLeques = [], snapFuros = [];
-  let furosAlterados = 0, puladosObstruidos = 0;
+  let furosAlterados = 0, puladosObstruidos = 0, bloqueadosLimpar = 0;
   leques.forEach(c=>{
     snapLeques.push({ id:c.id, perfilado:c.perfilado });
     const furos = checklistFurosDoLeque(c.id);
     if(acao === 'perfilado' && !c.perfilado){
       c.perfilado = true; enfileirar('checklist_leques', 'update', { id:c.id, perfilado:true });
     }
-    if(acao === 'limpar' && c.perfilado){
+    if(acao === 'limpar' && c.perfilado && podeDesmarcar(c.perfiladoPor, c.equipePerfId)){
       c.perfilado = false; enfileirar('checklist_leques', 'update', { id:c.id, perfilado:false });
     }
     furos.forEach(f=>{
       const antes = { id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm };
       let mudou = false;
       if(acao === 'limpar'){
-        if(f.perfilado || f.topografado){
+        if((f.perfilado && !podeDesmarcarFuro(f,'perf')) || (f.topografado && !podeDesmarcarFuro(f,'topo'))){ bloqueadosLimpar++; }
+        else if(f.perfilado || f.topografado){
           f.perfilado = false; f.perfiladoEm = null; f.topografado = false; f.topografadoEm = null; mudou = true;
         }
       }else if(f.obstruido){
@@ -297,7 +298,7 @@ async function aplicarLoteChecklist(acao, idsExplicitos){
   renderChecklist();
 
   const rot = acao === 'perfilado' ? 'perfilados' : acao === 'topografado' ? 'topografados' : 'limpos';
-  showToast(`${furosAlterados} furo(s) de ${leques.length} leque(s) marcados como ${rot}.${puladosObstruidos ? ' ('+puladosObstruidos+' obstruído(s) ignorado(s))' : ''}`, {
+  showToast(`${furosAlterados} furo(s) de ${leques.length} leque(s) marcados como ${rot}.${puladosObstruidos ? ' ('+puladosObstruidos+' obstruído(s) ignorado(s))' : ''}${bloqueadosLimpar ? ' ('+bloqueadosLimpar+' de outra equipe mantido(s))' : ''}`, {
     acaoLabel: 'Desfazer',
     onAcao: ()=> desfazerLoteChecklist(snapLeques, snapFuros)
   });
@@ -1244,9 +1245,28 @@ function restaurarFormChecklist(){
 }
 restaurarFormChecklist();
 
+// Só quem marcou (a mesma pessoa ou alguém da mesma equipe) pode desmarcar. Marcas sem autor registrado (antigas) ficam livres.
+function podeDesmarcar(autor, equipeId){
+  if(!autor) return true;
+  const eu = (typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '').toLowerCase();
+  if(eu && String(autor).toLowerCase() === eu) return true;
+  const minha = (typeof minhaEquipeId === 'function') ? minhaEquipeId() : null;
+  return !!(minha && equipeId && minha === equipeId);
+}
+function avisarSoQuemMarcou(autor, equipeId){
+  const eq = nomeDaEquipeId(equipeId);
+  showToast(`Só ${autor ? autor : 'quem marcou'}${eq ? ' ou a ' + eq : ''} pode desmarcar.`, { tipo:'aviso' });
+  renderChecklist();
+}
+function podeDesmarcarFuro(f, tipo){
+  if(tipo === 'perf') return podeDesmarcar(f.perfiladoPor, equipePerfEfetivaId(f));
+  if(tipo === 'topo') return podeDesmarcar(f.topografadoPor, equipeTopoEfetivaId(f));
+  return podeDesmarcar(f.obstruidoPor, null);
+}
 function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
+  if(c.perfilado && !podeDesmarcar(c.perfiladoPor, c.equipePerfId)){ avisarSoQuemMarcou(c.perfiladoPor, c.equipePerfId); return; }
   const antes = c.perfilado;
   c.perfilado = !c.perfilado;
   enfileirar('checklist_leques', 'update', { id: c.id, perfilado: c.perfilado });
@@ -1558,6 +1578,7 @@ function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
+  if(f.perfilado && !podeDesmarcarFuro(f,'perf')){ avisarSoQuemMarcou(f.perfiladoPor, equipePerfEfetivaId(f)); return; }
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
@@ -1578,6 +1599,7 @@ function toggleChecklistFuroTopografado(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; }
+  if(f.topografado && !podeDesmarcarFuro(f,'topo')){ avisarSoQuemMarcou(f.topografadoPor, equipeTopoEfetivaId(f)); return; }
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
@@ -1598,6 +1620,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   const valor = motivo ? OBSTRUIDO_VALOR : '';
+  if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, null); return; }
   vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
   f.obstruido = valor;
