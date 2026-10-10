@@ -3591,25 +3591,12 @@ function desfazerMarcaFuro(antes){
 }
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
-// Leque a 100%: brilho que atravessa o card, selo ✓ que "salta" e confete curto, mais vibração leve.
+// Leque a 100%: um brilho percorre a borda do card e o selo ✓ "salta"; vibração leve no celular.
 function celebrarLequeCompleto(card, lequeId){
   try{
     if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     card.classList.add('completo-fx');
-    const cores = ['#2e9b57','#e0a21b','#2f6b9a','#5fcf8a','#f0c75e'];
-    const caixa = document.createElement('div'); caixa.className = 'confete'; caixa.setAttribute('aria-hidden','true');
-    for(let i=0;i<14;i++){
-      const p = document.createElement('i');
-      const ang = (-100 + Math.random()*200) * Math.PI/180, dist = 40 + Math.random()*55;
-      p.style.setProperty('--dx', Math.round(Math.sin(ang)*dist) + 'px');
-      p.style.setProperty('--dy', Math.round(-Math.cos(ang)*dist*0.35 + (Math.random()*30 - 5)) + 'px');
-      p.style.setProperty('--r', Math.round(Math.random()*360) + 'deg');
-      p.style.background = cores[i % cores.length];
-      p.style.animationDelay = (Math.random()*60) + 'ms';
-      caixa.appendChild(p);
-    }
-    card.appendChild(caixa);
-    setTimeout(()=>{ caixa.remove(); card.classList.remove('completo-fx'); }, 1400);
+    setTimeout(()=>{ card.classList.remove('completo-fx'); }, 1400);
     if(navigator.vibrate) navigator.vibrate([18, 40, 28]);
   }catch(e){}
 }
