@@ -2385,6 +2385,7 @@ function renderChecklist(){
   }
   renderBarraLoteChecklist(visiveis);
   aplicarEntradaCards();
+  renderPainelTurno();
 }
 
 // ---------- Checklist: filtros, grupos e seleção em lote ----------
@@ -3016,9 +3017,105 @@ function montarResumoTurnoWhatsApp(){
   return A(t.trim());
 }
 function renderResumoTurno(){
+  renderPainelTurno(); atualizarContagensTurno(); aplicarSecoesTurno();
   const pre = el('resumo-turno-texto');
   if(pre) pre.textContent = montarResumoTurnoWhatsApp();
 }
+// ---------- Página Turno: painel, seções recolhíveis e atalhos de observação ----------
+const TURNO_SECOES_KEY = 'perfilagem-turno-secoes-v1';
+let turnoSecoes = {};
+try{ turnoSecoes = JSON.parse(localStorage.getItem(TURNO_SECOES_KEY) || '{}') || {}; }catch(e){ turnoSecoes = {}; }
+function salvarTurnoSecoes(){ try{ localStorage.setItem(TURNO_SECOES_KEY, JSON.stringify(turnoSecoes)); }catch(e){} }
+function secaoTurnoRecolhida(chave){
+  if(chave in turnoSecoes) return !!turnoSecoes[chave];
+  if(chave === 'comunicados') return comunicadosVigentesNoEscopo().length === 0; // vazio: começa recolhido
+  return false;
+}
+function aplicarSecoesTurno(){
+  document.querySelectorAll('#view-turno > .view-card[data-secao]').forEach(card=>{
+    const rec = secaoTurnoRecolhida(card.dataset.secao);
+    card.classList.toggle('recolhido', rec);
+    const cab = card.querySelector('.view-card-header');
+    if(cab){ cab.setAttribute('aria-expanded', String(!rec)); }
+  });
+  document.querySelectorAll('#view-turno details.sec-det[data-secao]').forEach(det=>{
+    const rec = secaoTurnoRecolhida(det.dataset.secao);
+    if(det.open === rec) det.open = !rec;
+  });
+}
+function alternarSecaoTurno(card){
+  const chave = card.dataset.secao;
+  const vaiRecolher = !card.classList.contains('recolhido');
+  turnoSecoes[chave] = vaiRecolher; salvarTurnoSecoes();
+  const corpo = card.querySelector(':scope > .turno-body'), chev = card.querySelector('.sec-chev');
+  const cab = card.querySelector('.view-card-header'); if(cab) cab.setAttribute('aria-expanded', String(!vaiRecolher));
+  if(vaiRecolher) animarFechar(corpo, chev, ()=> card.classList.add('recolhido'));
+  else{ card.classList.remove('recolhido'); animarAbrir(corpo, chev); }
+}
+(function iniciarSecoesTurno(){
+  document.querySelectorAll('#view-turno > .view-card[data-secao]').forEach(card=>{
+    const cab = card.querySelector('.view-card-header'); if(!cab) return;
+    const chev = document.createElement('span'); chev.className = 'sec-chev'; chev.setAttribute('aria-hidden', 'true'); chev.textContent = '▾';
+    cab.insertBefore(chev, cab.firstChild);
+    cab.classList.add('sec-cab'); cab.setAttribute('role', 'button'); cab.tabIndex = 0;
+    cab.addEventListener('click', ev=>{
+      if(ev.target.closest('button, input, select, a')){
+        if(ev.target.closest('#btn-novo-comunicado') && card.classList.contains('recolhido')){ turnoSecoes.comunicados = false; salvarTurnoSecoes(); aplicarSecoesTurno(); }
+        return;
+      }
+      alternarSecaoTurno(card);
+    });
+    cab.addEventListener('keydown', ev=>{ if((ev.key === 'Enter' || ev.key === ' ') && ev.target === cab){ ev.preventDefault(); alternarSecaoTurno(card); } });
+  });
+  document.querySelectorAll('#view-turno details.sec-det[data-secao]').forEach(det=>{
+    det.addEventListener('toggle', ()=>{ turnoSecoes[det.dataset.secao] = !det.open; salvarTurnoSecoes(); });
+  });
+  setTimeout(aplicarSecoesTurno, 0); // depois que todo o script carregou (usa dados declarados mais abaixo)
+})();
+function atualizarContagensTurno(){
+  const o = el('sec-obs-cont'), f = el('sec-fotos-cont');
+  if(o) o.textContent = observacoesDoTurnoAtual().length;
+  if(f) f.textContent = fotosDoTurnoAtual().length;
+}
+
+// Painel do turno: o que foi feito HOJE no realce ativo, por equipe, e o que ainda pende.
+function renderPainelTurno(){
+  const kpis = el('pt-kpis'); if(!kpis) return;
+  const hoje = dataISOLocal(new Date());
+  const ehHoje = v=> v && dataISOLocal(new Date(v)) === hoje;
+  const itens = checklistDoAnelAtivo();
+  const ids = new Set(itens.map(c=>c.id));
+  const furosR = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
+  const perfHoje = furosR.filter(f=>f.perfilado && ehHoje(f.perfiladoEm)).length;
+  const topoHoje = furosR.filter(f=>f.topografado && ehHoje(f.topografadoEm)).length;
+  const obstr = furosR.filter(f=>f.obstruido).length;
+  const pend = itens.filter(c=> estadoDoLeque(checklistFurosDoLeque(c.id)) !== 'ok').length;
+  const tile = (valor, rotulo, cls)=> `<div class="pt-kpi ${cls||''}"><span class="valor">${valor}</span><span class="rot">${rotulo}</span></div>`;
+  kpis.innerHTML = tile(perfHoje, 'perfilados hoje') + tile(topoHoje, 'topografados hoje') + tile(pend, 'leques pendentes', pend ? 'aviso' : 'ok') + tile(obstr, 'obstruídos', obstr ? 'perigo' : '');
+  const mapa = new Map();
+  const lin = id=>{ if(!mapa.has(id)) mapa.set(id, { p:0, t:0 }); return mapa.get(id); };
+  furosR.forEach(f=>{
+    if(f.perfilado && ehHoje(f.perfiladoEm)){ const id = equipePerfEfetivaId(f); if(id && nomeDaEquipeId(id)) lin(id).p++; }
+    if(f.topografado && ehHoje(f.topografadoEm)){ const id = equipeTopoEfetivaId(f); if(id && nomeDaEquipeId(id)) lin(id).t++; }
+  });
+  const box = el('pt-equipes');
+  const eqs = equipes.filter(e=> mapa.has(e.id));
+  box.innerHTML = eqs.length ? `<div class="ck-pe-titulo">Por equipe hoje</div>` + eqs.map(e=>{
+    const l = mapa.get(e.id), m = somaLancamentos(e.id, hoje, hoje).metros;
+    return `<div class="ck-pe-linha" style="--eq-cor:${corDaEquipe(e)}"><span class="ck-pe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)}</span><span class="ck-pe-num">Perf. <b>${l.p}</b></span><span class="ck-pe-num">Topo <b>${l.t}</b></span>${m > 0 ? `<span class="ck-pe-num"><b>${fmt1(m).replace('.', ',')}</b> m</span>` : ''}</div>`;
+  }).join('') : '';
+  const esc = el('painel-escopo'); if(esc){ const a = aneis.find(x=>x.id===anelAtivoId); esc.textContent = 'hoje · ' + (a ? a.nome : 'sem realce ativo'); }
+}
+el('pt-ir-checklist').addEventListener('click', ()=> mostrarView('checklist'));
+
+// Observações em um toque.
+const ATALHOS_OBS = ['Infiltração de água', 'Rocha solta', 'Equipamento parado', 'Falta de ventilação', 'Aguardando liberação', 'Acesso bloqueado'];
+(function iniciarAtalhosObs(){
+  const box = el('obs-atalhos'); if(!box) return;
+  box.innerHTML = ATALHOS_OBS.map((t,i)=> `<button type="button" class="obs-atalho" data-i="${i}">${t}</button>`).join('');
+  box.addEventListener('click', ev=>{ const b = ev.target.closest('.obs-atalho'); if(b) adicionarObservacaoTurno(ATALHOS_OBS[+b.dataset.i], true); });
+})();
+
 async function copiarTextoResumo(texto){
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(texto); return true; }
@@ -3263,7 +3360,7 @@ function animarEntradaDaAba(viewId){
       const alvo = b.style.width; if(!alvo || alvo === '0%' || alvo === '0px') return;
       b.animate([{ width:'0%' }, { width:alvo }], { duration:650, delay: Math.min(i++, 14) * 25, easing:'cubic-bezier(.2,.7,.2,1)', fill:'backwards' });
     });
-    raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor').forEach(n=> contarNumeros(n, 650));
+    raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor, .pt-kpi .valor').forEach(n=> contarNumeros(n, 650));
   }catch(e){}
 }
 // 2) Leque novo desliza para dentro; ao mover para cima/baixo os cards trocam de lugar suavemente (FLIP).
@@ -4036,6 +4133,7 @@ function observacoesDoTurnoAtual(){
 }
 
 function renderObservacoesTurno(){
+  atualizarContagensTurno();
   const lista = el('obs-list');
   const vazio = el('obs-vazio');
   if(!lista) return;
@@ -4057,9 +4155,9 @@ function renderObservacoesTurno(){
   }).join('');
 }
 
-function adicionarObservacaoTurno(){
+function adicionarObservacaoTurno(textoPronto, rapida){
   const campo = el('turno-obs-input');
-  const texto = campo.value.trim();
+  const texto = (typeof textoPronto === 'string' ? textoPronto : campo.value).trim();
   if(!texto) return;
   const dataISO = dataBRParaISO(turnoInfo.data) || new Date().toISOString().slice(0,10);
   const novoId = uuidv4();
@@ -4068,11 +4166,18 @@ function adicionarObservacaoTurno(){
   enfileirar('turno_observacoes', 'insert', {
     id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra, texto
   });
-  campo.value = '';
-  campo.focus();
+  if(!rapida){ campo.value = ''; campo.focus(); }
   salvarObsLocal();
   renderObservacoesTurno();
-  showToast('Observação adicionada.');
+  renderResumoTurno();
+  try{ const it = document.querySelector('#obs-list .obs-item:last-child'); if(it && !semMovimento()) it.animate([{ opacity:0, transform:'translateY(-8px)' }, { opacity:1, transform:'none' }], { duration:260, easing:'cubic-bezier(.2,.8,.3,1.1)' }); const ct = el('sec-obs-cont'); if(ct && !semMovimento()) ct.animate([{ transform:'scale(1.5)' }, { transform:'none' }], { duration:260 }); }catch(e){}
+  if(rapida){
+    showToast(`Observação: ${texto}`, { acaoLabel:'Desfazer', onAcao: ()=>{
+      turnoObservacoes = turnoObservacoes.filter(o=>o.id!==novoId);
+      enfileirar('turno_observacoes', 'delete', { id: novoId });
+      salvarObsLocal(); renderObservacoesTurno(); atualizarContagensTurno();
+    }});
+  }else showToast('Observação adicionada.');
 }
 
 function editarObservacaoModal(valorAtual){
@@ -4146,7 +4251,7 @@ function desfazerRemocaoObservacao(obsRemovida){
   showToast('Observação restaurada.');
 }
 
-el('btn-add-obs').addEventListener('click', adicionarObservacaoTurno);
+el('btn-add-obs').addEventListener('click', ()=> adicionarObservacaoTurno());
 el('turno-obs-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarObservacaoTurno(); } });
 
 // ---------- Fotos do turno (algo que aconteceu no turno, sem ser de um leque específico) ----------
@@ -4158,6 +4263,7 @@ function fotosDoTurnoAtual(){
 }
 
 function renderFotosTurno(){
+  atualizarContagensTurno();
   const grid = el('fotos-turno-grid');
   const vazio = el('fotos-turno-vazio');
   if(!grid) return;
@@ -5340,7 +5446,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
-  if(viewId === 'checklist' || viewId === 'infografico') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
+  if(viewId === 'checklist' || viewId === 'infografico' || viewId === 'turno') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
   if(viewId === 'aneis' && anelFxPendente.size){
     const ids = [...anelFxPendente]; anelFxPendente.clear();
     requestAnimationFrame(()=> ids.forEach(id=> brilharBorda(document.querySelector(`.anel-row[data-anel-id="${id}"]`), false)));
@@ -6336,6 +6442,7 @@ function renderComunicados(){
   const ativos = comunicadosVigentesNoEscopo();
   const enc = comunicados.filter(c=> !comunicadoVigente(c) && comunicadoDoEscopo(c)).sort((a,b)=> new Date(b.validoAte) - new Date(a.validoAte)).slice(0, 10);
   el('comunicados-cont').textContent = ativos.length;
+  if(typeof aplicarSecoesTurno === 'function' && !('comunicados' in turnoSecoes)) aplicarSecoesTurno();
   lista.innerHTML = (ativos.length ? ativos.map(c=>htmlCartaoComunicado(c, true)).join('') : '<div class="hint">Nenhum comunicado em vigor.</div>')
     + (enc.length ? `<details class="com-enc"><summary>Encerrados (${enc.length})</summary>${enc.map(c=>htmlCartaoComunicado(c, true)).join('')}</details>` : '');
   const sel = el('com-projeto');

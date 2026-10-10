@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010004000">
+<link rel="stylesheet" href="style.css?v=20261010013000">
 
 </head>
 <body>
@@ -291,7 +291,18 @@
       </section>
 
       <section class="view" id="view-turno">
-        <div class="view-card accent-amber" id="card-comunicados">
+        <div class="view-card accent-amber" id="card-painel-turno" data-secao="painel">
+          <div class="view-card-header">
+            <span class="view-card-label">Painel do turno</span>
+            <span class="tag" id="painel-escopo">hoje · realce ativo</span>
+          </div>
+          <div class="turno-body">
+            <div class="pt-kpis" id="pt-kpis"></div>
+            <div id="pt-equipes"></div>
+            <button type="button" class="ghost" id="pt-ir-checklist">Ver pendências no checklist</button>
+          </div>
+        </div>
+        <div class="view-card accent-amber" id="card-comunicados" data-secao="comunicados">
           <div class="view-card-header">
             <span class="view-card-label">Comunicados do gestor</span>
             <span class="tag" id="comunicados-cont">0</span>
@@ -316,7 +327,7 @@
             <div id="comunicados-lista"></div>
           </div>
         </div>
-        <div class="view-card accent-amber">
+        <div class="view-card accent-amber" data-secao="dados">
           <div class="view-card-header">
             <span class="view-card-label">Dados do Turno</span>
             <span class="tag">usado na exportação do relatório</span>
@@ -356,8 +367,10 @@
               <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
               <div class="field"><label for="turno-dds">DDS (tema abordado)</label><input id="turno-dds" type="text" placeholder="ex: uso correto de EPI" maxlength="300"></div>
             </div>
-            <div class="field">
-              <label for="turno-obs-input">Observações do turno</label>
+            <details class="sec-det" id="sec-obs" data-secao="obs" open>
+              <summary>Observações do turno <span class="tag" id="sec-obs-cont">0</span></summary>
+              <div class="obs-atalhos" id="obs-atalhos" aria-label="atalhos de observação"></div>
+              <label for="turno-obs-input" class="sr-only">Observações do turno</label>
               <div class="obs-add-row">
                 <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por infiltração de água no LQ04F05" maxlength="300">
                 <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
@@ -365,19 +378,19 @@
               <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
               <div class="obs-list" id="obs-list"></div>
               <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
-            </div>
-            <div class="field">
-              <label>Fotos do turno</label>
+            </details>
+            <details class="sec-det" id="sec-fotos" data-secao="fotos" open>
+              <summary>Fotos do turno <span class="tag" id="sec-fotos-cont">0</span></summary>
               <div class="hint" id="foto-turno-hint">Pra registrar algo que aconteceu no turno e não é de um leque específico (ex: problema de equipamento, situação de segurança).</div>
               <input id="foto-turno-input" type="file" accept="image/*" style="display:none;">
               <button type="button" id="btn-escolher-foto-turno" class="steel" style="margin-top:8px;"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5l2-3h7l2 3H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Adicionar foto</button>
               <div class="fotos-turno-grid" id="fotos-turno-grid"></div>
               <div class="hint" id="fotos-turno-vazio">Nenhuma foto registrada neste turno ainda.</div>
-            </div>
+            </details>
           </div>
         </div>
 
-        <div class="view-card accent-amber" style="margin-top:18px;" id="card-resumo-turno">
+        <div class="view-card accent-amber" style="margin-top:18px;" id="card-resumo-turno" data-secao="resumo">
           <div class="view-card-header">
             <span class="view-card-label">Resumo do Turno</span>
             <span class="tag">fim de turno em um toque</span>
@@ -396,7 +409,7 @@
           </div>
         </div>
 
-        <div class="view-card" style="margin-top:18px;">
+        <div class="view-card" style="margin-top:18px;" data-secao="exportar">
           <div class="view-card-header">
             <span class="view-card-label">Exportar Relatório</span>
             <span class="tag">gera o PDF a partir dos dados acima</span>
@@ -729,7 +742,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010004000"></script>
+<script src="script.js?v=20261010013000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

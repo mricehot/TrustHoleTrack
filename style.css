@@ -1457,3 +1457,26 @@ input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
 tr.obstr-entra{ animation:tremor .38s ease-out; }
 tr.obstr-entra td.bloq::after{ transform-origin:left center; animation:riscoDesenha .4s ease-out .1s both; }
 @media (prefers-reduced-motion: reduce){ tr.obstr-entra, tr.obstr-entra td.bloq::after{ animation:none; } }
+
+/* Página Turno: painel, seções recolhíveis, atalhos de observação */
+.pt-kpis{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+@media (min-width:480px){ .pt-kpis{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+.pt-kpi{ background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; border-left:5px solid var(--est-ini); }
+.pt-kpi .valor{ font-family:var(--mono); font-size:26px; font-weight:700; line-height:1.1; }
+.pt-kpi .rot{ font-size:12px; color:var(--muted); }
+.pt-kpi.ok{ border-left-color:var(--est-ok); } .pt-kpi.aviso{ border-left-color:var(--est-and); } .pt-kpi.perigo{ border-left-color:var(--est-obs); }
+.pt-kpi:nth-child(1){ border-left-color:var(--moss); } .pt-kpi:nth-child(2){ border-left-color:var(--steel); }
+#pt-equipes:empty{ display:none; }
+.sec-cab{ cursor:pointer; user-select:none; }
+.sec-chev{ display:inline-block; margin-right:8px; color:var(--muted); font-size:13px; transition:none; }
+.view-card.recolhido > .turno-body{ display:none; }
+.view-card.recolhido .sec-chev{ transform:rotate(-90deg); }
+.sec-det{ border-top:1px solid var(--line); padding-top:6px; }
+.sec-det > summary{ cursor:pointer; list-style:none; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:8px 0; display:flex; align-items:center; gap:8px; min-height:44px; }
+.sec-det > summary::-webkit-details-marker{ display:none; }
+.sec-det > summary::before{ content:'▾'; display:inline-block; }
+.sec-det:not([open]) > summary::before{ transform:rotate(-90deg); }
+.obs-atalhos{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
+.obs-atalho{ min-height:40px; padding:0 14px; font-size:13px; font-family:var(--sans); font-weight:600; border-radius:999px; background:var(--surface-2); color:var(--text); border:1px solid var(--line); width:auto; letter-spacing:0; text-transform:none; }
+.obs-atalho:active{ transform:scale(.96); background:var(--steel); color:#fff; }
+.sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
