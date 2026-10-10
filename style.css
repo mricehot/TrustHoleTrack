@@ -1979,3 +1979,6 @@ tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-
 }
 .ck-metros{ display:block; font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:2px; white-space:nowrap; }
 tr.ck-furo-eq input[type=text]{ width:100%; min-height:44px; }
+
+/* Papéis: o técnico não vê o que é só do gestor */
+body[data-papel="tecnico"] .so-gestor{ display:none !important; }

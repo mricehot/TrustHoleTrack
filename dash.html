@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010350000">
+<link rel="stylesheet" href="style.css?v=20261010360000">
 
 </head>
 <body>
@@ -475,16 +475,16 @@
             <span class="tag">usado nos relatórios</span>
           </div>
           <div class="config-body">
-            <div class="field">
+            <div class="field so-gestor">
               <label for="config-supervisor">Supervisor</label>
               <input id="config-supervisor" type="text" placeholder="ex: Talles da Silveira">
             </div>
-            <div class="field" style="margin-top:14px;">
+            <div class="field so-gestor" style="margin-top:14px;">
               <label for="config-whatsapp">WhatsApp para envio do checklist</label>
               <input id="config-whatsapp" type="text" inputmode="tel" placeholder="ex: 5511987654321 (DDI+DDD+número, só números)">
             </div>
-            <div class="hint">Esses campos preenchem automaticamente o Supervisor em Dados do Turno, e o número usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
-            <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
+            <div class="hint so-gestor">Esses campos preenchem automaticamente o Supervisor em Dados do Turno, e o número usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
+            <button type="button" id="btn-salvar-config" class="steel so-gestor" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
               <label>Conforto no campo <span class="tag">só neste aparelho</span></label>
@@ -495,7 +495,7 @@
               <button type="button" class="ghost" onclick="abrirTutorial(0)" style="margin-top:8px;">Rever o tutorial</button>
             </div>
 
-            <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
+            <div class="field so-gestor" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
               <label for="config-novo-projeto-input">Projetos</label>
               <div class="obs-add-row">
                 <input id="config-novo-projeto-input" type="text" placeholder="ex: Ero - Pilar" maxlength="80">
@@ -595,7 +595,7 @@
               <div class="ck-filtros-linha">
                 <input id="checklist-busca" type="search" inputmode="numeric" enterkeyhint="search" autocomplete="off" autocorrect="off" placeholder="Leque (12) ou leque.furo (12.5)" aria-label="Buscar número do leque">
                 <select id="checklist-filtro-local" aria-label="Filtrar por localização"></select>
-                <button type="button" id="btn-checklist-selecionar" class="ghost">Selecionar</button>
+                <button type="button" id="btn-checklist-selecionar" class="ghost so-gestor">Selecionar</button>
               </div>
             </div>
 
@@ -731,7 +731,7 @@
             <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Produtividade semanal por equipe <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Cada projeto tem as suas equipes. Lançamento manual: digite quanto fez no turno no campo "+" e toque em ＋ (ou digite o total da semana, de segunda a domingo). Os metros entram no gráfico diário na hora. Defina a meta semanal em "Gerenciar equipes" para ver realizado × meta.</div></details></div>
             <div class="equipe-cabecalho">
               <span class="tag" id="infografico-equipes-escopo">Geral</span>
-              <button type="button" class="ghost" onclick="abrirModalEquipes()">Gerenciar equipes</button>
+              <button type="button" class="ghost so-gestor" onclick="abrirModalEquipes()">Gerenciar equipes</button>
             </div>
             
             <div class="equipe-semana-nav">
@@ -801,12 +801,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010350000"></script>
-<script src="script-leques.js?v=20261010350000"></script>
-<script src="script-checklist.js?v=20261010350000"></script>
-<script src="script-turno-pdf.js?v=20261010350000"></script>
-<script src="script-telas.js?v=20261010350000"></script>
-<script src="script-sessao.js?v=20261010350000"></script>
+<script src="script.js?v=20261010360000"></script>
+<script src="script-leques.js?v=20261010360000"></script>
+<script src="script-checklist.js?v=20261010360000"></script>
+<script src="script-turno-pdf.js?v=20261010360000"></script>
+<script src="script-telas.js?v=20261010360000"></script>
+<script src="script-sessao.js?v=20261010360000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

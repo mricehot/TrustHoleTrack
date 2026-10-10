@@ -177,7 +177,7 @@ function htmlCardChecklist(c, agrupado){
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
-                  <td class="ck-acoes-furo"><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
+                  <td class="ck-acoes-furo"><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
                 ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
                 ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
@@ -219,13 +219,13 @@ function htmlCardChecklist(c, agrupado){
           ${tabela}
         </div>
         <div class="ck-ferramentas">
-          <button type="button" class="ghost" onclick="moverLequeChecklist('${c.id}', -1)" aria-label="mover ${codigo} para cima">▲ Subir</button>
-          <button type="button" class="ghost" onclick="moverLequeChecklist('${c.id}', 1)" aria-label="mover ${codigo} para baixo">▼ Descer</button>
+          <button type="button" class="ghost so-gestor" onclick="moverLequeChecklist('${c.id}', -1)" aria-label="mover ${codigo} para cima">▲ Subir</button>
+          <button type="button" class="ghost so-gestor" onclick="moverLequeChecklist('${c.id}', 1)" aria-label="mover ${codigo} para baixo">▼ Descer</button>
           ${furos.length ? `
-            <button type="button" class="ghost" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
-            <button type="button" class="ghost" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
+            <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
+            <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
-          <button type="button" class="ghost perigo" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
+          <button type="button" class="ghost perigo so-gestor" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
         </div>
       </div>`;
   }
@@ -233,7 +233,7 @@ function htmlCardChecklist(c, agrupado){
   return `
     <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${estadoDoLeque(furos)}" title="Leque ${ROTULO_ESTADO[estadoDoLeque(furos)]}">
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
-        ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
+        ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar so-gestor" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span><span class="ck-est-ico" data-est="${estadoDoLeque(furos)}" role="img" aria-label="${ROTULO_ESTADO[estadoDoLeque(furos)]}">${ICONE_ESTADO[estadoDoLeque(furos)]}</span></span>
         ${progresso}
@@ -271,14 +271,15 @@ function renderBarraLoteChecklist(visiveis){
   barra.innerHTML = `
     <span class="qtd">${n} leque${n===1?'':'s'} selecionado${n===1?'':'s'}</span>
     <button type="button" class="ghost" onclick="selecionarVisiveisChecklist()">Selecionar visíveis (${visiveis.length})</button>
-    <button type="button" class="steel" onclick="aplicarLoteChecklist('perfilado')" ${n?'':'disabled'}>Marcar perfilados</button>
-    <button type="button" class="steel" onclick="aplicarLoteChecklist('topografado')" ${n?'':'disabled'}>Marcar topografados</button>
-    <button type="button" class="ghost" onclick="aplicarLoteChecklist('limpar')" ${n?'':'disabled'}>Limpar marcas</button>`;
+    <button type="button" class="steel so-gestor" onclick="aplicarLoteChecklist('perfilado')" ${n?'':'disabled'}>Marcar perfilados</button>
+    <button type="button" class="steel so-gestor" onclick="aplicarLoteChecklist('topografado')" ${n?'':'disabled'}>Marcar topografados</button>
+    <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('limpar')" ${n?'':'disabled'}>Limpar marcas</button>`;
 }
 
 // Aplica uma marcação a todos os furos dos leques informados (ou dos selecionados).
 // Furos obstruídos (rocha/tela) ficam de fora: não dá pra perfilar/topografar.
 async function aplicarLoteChecklist(acao, idsExplicitos){
+  if(!exigirGestor('marcar ou limpar vários leques de uma vez')) return;
   const ids = idsExplicitos || [...checklistSelecionados];
   const leques = ids.map(id=> checklistLeques.find(c=>c.id===id)).filter(Boolean);
   if(!leques.length) return;
@@ -1464,6 +1465,7 @@ async function removerObservacaoChecklistLeque(id){
 }
 
 async function removerChecklistLeque(id){
+  if(!exigirGestor('remover leque')) return;
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
   const codigo = PREFIXO[c.tipo] + c.numero;
@@ -1728,6 +1730,7 @@ function atualizarMetragemChecklistFuro(id, valorTexto){
 }
 
 async function removerChecklistFuro(id){
+  if(!exigirGestor('remover furo')) return;
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(!(await confirmDialog(`Remover o furo F${f.numero} do checklist?`, 'Remover'))) return;

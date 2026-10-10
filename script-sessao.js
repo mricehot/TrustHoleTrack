@@ -708,7 +708,8 @@ async function carregarUsuariosEmpresa(){
   try{
     const { data, error } = await db.rpc('listar_usuarios_empresa');
     if(error || !Array.isArray(data)) return;
-    usuariosEmpresa = data.map(r=>({ id: r.id, email: r.email, nome: r.nome || '', equipeId: r.equipe_id || null }));
+    usuariosEmpresa = data.map(r=>({ id: r.id, email: r.email, nome: r.nome || '', equipeId: r.equipe_id || null, papel: r.papel || '' }));
+    aplicarPapel();
     try{ localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosEmpresa)); }catch(e){}
     if(el('eq-usuarios')) renderUsuariosEquipes();
   }catch(e){}
@@ -719,7 +720,19 @@ function renderUsuariosEquipes(){
   const opcoes = id => '<option value="">Sem equipe</option>' + equipes.slice().sort((a,b)=> a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}" ${e.id===id?'selected':''}>${escHtml(e.nome)}${e.projeto ? ' · ' + escHtml(e.projeto) : ''}</option>`).join('');
   box.innerHTML = `<div class="equipe-edit-item"><p style="font-weight:700;margin:0 0 4px">Usuários nas equipes</p>
     <p class="hint" style="margin:0 0 8px">Quem está vinculado marca perfilado/topografado e a equipe entra sozinha. Ao vincular, marcações antigas dessa pessoa sem equipe são preenchidas.</p>
-    ${usuariosEmpresa.map(u=>`<div class="field"><label>${escHtml(u.nome || u.email.split('@')[0])} <small>${escHtml(u.email)}</small></label><select class="eq-usuario" data-uid="${u.id}">${opcoes(u.equipeId)}</select></div>`).join('')}</div>`;
+    ${usuariosEmpresa.map(u=>`<div class="field"><label>${escHtml(u.nome || u.email.split('@')[0])} <small>${escHtml(u.email)}</small></label><select class="eq-usuario" data-uid="${u.id}">${opcoes(u.equipeId)}</select>
+      <select class="eq-papel" data-uid="${u.id}" aria-label="papel de ${escHtml(u.email)}"><option value="tecnico" ${u.papel!=='gestor'?'selected':''}>Técnico</option><option value="gestor" ${u.papel==='gestor'?'selected':''}>Gestor</option></select></div>`).join('')}</div>`;
+  box.querySelectorAll('.eq-papel').forEach(sel=> sel.addEventListener('change', async ()=>{
+    if(!navigator.onLine){ showToast('Sem sinal: mudar o papel precisa de internet.', { tipo:'aviso' }); renderUsuariosEquipes(); return; }
+    sel.disabled = true;
+    const { error } = await db.rpc('definir_papel_usuario', { p_usuario: sel.dataset.uid, p_papel: sel.value });
+    sel.disabled = false;
+    if(error){ showToast('Não foi possível mudar o papel: ' + error.message, { tipo:'erro' }); renderUsuariosEquipes(); return; }
+    const u = usuariosEmpresa.find(x=>x.id === sel.dataset.uid); if(u) u.papel = sel.value;
+    try{ localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosEmpresa)); }catch(e){}
+    aplicarPapel();
+    showToast(sel.value === 'gestor' ? 'Agora é gestor.' : 'Agora é técnico.', { tipo:'ok' });
+  }));
   box.querySelectorAll('.eq-usuario').forEach(sel=> sel.addEventListener('change', async ()=>{
     if(!navigator.onLine){ showToast('Sem sinal: vincular usuário precisa de internet.', { tipo:'aviso' }); renderUsuariosEquipes(); return; }
     sel.disabled = true;
@@ -796,3 +809,24 @@ function renderMeuTurno(){
   renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMeuTurno(); }catch(e){} return r; };
   window.addEventListener('load', ()=> setTimeout(renderMeuTurno, 800));
 })();
+
+
+/* ================= Papéis: gestor e técnico ================= */
+// Enquanto o servidor não informar o papel (função antiga, sem sinal e sem cache), ninguém fica travado.
+function papelAtual(){
+  if(!usuarioAtual) return 'gestor';
+  const u = usuariosEmpresa.find(x=>x.id === usuarioAtual.id);
+  return u && u.papel ? u.papel : 'gestor';
+}
+function ehGestor(){ return papelAtual() !== 'tecnico'; }
+function exigirGestor(acao){
+  if(ehGestor()) return true;
+  showToast(`Só o gestor pode ${acao}.`, { tipo:'aviso' });
+  return false;
+}
+function aplicarPapel(){
+  document.body.dataset.papel = ehGestor() ? 'gestor' : 'tecnico';
+  const n = el('papel-usuario-label');
+  if(n) n.textContent = ehGestor() ? '' : 'técnico';
+}
+window.addEventListener('load', ()=> setTimeout(aplicarPapel, 300));

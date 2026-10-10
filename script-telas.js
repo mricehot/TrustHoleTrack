@@ -76,7 +76,7 @@ function render(){
           <td class="actions">
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
-            <button class="icon icon-remover" onclick="removerFuro('${f.id}')" title="remover">✕</button>
+            <button class="icon icon-remover so-gestor" onclick="removerFuro('${f.id}')" title="remover">✕</button>
           </td>
         </tr>
         ${f.observacao ? `
@@ -124,7 +124,7 @@ function render(){
                     <button onclick="selecionarFotoLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5l2-3h7l2 3H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>${l.fotoUrl ? 'Trocar foto' : 'Adicionar foto'}</button>
                     ${l.fotoUrl ? `<button class="perigo" onclick="removerFotoLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Remover foto</button>` : ''}
                     ${l.status === 'fechado' ? `<button onclick="reabrirLeque('${l.id}')"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Reabrir leque</button>` : ''}
-                    <button class="perigo" onclick="removerLeque('${l.id}')">✕ Remover leque</button>
+                    <button class="perigo so-gestor" onclick="removerLeque('${l.id}')">✕ Remover leque</button>
                   </div>
                 </div>` : ''}
               </div>
@@ -742,7 +742,7 @@ function htmlSemEquipes(){
   return `<div class="equipe-vazio-box">
     <div>O escopo <b>${escHtml(nomeEscopoEquipes())}</b> ainda não tem equipes cadastradas.</div>
     <div class="equipe-vazio-acoes">
-      <button type="button" class="steel" onclick="abrirModalEquipes()">+ Cadastrar equipes</button>
+      <button type="button" class="steel so-gestor" onclick="abrirModalEquipes()">+ Cadastrar equipes</button>
     </div></div>`;
 }
 // Furos do checklist atribuídos a uma equipe (perfilados / topografados) dentro de um período.
@@ -883,6 +883,7 @@ function renderProdutividadeMensal(){
 
 // ---------- Gerenciar equipes (adicionar / editar / apagar) ----------
 function abrirModalEquipes(){
+  if(!exigirGestor('gerenciar equipes')) return;
   const root = el('modal-root');
   const projeto = projetoDoEscopo();
   const lista = equipesDoProjeto(projeto);

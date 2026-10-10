@@ -49,8 +49,8 @@ function renderAneisMenu(){
           ? '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
           : '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
         }</button>
-        <button class="icon icon-editar" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
-        <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
+        <button class="icon icon-editar so-gestor" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
+        <button class="icon icon-remover so-gestor" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
         ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
       </div>
     `;
@@ -76,6 +76,7 @@ function toggleOcultoWhatsapp(id){
 }
 
 async function removerAnel(id){
+  if(!exigirGestor('remover realce')) return;
   const a = aneis.find(x=>x.id===id);
   if(!a) return;
   const lequesDoAnel = leques.filter(l=>l.anelId===id);
@@ -188,6 +189,7 @@ function editAnelModal(anel){
 }
 
 function editarAnel(id){
+  if(!exigirGestor('editar realce')) return;
   const a = aneis.find(x=>x.id===id);
   if(!a) return;
   editAnelModal(a).then(resultado=>{
@@ -503,6 +505,7 @@ function desfazerRemocaoFuro(furoRemovido){
 }
 
 async function removerFuro(id){
+  if(!exigirGestor('remover furo')) return;
   const f = furos.find(x=>x.id===id);
   const l = f ? leques.find(x=>x.id===f.lequeId) : null;
   if(!souDonoDoLeque(l)){
@@ -526,6 +529,7 @@ async function removerFuro(id){
 }
 
 async function removerLeque(id){
+  if(!exigirGestor('remover leque')) return;
   const l = leques.find(x=>x.id===id);
   if(!l) return;
   if(!souDonoDoLeque(l)){
@@ -616,7 +620,7 @@ function renderProjetosConfig(){
     lista.innerHTML = projetos.map(p=>`
       <div class="obs-item">
         <span class="texto">${escHtml(p.nome)}</span>
-        <button class="icon icon-remover" onclick="removerProjeto('${p.id}')" title="remover">✕</button>
+        <button class="icon icon-remover so-gestor" onclick="removerProjeto('${p.id}')" title="remover">✕</button>
       </div>
     `).join('');
   }
@@ -644,6 +648,7 @@ el('btn-add-projeto').addEventListener('click', adicionarProjeto);
 el('config-novo-projeto-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarProjeto(); } });
 
 async function removerProjeto(id){
+  if(!exigirGestor('remover projeto')) return;
   const p = projetos.find(x=>x.id===id);
   if(!p) return;
   const emUso = aneis.some(a=>a.projeto===p.nome);
@@ -849,6 +854,7 @@ function aplicarNovaOrdemChecklist(ids){
   return mudou > 0;
 }
 function moverLequeChecklist(id, delta){
+  if(!exigirGestor('reordenar leques')) return;
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
   const local = (c.localizacao||'').trim();
@@ -866,6 +872,7 @@ function moverLequeChecklist(id, delta){
 }
 // Arrastar pela alça ⠿: funciona com dedo e mouse (pointer events), com rolagem automática.
 function iniciarArrasteChecklist(ev, id){
+  if(!ehGestor()) return;
   if(ev.button != null && ev.button !== 0) return;
   const alca = ev.currentTarget;
   const card = document.getElementById('ck-card-' + id);
