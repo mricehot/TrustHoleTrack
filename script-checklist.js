@@ -1191,10 +1191,17 @@ restaurarFormChecklist();
 function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
+  const antes = c.perfilado;
   c.perfilado = !c.perfilado;
   enfileirar('checklist_leques', 'update', { id: c.id, perfilado: c.perfilado });
   salvarChecklistLocal();
   renderChecklist();
+  showToast(`${PREFIXO[c.tipo]}${c.numero} ${c.perfilado ? 'marcado como perfilado' : 'desmarcado'}.`, { acaoLabel:'Desfazer', onAcao: ()=>{
+    c.perfilado = antes;
+    enfileirar('checklist_leques', 'update', { id: c.id, perfilado: antes });
+    salvarChecklistLocal(); renderChecklist();
+    showToast(`${PREFIXO[c.tipo]}${c.numero} voltou ao que estava.`);
+  }});
 }
 
 async function editarObservacaoChecklistLeque(id){

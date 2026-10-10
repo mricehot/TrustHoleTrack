@@ -30,6 +30,7 @@ function mostrarApp(user){
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
   if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
+  if(typeof tutorialJaVisto === 'function' && !tutorialJaVisto()) setTimeout(()=> abrirTutorial(0), 700);
 }
 
 function mostrarLogin(mensagemErro){
@@ -392,3 +393,71 @@ function pararTempoReal(){
 
 window.__appCarregado = true;
 
+
+
+/* ================= Fila offline visível ================= */
+function descreverItemFila(it){
+  const r = it.registro || {};
+  const nome = NOME_TABELA_FILA[it.tabela] || it.tabela;
+  const acao = { insert:'novo', update:'alterado', delete:'removido', upsert:'salvo' }[it.acao] || it.acao;
+  let det = '';
+  if(it.tabela === 'checklist_furos'){
+    const f = checklistFuros.find(x=>x.id===r.id);
+    const c = f && checklistLeques.find(x=>x.id===f.checklistLequeId);
+    const campos = [];
+    if('perfilado' in r) campos.push(r.perfilado ? 'perfilado' : 'perfilado desmarcado');
+    if('topografado' in r) campos.push(r.topografado ? 'topografado' : 'topografado desmarcado');
+    if('obstruido' in r) campos.push(r.obstruido ? 'obstruído' : 'liberado');
+    det = [f ? `${c ? PREFIXO[c.tipo] + c.numero + ' · ' : ''}F${f.numero}` : '', campos.join(', ')].filter(Boolean).join(' — ');
+  }else if(it.tabela === 'checklist_leques'){
+    const c = checklistLeques.find(x=>x.id===r.id);
+    det = [c ? PREFIXO[c.tipo] + c.numero : '', ('perfilado' in r) ? (r.perfilado ? 'perfilado' : 'desmarcado') : ('observacao' in r ? 'observação' : '')].filter(Boolean).join(' — ');
+  }
+  return { nome, acao, det, desde: it.desde };
+}
+function abrirFilaOffline(){
+  const root = el('modal-root'); if(!root) return;
+  const itens = itensDaFila();
+  const falhas = falhasDeEnvio.size;
+  const linhas = itens.map(it=>{
+    const d = descreverItemFila(it);
+    return `<li><b>${escHtml(d.nome)}</b> <small>(${escHtml(d.acao)})</small>${d.det ? `<div>${escHtml(d.det)}</div>` : ''}<small>${d.desde ? 'parado ' + tempoRelativo(d.desde) : 'enviando agora'}</small></li>`;
+  }).join('');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
+    <h3 style="margin:0 0 6px">${itens.length ? `${itens.length} alteração(ões) ainda não enviadas` : 'Tudo salvo ✓'}</h3>
+    <p class="hint" style="margin:0 0 10px">${itens.length ? 'Estão guardadas neste aparelho e sobem sozinhas quando houver sinal. Não feche o navegador limpando os dados antes disso.' : 'Nada pendente: o gestor e o próximo turno já veem o que você marcou.'}</p>
+    ${itens.length ? `<ul class="fila-lista">${linhas}</ul>` : ''}
+    <div class="modal-actions"><button class="ghost" id="fila-fechar">Fechar</button>${falhas ? '<button id="fila-tentar">Tentar agora</button>' : ''}</div></div></div>`;
+  el('fila-fechar').onclick = ()=>{ root.innerHTML = ''; };
+  const t = el('fila-tentar');
+  if(t) t.onclick = async ()=>{ t.disabled = true; t.textContent = 'Enviando...'; await reenviarFalhas(); abrirFilaOffline(); };
+}
+(function(){
+  const pill = document.getElementById('status-salvamento');
+  if(pill){ pill.setAttribute('role','button'); pill.tabIndex = 0; pill.addEventListener('click', abrirFilaOffline); pill.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); abrirFilaOffline(); } }); }
+  const btn = document.getElementById('btn-ver-fila');
+  if(btn) btn.addEventListener('click', abrirFilaOffline);
+  window.addEventListener('beforeunload', e=>{ if(falhasDeEnvio.size > 0){ e.preventDefault(); e.returnValue = ''; } });
+})();
+
+/* ================= Tutorial do primeiro uso ================= */
+const TUTORIAL_KEY = 'perfilagem-tutorial-v1';
+function tutorialJaVisto(){ try{ return localStorage.getItem(TUTORIAL_KEY) === '1'; }catch(e){ return true; } }
+const TUTORIAL_PASSOS = [
+  { icone:'📍', titulo:'1. Realce e leques', texto:'Na aba <b>Realce</b>, crie ou escolha o realce em que você está. Depois, no <b>Checklist</b>, toque em “Adicionar leques” e informe os números e os furos de cada um.' },
+  { icone:'✅', titulo:'2. Marcar furos', texto:'Abra o leque e toque na célula do furo: <b>Perf.</b> (perfilado), <b>Topo</b> (topografado) ou <b>Obstr.</b>. Marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo.' },
+  { icone:'🎨', titulo:'3. Cores e ícones', texto:'Cada leque mostra o estado: ✓ completo (verde), ◐ em andamento (amarelo), ⚠ obstrução alta (vermelho) e ○ não iniciado (cinza). A barra fixa no topo mostra o andamento do realce.' },
+  { icone:'📶', titulo:'4. Sem sinal e WhatsApp', texto:'Sem internet, continue marcando: tudo fica guardado no aparelho e sobe sozinho. Toque no aviso <b>salvo / sem salvar</b> no canto para ver o que falta. Ao fim do turno, use <b>Enviar no WhatsApp</b> na aba Turno.' }
+];
+function fecharTutorial(){ try{ localStorage.setItem(TUTORIAL_KEY, '1'); }catch(e){} const r = el('modal-root'); if(r) r.innerHTML = ''; }
+function abrirTutorial(i){
+  const root = el('modal-root'); if(!root) return;
+  const p = TUTORIAL_PASSOS[i]; const ultimo = i === TUTORIAL_PASSOS.length - 1;
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga tutorial-box">
+    <div class="tut-icone" aria-hidden="true">${p.icone}</div><h3 style="margin:0 0 8px">${p.titulo}</h3><p>${p.texto}</p>
+    <div class="tut-pontos" aria-hidden="true">${TUTORIAL_PASSOS.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>
+    <div class="modal-actions"><button class="ghost" id="tut-pular">${ultimo ? 'Fechar' : 'Pular'}</button>${i>0 ? '<button class="ghost" id="tut-ant">Voltar</button>' : ''}${ultimo ? '' : '<button id="tut-prox">Próximo</button>'}</div></div></div>`;
+  el('tut-pular').onclick = fecharTutorial;
+  if(i>0) el('tut-ant').onclick = ()=> abrirTutorial(i-1);
+  if(!ultimo) el('tut-prox').onclick = ()=> abrirTutorial(i+1);
+}

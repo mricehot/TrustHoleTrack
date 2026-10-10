@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010063000">
+<link rel="stylesheet" href="style.css?v=20261010070000">
 
 </head>
 <body>
@@ -74,6 +74,7 @@
 <div class="offline-banner" id="offline-banner">Sem internet — pode continuar trabalhando. As alterações ficam guardadas neste aparelho e sobem sozinhas quando o sinal voltar. (Fotos e senha precisam de internet.)</div>
 <div class="alerta-falhas" id="alerta-falhas" role="alert" style="display:none;">
   <span class="alerta-falhas-texto"></span>
+  <button type="button" id="btn-ver-fila">Ver lista</button>
   <button type="button" id="btn-reenviar-falhas">Tentar de novo</button>
 </div>
 <div class="status-salvamento salvo" id="status-salvamento" role="status" aria-live="polite"><span class="status-ponto"></span><span class="status-texto">salvo</span></div>
@@ -468,6 +469,7 @@
               <label class="pref-linha"><input type="checkbox" id="pref-tela"> Manter a tela acesa no checklist</label>
               <label class="pref-linha"><input type="checkbox" id="pref-vibrar"> Vibrar ao marcar, desmarcar ou obstruir</label>
               <div class="hint">A vibração e a tela acesa dependem do aparelho e do navegador.</div>
+              <button type="button" class="ghost" onclick="abrirTutorial(0)" style="margin-top:8px;">Rever o tutorial</button>
             </div>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
@@ -750,12 +752,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010063000"></script>
-<script src="script-leques.js?v=20261010063000"></script>
-<script src="script-checklist.js?v=20261010063000"></script>
-<script src="script-turno-pdf.js?v=20261010063000"></script>
-<script src="script-telas.js?v=20261010063000"></script>
-<script src="script-sessao.js?v=20261010063000"></script>
+<script src="script.js?v=20261010070000"></script>
+<script src="script-leques.js?v=20261010070000"></script>
+<script src="script-checklist.js?v=20261010070000"></script>
+<script src="script-turno-pdf.js?v=20261010070000"></script>
+<script src="script-telas.js?v=20261010070000"></script>
+<script src="script-sessao.js?v=20261010070000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

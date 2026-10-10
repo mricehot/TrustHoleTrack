@@ -1606,3 +1606,16 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 .checklist-leque-card[data-est=obs]::after{ animation-duration:1.8s; }
 @keyframes ckRespira{ 0%,100%{ opacity:0; } 50%{ opacity:1; } }
 @media (prefers-reduced-motion: reduce){ .checklist-leque-card[data-est]{ animation:none !important; } }
+
+/* Fila offline e tutorial */
+.status-salvamento:not(.discreto){ pointer-events:auto; cursor:pointer; min-height:28px; }
+.fila-lista{ list-style:none; margin:0 0 12px; padding:0; display:flex; flex-direction:column; gap:8px; max-height:48vh; overflow-y:auto; }
+.fila-lista li{ padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--surface-2); font-size:13px; display:flex; flex-direction:column; gap:2px; }
+.fila-lista small{ color:var(--muted); }
+.tutorial-box{ text-align:center; }
+.tut-icone{ font-size:42px; line-height:1; margin-bottom:8px; }
+.tutorial-box p{ text-align:left; }
+.tut-pontos{ display:flex; justify-content:center; gap:6px; margin:0 0 14px; }
+.tut-pontos i{ width:8px; height:8px; border-radius:50%; background:var(--line); }
+.tut-pontos i.on{ background:var(--steel); width:20px; border-radius:4px; }
+.tutorial-box .modal-actions{ justify-content:center; flex-wrap:wrap; }
