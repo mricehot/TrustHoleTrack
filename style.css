@@ -1885,3 +1885,9 @@ tr.ck-proximo{ animation:proxPulso 1.2s ease-in-out 3; outline:2px solid var(--a
 .pass-linha b{ font-family:var(--mono); min-width:52px; }
 .pass-grupo{ display:block; font-size:13px; } .pass-grupo em{ font-style:normal; font-weight:700; color:var(--muted); margin-right:4px; text-transform:uppercase; font-size:11px; letter-spacing:.4px; }
 .passagem-ok{ padding:14px; border-radius:8px; background:color-mix(in srgb,var(--est-ok) 15%,transparent); border:1px solid var(--est-ok); font-weight:700; text-align:center; }
+
+/* Anotação por furo */
+.ck-acoes-furo{ white-space:nowrap; }
+.icon-nota{ opacity:.55; } .icon-nota.tem{ opacity:1; color:var(--steel); }
+tr.ck-furo-nota td{ padding:0 10px 8px 10px; border-top:0; }
+tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-2); border-left:4px solid var(--steel); border-radius:6px; font-size:13px; font-style:italic; }

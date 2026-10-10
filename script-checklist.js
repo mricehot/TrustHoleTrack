@@ -149,8 +149,9 @@ function htmlCardChecklist(c, agrupado){
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
-                  <td><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
+                  <td class="ck-acoes-furo"><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
+                ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
                 ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
                   <label>Perfilagem<select onchange="definirEquipeFuro('${f.id}','perf',this.value)" aria-label="F${f.numero} equipe da perfilagem">${htmlOpcoesEquipe(f.equipePerfId,'Igual ao leque')}</select></label>
                   <label>Topografia<select onchange="definirEquipeFuro('${f.id}','topo',this.value)" aria-label="F${f.numero} equipe da topografia">${htmlOpcoesEquipe(f.equipeTopoId,'Igual ao leque')}</select></label>
@@ -194,6 +195,7 @@ function htmlCardChecklist(c, agrupado){
           ${furos.length ? `
             <button type="button" class="ghost" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
             <button type="button" class="ghost" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
+          <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
           <button type="button" class="ghost perigo" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
         </div>
       </div>`;
@@ -382,6 +384,11 @@ function blocoObstruidosWhatsApp(itens){
   });
   return linhas.length ? `⛔ *FUROS OBSTRUIDOS*\n${linhas.join('\n')}` : '';
 }
+function blocoNotasFurosWhatsApp(itens){
+  const linhas = [];
+  itens.forEach(c=> checklistFurosDoLeque(c.id).filter(f=>f.observacao).forEach(f=> linhas.push(`${PREFIXO[c.tipo]}${c.numero} F${f.numero}: ${semAcento(f.observacao)}`)));
+  return linhas.length ? `📝 *NOTAS DOS FUROS*\n${linhas.join('\n')}` : '';
+}
 
 function barraWa(pct){ const n = Math.round(Math.max(0,Math.min(100,pct))/10); return '▓'.repeat(n) + '░'.repeat(10-n); }
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
@@ -426,6 +433,8 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   bloco += partes.join('\n\n');
   const obstruidos = blocoObstruidosWhatsApp(itens);
   if(obstruidos) bloco += `\n\n${obstruidos}`;
+  const notasF = blocoNotasFurosWhatsApp(itens);
+  if(notasF) bloco += `\n\n${notasF}`;
   const porEquipe = blocoEquipesWhatsApp(itens);
   if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
@@ -493,6 +502,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
   // entender o "porquê" por trás dos números, não só o placar.
   const obstruidosTxt = blocoObstruidosWhatsApp(itens);
   if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
+  const notasFTxt = blocoNotasFurosWhatsApp(itens);
+  if(notasFTxt) bloco += `\n\n${notasFTxt}`;
   const porEquipeTxt = blocoEquipesWhatsApp(itens);
   if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
@@ -1641,3 +1652,40 @@ function salvarUltimo(extra){
 }
 function lerUltimo(){ try{ return JSON.parse(localStorage.getItem(ULTIMO_KEY) || '{}'); }catch(e){ return {}; } }
 (function(){ const u = lerUltimo(); (u.exp || []).forEach(id=> checklistExpandido.add(id)); })();
+
+
+// ---------- Anotação por furo e compartilhar um leque ----------
+async function editarObservacaoFuro(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const novo = await editarObservacaoModal(f.observacao || '');
+  if(novo === null || novo === (f.observacao || '')) return;
+  f.observacao = novo.slice(0, 200);
+  enfileirar('checklist_furos', 'update', { id: f.id, observacao: f.observacao || null });
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(f.observacao ? `Anotação de F${f.numero} salva.` : `Anotação de F${f.numero} removida.`);
+}
+function montarResumoLequeWhatsApp(c){
+  const fl = checklistFurosDoLeque(c.id);
+  const cod = PREFIXO[c.tipo] + c.numero;
+  const perf = fl.filter(f=>f.perfilado).length, topo = fl.filter(f=>f.topografado).length, tot = fl.length;
+  const pf = tot ? Math.round(perf / tot * 100) : 0, pt = tot ? Math.round(topo / tot * 100) : 0;
+  const anel = aneis.find(a=>a.id===c.anelId);
+  let t = `📍 *${cod}*${c.localizacao ? ' (' + semAcento(c.localizacao) + ')' : ''}${anel ? ' - Realce ' + semAcento(anel.nome) : ''}\n`;
+  t += `Furos perfilados: ${perf}/${tot} (${pf}%)\n${barraWa(pf)}\nFuros topografados: ${topo}/${tot} (${pt}%)\n${barraWa(pt)}\n`;
+  const pend = fl.filter(f=>!f.perfilado && !f.obstruido).map(f=>'F'+f.numero);
+  const pendT = fl.filter(f=>f.perfilado && !f.topografado && !f.obstruido).map(f=>'F'+f.numero);
+  const obs = fl.filter(f=>f.obstruido).map(f=>'F'+f.numero);
+  if(pend.length) t += `\n*🟡 PENDENTES PERFILAGEM*\n${pend.join(', ')}\n`;
+  if(pendT.length) t += `\n*🟡 PENDENTES TOPOGRAFIA*\n${pendT.join(', ')}\n`;
+  if(obs.length) t += `\n⛔ *OBSTRUIDOS*\n${obs.join(', ')}\n`;
+  const notas = blocoNotasFurosWhatsApp([c]); if(notas) t += `\n${notas}\n`;
+  if(c.observacao) t += `\n📝 *OBSERVACAO*\n${semAcento(c.observacao)}\n`;
+  return semAcento(t.trim()).replace(/\u0301/g, '');
+}
+function enviarLequeWhatsApp(id){
+  const c = checklistLeques.find(x=>x.id===id); if(!c) return;
+  const texto = montarResumoLequeWhatsApp(c);
+  const numero = configApp.whatsapp;
+  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
