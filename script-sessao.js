@@ -31,6 +31,7 @@ function mostrarApp(user){
   const labelUsuario = el('usuario-logado-label');
   if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
   try{ atualizarAvatarEMeuDia(); }catch(e){}
+  try{ const u = lerUltimo(); if(u.view && u.view !== 'perfilagem' && document.getElementById('view-' + u.view)) mostrarView(u.view); }catch(e){}
   if(typeof tutorialJaVisto === 'function' && !tutorialJaVisto()) setTimeout(()=> abrirTutorial(0), 700);
 }
 

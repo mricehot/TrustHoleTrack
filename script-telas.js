@@ -331,6 +331,7 @@ function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;
   if(viewAnterior && viewAnterior !== viewId) posicaoRolagemView[viewAnterior] = window.scrollY;
   document.body.dataset.view = viewId; // CSS usa isto pra mostrar contadores/trilha só onde fazem sentido
+  if(typeof salvarUltimo === 'function') salvarUltimo({ view: viewId });
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.tab-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
   const abaMais = document.getElementById('tab-mais');

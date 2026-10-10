@@ -1855,3 +1855,9 @@ body.dark-mode .toast{ background:#2c2b3b; }
 @keyframes ondinha{ to{ transform:scale(1); opacity:0; } }
 button:active:not(:disabled), .ck-cab:active{ transform:scale(.97); }
 @media (prefers-reduced-motion: reduce){ .ondinha{ display:none; } .menu-mais.open, .tab-mais-sheet.open{ animation:none; } }
+
+/* próximo furo / busca: linha em destaque */
+tr.ck-proximo td{ background:color-mix(in srgb,var(--amber) 22%,transparent) !important; }
+tr.ck-proximo{ animation:proxPulso 1.2s ease-in-out 3; outline:2px solid var(--amber); outline-offset:-2px; }
+@keyframes proxPulso{ 50%{ outline-color:transparent; } }
+@media (prefers-reduced-motion: reduce){ tr.ck-proximo{ animation:none; } }

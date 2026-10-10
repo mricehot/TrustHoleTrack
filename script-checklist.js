@@ -11,9 +11,17 @@ function lequePendenteTopografia(c){
 }
 function lequeTemObstruido(c){ return checklistFurosDoLeque(c.id).some(f=>f.obstruido); }
 
+// "LQ05 F03", "5 f3", "05" -> { tipo, numero, furo }
+function lerBuscaFuro(txt){
+  const m = String(txt||'').trim().match(/^(lq|sl|fl|cr|inv|aux)?\s*0*(\d+)\s*(?:[-,. ]*f?\s*0*(\d+))?$/i);
+  if(!m) return null;
+  const tipo = m[1] ? Object.keys(PREFIXO).find(t=>PREFIXO[t].toLowerCase() === m[1].toLowerCase()) : null;
+  return { tipo, numero: m[2], furo: m[3] || null };
+}
 function filtrarItensChecklist(itens){
   const f = checklistFiltro;
-  const busca = f.busca.trim().replace(/^0+/, '');
+  const lida = lerBuscaFuro(f.busca);
+  const busca = (lida ? lida.numero : f.busca.trim()).replace(/^0+/, '');
   return itens.filter(c=>{
     if(f.status === 'pend-perf' && !lequePendentePerfilagem(c)) return false;
     if(f.status === 'pend-topo' && !lequePendenteTopografia(c)) return false;
@@ -314,6 +322,7 @@ function desfazerLoteChecklist(snapLeques, snapFuros){
   const sel = document.getElementById('btn-checklist-selecionar');
   const det = document.getElementById('checklist-adicionar');
   if(busca) busca.addEventListener('input', ()=>{ checklistFiltro.busca = busca.value; renderChecklist(); });
+  if(busca) busca.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); irParaFuroBuscado(busca.value); } });
   if(local) local.addEventListener('change', ()=>{ checklistFiltro.local = local.value; renderChecklist(); });
   if(sel) sel.addEventListener('click', alternarModoSelecaoChecklist);
   if(det) det.addEventListener('toggle', ()=>{ if(det.dataset.prog){ delete det.dataset.prog; return; } det.dataset.tocado = '1'; });
@@ -1047,7 +1056,7 @@ function toggleExpandirChecklist(id){
     animarFechar(document.querySelector(sel + ' .ck-corpo'), document.querySelector(sel + ' .ck-codigo .seta'), ()=>{ checklistExpandido.delete(id); renderChecklist(); });
     return;
   }
-  checklistExpandido.add(id);
+  checklistExpandido.add(id); salvarUltimo({});
   renderChecklist();
   animarAbrir(document.querySelector(sel + ' .ck-corpo'), document.querySelector(sel + ' .ck-codigo .seta'));
 }
@@ -1507,6 +1516,7 @@ function toggleChecklistFuro(id){
   salvarChecklistFurosLocal();
   renderChecklist();
   pulsarMarcaFuro(f, 'toggleChecklistFuro', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
+  destacarProximoFuro(f, 'perf');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.`);
 }
 
@@ -1523,6 +1533,7 @@ function toggleChecklistFuroTopografado(id){
   salvarChecklistFurosLocal();
   renderChecklist();
   pulsarMarcaFuro(f, 'toggleChecklistFuroTopografado', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
+  destacarProximoFuro(f, 'topo');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.topografado ? 'topografado' : 'topografado desmarcado'}.`);
 }
 
@@ -1582,3 +1593,51 @@ function desfazerRemocaoChecklistFuro(furoRemovido){
 }
 function mapFuro(row){ return { id: row.id, lequeId: row.leque_id, numero: row.numero, metragemEsperada: row.metragem_esperada, metragemReal: row.metragem_real, situacao: row.situacao, observacao: row.observacao || '', precisaRefazer: !!row.precisa_refazer, ts: row.criado_em }; }
 
+
+
+// ---------- Busca rápida: "LQ05 F03" abre o leque e destaca o furo ----------
+function destacarLinhaFuro(furoId){
+  requestAnimationFrame(()=>{
+    const inp = document.querySelector(`input[onchange*="toggleChecklistFuro('${furoId}'"]`);
+    const tr = inp && inp.closest('tr'); if(!tr) return;
+    document.querySelectorAll('tr.ck-proximo').forEach(x=>x.classList.remove('ck-proximo'));
+    tr.classList.add('ck-proximo');
+    const r = tr.getBoundingClientRect();
+    if(r.top < 90 || r.bottom > innerHeight - 90) tr.scrollIntoView({ behavior: semMovimento() ? 'auto' : 'smooth', block:'center' });
+    setTimeout(()=> tr.classList.remove('ck-proximo'), 4000);
+  });
+}
+function irParaFuroBuscado(txt){
+  const l = lerBuscaFuro(txt);
+  if(!l){ showToast('Digite assim: LQ05 F03 (leque e furo).'); return; }
+  const itens = checklistDoAnelAtivo().filter(c=> String(c.numero).replace(/^0+/,'') === l.numero.replace(/^0+/,'') && (!l.tipo || c.tipo === l.tipo));
+  if(!itens.length){ showToast(`Leque ${l.numero} não encontrado neste realce.`); return; }
+  const c = itens[0];
+  checklistExpandido.add(c.id);
+  if(!l.furo){ renderChecklist(); const card = document.getElementById('ck-card-' + c.id); if(card) card.scrollIntoView({ block:'center', behavior:'smooth' }); return; }
+  const f = checklistFurosDoLeque(c.id).find(x=> String(x.numero).replace(/^0+/,'') === l.furo.replace(/^0+/,''));
+  renderChecklist();
+  if(!f){ showToast(`${PREFIXO[c.tipo]}${c.numero} não tem o furo F${l.furo}.`); return; }
+  destacarLinhaFuro(f.id);
+}
+
+// ---------- Próximo furo: depois de marcar, destaca o próximo pendente do mesmo leque ----------
+function destacarProximoFuro(f, coluna){
+  const lista = checklistFurosDoLeque(f.checklistLequeId);
+  const campo = coluna === 'topo' ? 'topografado' : 'perfilado';
+  if(!f[campo]) return; // só ao marcar, não ao desmarcar
+  const i = lista.findIndex(x=>x.id === f.id);
+  const prox = lista.slice(i + 1).concat(lista.slice(0, i)).find(x=> !x[campo] && !x.obstruido);
+  if(prox) destacarLinhaFuro(prox.id);
+}
+
+// ---------- Continuar de onde parei ----------
+const ULTIMO_KEY = 'perfilagem-ultimo-v1';
+function salvarUltimo(extra){
+  try{
+    const atual = JSON.parse(localStorage.getItem(ULTIMO_KEY) || '{}');
+    localStorage.setItem(ULTIMO_KEY, JSON.stringify(Object.assign(atual, extra, { exp:[...checklistExpandido].slice(0, 12) })));
+  }catch(e){}
+}
+function lerUltimo(){ try{ return JSON.parse(localStorage.getItem(ULTIMO_KEY) || '{}'); }catch(e){ return {}; } }
+(function(){ const u = lerUltimo(); (u.exp || []).forEach(id=> checklistExpandido.add(id)); })();
