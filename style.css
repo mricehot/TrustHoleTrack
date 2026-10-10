@@ -1429,11 +1429,12 @@ input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
 .completo-fx .ck-selo-ok{ animation:seloSalta .5s cubic-bezier(.2,.8,.3,1.3) .15s both; }
 @property --ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
 @keyframes brilhoBorda{ from{ --ang:0deg; opacity:1; } 85%{ opacity:1; } to{ --ang:360deg; opacity:0; } }
+.fx-borda{ --fx-cor:#5fcf8a; }
 .fx-borda::before{ content:''; position:absolute; inset:0; border-radius:inherit; padding:3px; pointer-events:none; z-index:3;
-  background:conic-gradient(from var(--ang), transparent 0deg, transparent 250deg, rgba(95,207,138,.0) 255deg, rgba(95,207,138,.9) 320deg, #fff 352deg, rgba(95,207,138,.9) 358deg, transparent 360deg);
+  background:conic-gradient(from var(--ang), transparent 0deg, transparent 250deg, color-mix(in srgb,var(--fx-cor) 0%,transparent) 255deg, color-mix(in srgb,var(--fx-cor) 90%,transparent) 320deg, #fff 352deg, color-mix(in srgb,var(--fx-cor) 90%,transparent) 358deg, transparent 360deg);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  filter:drop-shadow(0 0 4px rgba(95,207,138,.9)); animation:brilhoBorda 1s cubic-bezier(.4,.1,.3,1) both; }
+  filter:drop-shadow(0 0 4px var(--fx-cor)); animation:brilhoBorda 1s cubic-bezier(.4,.1,.3,1) both; }
 @keyframes cardLevanta{ 0%{ transform:translateY(0); } 35%{ transform:translateY(-2px); } 100%{ transform:translateY(0); } }
 .completo-fx{ animation:cardBrilho .9s ease-out, cardLevanta .45s ease-out; }
 .fx-borda:not(.checklist-progresso-resumo){ position:relative; }
@@ -1443,3 +1444,9 @@ input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
 .badge-completo{ white-space:nowrap; }
 .anel-row{ flex-wrap:wrap; }
 .anel-row .badge-ativo{ white-space:nowrap; }
+
+/* Selo "aberto/fechado" do leque dá um pulinho quando muda */
+@keyframes statusPop{ 0%{ transform:scale(.7); } 60%{ transform:scale(1.18); } 100%{ transform:scale(1); } }
+.leque-group.fx-borda .status{ animation:statusPop .4s cubic-bezier(.2,.8,.3,1.3) .1s both; }
+.ck-codigo .seta, .toggle-leque{ display:inline-block; }
+@media (prefers-reduced-motion: reduce){ .leque-group.fx-borda .status{ animation:none; } }

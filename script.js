@@ -258,9 +258,14 @@ let lequesColapsados = new Set();
 let lequesSelecionados = new Set();
 
 function toggleLeque(id){
-  if(lequesColapsados.has(id)) lequesColapsados.delete(id);
-  else lequesColapsados.add(id);
+  const sel = `.leque-group[data-leque-id="${id}"]`;
+  if(!lequesColapsados.has(id)){
+    animarFechar(document.querySelector(sel + ' .tabela-wrap, ' + sel + ' .sem-furos'), document.querySelector(sel + ' .toggle-leque'), ()=>{ lequesColapsados.add(id); render(); });
+    return;
+  }
+  lequesColapsados.delete(id);
   render();
+  animarAbrir(document.querySelector(sel + ' .tabela-wrap, ' + sel + ' .sem-furos'), document.querySelector(sel + ' .toggle-leque'));
 }
 
 // Menu "⋮" com as ações menos usadas do leque (reabrir, remover) — mantém o
@@ -1706,6 +1711,7 @@ async function reabrirLeque(id){
   enfileirar('leques', 'update', { id: l.id, status: 'aberto' });
   salvarLocal();
   renderAll();
+  brilharBorda(document.querySelector(`.leque-group[data-leque-id="${l.id}"]`), false, '#e0a21b');
   showToast(`Leque ${lequeCode(l)} reaberto.`);
 }
 
@@ -3223,10 +3229,40 @@ function abrirModalEscolherRealcesWhatsApp(){
 }
 el('btn-enviar-whatsapp').addEventListener('click', abrirModalEscolherRealcesWhatsApp);
 
+// Abrir/fechar com movimento curto: o conteúdo desliza e a seta gira. Respeita "reduzir movimento".
+function semMovimento(){ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !document.body.animate; }
+function animarAbrir(corpo, seta){
+  try{
+    if(semMovimento()) return;
+    if(corpo){
+      const h = corpo.getBoundingClientRect().height;
+      corpo.style.overflow = 'hidden';
+      const a = corpo.animate([{ height:'0px', opacity:0, transform:'translateY(-6px)' }, { height:h+'px', opacity:1, transform:'none' }], { duration:260, easing:'cubic-bezier(.2,.7,.2,1)' });
+      a.onfinish = a.oncancel = ()=>{ corpo.style.overflow = ''; };
+    }
+    if(seta) seta.animate([{ transform:'rotate(-90deg)' }, { transform:'none' }], { duration:220, easing:'ease-out' });
+  }catch(e){}
+}
+function animarFechar(corpo, seta, depois){
+  try{
+    if(semMovimento() || !corpo){ depois(); return; }
+    const h = corpo.getBoundingClientRect().height;
+    corpo.style.overflow = 'hidden';
+    if(seta) seta.animate([{ transform:'none' }, { transform:'rotate(-90deg)' }], { duration:180, fill:'forwards' });
+    const a = corpo.animate([{ height:h+'px', opacity:1 }, { height:'0px', opacity:0, transform:'translateY(-6px)' }], { duration:180, easing:'ease-in', fill:'forwards' });
+    a.onfinish = ()=> depois();
+    setTimeout(()=>{ if(corpo.isConnected && a.playState !== 'finished'){ try{ a.finish(); }catch(e){ depois(); } } }, 400);
+  }catch(e){ depois(); }
+}
 function toggleExpandirChecklist(id){
-  if(checklistExpandido.has(id)) checklistExpandido.delete(id);
-  else checklistExpandido.add(id);
+  const sel = '#ck-card-' + id;
+  if(checklistExpandido.has(id)){
+    animarFechar(document.querySelector(sel + ' .ck-corpo'), document.querySelector(sel + ' .ck-codigo .seta'), ()=>{ checklistExpandido.delete(id); renderChecklist(); });
+    return;
+  }
+  checklistExpandido.add(id);
   renderChecklist();
+  animarAbrir(document.querySelector(sel + ' .ck-corpo'), document.querySelector(sel + ' .ck-codigo .seta'));
 }
 
 
@@ -3594,11 +3630,12 @@ function desfazerMarcaFuro(antes){
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
 // Brilho que percorre a borda de um elemento (leque completo, realce 100%, meta batida...).
-function brilharBorda(elemento, vibrar){
+function brilharBorda(elemento, vibrar, cor){
   try{
     if(!elemento) return;
     if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     elemento.classList.remove('fx-borda'); void elemento.offsetWidth; // reinicia se já estava rodando
+    if(cor) elemento.style.setProperty('--fx-cor', cor); else elemento.style.removeProperty('--fx-cor');
     elemento.classList.add('fx-borda');
     setTimeout(()=>{ elemento.classList.remove('fx-borda'); }, 1400);
     if(vibrar && navigator.vibrate) navigator.vibrate([18, 40, 28]);
