@@ -621,7 +621,7 @@ function pendenciasPassagem(){
   itens.forEach(c=>{
     const fl = checklistFurosDoLeque(c.id);
     const perf = fl.filter(f=>!f.perfilado && !f.obstruido).map(f=>'F'+f.numero);
-    const topo = fl.filter(f=>f.perfilado && !f.topografado && !f.obstruido).map(f=>'F'+f.numero);
+    const topo = fl.filter(f=>!f.topografado && !f.obstruido).map(f=>'F'+f.numero);
     const obs = fl.filter(f=>f.obstruido).map(f=>'F'+f.numero);
     nPerf += perf.length; nTopo += topo.length; nObs += obs.length;
     if(perf.length || topo.length || obs.length || !fl.length) linhas.push({ cod: PREFIXO[c.tipo] + c.numero, perf, topo, obs, vazio: !fl.length });

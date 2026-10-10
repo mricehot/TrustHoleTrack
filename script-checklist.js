@@ -1070,6 +1070,7 @@ function animarAbrir(corpo, seta){
   try{
     if(semMovimento()) return;
     if(corpo){
+      corpo.getAnimations().forEach(x=>x.cancel()); // limpa o 'fill: forwards' do fechamento anterior (deixava o corpo com altura 0)
       const h = corpo.getBoundingClientRect().height;
       corpo.style.overflow = 'hidden';
       const a = corpo.animate([{ height:'0px', opacity:0, transform:'translateY(-6px)' }, { height:h+'px', opacity:1, transform:'none' }], { duration:260, easing:'cubic-bezier(.2,.7,.2,1)' });
@@ -1085,7 +1086,7 @@ function animarFechar(corpo, seta, depois){
     corpo.style.overflow = 'hidden';
     if(seta) seta.animate([{ transform:'none' }, { transform:'rotate(-90deg)' }], { duration:180, fill:'forwards' });
     const a = corpo.animate([{ height:h+'px', opacity:1 }, { height:'0px', opacity:0, transform:'translateY(-6px)' }], { duration:180, easing:'ease-in', fill:'forwards' });
-    a.onfinish = ()=> depois();
+    a.onfinish = ()=>{ depois(); try{ a.cancel(); }catch(e){} corpo.style.overflow = ''; if(seta) seta.getAnimations().forEach(x=>x.cancel()); };
     setTimeout(()=>{ if(corpo.isConnected && a.playState !== 'finished'){ try{ a.finish(); }catch(e){ depois(); } } }, 400);
   }catch(e){ depois(); }
 }
@@ -1716,7 +1717,7 @@ function montarResumoLequeWhatsApp(c){
   let t = `📍 *${cod}*${c.localizacao ? ' (' + semAcento(c.localizacao) + ')' : ''}${anel ? ' - Realce ' + semAcento(anel.nome) : ''}\n`;
   t += `Furos perfilados: ${perf}/${tot} (${pf}%)\n${barraWa(pf)}\nFuros topografados: ${topo}/${tot} (${pt}%)\n${barraWa(pt)}\n`;
   const pend = fl.filter(f=>!f.perfilado && !f.obstruido).map(f=>'F'+f.numero);
-  const pendT = fl.filter(f=>f.perfilado && !f.topografado && !f.obstruido).map(f=>'F'+f.numero);
+  const pendT = fl.filter(f=>!f.topografado && !f.obstruido).map(f=>'F'+f.numero);
   const obs = fl.filter(f=>f.obstruido).map(f=>'F'+f.numero);
   if(pend.length) t += `\n*🟡 PENDENTES PERFILAGEM*\n${pend.join(', ')}\n`;
   if(pendT.length) t += `\n*🟡 PENDENTES TOPOGRAFIA*\n${pendT.join(', ')}\n`;
