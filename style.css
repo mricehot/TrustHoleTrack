@@ -1647,3 +1647,41 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 .leque-faixa .fx-sit{ padding:1px 8px; border-radius:999px; color:#fff; font-weight:700; font-size:12px; }
 .leque-faixa .fx-sit.varado{ background:var(--steel); } .leque-faixa .fx-sit.obstruido{ background:var(--est-obs,#d6453d); }
 @media (min-width:701px){ .leque-faixa{ top:48px; } }
+
+/* ===== Aba Perfilagem com a mesma linguagem visual do checklist ===== */
+.leque-group[data-est]{ border-left:8px solid var(--est,var(--est-ini)); position:relative; }
+.leque-group[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 40%); }
+.leque-group[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+.leque-group[data-est=obs]{ --est:var(--est-obs); background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.12) 0 8px,transparent 8px 16px); }
+.leque-group[data-est=ini]{ --est:var(--est-ini); }
+body.dark-mode .leque-group[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
+body.dark-mode .leque-group[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+body.dark-mode .leque-group[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
+.lq-ico{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; margin-right:5px; border-radius:50%; font-style:normal; font-size:10px; font-weight:800; line-height:1; color:#fff; background:var(--est-ini); vertical-align:middle; }
+.lq-ico[data-est=ok]{ background:var(--est-ok); } .lq-ico[data-est=obs]{ background:var(--est-obs); }
+.lq-ico[data-est=and]{ background:var(--est-and); color:#2b1d00; }
+.lq-barra{ height:7px; margin:8px 12px 2px; border-radius:4px; background:var(--line); overflow:hidden; }
+.lq-barra i{ display:block; height:100%; border-radius:4px; background:var(--est,var(--steel)); transform-origin:left; animation:lqBarra .6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes lqBarra{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+.sit-chip{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--line); white-space:nowrap; }
+.sit-chip i{ font-style:normal; font-size:11px; }
+.sit-chip.sit-livre{ color:var(--est-ok); border-color:var(--est-ok); }
+.sit-chip.sit-obstruido{ color:#fff; background:var(--est-obs); border-color:var(--est-obs); }
+.sit-chip.sit-varado{ color:#fff; background:var(--steel); border-color:var(--steel); }
+/* efeitos contínuos (mesmos do checklist) */
+.leque-group[data-est=and]::after, .leque-group[data-est=obs]::after{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:45%; pointer-events:none; z-index:0;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--est) 45%, transparent), transparent); opacity:0; animation:ckRespira 3s ease-in-out infinite; }
+.leque-group[data-est=obs]::after{ animation-duration:1.8s; }
+.leque-group[data-est=ok]:not(.fx-borda)::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;
+  background:conic-gradient(from var(--ang), transparent 0deg, transparent 280deg, color-mix(in srgb,var(--est-ok) 85%,transparent) 335deg, #fff 355deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation:ckBrilhoLoop 8s linear infinite; }
+.leque-group[data-est=ok]:nth-child(3n+2)::before{ animation-delay:-2.7s; } .leque-group[data-est=ok]:nth-child(3n)::before{ animation-delay:-5.3s; }
+.leque-group > *{ position:relative; z-index:1; }
+@media (prefers-reduced-motion: reduce){ .leque-group[data-est]::before, .leque-group[data-est]::after, .lq-barra i{ animation:none !important; } }
+.leque-head-line2{ flex-wrap:wrap; }
+.leque-head-line2 .lq-barra{ flex:1 1 100%; order:5; margin:6px 0 0; }
+.leque-group[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.06) 0 8px,transparent 8px 16px); }
+body.dark-mode .leque-group[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.07) 0 8px,transparent 8px 16px); }

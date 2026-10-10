@@ -57,6 +57,12 @@ function render(){
       const alertasL = furosDoLeque.filter(f=>f.situacao!=='livre').length;
 
       const podeEditar = souDonoDoLeque(l);
+      const todosFurosL = furos.filter(f=>f.lequeId===l.id);
+      const nObsL = todosFurosL.filter(f=>f.situacao==='obstruido').length;
+      const estL = l.status === 'aberto' ? 'and' : (!todosFurosL.length ? 'ini' : (obstrucaoAlta(nObsL, todosFurosL.length) ? 'obs' : 'ok'));
+      const ROT_EST_P = { and:'aberto', ok:'fechado', obs:'fechado com obstruções', ini:'sem furos' };
+      const ICO_EST_P = { and:'◐', ok:'✓', obs:'⚠', ini:'○' };
+      const pctMetros = totalEspL > 0 ? Math.min(100, Math.round(totalRealL / totalEspL * 100)) : 0;
 
       const rows = furosDoLeque.map(f=>{
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
@@ -66,7 +72,7 @@ function render(){
           <td>${fmt1(Number(f.metragemEsperada))} m</td>
           <td>${fmt1(Number(f.metragemReal))} m</td>
           <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
-          <td>${situacaoLabel(f.situacao)}</td>
+          <td><span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span></td>
           <td class="actions">
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
@@ -83,7 +89,7 @@ function render(){
       const selecionado = lequesSelecionados.has(l.id);
 
       return `
-        <div class="leque-group ${l.status === 'aberto' ? 'aberto' : ''} ${selecionado ? 'selecionado' : ''}" data-leque-id="${l.id}">
+        <div class="leque-group ${l.status === 'aberto' ? 'aberto' : ''} ${selecionado ? 'selecionado' : ''}" data-leque-id="${l.id}" data-est="${estL}" title="Leque ${ROT_EST_P[estL]}">
           <div class="leque-head">
             <div class="leque-head-line1">
               <label class="leque-select-wrap" title="selecionar para exportação combinada">
@@ -95,7 +101,7 @@ function render(){
               <span class="code">${lequeCode(l)}</span>
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
-              <span class="status ${l.status}">${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
+              <span class="status ${l.status}"><i class="lq-ico" data-est="${estL}" aria-hidden="true">${ICO_EST_P[estL]}</i>${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
               ${l.nome ? `<span class="hint">${escHtml(l.nome)}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
             </div>
@@ -107,6 +113,7 @@ function render(){
                 <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
                 ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
               </div>
+              ${totalEspL > 0 ? `<div class="lq-barra" title="${pctMetros}% da metragem esperada" role="img" aria-label="${pctMetros}% da metragem esperada"><i style="width:${pctMetros}%"></i></div>` : ''}
               <div class="leque-actions">
                 ${podeEditar ? `<button class="icon icon-editar" onclick="editarLeque('${l.id}')" title="editar leque">✎ editar</button>` : ''}
                 <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
@@ -138,6 +145,7 @@ function render(){
       html += `
         <div class="anel-section">
           <div class="anel-section-head"><b>${escHtml(a.nome)}</b></div>
+          <div class="ck-legenda" aria-label="legenda dos estados dos leques"><span><i class="and">◐</i>Aberto</span><span><i class="ok">✓</i>Fechado</span><span><i class="obs">⚠</i>Fechado c/ obstruções</span><span><i class="ini">○</i>Sem furos</span></div>
           ${gruposHTML}
         </div>
       `;
