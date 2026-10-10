@@ -1272,6 +1272,23 @@ function restaurarFormChecklist(){
 }
 restaurarFormChecklist();
 
+// Aviso de equipe errada: marcar um leque que é de outra equipe pede confirmação.
+function equipeDivergente(f, tipo){
+  const minha = (typeof minhaEquipeId === 'function') ? minhaEquipeId() : null;
+  if(!minha) return null;
+  const c = checklistLeques.find(x=>x.id===f.checklistLequeId); if(!c) return null;
+  const dona = tipo === 'perf' ? c.equipePerfId : c.equipeTopoId;
+  return (dona && dona !== minha) ? dona : null;
+}
+const equipeConfirmada = new Set();
+async function confirmarEquipeErrada(f, tipo, donaId, depois){
+  renderChecklist(); // devolve o checkbox ao estado anterior enquanto pergunta
+  const c = checklistLeques.find(x=>x.id===f.checklistLequeId);
+  const msg = `${PREFIXO[c.tipo]}${c.numero} está com a ${nomeDaEquipeId(donaId)} (${tipo === 'perf' ? 'perfilagem' : 'topografia'}). Marcar F${f.numero} como ${nomeDaEquipeId(minhaEquipeId())} mesmo assim?`;
+  if(!(await confirmDialog(msg, 'Marcar mesmo assim'))) return;
+  const k = f.id + ':' + tipo; equipeConfirmada.add(k);
+  try{ depois(); } finally{ equipeConfirmada.delete(k); }
+}
 // Só quem marcou (a mesma pessoa ou alguém da mesma equipe) pode desmarcar. Marcas sem autor registrado (antigas) ficam livres.
 function podeDesmarcar(autor, equipeId){
   if(!autor) return true;
@@ -1606,6 +1623,7 @@ function toggleChecklistFuro(id){
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
   if(f.perfilado && !podeDesmarcarFuro(f,'perf')){ avisarSoQuemMarcou(f.perfiladoPor, equipePerfEfetivaId(f)); return; }
+  if(!f.perfilado && !equipeConfirmada.has(f.id+':perf')){ const d = equipeDivergente(f,'perf'); if(d){ confirmarEquipeErrada(f,'perf',d,()=>toggleChecklistFuro(id)); return; } }
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
@@ -1627,6 +1645,7 @@ function toggleChecklistFuroTopografado(id){
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; }
   if(f.topografado && !podeDesmarcarFuro(f,'topo')){ avisarSoQuemMarcou(f.topografadoPor, equipeTopoEfetivaId(f)); return; }
+  if(!f.topografado && !equipeConfirmada.has(f.id+':topo')){ const d = equipeDivergente(f,'topo'); if(d){ confirmarEquipeErrada(f,'topo',d,()=>toggleChecklistFuroTopografado(id)); return; } }
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
