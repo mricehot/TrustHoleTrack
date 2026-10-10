@@ -289,8 +289,10 @@ function renderPainelTrabalho(){
     boxAtual.innerHTML = '';
   }
 
+  atualizarFaixaLeque(lequeAberto);
   const semLeque = !lequeAberto;
   ['furo-numero','furo-esperada','furo-real','furo-situacao','furo-observacao','btn-add-furo'].forEach(id=> el(id).disabled = semLeque);
+  document.querySelectorAll('#furo-situacao-botoes button').forEach(b=> b.disabled = semLeque);
   el('furo-hint').style.display = semLeque ? 'block' : 'none';
 }
 
@@ -444,6 +446,7 @@ async function adicionarFuro(){
   el('furo-real').value = '';
   el('furo-observacao').value = '';
   el('furo-situacao').value = 'livre';
+  sincronizarSituacaoBotoes(); atualizarDiferencaFuro();
   el('furo-numero').focus();
   salvarLocal();
   renderAll();
@@ -1075,3 +1078,50 @@ function renderChecklist(){
   renderPainelTurno();
 }
 
+
+
+// ---------- Aba Perfilagem: situação em botões, diferença ao vivo, faixa fixa do leque aberto ----------
+function sincronizarSituacaoBotoes(){
+  const v = el('furo-situacao').value;
+  document.querySelectorAll('#furo-situacao-botoes button').forEach(b=>{
+    const on = b.dataset.val === v;
+    b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+}
+document.querySelectorAll('#furo-situacao-botoes button').forEach(b=> b.addEventListener('click', ()=>{
+  el('furo-situacao').value = b.dataset.val; sincronizarSituacaoBotoes(); vibrarCurto(10);
+}));
+sincronizarSituacaoBotoes();
+
+// Diferença entre real e esperada: até 5% da esperada = ok, até 15% = atenção, acima = fora.
+function atualizarDiferencaFuro(){
+  const box = el('furo-diferenca'); if(!box) return;
+  const esp = parseFloat(el('furo-esperada').value), real = parseFloat(el('furo-real').value);
+  if(isNaN(esp) || isNaN(real)){ box.hidden = true; return; }
+  const dif = Math.round((real - esp) * 100) / 100;
+  const pct = esp > 0 ? Math.abs(dif) / esp * 100 : 0;
+  const nivel = pct <= 5 ? 'ok' : pct <= 15 ? 'atencao' : 'fora';
+  const sinal = dif > 0 ? '+' : dif < 0 ? '−' : '';
+  const txt = dif === 0 ? 'Real igual à esperada' : `${dif > 0 ? 'Passou' : 'Faltou'} ${fmt1(Math.abs(dif))} m (${sinal}${Math.round(pct)}%) em relação à esperada`;
+  box.hidden = false; box.dataset.nivel = nivel;
+  box.innerHTML = `<span class="dif-ico" aria-hidden="true">${nivel==='ok' ? '✓' : nivel==='atencao' ? '!' : '⚠'}</span><span>${txt}</span>`;
+}
+['furo-esperada','furo-real'].forEach(id=> el(id).addEventListener('input', atualizarDiferencaFuro));
+
+function atualizarFaixaLeque(lequeAberto){
+  const f = el('leque-faixa'); if(!f) return;
+  if(!lequeAberto){ f.hidden = true; f.innerHTML = ''; return; }
+  const fl = furos.filter(x=>x.lequeId === lequeAberto.id);
+  const metros = fl.reduce((t,x)=> t + (x.metragemReal || 0), 0);
+  const esperados = fl.reduce((t,x)=> t + (x.metragemEsperada || 0), 0);
+  const vara = fl.filter(x=>x.situacao === 'varado').length;
+  const obs = fl.filter(x=>x.situacao === 'obstruido').length;
+  const dif = metros - esperados;
+  f.hidden = false;
+  f.innerHTML = `<b class="fx-cod">${lequeCode(lequeAberto)}</b>
+    <span><b>${fl.length}</b> furo${fl.length===1?'':'s'}</span>
+    <span><b>${fmt1(metros)}</b> m reais</span>
+    ${fl.length ? `<span class="fx-dif" data-sinal="${dif>=0?'mais':'menos'}">${dif>=0?'+':'−'}${fmt1(Math.abs(dif))} m vs esperado</span>` : ''}
+    ${vara ? `<span class="fx-sit varado">${vara} varado${vara===1?'':'s'}</span>` : ''}
+    ${obs ? `<span class="fx-sit obstruido">${obs} obstruído${obs===1?'':'s'}</span>` : ''}`;
+}

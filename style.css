@@ -1619,3 +1619,31 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 .tut-pontos i{ width:8px; height:8px; border-radius:50%; background:var(--line); }
 .tut-pontos i.on{ background:var(--steel); width:20px; border-radius:4px; }
 .tutorial-box .modal-actions{ justify-content:center; flex-wrap:wrap; }
+
+/* ================= Aba Perfilagem ================= */
+.sr-only-sel{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; overflow:hidden; }
+.sit-botoes{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.sit-botoes button{ min-height:48px; padding:0 4px; border-radius:8px; border:2px solid var(--line); background:var(--surface-2); color:var(--text);
+  font-family:var(--sans); font-size:14px; font-weight:700; text-transform:none; letter-spacing:0; box-shadow:none; }
+.sit-botoes button.on{ color:#fff; border-color:transparent; }
+.sit-botoes .sit-livre.on{ background:var(--est-ok,#2e9b57); }
+.sit-botoes .sit-obstruido.on{ background:var(--est-obs,#d6453d); }
+.sit-botoes .sit-varado.on{ background:var(--steel); }
+.sit-botoes button.on::before{ content:'✓ '; }
+.sit-botoes button:disabled{ opacity:.5; }
+.furo-diferenca{ display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 12px; border-radius:8px; font-weight:700; font-size:14px;
+  border:1px solid var(--line); background:var(--surface-2); }
+.furo-diferenca[hidden]{ display:none; }
+.furo-diferenca .dif-ico{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:13px; flex-shrink:0; }
+.furo-diferenca[data-nivel=ok] .dif-ico{ background:var(--est-ok,#2e9b57); }
+.furo-diferenca[data-nivel=atencao] .dif-ico{ background:var(--est-and,#e0a21b); color:#2b1d00; }
+.furo-diferenca[data-nivel=fora] .dif-ico{ background:var(--est-obs,#d6453d); }
+.furo-diferenca[data-nivel=fora]{ border-color:var(--est-obs,#d6453d); }
+.leque-faixa{ position:sticky; top:0; z-index:45; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; padding:8px 12px; margin-bottom:10px;
+  background:var(--surface); border:1px solid var(--line); border-left:6px solid var(--amber); border-radius:8px; font-size:13px; box-shadow:0 6px 10px -8px rgba(0,0,0,.4); }
+.leque-faixa[hidden]{ display:none; }
+.leque-faixa .fx-cod{ font-family:var(--mono); font-size:16px; }
+.leque-faixa .fx-dif{ color:var(--muted); font-family:var(--mono); font-size:12px; }
+.leque-faixa .fx-sit{ padding:1px 8px; border-radius:999px; color:#fff; font-weight:700; font-size:12px; }
+.leque-faixa .fx-sit.varado{ background:var(--steel); } .leque-faixa .fx-sit.obstruido{ background:var(--est-obs,#d6453d); }
+@media (min-width:701px){ .leque-faixa{ top:48px; } }

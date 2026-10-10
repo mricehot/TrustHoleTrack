@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010070000">
+<link rel="stylesheet" href="style.css?v=20261010080000">
 
 </head>
 <body>
@@ -146,6 +146,7 @@
       <div class="aviso-refazer" id="aviso-refazer" style="display:none;"></div>
 
       <section class="view active" id="view-perfilagem">
+        <div class="leque-faixa" id="leque-faixa" hidden aria-live="polite"></div>
         <div class="row-2" id="painel-trabalho">
           <div class="panel" id="painel-leque">
             <h2 id="leque-panel-title">Criar Medição</h2>
@@ -215,14 +216,20 @@
                   <input id="furo-real" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0" required>
                 </div>
                 <div class="field">
-                  <label for="furo-situacao">Situação</label>
-                  <select id="furo-situacao">
+                  <label id="furo-situacao-rot">Situação</label>
+                  <select id="furo-situacao" class="sr-only-sel" tabindex="-1" aria-hidden="true">
                     <option value="livre">Livre</option>
                     <option value="obstruido">Obstruído</option>
                     <option value="varado">Varado</option>
                   </select>
+                  <div class="sit-botoes" id="furo-situacao-botoes" role="radiogroup" aria-labelledby="furo-situacao-rot">
+                    <button type="button" role="radio" data-val="livre" class="sit-livre">Livre</button>
+                    <button type="button" role="radio" data-val="obstruido" class="sit-obstruido">Obstruído</button>
+                    <button type="button" role="radio" data-val="varado" class="sit-varado">Varado</button>
+                  </div>
                 </div>
               </div>
+              <div class="furo-diferenca" id="furo-diferenca" aria-live="polite" hidden></div>
               <div class="field" style="margin-top:10px;">
                 <label for="furo-observacao">Observação (opcional)</label>
                 <input id="furo-observacao" type="text" placeholder="ex: desviou por veio de água" maxlength="300">
@@ -752,12 +759,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010070000"></script>
-<script src="script-leques.js?v=20261010070000"></script>
-<script src="script-checklist.js?v=20261010070000"></script>
-<script src="script-turno-pdf.js?v=20261010070000"></script>
-<script src="script-telas.js?v=20261010070000"></script>
-<script src="script-sessao.js?v=20261010070000"></script>
+<script src="script.js?v=20261010080000"></script>
+<script src="script-leques.js?v=20261010080000"></script>
+<script src="script-checklist.js?v=20261010080000"></script>
+<script src="script-turno-pdf.js?v=20261010080000"></script>
+<script src="script-telas.js?v=20261010080000"></script>
+<script src="script-sessao.js?v=20261010080000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
