@@ -211,7 +211,7 @@ function htmlCardChecklist(c, agrupado){
           </div>
         </div>
         <div class="checklist-furos-body">
-          <div class="checklist-furos-add">
+          <div class="checklist-furos-add so-gestor">
             <input type="text" inputmode="numeric" placeholder="de" id="cf-de-${c.id}" aria-label="furo inicial">
             <input type="text" inputmode="numeric" placeholder="até (opcional)" id="cf-ate-${c.id}" aria-label="furo final">
             <button type="button" onclick="adicionarFurosAoChecklist('${c.id}')">+ Adicionar furos</button>
@@ -1188,6 +1188,7 @@ async function inserirLequesEFuros(regsLeques, regsFuros){
 }
 
 function adicionarAoChecklist(){
+  if(!exigirGestor('adicionar leques ao checklist')) return;
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
   const tipo = el('checklist-tipo').value;
@@ -1510,6 +1511,7 @@ function desfazerRemocaoChecklist(itemRemovido, furosRemovidos){
 }
 
 function adicionarFurosAoChecklist(checklistLequeId){
+  if(!exigirGestor('adicionar furos ao leque')) return;
   const c = checklistLeques.find(x=>x.id===checklistLequeId);
   if(!c) return;
   const campoDe = el(`cf-de-${checklistLequeId}`);

@@ -211,6 +211,7 @@ function editarAnel(id){
 }
 
 function criarAnel(){
+  if(!exigirGestor('criar realces')) return;
   const campoNome = el('anel-nome');
   const nome = campoNome.value.trim();
   const nivel = el('anel-nivel').value.trim();
@@ -312,6 +313,7 @@ el('leque-foto-input').addEventListener('change', ()=>{
 });
 
 function criarLeque(){
+  if(!exigirGestor('criar leques')) return;
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo) return;
   const tipo = el('leque-tipo').value;

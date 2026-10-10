@@ -1,5 +1,6 @@
 -- Papéis gestor/técnico + travas no servidor (itens 1 a 4 das limitações para técnicos).
--- Ainda NÃO aplicado no projeto yccblxqevplzjopkdryb: o assistente de migração foi cancelado.
+-- Pode ser rodado mais de uma vez (idempotente).
+-- Regras: só gestor cria/exclui realces, leques e furos do checklist; técnico marca (update).
 -- Enquanto não for aplicado, o app trata todos como gestor (nada fica travado).
 
 alter table public.profiles add column if not exists papel text not null default 'tecnico' check (papel in ('gestor','tecnico'));
@@ -69,21 +70,30 @@ begin
   return v_n + v_n2;
 end $$;
 
--- Exclusão de realces, leques e furos: gestor, ou quem acabou de criar (15 min, cobre o Desfazer)
+-- Criar e excluir realces, leques e furos do checklist: só gestor. Técnicos marcam (update) no checklist.
 do $$
 declare t text;
 begin
-  foreach t in array array['aneis','checklist_leques','checklist_furos'] loop
+  foreach t in array array['aneis','leques','checklist_leques','checklist_furos'] loop
     execute format('drop policy if exists %I on public.%I', 'somente autenticados ' || t, t);
+    execute format('drop policy if exists %I on public.%I', 'leques por autenticado', t);
+    execute format('drop policy if exists %I on public.%I', t || ' select', t);
+    execute format('drop policy if exists %I on public.%I', t || ' insert', t);
+    execute format('drop policy if exists %I on public.%I', t || ' update', t);
+    execute format('drop policy if exists %I on public.%I', t || ' delete', t);
     execute format('create policy %I on public.%I for select to authenticated using (empresa_id = (select public.empresa_do_usuario_atual()))', t || ' select', t);
-    execute format('create policy %I on public.%I for insert to authenticated with check (empresa_id = (select public.empresa_do_usuario_atual()))', t || ' insert', t);
+    execute format('create policy %I on public.%I for insert to authenticated with check (empresa_id = (select public.empresa_do_usuario_atual()) and (select public.eh_gestor()))', t || ' insert', t);
     execute format('create policy %I on public.%I for update to authenticated using (empresa_id = (select public.empresa_do_usuario_atual())) with check (empresa_id = (select public.empresa_do_usuario_atual()))', t || ' update', t);
-    execute format('create policy %I on public.%I for delete to authenticated using (empresa_id = (select public.empresa_do_usuario_atual()) and ((select public.eh_gestor()) or criado_em > now() - interval ''15 minutes''))', t || ' delete', t);
+    execute format('create policy %I on public.%I for delete to authenticated using (empresa_id = (select public.empresa_do_usuario_atual()) and (select public.eh_gestor()))', t || ' delete', t);
   end loop;
 end $$;
 
 -- Equipes: leitura para todos, escrita só do gestor
 drop policy if exists "somente autenticados equipes" on public.equipes;
+drop policy if exists "equipes select" on public.equipes;
+drop policy if exists "equipes insert gestor" on public.equipes;
+drop policy if exists "equipes update gestor" on public.equipes;
+drop policy if exists "equipes delete gestor" on public.equipes;
 create policy "equipes select" on public.equipes for select to authenticated using (empresa_id = (select public.empresa_do_usuario_atual()));
 create policy "equipes insert gestor" on public.equipes for insert to authenticated with check (empresa_id = (select public.empresa_do_usuario_atual()) and (select public.eh_gestor()));
 create policy "equipes update gestor" on public.equipes for update to authenticated using (empresa_id = (select public.empresa_do_usuario_atual()) and (select public.eh_gestor())) with check (empresa_id = (select public.empresa_do_usuario_atual()) and (select public.eh_gestor()));

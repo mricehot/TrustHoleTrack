@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010370000">
+<link rel="stylesheet" href="style.css?v=20261010380000">
 
 </head>
 <body>
@@ -151,7 +151,7 @@
       <section class="view active" id="view-perfilagem">
         <div class="leque-faixa" id="leque-faixa" hidden aria-live="polite"></div>
         <div class="row-2" id="painel-trabalho">
-          <div class="panel" id="painel-leque">
+          <div class="panel so-gestor" id="painel-leque">
             <h2 id="leque-panel-title">Criar Medição</h2>
             <div id="form-leque">
               <div class="grid-3">
@@ -288,7 +288,7 @@
               </select>
               <div class="hint">Escolhendo um projeto, só aparecem (e só nascem) realces daquele projeto. Pra criar ou apagar projetos, use a aba Config.</div>
             </div>
-            <div class="anel-form" id="form-anel">
+            <div class="anel-form so-gestor" id="form-anel">
               <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:0 0 200px;">
               <button type="button" id="btn-criar-anel" class="steel">Criar realce</button>
@@ -605,7 +605,7 @@
 
             <div id="checklist-vazio" style="margin-top:16px;"><div class="estado-vazio"><svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M60 72 14 18M60 72 34 10M60 72 60 6M60 72 86 10M60 72 106 18" stroke-opacity=".6"/><circle cx="14" cy="18" r="3.5" class="ponto"/><circle cx="34" cy="10" r="3.5" class="ponto"/><circle cx="60" cy="6" r="3.5" class="ponto"/><circle cx="86" cy="10" r="3.5" class="ponto"/><circle cx="106" cy="18" r="3.5" class="ponto"/><path d="M44 74h32"/></svg><strong>Nenhum leque no checklist deste realce</strong><span>Adicione os leques para marcar perfilado, topografado e obstruído.</span><button type="button" onclick="const d=document.getElementById('checklist-adicionar');d.open=true;d.dataset.tocado='1';d.scrollIntoView({behavior:'smooth',block:'center'})">Adicionar leques</button></div></div>
             <details class="ck-detalhes" id="ck-ferr-topo"><summary>Mais ferramentas</summary><div class="ck-detalhes-corpo">
-<details class="ck-detalhes" id="checklist-adicionar">
+<details class="ck-detalhes so-gestor" id="checklist-adicionar">
               <summary>＋ Adicionar leques ao checklist</summary>
               <div class="ck-detalhes-corpo">
                 <div class="ck-form-topo"><span class="ck-form-titulo">Novo leque</span><details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Marcação manual, separada da perfilagem de verdade — serve só de controle de quais leques do plano já foram feitos. Cada furo tem duas caixinhas: perfilagem e topografia. Os furos são criados junto com cada leque; os números ficam preenchidos para o próximo; apague os furos para criar sem eles. O tipo e a localização ficam guardados para o próximo cadastro.</div></details></div>
@@ -805,12 +805,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010370000"></script>
-<script src="script-leques.js?v=20261010370000"></script>
-<script src="script-checklist.js?v=20261010370000"></script>
-<script src="script-turno-pdf.js?v=20261010370000"></script>
-<script src="script-telas.js?v=20261010370000"></script>
-<script src="script-sessao.js?v=20261010370000"></script>
+<script src="script.js?v=20261010380000"></script>
+<script src="script-leques.js?v=20261010380000"></script>
+<script src="script-checklist.js?v=20261010380000"></script>
+<script src="script-turno-pdf.js?v=20261010380000"></script>
+<script src="script-telas.js?v=20261010380000"></script>
+<script src="script-sessao.js?v=20261010380000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
