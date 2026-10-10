@@ -1723,3 +1723,49 @@ body{ overscroll-behavior-y:contain; }
   .leque-group td.c-var{ grid-row:2; grid-column:3; }
   .leque-group td.actions{ grid-row:3; }
 }
+
+/* ================= UI: realce, infográfico, cabeçalho, padronização, login ================= */
+.anel-row[data-est]{ border-left:8px solid var(--est-ini); position:relative; }
+.anel-row[data-est=ok]{ border-left-color:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 40%); }
+.anel-row[data-est=and]{ border-left-color:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+body.dark-mode .anel-row[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
+body.dark-mode .anel-row[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+.anel-row.ativo{ box-shadow:0 0 0 2px var(--amber) inset; }
+.anel-row .nome{ display:inline-flex; align-items:center; }
+.anel-barra{ flex:1 1 100%; position:relative; height:16px; margin:4px 0 0; }
+.anel-barra i{ background:var(--est-ok); }
+.anel-row[data-est=and] .anel-barra i{ background:var(--est-and); }
+.anel-barra span{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:var(--mono); color:var(--text); text-shadow:0 0 3px var(--surface); }
+/* Infográfico: cartões maiores e com cor */
+.infografico-kpi{ border-radius:10px; border:1px solid var(--line); border-top:4px solid var(--steel); background:var(--surface-2); padding:12px 14px; }
+.infografico-kpi .label{ font-size:12px; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); font-weight:700; }
+.infografico-kpi .valor{ font-size:30px; font-weight:800; line-height:1.1; font-family:var(--mono); }
+.infografico-kpi .valor .unidade{ font-size:14px; margin-left:3px; color:var(--muted); font-weight:600; }
+.infografico-kpis{ gap:10px; }
+.infografico-kpi:nth-child(1){ border-top-color:var(--est-ok); } .infografico-kpi:nth-child(2){ border-top-color:var(--steel); }
+.infografico-kpi:nth-child(3){ border-top-color:var(--est-ini); } .infografico-kpi:nth-child(4){ border-top-color:var(--amber); }
+/* Cabeçalho compacto no celular */
+@media (max-width:700px){
+  header{ padding-bottom:6px; margin-bottom:8px; }
+  .readout{ padding:4px 0; gap:4px; }
+  .readout span{ font-size:11px; }
+  .readout b{ font-size:15px; }
+}
+/* Botões e campos padronizados */
+button, .ghost, select, input[type=text], input[type=number], input[type=email], input[type=password], textarea{ border-radius:8px; }
+input[type=text], input[type=number], input[type=email], input[type=password], select, textarea{ min-height:44px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible{ outline:3px solid var(--steel); outline-offset:2px; }
+button:not(.icon):not(.chip):not(.tab-item):not(.ck-chip){ min-height:44px; }
+button:active:not(:disabled){ transform:scale(.97); }
+/* Login */
+.login-screen{ background:radial-gradient(circle at 50% 18%, color-mix(in srgb,var(--amber) 16%, var(--bg)), var(--bg) 62%); }
+.login-box{ border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.28); border-top:4px solid var(--amber); }
+.login-brand{ justify-content:center; margin-bottom:6px; }
+.login-brand .brand-icon{ width:48px; height:48px; }
+.login-brand h1{ font-size:18px !important; }
+.login-sub{ text-align:center; color:var(--muted); font-size:13px; margin:0 0 18px; }
+.login-box h2{ text-align:center; }
+.senha-wrap{ display:flex; gap:8px; }
+.senha-wrap input{ flex:1; min-width:0; }
+.senha-wrap button{ min-width:84px; }
+.infografico-kpi .valor .unidade{ margin-left:5px; }

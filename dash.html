@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010100000">
+<link rel="stylesheet" href="style.css?v=20261010110000">
 
 </head>
 <body>
@@ -58,13 +58,14 @@
       </div>
     </div>
     <h2>Entrar</h2>
+    <p class="login-sub">Perfilagem de furos de lavra para mina subterrânea</p>
     <div class="field">
       <label for="login-email">E-mail</label>
       <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
     </div>
     <div class="field">
       <label for="login-senha">Senha</label>
-      <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
+      <div class="senha-wrap"><input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" id="btn-ver-senha" class="ghost" aria-label="mostrar senha" aria-pressed="false">Mostrar</button></div>
     </div>
     <div class="hint" id="login-erro" style="color:var(--rust); min-height:16px; margin-bottom:10px;"></div>
     <button type="button" id="btn-login" class="steel" style="width:100%;">Entrar</button>
@@ -759,12 +760,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010100000"></script>
-<script src="script-leques.js?v=20261010100000"></script>
-<script src="script-checklist.js?v=20261010100000"></script>
-<script src="script-turno-pdf.js?v=20261010100000"></script>
-<script src="script-telas.js?v=20261010100000"></script>
-<script src="script-sessao.js?v=20261010100000"></script>
+<script src="script.js?v=20261010110000"></script>
+<script src="script-leques.js?v=20261010110000"></script>
+<script src="script-checklist.js?v=20261010110000"></script>
+<script src="script-turno-pdf.js?v=20261010110000"></script>
+<script src="script-telas.js?v=20261010110000"></script>
+<script src="script-sessao.js?v=20261010110000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

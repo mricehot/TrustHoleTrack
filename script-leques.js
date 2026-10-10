@@ -31,9 +31,15 @@ function renderAneisMenu(){
   }
   lista.innerHTML = aneisFiltrados.map(a=>{
     const ativo = a.id === anelAtivoId;
+    const itensA = checklistDoAnel(a.id);
+    const idsA = new Set(itensA.map(c=>c.id));
+    const furosA = checklistFuros.filter(f=>idsA.has(f.checklistLequeId));
+    const pctA = furosA.length ? Math.round(furosA.filter(f=>f.perfilado && f.topografado || f.obstruido).length / furosA.length * 100) : 0;
+    const estA = !itensA.length ? 'ini' : pctA >= 100 ? 'ok' : (furosA.some(f=>f.perfilado||f.topografado||f.obstruido) ? 'and' : 'ini');
+    const icoA = { ok:'✓', and:'◐', ini:'○' }[estA];
     return `
-      <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}">
-        <span class="nome">${escHtml(a.nome)}</span>
+      <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}" data-est="${estA}">
+        <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${escHtml(a.nivel)}</span>` : ''}
         ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
         ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
@@ -45,6 +51,7 @@ function renderAneisMenu(){
         }</button>
         <button class="icon icon-editar" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
         <button class="icon icon-remover" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
+        ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
       </div>
     `;
   }).join('');

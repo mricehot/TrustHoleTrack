@@ -516,3 +516,9 @@ function mostrarEsqueletos(on){
     ind.classList.remove('girando'); ind.style.opacity = 0;
   });
 })();
+
+(function(){
+  const b = document.getElementById('btn-ver-senha'), i = document.getElementById('login-senha');
+  if(!b || !i) return;
+  b.addEventListener('click', ()=>{ const ver = i.type === 'password'; i.type = ver ? 'text' : 'password'; b.textContent = ver ? 'Ocultar' : 'Mostrar'; b.setAttribute('aria-pressed', ver); b.setAttribute('aria-label', ver ? 'ocultar senha' : 'mostrar senha'); i.focus(); });
+})();
