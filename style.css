@@ -1915,3 +1915,43 @@ tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-
 .meu-turno-faixa[hidden]{ display:none; }
 .meu-turno-faixa .mt-quem{ font-weight:700; letter-spacing:.03em; text-transform:uppercase; font-size:11px; color:var(--muted); }
 .meu-turno-faixa .mt-n b{ font-family:var(--mono); font-size:18px; }
+
+/* ================= Celular: avisos embaixo, alvos grandes, faixa fixa ================= */
+.ck-ferr-topo-dummy{}
+#ck-ferr-topo{ margin-top:8px; }
+#ck-ferr-topo > summary .tag{ font-size:10px; text-transform:none; letter-spacing:0; }
+#ck-ferr-topo > .ck-detalhes-corpo{ display:flex; flex-direction:column; gap:8px; }
+@media (max-width:700px), (pointer:coarse) and (max-width:1100px){
+  /* avisos ao alcance do polegar, acima do menu */
+  .toast{ top:auto !important; bottom:calc(84px + env(safe-area-inset-bottom)) !important; transform:translate(-50%,14px); }
+  .toast.show{ transform:translate(-50%,0); }
+  .export-bar{ bottom:calc(76px + env(safe-area-inset-bottom)); }
+  body.tem-export-bar .toast{ bottom:calc(150px + env(safe-area-inset-bottom)) !important; }
+  /* alvos de toque de 48 px (luva, mão suja) */
+  table.checklist-furos-tabela td{ height:48px; padding-top:2px; padding-bottom:2px; }
+  table.checklist-furos-tabela input[type="checkbox"]{ width:26px; height:26px; }
+  table.checklist-furos-tabela .ck-furo-num{ min-height:44px; min-width:44px; }
+  table.checklist-furos-tabela .icon-remover, table.checklist-furos-tabela .icon-nota{ width:40px; height:40px; min-width:40px; min-height:40px; font-size:16px; }
+  .ck-acoes-furo{ white-space:nowrap; }
+  .ck-chips button, .ck-chip{ min-height:44px; }
+  /* campos legíveis sem zoom automático do navegador */
+  input:not([type=checkbox]):not([type=radio]), select, textarea{ font-size:16px; }
+  /* faixa do turno fixa e compacta */
+  .meu-turno-faixa{ position:sticky; top:0; z-index:46; flex-wrap:nowrap; gap:10px; padding:5px 10px; margin:0 0 6px; font-size:12px; overflow:hidden; white-space:nowrap; box-shadow:0 4px 8px -6px rgba(0,0,0,.4); }
+  .meu-turno-faixa .mt-n b{ font-size:15px; }
+  .meu-turno-faixa .mt-quem{ overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1 1 auto; }
+  #view-checklist .checklist-progresso-resumo{ top:34px; }
+  .leque-faixa{ top:34px; }
+}
+@media (max-width:700px){
+  table.checklist-furos-tabela th, table.checklist-furos-tabela td{ padding-left:2px; padding-right:2px; text-align:center; }
+  table.checklist-furos-tabela td:first-child, table.checklist-furos-tabela th:first-child{ text-align:left; padding-left:4px; }
+  table.checklist-furos-tabela .icon-remover, table.checklist-furos-tabela .icon-nota{ width:36px; height:36px; min-width:36px; min-height:36px; }
+  .ck-acoes-furo{ display:table-cell; width:80px; }
+  .ck-eq-tags{ display:flex; margin:2px 0 0; }
+}
+@media (max-width:700px){
+  table.checklist-furos-tabela td:has(input[type="checkbox"]){ min-width:0; width:44px; }
+  table.checklist-furos-tabela td:first-child, table.checklist-furos-tabela th:first-child{ width:48px; }
+  table.checklist-furos-tabela td.ck-acoes-furo{ width:76px; }
+}

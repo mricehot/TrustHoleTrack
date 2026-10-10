@@ -410,10 +410,10 @@ function renderExportBar(){
   const bar = el('export-bar');
   const n = lequesSelecionados.size;
   if(n === 0){
-    bar.style.display = 'none';
+    bar.style.display = 'none'; document.body.classList.remove('tem-export-bar');
     return;
   }
-  bar.style.display = 'flex';
+  bar.style.display = 'flex'; document.body.classList.add('tem-export-bar');
   const codigos = leques.filter(l=>lequesSelecionados.has(l.id))
     .sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}))
     .map(l=>lequeCode(l)).join(', ');
@@ -1054,15 +1054,15 @@ function editFuroModal(furo){
           <div class="grid-3" style="margin-bottom:14px;">
             <div class="field">
               <label for="edit-furo-numero">Número</label>
-              <input id="edit-furo-numero" type="text" value="${furo.numero}">
+              <input id="edit-furo-numero" type="text" inputmode="numeric" value="${furo.numero}">
             </div>
             <div class="field">
               <label for="edit-furo-esperada">Esperada (m)</label>
-              <input id="edit-furo-esperada" type="number" step="0.1" min="0" value="${furo.metragemEsperada}">
+              <input id="edit-furo-esperada" type="number" inputmode="decimal" step="0.1" min="0" value="${furo.metragemEsperada}">
             </div>
             <div class="field">
               <label for="edit-furo-real">Real (m)</label>
-              <input id="edit-furo-real" type="number" step="0.1" min="0" value="${furo.metragemReal}">
+              <input id="edit-furo-real" type="number" inputmode="decimal" step="0.1" min="0" value="${furo.metragemReal}">
             </div>
           </div>
           <div class="field" style="margin-bottom:16px;">
@@ -1233,7 +1233,7 @@ function editLequeModal(leque){
             </div>
             <div class="field">
               <label for="edit-leque-numero">Número</label>
-              <input id="edit-leque-numero" type="text" value="${leque.numero}">
+              <input id="edit-leque-numero" type="text" inputmode="numeric" value="${leque.numero}">
             </div>
             <div class="field">
               <label for="edit-leque-nome">Observação (opcional)</label>

@@ -356,6 +356,8 @@ function desfazerLoteChecklist(snapLeques, snapFuros){
   if(busca) busca.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); irParaFuroBuscado(busca.value); } });
   if(local) local.addEventListener('change', ()=>{ checklistFiltro.local = local.value; renderChecklist(); });
   if(sel) sel.addEventListener('click', alternarModoSelecaoChecklist);
+  const grupoF = document.getElementById('ck-ferr-topo');
+  if(grupoF) grupoF.addEventListener('toggle', ()=>{ if(grupoF.dataset.prog){ delete grupoF.dataset.prog; return; } grupoF.dataset.tocado = '1'; });
   if(det) det.addEventListener('toggle', ()=>{ if(det.dataset.prog){ delete det.dataset.prog; return; } det.dataset.tocado = '1'; });
 })();
 

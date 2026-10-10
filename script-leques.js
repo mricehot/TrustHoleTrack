@@ -1024,6 +1024,8 @@ function renderChecklist(){
   renderChecklistPorEquipe(todosFurosDoRealce);
 
   const detAdicionar = el('checklist-adicionar');
+  const grupoFerr = el('ck-ferr-topo');
+  if(grupoFerr && !grupoFerr.dataset.tocado && grupoFerr.open !== (itens.length === 0)){ grupoFerr.dataset.prog = '1'; grupoFerr.open = itens.length === 0; }
   if(detAdicionar && !detAdicionar.dataset.tocado && detAdicionar.open !== (itens.length === 0)){
     detAdicionar.dataset.prog = '1'; // abertura automática: não conta como escolha do usuário
     detAdicionar.open = itens.length === 0;
