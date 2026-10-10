@@ -1347,10 +1347,11 @@ function renderAneisMenu(){
   lista.innerHTML = aneisFiltrados.map(a=>{
     const ativo = a.id === anelAtivoId;
     return `
-      <div class="anel-row ${ativo?'ativo':''}">
+      <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}">
         <span class="nome">${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${a.nivel}</span>` : ''}
         ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
+        ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
         <span class="spacer"></span>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
         <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
@@ -1684,6 +1685,7 @@ async function finalizarLeque(id){
   enfileirar('leques', 'update', { id: l.id, status: 'fechado' });
   salvarLocal();
   renderAll();
+  brilharBorda(document.querySelector(`.leque-group[data-leque-id="${l.id}"]`), true);
   showToast(`Leque ${lequeCode(l)} finalizado.`);
 }
 
@@ -3591,19 +3593,39 @@ function desfazerMarcaFuro(antes){
 }
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
-// Leque a 100%: um brilho percorre a borda do card e o selo ✓ "salta"; vibração leve no celular.
+// Brilho que percorre a borda de um elemento (leque completo, realce 100%, meta batida...).
+function brilharBorda(elemento, vibrar){
+  try{
+    if(!elemento) return;
+    if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    elemento.classList.remove('fx-borda'); void elemento.offsetWidth; // reinicia se já estava rodando
+    elemento.classList.add('fx-borda');
+    setTimeout(()=>{ elemento.classList.remove('fx-borda'); }, 1400);
+    if(vibrar && navigator.vibrate) navigator.vibrate([18, 40, 28]);
+  }catch(e){}
+}
+// Leque a 100%: brilho na borda + selo ✓ que "salta"; vibração leve no celular.
 function celebrarLequeCompleto(card, lequeId){
   try{
     if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     card.classList.add('completo-fx');
     setTimeout(()=>{ card.classList.remove('completo-fx'); }, 1400);
-    if(navigator.vibrate) navigator.vibrate([18, 40, 28]);
+    brilharBorda(card, true);
   }catch(e){}
 }
+// Realce inteiro: todos os leques do checklist completos.
+function realceChecklistCompleto(anelId){
+  const lq = checklistLeques.filter(c=>c.anelId===anelId);
+  return lq.length > 0 && lq.every(c=> estadoDoLeque(checklistFuros.filter(f=>f.checklistLequeId===c.id)) === 'ok');
+}
+const ANEL_COMPLETO_ANTES = new Map();
+const anelFxPendente = new Set();
 const ESTADO_ANTERIOR_LEQUE = new Map();
 function guardarEstadoLeque(lequeId){
   const furos = checklistFuros.filter(x=>x.checklistLequeId===lequeId);
   ESTADO_ANTERIOR_LEQUE.set(lequeId, estadoDoLeque(furos));
+  const c = checklistLeques.find(x=>x.id===lequeId);
+  if(c) ANEL_COMPLETO_ANTES.set(c.anelId, realceChecklistCompleto(c.anelId));
 }
 // Movimento curto e discreto ao marcar: caixa "estala", a barra cresce a partir do valor anterior
 // e, se o leque mudou de estado (ex.: ficou completo), a borda dá um brilho. Respeita "reduzir movimento".
@@ -3629,6 +3651,12 @@ function pulsarMarcaFuro(f, funcao, anterior){
     const est = estadoDoLeque(furos);
     if(anterior && anterior !== est){ card.classList.add('brilho'); }
     if(est === 'ok' && anterior !== 'ok') celebrarLequeCompleto(card, f.checklistLequeId);
+    const lq = checklistLeques.find(x=>x.id===f.checklistLequeId);
+    if(lq && realceChecklistCompleto(lq.anelId) && ANEL_COMPLETO_ANTES.get(lq.anelId) === false){
+      brilharBorda(document.querySelector('.checklist-progresso-resumo'), false);
+      anelFxPendente.add(lq.anelId);
+      showToast('Realce 100%: todos os leques completos.');
+    }
   }catch(e){}
 }
 function toggleChecklistFuro(id){
@@ -5201,6 +5229,10 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  if(viewId === 'aneis' && anelFxPendente.size){
+    const ids = [...anelFxPendente]; anelFxPendente.clear();
+    requestAnimationFrame(()=> ids.forEach(id=> brilharBorda(document.querySelector(`.anel-row[data-anel-id="${id}"]`), false)));
+  }
 }
 
 document.querySelectorAll('.tab-item[data-view]').forEach(btn=>{
@@ -5527,6 +5559,7 @@ function mudarSemanaInfografico(delta){
 const fmtPontos = n => n + (n === 1 ? ' ponto' : ' pontos');
 
 // Atualiza só barras/total (sem recriar os campos — não tira o foco de quem está digitando).
+const META_BATIDA_ANTES = new Map();
 function atualizarBarrasEResumoProdutividade(){
   const dados = equipesDoProjeto().map(e=>{ const r = somaDaSemanaSelecionada(e.id); return { id: e.id, m: r.metros, p: r.pontos, meta: e.metaSemanal > 0 ? e.metaSemanal : 0 }; });
   const maxM = Math.max(1, ...dados.map(d=>d.m)), maxP = Math.max(1, ...dados.map(d=>d.p));
@@ -5535,6 +5568,10 @@ function atualizarBarrasEResumoProdutividade(){
     const bm = document.getElementById('barra-metros-' + d.id), bp = document.getElementById('barra-pontos-' + d.id), tag = document.getElementById('lider-' + d.id);
     // Com meta semanal cadastrada, a barra é "realizado ÷ meta"; sem meta, compara com a melhor equipe.
     if(bm){
+      const chaveMeta = d.id + '|' + dataISOLocal(intervaloSemanaInfografico().inicio);
+      const bateuAgora = !!d.meta && d.m >= d.meta;
+      if(META_BATIDA_ANTES.has(chaveMeta) && !META_BATIDA_ANTES.get(chaveMeta) && bateuAgora) brilharBorda(bm.closest('.equipe-linha'), true);
+      META_BATIDA_ANTES.set(chaveMeta, bateuAgora);
       bm.style.width = (d.meta ? Math.min(100, Math.max(0, d.m) / d.meta * 100) : Math.max(0, d.m) / maxM * 100) + '%';
       bm.classList.toggle('meta-batida', !!d.meta && d.m >= d.meta);
     }
