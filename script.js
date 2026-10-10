@@ -940,6 +940,9 @@ function showToast(msg, opcoes){
   // ninguém está olhando a tela no segundo em que o aviso aparece).
   const ehErro = opcoes.erro != null ? opcoes.erro : /^(N[ãa]o foi poss[íi]vel|Erro|Sem conex[ãa]o|Falha)/i.test(msg);
   t.classList.toggle('erro', ehErro);
+  // tipo do aviso: cor e ícone próprios (sucesso, atenção, erro, info)
+  const tipo = ehErro ? 'erro' : (opcoes.tipo || (/^(Sem (conex|internet)|Ainda há|Nenhum|Já existe|Preencha|Atenção)/i.test(msg) ? 'aviso' : (/(salv|atualizad|registrad|criad|removid|marcad|perfilad|topografad|enviad|volt|liberad|Tudo)/i.test(msg) ? 'ok' : 'info')));
+  t.dataset.tipo = tipo;
   if(opcoes.acaoLabel && opcoes.onAcao){
     t.innerHTML = `<span>${escHtml(msg)}</span><button type="button" class="toast-acao">${opcoes.acaoLabel}</button>`;
     t.querySelector('.toast-acao').addEventListener('click', ()=>{
@@ -951,9 +954,10 @@ function showToast(msg, opcoes){
     t.innerHTML = `<span>${escHtml(msg)}</span><button type="button" class="toast-acao toast-ok">OK</button>`;
     t.querySelector('.toast-ok').addEventListener('click', ()=>{ clearTimeout(t._timer); t.classList.remove('show'); });
   }else{
-    t.textContent = msg;
+    t.innerHTML = `<span>${escHtml(msg)}</span>`;
   }
 
+  t.classList.remove('show'); void t.offsetWidth;
   t.classList.add('show');
   // com botão de ação, fica mais tempo na tela — precisa de uma folga pra dar
   // tempo de ler e decidir se quer desfazer, não só "ver passar".
@@ -1017,13 +1021,15 @@ el('btn-historico-toast').addEventListener('click', abrirModalHistoricoToasts);
 function confirmDialog(mensagem, textoConfirmar){
   return new Promise(resolve=>{
     const root = el('modal-root');
+    const perigoso = /remover|apagar|excluir|finalizar|mesmo assim|⚠|NÃO/i.test(mensagem + ' ' + (textoConfirmar || ''));
     root.innerHTML = `
       <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
+        <div class="modal-box modal-confirma ${perigoso ? 'perigoso' : ''}" role="alertdialog" aria-modal="true">
+          <div class="modal-ico" aria-hidden="true">${perigoso ? '⚠' : '?'}</div>
           <p>${mensagem}</p>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
-            <button class="danger" id="modal-confirmar">${textoConfirmar || 'Confirmar'}</button>
+            <button class="${perigoso ? 'danger' : 'steel'}" id="modal-confirmar">${textoConfirmar || 'Confirmar'}</button>
           </div>
         </div>
       </div>
@@ -1032,6 +1038,7 @@ function confirmDialog(mensagem, textoConfirmar){
     el('modal-cancelar').addEventListener('click', ()=> fechar(false));
     el('modal-confirmar').addEventListener('click', ()=> fechar(true));
     el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(false); });
+    el('modal-cancelar').focus();
   });
 }
 
