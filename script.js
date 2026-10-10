@@ -16,6 +16,27 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 const el = id => document.getElementById(id);
+
+// ---------- Conforto no campo: vibração e tela acesa ----------
+const PREFS_UX_KEY = 'perfilagem-prefs-ux-v1';
+const prefsUx = { tela: true, vibrar: true };
+try{ Object.assign(prefsUx, JSON.parse(localStorage.getItem(PREFS_UX_KEY) || '{}')); }catch(e){}
+function salvarPrefsUx(){ try{ localStorage.setItem(PREFS_UX_KEY, JSON.stringify(prefsUx)); }catch(e){} }
+function vibrarCurto(padrao){ if(prefsUx.vibrar && navigator.vibrate){ try{ navigator.vibrate(padrao || 12); }catch(e){} } }
+let wakeLockTela = null;
+// Mantém a tela acesa enquanto o checklist está aberto (quando o aparelho permite) e solta ao sair.
+async function atualizarWakeLock(){
+  try{
+    const querer = prefsUx.tela && document.body.dataset.view === 'checklist' && document.visibilityState === 'visible';
+    if(querer && !wakeLockTela && navigator.wakeLock){
+      wakeLockTela = await navigator.wakeLock.request('screen');
+      wakeLockTela.addEventListener('release', ()=>{ wakeLockTela = null; });
+    }else if(!querer && wakeLockTela){
+      const w = wakeLockTela; wakeLockTela = null; await w.release();
+    }
+  }catch(e){ wakeLockTela = null; }
+}
+document.addEventListener('visibilitychange', atualizarWakeLock);
 const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
 // Antes cada letra de turno tinha uma dupla fixa de técnicos. Foi esvaziado a pedido:
 // as equipes agora são cadastradas por projeto (Infográfico > Gerenciar equipes).
@@ -2189,7 +2210,7 @@ function iniciarArrasteChecklist(ev, id){
   let ultimoY = ev.clientY;
   card.classList.add('arrastando'); lista.classList.add('em-arraste');
   try{ alca.setPointerCapture(ev.pointerId); }catch(e){}
-  if(navigator.vibrate) try{ navigator.vibrate(15); }catch(e){}
+  vibrarCurto(15);
 
   const posicionar = ()=>{
     card.style.transform = 'none';
@@ -3422,6 +3443,13 @@ function animarFechar(corpo, seta, depois){
     setTimeout(()=>{ if(corpo.isConnected && a.playState !== 'finished'){ try{ a.finish(); }catch(e){ depois(); } } }, 400);
   }catch(e){ depois(); }
 }
+document.addEventListener('click', ev=>{
+  // Célula inteira é alvo de toque: quem usa luva não precisa acertar a caixa pequena.
+  const td = ev.target.closest && ev.target.closest('table.checklist-furos-tabela td');
+  if(!td || ev.target.closest('input, button')) return;
+  const cx = td.querySelector('input[type="checkbox"]:not(:disabled)');
+  if(cx) cx.click();
+});
 function toggleExpandirChecklist(id){
   const sel = '#ck-card-' + id;
   if(checklistExpandido.has(id)){
@@ -3807,7 +3835,7 @@ function brilharBorda(elemento, vibrar, cor){
     if(cor) elemento.style.setProperty('--fx-cor', cor); else elemento.style.removeProperty('--fx-cor');
     elemento.classList.add('fx-borda');
     setTimeout(()=>{ elemento.classList.remove('fx-borda'); }, 1400);
-    if(vibrar && navigator.vibrate) navigator.vibrate([18, 40, 28]);
+    if(vibrar) vibrarCurto([18, 40, 28]);
   }catch(e){}
 }
 // Leque a 100%: brilho na borda + selo ✓ que "salta"; vibração leve no celular.
@@ -3872,6 +3900,7 @@ function toggleChecklistFuro(id){
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
+  vibrarCurto(10);
   // Guarda quando foi marcado (ou limpa, se desmarcar) — é isso que permite
   // depois calcular "quanto foi perfilado hoje/essa semana/esse mês" de
   // verdade, em vez de só o total acumulado até agora.
@@ -3890,6 +3919,7 @@ function toggleChecklistFuroTopografado(id){
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
+  vibrarCurto(10);
   f.topografadoEm = f.topografado ? new Date().toISOString() : null;
   enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
   salvarChecklistFurosLocal();
@@ -3905,6 +3935,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   const valor = motivo ? OBSTRUIDO_VALOR : '';
+  vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
   f.obstruido = valor;
   enfileirar('checklist_furos', 'update', { id: f.id, obstruido: valor || null });
@@ -3990,6 +4021,12 @@ function salvarConfig(){
   showToast('Configurações salvas.');
 }
 el('btn-salvar-config').addEventListener('click', salvarConfig);
+(function iniciarPrefsUx(){
+  const t = el('pref-tela'), v = el('pref-vibrar'); if(!t || !v) return;
+  t.checked = !!prefsUx.tela; v.checked = !!prefsUx.vibrar;
+  t.addEventListener('change', ()=>{ prefsUx.tela = t.checked; salvarPrefsUx(); atualizarWakeLock(); });
+  v.addEventListener('change', ()=>{ prefsUx.vibrar = v.checked; salvarPrefsUx(); if(v.checked) vibrarCurto([12, 40, 12]); });
+})();
 
 // O filtro de projeto ativo já aplica na hora, sem precisar clicar em
 // "Salvar" — é só uma forma de enxergar a lista, não uma configuração
@@ -5446,6 +5483,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  atualizarWakeLock();
   if(viewId === 'checklist' || viewId === 'infografico' || viewId === 'turno') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
   if(viewId === 'aneis' && anelFxPendente.size){
     const ids = [...anelFxPendente]; anelFxPendente.clear();

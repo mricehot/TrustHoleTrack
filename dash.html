@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010013000">
+<link rel="stylesheet" href="style.css?v=20261010023000">
 
 </head>
 <body>
@@ -464,6 +464,13 @@
             <button type="button" id="btn-salvar-config" class="steel" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
+              <label>Conforto no campo <span class="tag">só neste aparelho</span></label>
+              <label class="pref-linha"><input type="checkbox" id="pref-tela"> Manter a tela acesa no checklist</label>
+              <label class="pref-linha"><input type="checkbox" id="pref-vibrar"> Vibrar ao marcar, desmarcar ou obstruir</label>
+              <div class="hint">A vibração e a tela acesa dependem do aparelho e do navegador.</div>
+            </div>
+
+            <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
               <label for="config-novo-projeto-input">Projetos</label>
               <div class="obs-add-row">
                 <input id="config-novo-projeto-input" type="text" placeholder="ex: Ero - Pilar" maxlength="80">
@@ -742,7 +749,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010013000"></script>
+<script src="script.js?v=20261010023000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

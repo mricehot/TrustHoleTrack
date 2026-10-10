@@ -1480,3 +1480,26 @@ tr.obstr-entra td.bloq::after{ transform-origin:left center; animation:riscoDese
 .obs-atalho{ min-height:40px; padding:0 14px; font-size:13px; font-family:var(--sans); font-weight:600; border-radius:999px; background:var(--surface-2); color:var(--text); border:1px solid var(--line); width:auto; letter-spacing:0; text-transform:none; }
 .obs-atalho:active{ transform:scale(.96); background:var(--steel); color:#fff; }
 .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* Alvos de toque maiores (uso de luva) */
+table.checklist-furos-tabela td{ padding:2px 6px; }
+table.checklist-furos-tabela input[type="checkbox"]{ width:28px; height:28px; }
+table.checklist-furos-tabela td:has(input[type="checkbox"]){ min-width:56px; text-align:center; cursor:pointer; }
+table.checklist-furos-tabela td:has(input[type="checkbox"]:disabled){ cursor:not-allowed; }
+table.checklist-furos-tabela .icon-remover{ width:44px; height:44px; min-width:44px; min-height:44px; font-size:15px; }
+.ck-furo-num{ min-width:44px; min-height:44px; }
+.leque-select-wrap{ min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; }
+.leque-select-wrap input{ width:24px; height:24px; }
+.leque-actions button.icon, button.icon{ min-height:44px; min-width:44px; }
+.link-obs{ min-height:44px; padding:0 8px; display:inline-flex; align-items:center; }
+.ajuda > summary{ width:40px; height:40px; }
+.checklist-furos-add button{ min-height:44px; }
+.pref-linha{ display:flex; align-items:center; gap:10px; min-height:44px; font-size:14px; text-transform:none; letter-spacing:0; font-weight:500; color:var(--text); }
+.pref-linha input{ width:24px; height:24px; accent-color:var(--steel); margin:0; }
+
+/* Indicador "salvo/salvando": só uma bolinha; texto completo apenas em erro ou sem internet */
+.status-salvamento.salvo, .status-salvamento.salvando{ padding:0; width:14px; height:14px; justify-content:center; box-shadow:none; bottom:calc(66px + env(safe-area-inset-bottom)); right:12px; }
+.status-salvamento.salvo .status-texto, .status-salvamento.salvando .status-texto{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+.status-salvamento.salvo .status-ponto, .status-salvamento.salvando .status-ponto{ width:10px; height:10px; }
+.checklist-leque-obs .link-obs, .checklist-leque-local .link-obs{ min-height:44px; padding:0 8px; display:inline-flex; align-items:center; }
+.titulo-ajuda .ajuda > summary, .ajuda > summary{ width:40px; height:40px; }
