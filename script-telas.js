@@ -342,6 +342,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  if(viewId === 'tecnico' && typeof atualizarAvatarEMeuDia === 'function') atualizarAvatarEMeuDia();
   atualizarWakeLock();
   if(viewAnterior && viewAnterior !== viewId){
     const novo = document.getElementById('view-' + viewId);

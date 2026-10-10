@@ -1769,3 +1769,19 @@ button:active:not(:disabled){ transform:scale(.97); }
 .senha-wrap input{ flex:1; min-width:0; }
 .senha-wrap button{ min-width:84px; }
 .infografico-kpi .valor .unidade{ margin-left:5px; }
+
+/* ================= Área do usuário ================= */
+.avatar{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; color:#fff; font-weight:800; font-size:13px; flex-shrink:0; background:var(--steel); letter-spacing:.5px; }
+.avatar-grande{ width:56px; height:56px; font-size:20px; }
+.menu-usuario{ display:flex !important; align-items:center; gap:10px; padding:10px 12px; }
+.menu-usuario-txt{ display:flex; flex-direction:column; min-width:0; }
+.menu-usuario-txt b{ font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.menu-usuario-txt small{ color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; }
+.meu-dia{ padding:16px; border-top:4px solid var(--amber); }
+.md-topo{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.md-topo b{ font-size:18px; }
+.md-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.md-kpis div{ background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 6px; text-align:center; }
+.md-kpis b{ display:block; font-size:28px; font-family:var(--mono); line-height:1.1; }
+.md-kpis span{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+.md-kpis div:nth-child(1) b{ color:var(--est-ok); } .md-kpis div:nth-child(2) b{ color:var(--steel); } .md-kpis div:nth-child(3) b{ color:var(--est-obs); }

@@ -30,6 +30,7 @@ function mostrarApp(user){
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
   if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
+  try{ atualizarAvatarEMeuDia(); }catch(e){}
   if(typeof tutorialJaVisto === 'function' && !tutorialJaVisto()) setTimeout(()=> abrirTutorial(0), 700);
 }
 
@@ -99,7 +100,11 @@ async function fazerLogin(){
 }
 
 async function fazerLogout(){
-  if(!(await confirmDialog('Sair do BlastHole Manager?', 'Sair'))) return;
+  const pend = (typeof falhasDeEnvio !== 'undefined' ? falhasDeEnvio.size : 0) + (typeof debouncesPendentes !== 'undefined' ? debouncesPendentes.size : 0);
+  const msg = pend > 0
+    ? `⚠ Você tem ${pend} alteração(ões) que ainda NÃO foram enviadas. Se sair agora, elas ficam guardadas neste aparelho e só sobem quando você entrar de novo com sinal. Sair mesmo assim?`
+    : 'Sair do BlastHole Manager?';
+  if(!(await confirmDialog(msg, pend > 0 ? 'Sair mesmo assim' : 'Sair'))) return;
   await db.auth.signOut();
   limparSessaoCache();
   mostrarLogin();

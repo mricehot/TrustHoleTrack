@@ -60,6 +60,36 @@ function renderPerfilTecnico(){
   const campoNome = el('tecnico-nome');
   if(campoEmail) campoEmail.value = usuarioAtual.email || '';
   if(campoNome) campoNome.value = usuarioAtual.nome || '';
+  atualizarAvatarEMeuDia();
+}
+
+function iniciaisDe(txt){
+  const p = String(txt || '').split(/[\s@._-]+/).filter(Boolean);
+  if(!p.length) return '?';
+  return ((p[0][0] || '') + (p.length > 1 ? p[p.length-1][0] : '')).toUpperCase();
+}
+function corDoUsuario(txt){
+  let h = 0; for(const c of String(txt||'')) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${h} 45% 38%)`;
+}
+function atualizarAvatarEMeuDia(){
+  if(!usuarioAtual) return;
+  const nome = usuarioAtual.nome || usuarioAtual.email || '';
+  const ini = iniciaisDe(nome), cor = corDoUsuario(usuarioAtual.email || nome);
+  ['menu-avatar','md-avatar'].forEach(id=>{ const a = el(id); if(a){ a.textContent = ini; a.style.background = cor; } });
+  const mn = el('menu-nome'); if(mn) mn.textContent = nome;
+  const me = el('menu-email'); if(me) me.textContent = usuarioAtual.nome ? (usuarioAtual.email || '') : '';
+  const mdn = el('md-nome'); if(mdn) mdn.textContent = nome;
+  const hoje = chaveDia(new Date());
+  const eu = nomeDoUsuario();
+  const meus = checklistFuros;
+  const noDia = iso => iso && chaveDia(iso) === hoje;
+  const perf = meus.filter(f=>f.perfilado && f.perfiladoPor === eu && noDia(f.perfiladoEm)).length;
+  const topo = meus.filter(f=>f.topografado && f.topografadoPor === eu && noDia(f.topografadoEm)).length;
+  const obs = meus.filter(f=>f.obstruido && f.obstruidoPor === eu).length;
+  [['md-perf',perf],['md-topo',topo],['md-obs',obs]].forEach(([id,v])=>{ const n = el(id); if(n) n.textContent = v; });
+  const sub = el('md-sub'); if(sub) sub.textContent = usuarioAtual.email || '';
+  const dica = el('md-dica'); if(dica) dica.textContent = (perf + topo + obs) ? 'Contagem das marcações do checklist feitas por você, com seu nome.' : 'Suas marcações do checklist de hoje aparecem aqui.';
 }
 
 async function salvarPerfilTecnico(){
