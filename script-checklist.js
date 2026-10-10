@@ -92,8 +92,9 @@ function horaCurta(iso){
 }
 function textoQuemQuando(f){
   const partes = [];
-  if(f.perfilado && (f.perfiladoPor || f.perfiladoEm)) partes.push(`perfilado${f.perfiladoPor ? ' por ' + f.perfiladoPor : ''} ${horaCurta(f.perfiladoEm)}`.trim());
-  if(f.topografado && (f.topografadoPor || f.topografadoEm)) partes.push(`topografado${f.topografadoPor ? ' por ' + f.topografadoPor : ''} ${horaCurta(f.topografadoEm)}`.trim());
+  const eqP = nomeDaEquipeId(equipePerfEfetivaId(f)), eqT = nomeDaEquipeId(equipeTopoEfetivaId(f));
+  if(f.perfilado && (f.perfiladoPor || f.perfiladoEm)) partes.push(`perfilado${f.perfiladoPor ? ' por ' + f.perfiladoPor : ''}${eqP ? ' (' + eqP + ')' : ''} ${horaCurta(f.perfiladoEm)}`.trim());
+  if(f.topografado && (f.topografadoPor || f.topografadoEm)) partes.push(`topografado${f.topografadoPor ? ' por ' + f.topografadoPor : ''}${eqT ? ' (' + eqT + ')' : ''} ${horaCurta(f.topografadoEm)}`.trim());
   if(f.obstruido && f.obstruidoPor) partes.push(`obstruído por ${f.obstruidoPor}`);
   return partes.join(' · ');
 }
@@ -135,7 +136,7 @@ function htmlCardChecklist(c, agrupado){
   const eqTxt = textoEquipesLeque(c);
   const partesResumo = [localNoResumo, c.observacao ? `<b>Obs:</b> ${escHtml(c.observacao)}` : '', eqTxt].filter(Boolean);
   const resumo = partesResumo.length && !expandido
-    ? `<div class="ck-resumo-texto">${partesResumo.join(' · ')}</div>` : '';
+    ? `<div class="ck-resumo-texto">${partesResumo.join(' · ')}</div>` : (eqTxt ? `<div class="ck-resumo-texto">${eqTxt}</div>` : '');
 
   let corpo = '';
   if(expandido){
@@ -145,7 +146,7 @@ function htmlCardChecklist(c, agrupado){
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
-                  <td><button type="button" class="ck-furo-num ${(f.equipePerfId||f.equipeTopoId) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${(f.equipePerfId||f.equipeTopoId) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button></td>
+                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
@@ -1352,7 +1353,14 @@ function blocoEquipesWhatsApp(itens){
   return linhas.length ? `👷 *POR EQUIPE*\n${linhas.join('\n')}` : '';
 }
 function textoEquipesLeque(c){
-  const p = nomeDaEquipeId(c.equipePerfId), t = nomeDaEquipeId(c.equipeTopoId);
+  // Equipe do leque; se não houver, as equipes que de fato marcaram os furos (preenchidas pelo usuário logado).
+  const fl = checklistFurosDoLeque(c.id);
+  const nomes = (fixaId, efetivaFn, filtro)=>{
+    const f0 = nomeDaEquipeId(fixaId); if(f0) return [f0];
+    return [...new Set(fl.filter(filtro).map(f=>nomeDaEquipeId(efetivaFn(f))).filter(Boolean))];
+  };
+  const p = nomes(c.equipePerfId, equipePerfEfetivaId, f=>f.perfilado).join(' + ');
+  const t = nomes(c.equipeTopoId, equipeTopoEfetivaId, f=>f.topografado).join(' + ');
   const partes = [];
   if(p) partes.push(`<b>Perf.:</b> ${escHtml(p)}`);
   if(t) partes.push(`<b>Topo:</b> ${escHtml(t)}`);
