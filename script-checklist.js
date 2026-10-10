@@ -173,7 +173,7 @@ function htmlCardChecklist(c, agrupado){
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
-                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}</td>
+                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}${f.metragem > 0 ? `<small class="ck-metros">${String(f.metragem).replace('.', ',')} m</small>` : ''}</td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
@@ -181,6 +181,7 @@ function htmlCardChecklist(c, agrupado){
                 </tr>
                 ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
                 ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
+                  <label>Metragem (m)<input type="text" inputmode="decimal" value="${f.metragem != null ? String(f.metragem).replace('.', ',') : ''}" placeholder="opcional" maxlength="7" onchange="atualizarMetragemChecklistFuro('${f.id}', this.value)" aria-label="F${f.numero} metragem"></label>
                   <label>Perfilagem<select onchange="definirEquipeFuro('${f.id}','perf',this.value)" aria-label="F${f.numero} equipe da perfilagem">${htmlOpcoesEquipe(f.equipePerfId,'Igual ao leque')}</select></label>
                   <label>Topografia<select onchange="definirEquipeFuro('${f.id}','topo',this.value)" aria-label="F${f.numero} equipe da topografia">${htmlOpcoesEquipe(f.equipeTopoId,'Igual ao leque')}</select></label>
                 </td></tr>` : ''}
@@ -680,7 +681,7 @@ function montarResumoTurnoWhatsApp(){
   const eqs = equipesDoProjeto();
   const linhasEq = eqs.map(e=>{
     let m = 0, p = 0;
-    lancamentosProd.forEach(l=>{ if(l.equipeId === e.id && l.data === dia){ m += l.metros; p += l.pontos; } });
+    lancamentosEfetivos().forEach(l=>{ if(l.equipeId === e.id && l.data === dia){ m += l.metros; p += l.pontos; } });
     return (m || p) ? `- ${A(e.nome)}: ${num(m)} m perfilados | ${Math.round(p)} pontos topografados` : '';
   }).filter(Boolean);
   if(linhasEq.length) t += `\n👷 *PRODUCAO DAS EQUIPES*\n${linhasEq.join('\n')}\n`;
@@ -1640,6 +1641,7 @@ function toggleChecklistFuro(id){
   pulsarMarcaFuro(f, 'toggleChecklistFuro', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
   destacarProximoFuro(f, 'perf');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.`);
+  if(f.perfilado) setTimeout(()=>pedirMetragemFuro(f), 250);
 }
 
 function toggleChecklistFuroTopografado(id){
@@ -1679,6 +1681,41 @@ function definirObstrucaoChecklistFuro(id, motivo){
   avisoDesfazerFuro(f, antes, valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
 }
 
+// Metragem do furo (opcional): pergunta ao perfilar quando a preferência está ligada.
+function pedirMetragemModal(f){
+  return new Promise(resolve=>{
+    const root = el('modal-root');
+    root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+      <p style="font-weight:700;">Metragem do F${escHtml(String(f.numero))} (m)</p>
+      <div class="field" style="margin-bottom:16px;"><input id="metragem-furo-input" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="ex.: 12,5" value="${f.metragem != null ? String(f.metragem).replace('.', ',') : ''}" maxlength="7"></div>
+      <div class="modal-actions"><button class="ghost" id="modal-cancelar">Pular</button><button class="steel" id="modal-salvar">Salvar</button></div></div></div>`;
+    const fechar = v=>{ root.innerHTML = ''; resolve(v); };
+    const inp = el('metragem-furo-input');
+    el('modal-cancelar').onclick = ()=> fechar(null);
+    el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(null); });
+    const salvar = ()=>{ const n = parseFloat(inp.value.trim().replace(',', '.')); if(isNaN(n) || n <= 0 || n > 999){ inp.focus(); return; } fechar(n); };
+    el('modal-salvar').onclick = salvar;
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } else if(e.key === 'Escape'){ fechar(null); } });
+    setTimeout(()=>inp.focus(), 50);
+  });
+}
+async function pedirMetragemFuro(f){
+  if(!prefsUx.metragem || !f.perfilado) return;
+  const n = await pedirMetragemModal(f);
+  if(n == null) return;
+  atualizarMetragemChecklistFuro(f.id, String(n));
+  showToast(`F${f.numero}: ${String(n).replace('.', ',')} m registrados.`, { tipo:'ok' });
+}
+// Produtividade: lançamentos manuais das equipes + metros informados nos furos perfilados.
+function lancamentosEfetivos(){
+  const extra = [];
+  checklistFuros.forEach(f=>{
+    if(!f.perfilado || !f.perfiladoEm || !(f.metragem > 0)) return;
+    const eq = equipePerfEfetivaId(f); if(!eq) return;
+    extra.push({ id: 'furo:' + f.id, equipeId: eq, data: chaveDia(f.perfiladoEm), metros: Number(f.metragem), pontos: 0, doFuro: true });
+  });
+  return extra.length ? lancamentosProd.concat(extra) : lancamentosProd;
+}
 function atualizarMetragemChecklistFuro(id, valorTexto){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;

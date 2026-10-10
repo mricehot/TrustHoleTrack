@@ -447,7 +447,7 @@ function calcularEstatisticasInfografico(){
   };
   // 1) Metros lançados pelas equipes (cada lançamento tem data) — é o que entra no gráfico diário.
   const idsEquipesEscopo = new Set((configApp.projetoAtivo ? equipes.filter(e=>e.projeto === configApp.projetoAtivo) : equipes).map(e=>e.id));
-  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
+  lancamentosEfetivos().forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
   // Topografia lançada pelas equipes (pontos por dia) entra junto com os furos marcados no checklist
   // — antes só o checklist contava, e o gráfico ficava parado quando a equipe lançava só o total do dia.
   const somaTopo = (chave, n)=>{
@@ -623,7 +623,7 @@ function intervaloSemanaInfografico(){
 const arred2 = n => Math.round(n * 100) / 100;
 function somaLancamentos(equipeId, iniISO, fimISO){
   let m = 0, p = 0, q = 0;
-  lancamentosProd.forEach(l=>{
+  lancamentosEfetivos().forEach(l=>{
     if(l.equipeId === equipeId && l.data >= iniISO && l.data <= fimISO){ m += l.metros; p += l.pontos; q++; }
   });
   return { metros: arred2(m), pontos: Math.round(p), qtd: q };
@@ -829,7 +829,7 @@ function calcularProdutividadeMensal(chaveMes){
   const lista = equipesDoProjeto();
   const porEquipe = {}; lista.forEach(e=> porEquipe[e.id] = { metros: 0, pontos: 0 });
   const dias = new Set();
-  lancamentosProd.forEach(l=>{
+  lancamentosEfetivos().forEach(l=>{
     if(!porEquipe[l.equipeId] || l.data.slice(0,7) !== chaveMes) return;
     porEquipe[l.equipeId].metros += l.metros;
     porEquipe[l.equipeId].pontos += l.pontos;

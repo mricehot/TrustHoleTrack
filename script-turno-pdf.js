@@ -38,6 +38,7 @@ el('btn-salvar-config').addEventListener('click', salvarConfig);
 (function iniciarPrefsUx(){
   const t = el('pref-tela'), v = el('pref-vibrar'); if(!t || !v) return;
   t.checked = !!prefsUx.tela; v.checked = !!prefsUx.vibrar;
+  const mg = el('pref-metragem'); if(mg){ mg.checked = !!prefsUx.metragem; mg.addEventListener('change', ()=>{ prefsUx.metragem = mg.checked; salvarPrefsUx(); }); }
   t.addEventListener('change', ()=>{ prefsUx.tela = t.checked; salvarPrefsUx(); atualizarWakeLock(); });
   v.addEventListener('change', ()=>{ prefsUx.vibrar = v.checked; salvarPrefsUx(); if(v.checked) vibrarCurto([12, 40, 12]); });
 })();
