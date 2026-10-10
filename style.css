@@ -1596,3 +1596,13 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 @media (prefers-reduced-motion: reduce){
   .checklist-leque-card[data-est]::before, .checklist-leque-card[data-est]::after, .checklist-leque-card[data-est=obs] .ck-obstr.alta{ animation:none !important; }
 }
+
+/* Correção: o ::after anterior ficava fora da caixa do card (cortado). Agora fica por dentro e é bem visível. */
+.checklist-leque-card[data-est=and]::after, .checklist-leque-card[data-est=obs]::after{
+  left:0; top:0; bottom:0; width:60%; border-radius:inherit; z-index:1;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--est) 55%, transparent), transparent);
+  opacity:0; animation:ckRespira 3s ease-in-out infinite;
+}
+.checklist-leque-card[data-est=obs]::after{ animation-duration:1.8s; }
+@keyframes ckRespira{ 0%,100%{ opacity:0; } 50%{ opacity:1; } }
+@media (prefers-reduced-motion: reduce){ .checklist-leque-card[data-est]{ animation:none !important; } }
