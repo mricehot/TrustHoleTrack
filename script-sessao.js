@@ -30,6 +30,7 @@ function mostrarApp(user){
   el('app-wrap').style.display = '';
   const labelUsuario = el('usuario-logado-label');
   if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
+  try{ aplicarPapel(); setTimeout(carregarUsuariosEmpresa, 800); }catch(e){}
   try{ atualizarAvatarEMeuDia(); }catch(e){}
   try{ const u = lerUltimo(); if(u.view && u.view !== 'perfilagem' && document.getElementById('view-' + u.view)) mostrarView(u.view); }catch(e){}
   if(typeof tutorialJaVisto === 'function' && !tutorialJaVisto()) setTimeout(()=> abrirTutorial(0), 700);
@@ -824,9 +825,19 @@ function exigirGestor(acao){
   showToast(`Só o gestor pode ${acao}.`, { tipo:'aviso' });
   return false;
 }
+function rotuloPapel(){
+  if(!usuarioAtual) return '';
+  const u = usuariosEmpresa.find(x=>x.id === usuarioAtual.id);
+  return u && u.papel ? (u.papel === 'gestor' ? 'Gestor' : 'Técnico') : 'papel ainda não definido';
+}
 function aplicarPapel(){
   document.body.dataset.papel = ehGestor() ? 'gestor' : 'tecnico';
-  const n = el('papel-usuario-label');
-  if(n) n.textContent = ehGestor() ? '' : 'técnico';
+  const lab = el('usuario-logado-label');
+  if(lab && usuarioAtual){
+    const eq = (typeof minhaEquipeId === 'function' && minhaEquipeId()) ? nomeDaEquipeId(minhaEquipeId()) : '';
+    lab.textContent = `logado: ${usuarioAtual.nome || usuarioAtual.email} · ${rotuloPapel()}${eq ? ' · ' + eq : ''}`;
+  }
+  const campo = el('tecnico-papel');
+  if(campo) campo.value = rotuloPapel() + (minhaEquipeId() ? ' · ' + nomeDaEquipeId(minhaEquipeId()) : '');
 }
 window.addEventListener('load', ()=> setTimeout(aplicarPapel, 300));

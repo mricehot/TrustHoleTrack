@@ -104,6 +104,7 @@ async function salvarPerfilTecnico(){
   salvarSessaoCache(usuarioAtual);
   const labelUsuario = el('usuario-logado-label');
   if(labelUsuario) labelUsuario.textContent = `logado: ${usuarioAtual.nome || usuarioAtual.email}`;
+  if(typeof aplicarPapel === 'function') aplicarPapel();
   showToast('Nome atualizado.');
 }
 el('btn-salvar-perfil').addEventListener('click', salvarPerfilTecnico);
