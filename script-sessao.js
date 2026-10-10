@@ -611,3 +611,41 @@ function renderAtividadeRecente(){
   const orig = renderChecklist;
   renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMapaRealce(); renderAtividadeRecente(); }catch(e){} return r; };
 })();
+
+
+/* ================= Passagem de turno ================= */
+function pendenciasPassagem(){
+  const itens = checklistDoAnelAtivo();
+  const linhas = [];
+  let nPerf = 0, nTopo = 0, nObs = 0;
+  itens.forEach(c=>{
+    const fl = checklistFurosDoLeque(c.id);
+    const perf = fl.filter(f=>!f.perfilado && !f.obstruido).map(f=>'F'+f.numero);
+    const topo = fl.filter(f=>f.perfilado && !f.topografado && !f.obstruido).map(f=>'F'+f.numero);
+    const obs = fl.filter(f=>f.obstruido).map(f=>'F'+f.numero);
+    nPerf += perf.length; nTopo += topo.length; nObs += obs.length;
+    if(perf.length || topo.length || obs.length || !fl.length) linhas.push({ cod: PREFIXO[c.tipo] + c.numero, perf, topo, obs, vazio: !fl.length });
+  });
+  return { linhas, nPerf, nTopo, nObs, total: itens.length };
+}
+function renderPassagemTurno(){
+  const box = el('passagem-lista'); if(!box) return;
+  const d = pendenciasPassagem();
+  const r = el('passagem-resumo');
+  if(r) r.textContent = d.total ? `${d.nPerf} a perfilar · ${d.nTopo} a topografar` : '';
+  const lista = (rot, arr)=> arr.length ? `<span class="pass-grupo"><em>${rot}</em> ${arr.slice(0,10).join(', ')}${arr.length>10 ? ` +${arr.length-10}` : ''}</span>` : '';
+  box.innerHTML = !d.total ? '<div class="hint">Nenhum leque no checklist deste realce.</div>'
+    : (d.linhas.length ? d.linhas.slice(0,12).map(l=>`<div class="pass-linha"><b>${escHtml(l.cod)}</b><div>${l.vazio ? '<span class="pass-grupo"><em>sem furos lançados</em></span>' : lista('perfilar', l.perf) + lista('topografar', l.topo) + lista('obstruído', l.obs)}</div></div>`).join('') + (d.linhas.length > 12 ? `<div class="hint">+${d.linhas.length-12} leques com pendência</div>` : '')
+      : '<div class="passagem-ok">✓ Nada pendente: tudo perfilado e topografado.</div>');
+}
+(function(){
+  const b = el('passagem-obs');
+  if(b) b.addEventListener('click', ()=>{
+    const d = pendenciasPassagem();
+    if(!d.linhas.length){ showToast('Nada pendente para registrar.'); return; }
+    const txt = 'Passagem: ' + d.linhas.slice(0,6).map(l=> l.cod + (l.perf.length ? ' perf. ' + l.perf.slice(0,6).join(',') : '') + (l.topo.length ? ' topo ' + l.topo.slice(0,6).join(',') : '') + (l.obs.length ? ' obstr. ' + l.obs.join(',') : '')).join(' | ');
+    adicionarObservacaoTurno(txt.slice(0, 290), true);
+  });
+  const orig = renderResumoTurno;
+  renderResumoTurno = function(){ const r = orig.apply(this, arguments); try{ renderPassagemTurno(); }catch(e){} return r; };
+})();

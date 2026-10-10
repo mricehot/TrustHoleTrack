@@ -1878,3 +1878,10 @@ tr.ck-proximo{ animation:proxPulso 1.2s ease-in-out 3; outline:2px solid var(--a
 .ativ-hora{ font-family:var(--mono); font-size:12px; color:var(--muted); min-width:58px; }
 .ativ-txt{ font-weight:700; flex:1; }
 .ativ-por{ font-size:12px; color:var(--muted); }
+
+/* Passagem de turno */
+.passagem-lista{ display:flex; flex-direction:column; gap:6px; }
+.pass-linha{ display:flex; gap:10px; align-items:flex-start; padding:8px 10px; background:var(--surface-2); border:1px solid var(--line); border-left:5px solid var(--est-and); border-radius:8px; }
+.pass-linha b{ font-family:var(--mono); min-width:52px; }
+.pass-grupo{ display:block; font-size:13px; } .pass-grupo em{ font-style:normal; font-weight:700; color:var(--muted); margin-right:4px; text-transform:uppercase; font-size:11px; letter-spacing:.4px; }
+.passagem-ok{ padding:14px; border-radius:8px; background:color-mix(in srgb,var(--est-ok) 15%,transparent); border:1px solid var(--est-ok); font-weight:700; text-align:center; }
