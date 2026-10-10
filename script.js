@@ -2256,6 +2256,25 @@ function atualizarContadorAbaChecklist(){
   aba.setAttribute('aria-label', n ? `Checklist, ${n} leque(s) com pendência` : 'Checklist');
 }
 
+// Produção por equipe no realce aberto: furos perfilados/topografados (total e de hoje).
+function renderChecklistPorEquipe(furosDoRealce){
+  const box = el('checklist-por-equipe'); if(!box) return;
+  const hoje = dataISOLocal(new Date());
+  const ehHoje = v=> v && dataISOLocal(new Date(v)) === hoje;
+  const mapa = new Map();
+  const linha = id=>{ if(!mapa.has(id)) mapa.set(id, { p:0, ph:0, t:0, th:0 }); return mapa.get(id); };
+  furosDoRealce.forEach(f=>{
+    if(f.perfilado){ const id = equipePerfEfetivaId(f); if(id && nomeDaEquipeId(id)){ const l = linha(id); l.p++; if(ehHoje(f.perfiladoEm)) l.ph++; } }
+    if(f.topografado){ const id = equipeTopoEfetivaId(f); if(id && nomeDaEquipeId(id)){ const l = linha(id); l.t++; if(ehHoje(f.topografadoEm)) l.th++; } }
+  });
+  if(!mapa.size){ box.hidden = true; box.innerHTML = ''; return; }
+  const ordem = equipes.filter(e=>mapa.has(e.id));
+  box.hidden = false;
+  box.innerHTML = `<div class="ck-pe-titulo">Por equipe neste realce</div>` + ordem.map(e=>{
+    const l = mapa.get(e.id);
+    return `<div class="ck-pe-linha" style="--eq-cor:${corDaEquipe(e)}"><span class="ck-pe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)}</span><span class="ck-pe-num">Perf. <b>${l.p}</b>${l.ph ? ` <small>(+${l.ph} hoje)</small>` : ''}</span><span class="ck-pe-num">Topo <b>${l.t}</b>${l.th ? ` <small>(+${l.th} hoje)</small>` : ''}</span></div>`;
+  }).join('');
+}
 function renderChecklist(){
   atualizarContadorAbaChecklist();
   const grid = el('checklist-grid');
@@ -2293,6 +2312,8 @@ function renderChecklist(){
     textoTopoBarra.textContent = `${topografadosNoRealce}/${totalFurosNoRealce} · ${percentual}%`;
     barraTopo.style.width = percentual + '%';
   }
+
+  renderChecklistPorEquipe(todosFurosDoRealce);
 
   const detAdicionar = el('checklist-adicionar');
   if(detAdicionar && !detAdicionar.dataset.tocado && detAdicionar.open !== (itens.length === 0)){

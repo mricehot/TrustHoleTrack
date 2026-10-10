@@ -1373,3 +1373,9 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
 .ck-furo-eq td{display:table-cell}
 .ck-furo-eq label{display:flex;flex-direction:column;gap:2px;font-size:.7rem;margin:0 0 6px;width:100%;text-transform:uppercase}
 .equipe-checklist{margin-top:6px;font-size:.78rem;opacity:.85}
+
+.ck-por-equipe{margin:10px 0;padding:8px 10px;border:1px solid var(--border,rgba(127,127,127,.3));border-radius:10px}
+.ck-pe-titulo{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;opacity:.7;margin-bottom:4px}
+.ck-pe-linha{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:4px 0;font-size:.85rem}
+.ck-pe-nome{font-weight:600;flex:1 1 100%}
+.ck-pe-num small{opacity:.7}
