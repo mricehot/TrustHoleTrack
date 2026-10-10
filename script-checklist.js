@@ -613,6 +613,19 @@ function montarResumoTurnoWhatsApp(){
     t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
   }
 
+  // Detalhe: quais furos foram feitos no dia, leque a leque
+  const multiAneis = escopo.size > 1;
+  const linhasFeito = [];
+  checklistLeques.filter(c=>lequesEscopo.has(c.id)).forEach(c=>{
+    const fl = furosEscopo.filter(f=>f.checklistLequeId === c.id).sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
+    const p = fl.filter(f=>f.perfilado && noDia(f.perfiladoEm)).map(f=>'F'+f.numero);
+    const tp = fl.filter(f=>f.topografado && noDia(f.topografadoEm)).map(f=>'F'+f.numero);
+    if(!p.length && !tp.length) return;
+    const an = multiAneis ? (aneis.find(a=>a.id===c.anelId) || {}).nome : '';
+    linhasFeito.push(`- ${PREFIXO[c.tipo]}${c.numero}${an ? ' (' + A(an) + ')' : ''}:` + (p.length ? ` perf. ${p.join(', ')}` : '') + (p.length && tp.length ? ' |' : '') + (tp.length ? ` topo. ${tp.join(', ')}` : ''));
+  });
+  if(linhasFeito.length) t += `\n✅ *O QUE FOI FEITO NO TURNO*\n${linhasFeito.join('\n')}\n`;
+
   // Metros lançados pelas equipes no dia
   const eqs = equipesDoProjeto();
   const linhasEq = eqs.map(e=>{
