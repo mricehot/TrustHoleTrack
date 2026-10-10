@@ -1568,3 +1568,31 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 .ck-est-ico[data-est=obs]{ display:none; } /* o selo ⚠ n/total já diz "obstrução alta" */
 .checklist-leque-card[data-est=ini]{ border-left-style:solid; }
 @media (max-width:480px){ .ck-est-ico{ margin-left:3px; width:18px; height:18px; font-size:11px; } }
+
+/* ================= Efeitos contínuos nos leques (discretos) ================= */
+.checklist-leque-card[data-est=and], .checklist-leque-card[data-est=obs], .checklist-leque-card[data-est=ok]{ position:relative; }
+/* em andamento / obstrução alta: a faixa lateral "respira" */
+.checklist-leque-card[data-est=and]::after, .checklist-leque-card[data-est=obs]::after{
+  content:''; position:absolute; left:-8px; top:-1px; bottom:-1px; width:8px; border-radius:6px 0 0 6px;
+  pointer-events:none; background:linear-gradient(90deg, rgba(255,255,255,.65), rgba(255,255,255,.15)); opacity:0;
+  animation:ckRespira 3.6s ease-in-out infinite;
+}
+.checklist-leque-card[data-est=obs]::after{ animation-duration:2.4s; }
+@keyframes ckRespira{ 0%,100%{ opacity:0; } 50%{ opacity:.7; } }
+/* obstrução alta: o selo pulsa devagar */
+.checklist-leque-card[data-est=obs] .ck-obstr.alta{ animation:ckAlerta 2.4s ease-in-out infinite; }
+@keyframes ckAlerta{ 0%,100%{ box-shadow:0 0 0 0 rgba(214,69,61,0); transform:scale(1); } 50%{ box-shadow:0 0 0 5px rgba(214,69,61,.28); transform:scale(1.05); } }
+/* completo: um brilho percorre a borda de tempos em tempos */
+.checklist-leque-card[data-est=ok]:not(.fx-borda)::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;
+  background:conic-gradient(from var(--ang), transparent 0deg, transparent 280deg, color-mix(in srgb,var(--est-ok) 85%,transparent) 335deg, #fff 355deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation:ckBrilhoLoop 8s linear infinite;
+}
+.checklist-leque-card[data-est=ok]:nth-child(3n+2)::before{ animation-delay:-2.7s; }
+.checklist-leque-card[data-est=ok]:nth-child(3n)::before{ animation-delay:-5.3s; }
+@keyframes ckBrilhoLoop{ 0%{ --ang:0deg; opacity:1; } 22%{ --ang:360deg; opacity:1; } 26%,100%{ --ang:360deg; opacity:0; } }
+@media (prefers-reduced-motion: reduce){
+  .checklist-leque-card[data-est]::before, .checklist-leque-card[data-est]::after, .checklist-leque-card[data-est=obs] .ck-obstr.alta{ animation:none !important; }
+}
