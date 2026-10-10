@@ -649,3 +649,44 @@ function renderPassagemTurno(){
   const orig = renderResumoTurno;
   renderResumoTurno = function(){ const r = orig.apply(this, arguments); try{ renderPassagemTurno(); }catch(e){} return r; };
 })();
+
+/* ================= Encerrar turno (conferência antes de sair da mina) ================= */
+function dadosFimDeTurno(){
+  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
+  const noDia = iso => iso && chaveDia(iso) === dia;
+  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
+  const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
+  const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));
+  const perf = furos.filter(f=>f.perfilado && noDia(f.perfiladoEm)).length;
+  const topo = furos.filter(f=>f.topografado && noDia(f.topografadoEm)).length;
+  const notas = furos.filter(f=>(f.observacao||'').trim()).length;
+  const pend = pendenciasPassagem();
+  return { perf, topo, notas, pend, obs: observacoesDoTurnoAtual().length, fila: itensDaFila().length };
+}
+function abrirEncerrarTurno(){
+  const root = el('modal-root'); if(!root) return;
+  const d = dadosFimDeTurno();
+  const sinc = d.fila
+    ? `<div class="fim-aviso" role="alert">⚠ ${d.fila} alteração(ões) ainda não sincronizada(s). Salvas no aparelho, mas o gestor só vê quando houver sinal. Não limpe os dados do navegador.</div>`
+    : '<div class="fim-ok">✓ Tudo sincronizado.</div>';
+  const kpi = (n, r)=> `<div class="fim-kpi"><b>${n}</b><span>${r}</span></div>`;
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
+    <h3 style="margin:0 0 10px">🏁 Encerrar turno</h3>
+    <div class="fim-kpis">${kpi(d.perf,'perfilados hoje')}${kpi(d.topo,'topografados hoje')}${kpi(d.pend.nPerf,'a perfilar')}${kpi(d.pend.nTopo,'a topografar')}${kpi(d.pend.nObs,'obstruídos')}${kpi(d.notas + d.obs,'notas e obs.')}</div>
+    ${sinc}
+    ${d.pend.linhas.length ? '<label class="fim-check"><input type="checkbox" id="fim-registrar" checked> Registrar a passagem nas observações do turno</label>' : ''}
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="ghost" id="fim-fechar">Fechar</button>
+      <button class="ghost" id="fim-copiar">Copiar</button>
+      <button id="fim-enviar">Enviar no WhatsApp</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  const registrar = ()=>{
+    const c = el('fim-registrar');
+    if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
+  };
+  el('fim-fechar').onclick = fechar;
+  el('fim-copiar').onclick = async ()=>{ registrar(); const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); fechar(); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); };
+  el('fim-enviar').onclick = ()=>{ registrar(); const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); fechar(); };
+}
+(function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();

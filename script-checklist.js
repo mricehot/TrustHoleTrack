@@ -636,6 +636,8 @@ function montarResumoTurnoWhatsApp(){
         if(obstr) t += `\n${obstr}\n`;
         const porEq = blocoEquipesWhatsApp(itens);
         if(porEq) t += `\n${porEq}\n`;
+        const notasF = blocoNotasFurosWhatsApp(itens);
+        if(notasF) t += `\n${notasF}\n`;
         const obsG = checklistObsGeraisDoAnel(anel.id);
         if(obsG.length) t += `\n📝 *OBSERVACOES GERAIS*\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
       }

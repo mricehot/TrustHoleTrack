@@ -1891,3 +1891,13 @@ tr.ck-proximo{ animation:proxPulso 1.2s ease-in-out 3; outline:2px solid var(--a
 .icon-nota{ opacity:.55; } .icon-nota.tem{ opacity:1; color:var(--steel); }
 tr.ck-furo-nota td{ padding:0 10px 8px 10px; border-top:0; }
 tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-2); border-left:4px solid var(--steel); border-radius:6px; font-size:13px; font-style:italic; }
+
+/* Encerrar turno */
+.btn-encerrar-turno{ width:100%; margin-bottom:10px; min-height:48px; font-size:16px; font-weight:700; }
+.fim-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+.fim-kpi{ background:var(--surface-2); border-radius:10px; padding:8px 6px; text-align:center; }
+.fim-kpi b{ display:block; font-size:22px; line-height:1.1; }
+.fim-kpi span{ font-size:11px; opacity:.75; }
+.fim-aviso{ background:rgba(217,119,6,.14); border-left:4px solid #d97706; padding:8px 10px; border-radius:8px; font-size:13px; margin-bottom:10px; }
+.fim-ok{ color:#15803d; font-size:13px; font-weight:600; margin-bottom:10px; }
+.fim-check{ display:flex; gap:8px; align-items:center; font-size:14px; margin-bottom:10px; }
