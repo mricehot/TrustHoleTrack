@@ -613,18 +613,37 @@ function montarResumoTurnoWhatsApp(){
     t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
   }
 
-  // Detalhe: quais furos foram feitos no dia, leque a leque
+  // Detalhe: o que cada equipe (dupla) fez no dia, leque a leque
   const multiAneis = escopo.size > 1;
-  const linhasFeito = [];
+  const porEquipe = new Map(); // chave -> { nome, integ, itens: Map(leque -> {perf:[], topo:[]}) }
+  const reg = (f, c, tipo, eqId)=>{
+    const nome = nomeDaEquipeId(eqId) || '';
+    const chave = eqId || '_sem';
+    if(!porEquipe.has(chave)){
+      const eq = (typeof equipes !== 'undefined' ? equipes : []).find(e=>e.id === eqId);
+      porEquipe.set(chave, { nome: nome || 'Sem equipe', integ: eq && eq.integrantes ? eq.integrantes : '', itens: new Map() });
+    }
+    const g = porEquipe.get(chave);
+    if(!g.itens.has(c.id)) g.itens.set(c.id, { c, perf: [], topo: [] });
+    g.itens.get(c.id)[tipo].push(f);
+  };
   checklistLeques.filter(c=>lequesEscopo.has(c.id)).forEach(c=>{
-    const fl = furosEscopo.filter(f=>f.checklistLequeId === c.id).sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
-    const p = fl.filter(f=>f.perfilado && noDia(f.perfiladoEm)).map(f=>'F'+f.numero);
-    const tp = fl.filter(f=>f.topografado && noDia(f.topografadoEm)).map(f=>'F'+f.numero);
-    if(!p.length && !tp.length) return;
-    const an = multiAneis ? (aneis.find(a=>a.id===c.anelId) || {}).nome : '';
-    linhasFeito.push(`- ${PREFIXO[c.tipo]}${c.numero}${an ? ' (' + A(an) + ')' : ''}:` + (p.length ? ` perf. ${p.join(', ')}` : '') + (p.length && tp.length ? ' |' : '') + (tp.length ? ` topo. ${tp.join(', ')}` : ''));
+    furosEscopo.filter(f=>f.checklistLequeId === c.id).forEach(f=>{
+      if(f.perfilado && noDia(f.perfiladoEm)) reg(f, c, 'perf', equipePerfEfetivaId(f));
+      if(f.topografado && noDia(f.topografadoEm)) reg(f, c, 'topo', equipeTopoEfetivaId(f));
+    });
   });
-  if(linhasFeito.length) t += `\n✅ *O QUE FOI FEITO NO TURNO*\n${linhasFeito.join('\n')}\n`;
+  const ordF = (x,y)=> (parseInt(x.numero,10)||0) - (parseInt(y.numero,10)||0);
+  const blocosEq = [];
+  porEquipe.forEach(g=>{
+    const linhas = [...g.itens.values()].map(({c, perf, topo})=>{
+      const an = multiAneis ? (aneis.find(a=>a.id===c.anelId) || {}).nome : '';
+      const lst = arr => arr.sort(ordF).map(f=>'F'+f.numero).join(', ');
+      return `  ${PREFIXO[c.tipo]}${c.numero}${an ? ' (' + A(an) + ')' : ''}:` + (perf.length ? ` perf. ${lst(perf)}` : '') + (perf.length && topo.length ? ' |' : '') + (topo.length ? ` topo. ${lst(topo)}` : '');
+    });
+    blocosEq.push(`*${A(g.nome)}*${g.integ ? ' (' + A(g.integ) + ')' : ''}\n${linhas.join('\n')}`);
+  });
+  if(blocosEq.length) t += `\n✅ *O QUE FOI FEITO NO TURNO*\n${blocosEq.join('\n')}\n`;
 
   // Metros lançados pelas equipes no dia
   const eqs = equipesDoProjeto();
