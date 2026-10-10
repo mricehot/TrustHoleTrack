@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261010040000">
+<link rel="stylesheet" href="style.css?v=20261010050000">
 
 </head>
 <body>
@@ -537,6 +537,7 @@
           </div>
           <div class="config-body checklist-corpo">
             <div class="checklist-progresso-resumo">
+              <div class="ckp-titulo"><b id="checklist-realce-nome">—</b><span id="checklist-realce-leques"></span></div>
               <div class="checklist-progresso-furos">
                 <div class="checklist-progresso-furos-topo">
                   <span>Perfilados</span>
@@ -620,8 +621,8 @@
               </div>
             </div>
 
-            <div id="checklist-vazio" style="margin-top:16px;"><div class="estado-vazio"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><strong>Nenhum leque no checklist deste realce</strong><span>Adicione os leques para marcar perfilado, topografado e obstruído.</span><button type="button" onclick="const d=document.getElementById('checklist-adicionar');d.open=true;d.dataset.tocado='1';d.scrollIntoView({behavior:'smooth',block:'center'})">Adicionar leques</button></div></div>
-            <div class="ck-legenda" aria-label="legenda das cores dos leques"><span><i class="ok"></i>Completo</span><span><i class="and"></i>Em andamento</span><span><i class="obs"></i>Obstrução alta</span><span><i class="ini"></i>Não iniciado</span></div>
+            <div id="checklist-vazio" style="margin-top:16px;"><div class="estado-vazio"><svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M60 72 14 18M60 72 34 10M60 72 60 6M60 72 86 10M60 72 106 18" stroke-opacity=".6"/><circle cx="14" cy="18" r="3.5" class="ponto"/><circle cx="34" cy="10" r="3.5" class="ponto"/><circle cx="60" cy="6" r="3.5" class="ponto"/><circle cx="86" cy="10" r="3.5" class="ponto"/><circle cx="106" cy="18" r="3.5" class="ponto"/><path d="M44 74h32"/></svg><strong>Nenhum leque no checklist deste realce</strong><span>Adicione os leques para marcar perfilado, topografado e obstruído.</span><button type="button" onclick="const d=document.getElementById('checklist-adicionar');d.open=true;d.dataset.tocado='1';d.scrollIntoView({behavior:'smooth',block:'center'})">Adicionar leques</button></div></div>
+            <div class="ck-legenda" aria-label="legenda dos estados dos leques"><span><i class="ok">✓</i>Completo</span><span><i class="and">◐</i>Em andamento</span><span><i class="obs">⚠</i>Obstrução alta</span><span><i class="ini">○</i>Não iniciado</span></div>
             <div class="checklist-grid" id="checklist-grid"></div>
             <div class="ck-acoes-lote" id="checklist-acoes-lote" style="display:none;"></div>
           </div>
@@ -749,12 +750,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261010040000"></script>
-<script src="script-leques.js?v=20261010040000"></script>
-<script src="script-checklist.js?v=20261010040000"></script>
-<script src="script-turno-pdf.js?v=20261010040000"></script>
-<script src="script-telas.js?v=20261010040000"></script>
-<script src="script-sessao.js?v=20261010040000"></script>
+<script src="script.js?v=20261010050000"></script>
+<script src="script-leques.js?v=20261010050000"></script>
+<script src="script-checklist.js?v=20261010050000"></script>
+<script src="script-turno-pdf.js?v=20261010050000"></script>
+<script src="script-telas.js?v=20261010050000"></script>
+<script src="script-sessao.js?v=20261010050000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

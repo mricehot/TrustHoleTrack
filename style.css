@@ -1503,3 +1503,68 @@ table.checklist-furos-tabela .icon-remover{ width:44px; height:44px; min-width:4
 .status-salvamento.salvo .status-ponto, .status-salvamento.salvando .status-ponto{ width:10px; height:10px; }
 .checklist-leque-obs .link-obs, .checklist-leque-local .link-obs{ min-height:44px; padding:0 8px; display:inline-flex; align-items:center; }
 .titulo-ajuda .ajuda > summary, .ajuda > summary{ width:40px; height:40px; }
+
+/* ================= Melhorias visuais (status, cabeçalho fixo, escuro, vazios, menu) ================= */
+/* Estado do leque: ícone + cor (não depende só da cor) */
+.ck-est-ico{ display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-left:6px; border-radius:50%;
+  font-size:12px; font-weight:800; line-height:1; color:#fff; background:var(--est-ini); vertical-align:middle; }
+.ck-est-ico[data-est=and]{ background:var(--est-and); color:#2b1d00; }
+.ck-est-ico[data-est=obs]{ background:var(--est-obs); }
+.ck-est-ico[data-est=ok]{ display:none; } /* o selo ✓ no canto já diz "completo" */
+.checklist-leque-card[data-est=obs]{ border-left-style:solid; background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.13) 0 8px,transparent 8px 16px); }
+.checklist-leque-card[data-est=ini]{ border-left-style:dashed; }
+.ck-legenda i{ width:18px; height:18px; border-radius:50%; font-style:normal; font-size:11px; font-weight:800; line-height:18px; text-align:center; color:#fff; }
+.ck-legenda .and{ color:#2b1d00; }
+
+/* Cabeçalho fixo do checklist: nome do realce + números maiores */
+.ckp-titulo{ grid-column:1 / -1; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.ckp-titulo b{ font-size:14px; letter-spacing:.2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.ckp-titulo span{ font-family:var(--mono); font-size:12px; color:var(--muted); white-space:nowrap; }
+#view-checklist .checklist-progresso-resumo{ box-shadow:0 6px 8px -8px rgba(0,0,0,.35); }
+.checklist-progresso-furos-topo span:last-child{ font-size:14px; font-weight:800; }
+
+/* Tema escuro: menos brilho, estados legíveis, superfícies com mais camadas */
+body.dark-mode{ --bg:#0f0e15; --surface:#1a1924; --surface-2:#232231; --est-ok:#4cc27a; --est-and:#f0b93a; --est-obs:#ff6b5f; --est-ini:#8d97ab; }
+body.dark-mode .checklist-leque-card[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
+body.dark-mode .checklist-leque-card[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+body.dark-mode .checklist-leque-card[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
+body.dark-mode .ck-check input[type="checkbox"], body.dark-mode table.checklist-furos-tabela input[type="checkbox"]{ color-scheme:dark; }
+body.dark-mode .tabbar{ background:#15141d; box-shadow:0 -2px 14px rgba(0,0,0,.5); }
+body.dark-mode #view-checklist .checklist-progresso-resumo{ background:var(--surface); box-shadow:0 6px 10px -8px rgba(0,0,0,.8); }
+body.dark-mode .estado-vazio{ background:var(--surface-2); border-color:#454456; }
+body.dark-mode .toast{ background:#2c2b3b; color:var(--text); border:1px solid #454456; }
+body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
+
+/* Estados vazios ilustrados */
+.ilustra-vazio{ width:128px; height:auto; color:var(--steel); margin-bottom:2px; }
+.ilustra-vazio .ponto{ stroke:var(--est-ok); fill:var(--est-ok); fill-opacity:.25; }
+.estado-vazio .ilustra-vazio{ display:block; }
+
+/* Menu inferior com ícones: realce da aba ativa + também em tablets */
+.tab-item.active .tab-icon .icon-svg{ stroke-width:2.4; }
+@media (max-width:700px), (min-width:701px) and (max-width:1100px) and (pointer:coarse){
+  .tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:1500; margin:0; gap:0;
+    padding:0 4px env(safe-area-inset-bottom); overflow:visible; justify-content:space-around;
+    background:var(--surface); border-top:1px solid var(--line); border-bottom:none;
+    box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  }
+  .tab-item{ flex:1 1 0; flex-direction:column; justify-content:center; gap:3px; min-width:0; padding:8px 2px 7px; min-height:60px; margin:0;
+    border-bottom:none; border-top:3px solid transparent; }
+  .tab-item.active, .tab-item[data-view].active{ border-bottom-color:transparent; border-top-color:currentColor; }
+  .tab-label{ display:block !important; font-size:12px; line-height:1.1; }
+  .tab-icon .icon-svg{ width:22px; height:22px; }
+  .tab-secundaria{ display:none; }
+  .tab-mais{ display:flex; }
+  .tab-item.active .tab-icon{ background:color-mix(in srgb, currentColor 14%, transparent); border-radius:14px; padding:3px 12px; }
+}
+@media (min-width:701px) and (max-width:1100px) and (pointer:coarse){
+  body{ padding-bottom:calc(86px + env(safe-area-inset-bottom)); }
+  .tab-mais-sheet.open{ display:flex; flex-direction:column; gap:2px; position:fixed; right:8px; bottom:calc(68px + env(safe-area-inset-bottom)); z-index:1600; min-width:200px; padding:6px;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.22); }
+  .toast{ bottom:calc(76px + env(safe-area-inset-bottom)); }
+}
+.checklist-progresso-furos-topo span:last-child{ font-size:13px; white-space:nowrap; }
+.ck-est-ico[data-est=obs]{ display:none; } /* o selo ⚠ n/total já diz "obstrução alta" */
+.checklist-leque-card[data-est=ini]{ border-left-style:solid; }
+@media (max-width:480px){ .ck-est-ico{ margin-left:3px; width:18px; height:18px; font-size:11px; } }

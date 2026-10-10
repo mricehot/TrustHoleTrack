@@ -22,7 +22,7 @@ function renderAneisMenu(){
 
   const lista = el('anel-list');
   if(aneis.length === 0){
-    lista.innerHTML = `<div class="hint">Nenhum realce criado. Crie o primeiro acima.</div>`;
+    lista.innerHTML = htmlEstadoVazio('Nenhum realce criado', 'Crie o primeiro realce no campo acima para começar.', '', '', 'realce');
     return;
   }
   if(aneisFiltrados.length === 0){
@@ -984,6 +984,13 @@ function renderChecklist(){
   const idsLequesChecklist = new Set(itens.map(c=>c.id));
   const todosFurosDoRealce = checklistFuros.filter(f=>idsLequesChecklist.has(f.checklistLequeId));
 
+  const nomeRealceEl = el('checklist-realce-nome');
+  if(nomeRealceEl){
+    const a = aneis.find(x=>x.id===anelAtivoId);
+    nomeRealceEl.textContent = a ? a.nome : 'Sem realce ativo';
+    const lq = el('checklist-realce-leques');
+    if(lq) lq.textContent = itens.length ? `${itens.filter(c=>c.perfilado).length}/${itens.length} leques` : '';
+  }
   const textoFurosBarra = el('checklist-progresso-furos-texto');
   const barraFuros = el('checklist-progresso-furos-barra');
   if(textoFurosBarra && barraFuros){

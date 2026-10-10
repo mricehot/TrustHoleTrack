@@ -102,6 +102,7 @@ function estadoDoLeque(furos){
   if(furos.some(f=> f.perfilado || f.topografado || f.obstruido)) return 'and';
   return 'ini';
 }
+const ICONE_ESTADO = { ok:'✓', and:'◐', obs:'⚠', ini:'○' };
 const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado' };
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
@@ -195,7 +196,7 @@ function htmlCardChecklist(c, agrupado){
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
-        <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
+        <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span><span class="ck-est-ico" data-est="${estadoDoLeque(furos)}" role="img" aria-label="${ROTULO_ESTADO[estadoDoLeque(furos)]}">${ICONE_ESTADO[estadoDoLeque(furos)]}</span></span>
         ${progresso}
         ${obstr ? (obstrucaoAlta(obstr, furos.length)
           ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length}<span class="txt"> obstr.</span></span>`

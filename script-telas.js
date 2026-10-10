@@ -24,12 +24,12 @@ function render(){
   const lista = el('lista');
 
   if(aneis.length === 0){
-    lista.innerHTML = htmlEstadoVazio('Nenhum realce criado', 'Crie o primeiro realce para começar a registrar leques e furos.', 'Ir para Realce', "mostrarView('aneis')");
+    lista.innerHTML = htmlEstadoVazio('Nenhum realce criado', 'Crie o primeiro realce para começar a registrar leques e furos.', 'Ir para Realce', "mostrarView('aneis')", 'realce');
     return;
   }
 
   if(!anelAtivo){
-    lista.innerHTML = `<div class="empty">Nenhum realce ativo.<br>Clique na aba "Realce" e selecione um.</div>`;
+    lista.innerHTML = htmlEstadoVazio('Nenhum realce ativo', 'Escolha qual realce você está perfilando agora.', 'Escolher realce', "mostrarView('aneis')", 'realce');
     return;
   }
 
@@ -144,7 +144,7 @@ function render(){
     }
   });
 
-  lista.innerHTML = algumConteudo ? html : `<div class="empty">Nenhum registro corresponde aos filtros.</div>`;
+  lista.innerHTML = algumConteudo ? html : htmlEstadoVazio('Nada com esses filtros', 'Nenhum registro bate com o filtro atual. Limpe os filtros para ver tudo.', '', '', 'busca');
   aplicarEntradaCards();
 }
 
@@ -567,8 +567,15 @@ function equipesDoProjeto(projeto){
 }
 function nomeEscopoEquipes(){ return projetoDoEscopo() || 'Geral (sem projeto)'; }
 // Estado vazio com ícone e botão de ação (em vez de só um texto cinza solto).
-function htmlEstadoVazio(titulo, texto, rotuloBotao, acaoJs){
-  return `<div class="estado-vazio"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+const ILUSTRA_VAZIO = {
+  realce: '<svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 72V34C8 16 30 6 60 6s52 10 52 28v38"/><path d="M24 72V38c0-11 15-18 36-18s36 7 36 18v34" stroke-opacity=".55"/><path d="M42 72V44c0-6 8-10 18-10s18 4 18 10v28" stroke-opacity=".35"/><path d="M4 72h112"/><circle cx="60" cy="58" r="4" class="ponto"/></svg>',
+  leque: '<svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M60 72 14 18M60 72 34 10M60 72 60 6M60 72 86 10M60 72 106 18" stroke-opacity=".6"/><circle cx="14" cy="18" r="3.5" class="ponto"/><circle cx="34" cy="10" r="3.5" class="ponto"/><circle cx="60" cy="6" r="3.5" class="ponto"/><circle cx="86" cy="10" r="3.5" class="ponto"/><circle cx="106" cy="18" r="3.5" class="ponto"/><path d="M44 74h32"/></svg>',
+  lista: '<svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="30" y="6" width="60" height="68" rx="6"/><path d="M42 24h8M58 24h22M42 40h8M58 40h22M42 56h8M58 56h14" stroke-opacity=".6"/><path d="m41 24 2 2 4-4" class="ponto"/></svg>',
+  busca: '<svg class="ilustra-vazio" viewBox="0 0 120 80" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="54" cy="36" r="22"/><path d="m71 53 24 20"/><path d="M44 36h20" stroke-opacity=".6"/></svg>'
+};
+// Estado vazio ilustrado, com texto e botão de ação (em vez de só um texto cinza solto).
+function htmlEstadoVazio(titulo, texto, rotuloBotao, acaoJs, ilustracao){
+  return `<div class="estado-vazio">${ILUSTRA_VAZIO[ilustracao || 'realce']}
     <strong>${titulo}</strong><span>${texto}</span>${rotuloBotao ? `<button type="button" onclick="${acaoJs}">${rotuloBotao}</button>` : ''}</div>`;
 }
 function escHtml(t){ return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
