@@ -68,11 +68,11 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
-          <td>${fmt1(Number(f.metragemEsperada))} m</td>
-          <td>${fmt1(Number(f.metragemReal))} m</td>
-          <td class="diff ${diffClass(diff)}">${diffLabel(diff)}</td>
-          <td><span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span></td>
+          <td class="c-furo"><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
+          <td class="c-esp" data-l="Esperada">${fmt1(Number(f.metragemEsperada))} m</td>
+          <td class="c-real" data-l="Real">${fmt1(Number(f.metragemReal))} m</td>
+          <td class="diff c-var ${diffClass(diff)}" data-l="Variação">${diffLabel(diff)}</td>
+          <td class="c-sit"><span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span></td>
           <td class="actions">
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
@@ -325,7 +325,11 @@ el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
 const VIEWS_SECUNDARIAS = ['historico','config','tecnico'];
+const ORDEM_VIEWS = ['turno','aneis','perfilagem','checklist','infografico','historico','config','tecnico'];
+const posicaoRolagemView = {};
 function mostrarView(viewId){
+  const viewAnterior = document.body.dataset.view;
+  if(viewAnterior && viewAnterior !== viewId) posicaoRolagemView[viewAnterior] = window.scrollY;
   document.body.dataset.view = viewId; // CSS usa isto pra mostrar contadores/trilha só onde fazem sentido
   document.querySelectorAll('.view').forEach(v=> v.classList.toggle('active', v.id === 'view-'+viewId));
   document.querySelectorAll('.tab-item').forEach(b=> b.classList.toggle('active', b.dataset.view === viewId));
@@ -339,6 +343,14 @@ function mostrarView(viewId){
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
   atualizarWakeLock();
+  if(viewAnterior && viewAnterior !== viewId){
+    const novo = document.getElementById('view-' + viewId);
+    const dir = ORDEM_VIEWS.indexOf(viewId) >= ORDEM_VIEWS.indexOf(viewAnterior) ? 1 : -1;
+    window.scrollTo(0, posicaoRolagemView[viewId] || 0);
+    try{
+      if(novo && novo.animate && !semMovimento()) novo.animate([{ opacity:0, transform:`translateX(${28*dir}px)` }, { opacity:1, transform:'none' }], { duration:230, easing:'cubic-bezier(.2,.7,.2,1)' });
+    }catch(e){}
+  }
   if(viewId === 'checklist' || viewId === 'infografico' || viewId === 'turno') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
   if(viewId === 'aneis' && anelFxPendente.size){
     const ids = [...anelFxPendente]; anelFxPendente.clear();

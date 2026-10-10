@@ -461,3 +461,58 @@ function abrirTutorial(i){
   if(i>0) el('tut-ant').onclick = ()=> abrirTutorial(i-1);
   if(!ultimo) el('tut-prox').onclick = ()=> abrirTutorial(i+1);
 }
+
+
+/* ================= Esqueletos de carregamento ================= */
+function htmlEsqueleto(n){
+  return Array.from({length:n}, ()=> `<div class="esqueleto-card" aria-hidden="true"><i class="esq-linha l1"></i><i class="esq-linha l2"></i><i class="esq-linha l3"></i></div>`).join('');
+}
+function mostrarEsqueletos(on){
+  document.body.classList.toggle('carregando-dados', on);
+  ['lista','checklist-grid'].forEach(id=>{
+    const c = el(id); if(!c) return;
+    if(on && !c.children.length) c.innerHTML = htmlEsqueleto(3);
+    if(!on) c.querySelectorAll('.esqueleto-card').forEach(n=> n.remove());
+  });
+}
+(function(){
+  const original = atualizarDoServidor;
+  atualizarDoServidor = async function(){
+    const semDados = !aneis.length && !checklistLeques.length && !leques.length;
+    if(semDados && navigator.onLine) mostrarEsqueletos(true);
+    try{ return await original.apply(this, arguments); }
+    finally{ if(document.body.classList.contains('carregando-dados')){ mostrarEsqueletos(false); try{ renderAll(); }catch(e){} } }
+  };
+})();
+
+/* ================= Puxar para atualizar ================= */
+(function(){
+  const LIMITE = 90;
+  let y0 = null, dy = 0, ativo = false;
+  const ind = document.createElement('div');
+  ind.id = 'ptr'; ind.setAttribute('aria-hidden','true');
+  ind.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+  document.body.appendChild(ind);
+  const mover = v => { ind.style.transform = `translate(-50%, ${v - 56}px) rotate(${v * 3}deg)`; ind.style.opacity = Math.min(1, v / LIMITE); ind.classList.toggle('pronto', v >= LIMITE); };
+  document.addEventListener('touchstart', e=>{
+    y0 = null; dy = 0; ativo = false;
+    if(window.scrollY > 0 || !usuarioAtual || document.querySelector('.modal-overlay') || (typeof arrastandoChecklist !== 'undefined' && arrastandoChecklist)) return;
+    if(e.target.closest && e.target.closest('.tabela-wrap, input, select, textarea, .ck-arrastar, .tabbar')) return;
+    y0 = e.touches[0].clientY;
+  }, { passive:true });
+  document.addEventListener('touchmove', e=>{
+    if(y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    if(dy <= 0 || window.scrollY > 0){ if(ativo){ ativo = false; ind.style.opacity = 0; } return; }
+    ativo = true; ind.classList.remove('girando'); mover(Math.min(dy * 0.55, 120));
+  }, { passive:true });
+  document.addEventListener('touchend', async ()=>{
+    if(!ativo){ y0 = null; return; }
+    const ok = Math.min(dy * 0.55, 120) >= LIMITE;
+    y0 = null; ativo = false;
+    if(!ok){ ind.style.opacity = 0; return; }
+    ind.classList.add('girando'); ind.style.transform = 'translate(-50%, 16px)'; ind.style.opacity = 1; vibrarCurto(15);
+    try{ await sincronizarDoServidor(); }catch(e){}
+    ind.classList.remove('girando'); ind.style.opacity = 0;
+  });
+})();
