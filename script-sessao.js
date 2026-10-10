@@ -572,3 +572,42 @@ document.addEventListener('pointerdown', e=>{
   alvo.appendChild(o);
   setTimeout(()=>{ o.remove(); alvo.style.overflow = antes; if(marcou) alvo.style.position = ''; }, 520);
 }, { passive:true });
+
+
+/* ================= Mapa do realce e atividade recente (aba Checklist) ================= */
+function renderMapaRealce(){
+  const box = el('ck-mapa'); if(!box) return;
+  const itens = checklistDoAnelAtivo();
+  const ord = [...itens].sort((a,b)=> (PREFIXO[a.tipo]+a.numero).localeCompare(PREFIXO[b.tipo]+b.numero, undefined, {numeric:true}));
+  let tot = 0, ok = 0;
+  box.innerHTML = ord.length ? ord.map(c=>{
+    const fl = checklistFurosDoLeque(c.id).slice().sort((a,b)=> String(a.numero).localeCompare(String(b.numero), undefined, {numeric:true}));
+    const cel = fl.map(f=>{
+      tot++;
+      const cl = f.obstruido ? 'm-obs' : (f.perfilado && f.topografado) ? (ok++, 'm-ok') : f.perfilado ? 'm-perf' : f.topografado ? 'm-topo' : 'm-nada';
+      const rot = f.obstruido ? 'obstruído' : f.perfilado && f.topografado ? 'perfilado e topografado' : f.perfilado ? 'só perfilado' : f.topografado ? 'só topografado' : 'pendente';
+      return `<i class="${cl}" title="F${escHtml(f.numero)} — ${rot}"></i>`;
+    }).join('');
+    return `<button type="button" class="mapa-linha" onclick="irParaFuroBuscado('${PREFIXO[c.tipo]}${c.numero}')"><b>${PREFIXO[c.tipo]}${escHtml(c.numero)}</b><span class="mapa-cels">${cel || '<em>sem furos</em>'}</span></button>`;
+  }).join('') : '<div class="hint">Nenhum leque neste realce ainda.</div>';
+  const r = el('ck-mapa-resumo'); if(r) r.textContent = tot ? `${ok}/${tot} completos` : '';
+}
+function renderAtividadeRecente(){
+  const box = el('ck-ativ'); if(!box) return;
+  const ids = new Set(checklistDoAnelAtivo().map(c=>c.id));
+  const ev = [];
+  checklistFuros.forEach(f=>{
+    if(!ids.has(f.checklistLequeId)) return;
+    const c = checklistLeques.find(x=>x.id===f.checklistLequeId); const cod = c ? PREFIXO[c.tipo]+c.numero : '';
+    if(f.perfilado && f.perfiladoEm) ev.push({ t:f.perfiladoEm, txt:`${cod} F${f.numero} perfilado`, por:f.perfiladoPor, k:'perf' });
+    if(f.topografado && f.topografadoEm) ev.push({ t:f.topografadoEm, txt:`${cod} F${f.numero} topografado`, por:f.topografadoPor, k:'topo' });
+  });
+  ev.sort((a,b)=> new Date(b.t) - new Date(a.t));
+  const rec = ev.slice(0, 15);
+  const r = el('ck-ativ-resumo'); if(r) r.textContent = ev.length ? `${ev.length}` : '';
+  box.innerHTML = rec.length ? rec.map(e=>`<div class="ativ-linha ${e.k}"><span class="ativ-hora">${tempoRelativo(new Date(e.t).getTime())}</span><span class="ativ-txt">${escHtml(e.txt)}</span>${e.por ? `<span class="ativ-por">${escHtml(e.por)}</span>` : ''}</div>`).join('') : '<div class="hint">Nenhuma marcação ainda neste realce.</div>';
+}
+(function(){
+  const orig = renderChecklist;
+  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMapaRealce(); renderAtividadeRecente(); }catch(e){} return r; };
+})();
