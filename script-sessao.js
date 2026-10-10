@@ -690,3 +690,50 @@ function abrirEncerrarTurno(){
   el('fim-enviar').onclick = ()=>{ registrar(); const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); fechar(); };
 }
 (function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();
+
+/* ================= Usuários travados em equipes ================= */
+const USUARIOS_KEY = 'perfilagem-usuarios-v1';
+let usuariosEmpresa = []; // { id, email, nome, equipeId }
+try{ usuariosEmpresa = JSON.parse(localStorage.getItem(USUARIOS_KEY) || '[]') || []; }catch(e){ usuariosEmpresa = []; }
+function minhaEquipeId(){
+  if(!usuarioAtual) return null;
+  const u = usuariosEmpresa.find(x=>x.id === usuarioAtual.id);
+  if(!u || !u.equipeId) return null;
+  // se as equipes já carregaram e esta não existe mais, não carimba
+  if(equipes.length && !equipes.some(e=>e.id === u.equipeId)) return null;
+  return u.equipeId;
+}
+async function carregarUsuariosEmpresa(){
+  if(!usuarioAtual || !navigator.onLine) return;
+  try{
+    const { data, error } = await db.rpc('listar_usuarios_empresa');
+    if(error || !Array.isArray(data)) return;
+    usuariosEmpresa = data.map(r=>({ id: r.id, email: r.email, nome: r.nome || '', equipeId: r.equipe_id || null }));
+    try{ localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosEmpresa)); }catch(e){}
+    if(el('eq-usuarios')) renderUsuariosEquipes();
+  }catch(e){}
+}
+function renderUsuariosEquipes(){
+  const box = el('eq-usuarios'); if(!box) return;
+  if(!usuariosEmpresa.length){ box.innerHTML = ''; carregarUsuariosEmpresa(); return; }
+  const opcoes = id => '<option value="">Sem equipe</option>' + equipes.slice().sort((a,b)=> a.nome.localeCompare(b.nome,'pt-BR')).map(e=>`<option value="${e.id}" ${e.id===id?'selected':''}>${escHtml(e.nome)}${e.projeto ? ' · ' + escHtml(e.projeto) : ''}</option>`).join('');
+  box.innerHTML = `<div class="equipe-edit-item"><p style="font-weight:700;margin:0 0 4px">Usuários nas equipes</p>
+    <p class="hint" style="margin:0 0 8px">Quem está vinculado marca perfilado/topografado e a equipe entra sozinha. Ao vincular, marcações antigas dessa pessoa sem equipe são preenchidas.</p>
+    ${usuariosEmpresa.map(u=>`<div class="field"><label>${escHtml(u.nome || u.email.split('@')[0])} <small>${escHtml(u.email)}</small></label><select class="eq-usuario" data-uid="${u.id}">${opcoes(u.equipeId)}</select></div>`).join('')}</div>`;
+  box.querySelectorAll('.eq-usuario').forEach(sel=> sel.addEventListener('change', async ()=>{
+    if(!navigator.onLine){ showToast('Sem sinal: vincular usuário precisa de internet.', { tipo:'aviso' }); renderUsuariosEquipes(); return; }
+    sel.disabled = true;
+    const { data, error } = await db.rpc('definir_equipe_usuario', { p_usuario: sel.dataset.uid, p_equipe: sel.value || null });
+    sel.disabled = false;
+    if(error){ showToast('Não foi possível vincular: ' + error.message, { tipo:'erro' }); renderUsuariosEquipes(); return; }
+    const u = usuariosEmpresa.find(x=>x.id === sel.dataset.uid); if(u) u.equipeId = sel.value || null;
+    try{ localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosEmpresa)); }catch(e){}
+    showToast(data > 0 ? `Vinculado. ${data} marcação(ões) antiga(s) atribuída(s) à equipe.` : 'Vinculado.', { tipo:'ok' });
+    if(data > 0 && typeof atualizarDoServidor === 'function') atualizarDoServidor();
+  }));
+}
+(function(){
+  const orig = atualizarDoServidor;
+  atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); carregarUsuariosEmpresa(); return r; };
+  window.addEventListener('load', ()=> setTimeout(carregarUsuariosEmpresa, 1500));
+})();

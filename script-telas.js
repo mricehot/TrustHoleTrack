@@ -905,12 +905,14 @@ function abrirModalEquipes(){
           <div class="field"><label>Meta semanal de metros (opcional)</label><input type="text" inputmode="decimal" id="eq-novo-meta" maxlength="8" placeholder="ex.: 120"></div>
           <button type="button" class="steel" id="eq-adicionar">+ Adicionar equipe</button>
         </div>
+        <div id="eq-usuarios"></div>
         <div class="modal-actions">
           <button class="ghost" id="modal-cancelar">Cancelar</button>
           <button class="steel" id="modal-salvar-equipes">Salvar</button>
         </div>
       </div>
     </div>`;
+  if(typeof renderUsuariosEquipes === 'function') renderUsuariosEquipes();
   const fechar = ()=>{ root.innerHTML = ''; renderInfografico(); };
   el('modal-cancelar').addEventListener('click', fechar);
   el('modal-overlay').addEventListener('click', (ev)=>{ if(ev.target.id === 'modal-overlay') fechar(); });
