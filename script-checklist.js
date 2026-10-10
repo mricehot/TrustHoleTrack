@@ -90,6 +90,21 @@ function horaCurta(iso){
   const hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   return d.toDateString() === hoje.toDateString() ? hh : String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + ' ' + hh;
 }
+// Etiqueta curta com a equipe que marcou o furo (perf · topo), para ver sem abrir o furo.
+function siglaEquipe(id){
+  const n = nomeDaEquipeId(id); if(!n) return '';
+  const m = n.match(/^equipe\s+(.+)$/i); const t = (m ? m[1] : n).trim();
+  return t.length <= 3 ? t.toUpperCase() : t.slice(0,3).toUpperCase();
+}
+function corEquipe(id){ let h = 0; for(const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return h; }
+function htmlEtiquetaEquipeFuro(f){
+  const p = f.perfilado ? equipePerfEfetivaId(f) : null, t = f.topografado ? equipeTopoEfetivaId(f) : null;
+  if(!p && !t) return '';
+  const chip = (id, rot)=> id && siglaEquipe(id) ? `<b class="ck-eq-tag" style="--h:${corEquipe(id)}" title="${rot}: ${escHtml(nomeDaEquipeId(id))}">${escHtml(siglaEquipe(id))}</b>` : '';
+  if(p && t && p === t) return `<span class="ck-eq-tags">${chip(p,'perfilou e topografou')}</span>`;
+  const vazio = '<b class="ck-eq-tag vazio" title="sem equipe registrada">–</b>';
+  return `<span class="ck-eq-tags">${chip(p,'perfilou') || (f.perfilado ? vazio : '')}${chip(t,'topografou') || (f.topografado ? vazio : '')}</span>`;
+}
 function textoQuemQuando(f){
   const partes = [];
   const eqP = nomeDaEquipeId(equipePerfEfetivaId(f)), eqT = nomeDaEquipeId(equipeTopoEfetivaId(f));
@@ -146,7 +161,7 @@ function htmlCardChecklist(c, agrupado){
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
-                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button></td>
+                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}</td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>

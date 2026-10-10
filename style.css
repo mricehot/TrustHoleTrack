@@ -1901,3 +1901,11 @@ tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-
 .fim-aviso{ background:rgba(217,119,6,.14); border-left:4px solid #d97706; padding:8px 10px; border-radius:8px; font-size:13px; margin-bottom:10px; }
 .fim-ok{ color:#15803d; font-size:13px; font-weight:600; margin-bottom:10px; }
 .fim-check{ display:flex; gap:8px; align-items:center; font-size:14px; margin-bottom:10px; }
+
+/* Etiqueta da equipe no furo */
+.ck-eq-tags{ display:inline-flex; gap:3px; margin-left:6px; vertical-align:middle; }
+.ck-eq-tag{ font-family:var(--mono); font-size:10px; line-height:1; padding:3px 5px; border-radius:6px; letter-spacing:.03em;
+  background:hsl(var(--h) 60% 45% / .16); color:hsl(var(--h) 55% 32%); border:1px solid hsl(var(--h) 55% 45% / .45); }
+:root[data-theme="dark"] .ck-eq-tag{ color:hsl(var(--h) 70% 75%); }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .ck-eq-tag{ color:hsl(var(--h) 70% 75%); } }
+.ck-eq-tag.vazio{ background:transparent; color:var(--muted); border-color:var(--line); }
