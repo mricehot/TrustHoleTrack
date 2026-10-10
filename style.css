@@ -1379,3 +1379,46 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
 .ck-pe-linha{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:4px 0;font-size:.85rem}
 .ck-pe-nome{font-weight:600;flex:1 1 100%}
 .ck-pe-num small{opacity:.7}
+
+/* Cor por estado do leque (faixa lateral + degradê suave; sempre acompanhada de texto/ícone) */
+:root{ --est-ok:#2e9b57; --est-and:#e0a21b; --est-obs:#d6453d; --est-ini:#8a94a6; }
+.checklist-leque-card[data-est]{ border-left:8px solid var(--est,var(--est-ini)); }
+.checklist-leque-card[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.14),transparent 40%); }
+.checklist-leque-card[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+.checklist-leque-card[data-est=obs]{ --est:var(--est-obs); background-image:linear-gradient(90deg,rgba(214,69,61,.16),transparent 40%); }
+.checklist-leque-card[data-est=ini]{ --est:var(--est-ini); }
+.ck-legenda{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--muted); margin:8px 0; }
+.ck-legenda span{ display:inline-flex; align-items:center; gap:5px; }
+.ck-legenda i{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+.ck-legenda .ok{ background:var(--est-ok); } .ck-legenda .and{ background:var(--est-and); }
+.ck-legenda .obs{ background:var(--est-obs); } .ck-legenda .ini{ background:var(--est-ini); }
+
+/* Selo de obstrução não esmaga o progresso em tela estreita */
+.ck-obstr .txt{ display:inline; }
+@media (max-width:480px){ .ck-obstr .txt{ display:none; } .ck-obstr{ padding:3px 6px; } }
+
+/* Movimento ao marcar: discreto */
+@keyframes marcaEstala{ 0%{ transform:scale(1); filter:drop-shadow(0 0 0 rgba(46,155,87,.0)); } 35%{ transform:scale(1.28); filter:drop-shadow(0 0 5px rgba(46,155,87,.55)); } 100%{ transform:scale(1); filter:drop-shadow(0 0 0 rgba(46,155,87,0)); } }
+input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
+@keyframes barraCresce{ from{ width:var(--de); } to{ width:var(--para); } }
+.ck-prog-bar i.cresce{ animation:barraCresce .4s cubic-bezier(.2,.7,.2,1); }
+@keyframes cardBrilho{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--est) 55%, transparent); } 100%{ box-shadow:0 0 0 10px transparent; } }
+.checklist-leque-card.brilho{ animation:cardBrilho .7s ease-out; }
+@media (prefers-reduced-motion: reduce){
+  input.pulso, .ck-prog-bar i.cresce, .checklist-leque-card.brilho{ animation:none; }
+}
+@media (max-width:480px){
+  .ck-cab{ gap:6px; }
+  .ck-codigo{ min-width:0; }
+  .ck-prog-linha .num{ width:36px; }
+  .ck-prog-linha .rot{ width:28px; }
+  .ck-prog-bar{ min-width:34px; }
+}
+@media (max-width:480px){
+  .ck-arrastar{ width:28px; min-width:28px; padding:0; }
+  .ck-check{ width:38px; }
+  .ck-obstr.alta{ padding:3px 5px; font-size:11px; }
+  .ck-prog-linha{ gap:4px; }
+  .ck-prog-linha .rot{ width:26px; font-size:11px; }
+  .ck-prog-linha .num{ width:34px; font-size:11px; }
+}

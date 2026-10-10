@@ -2471,6 +2471,15 @@ function textoQuemQuando(f){
 function obstrucaoAlta(obstr, total){
   return obstr >= 3 || (obstr >= 2 && total > 0 && obstr / total >= 0.5);
 }
+// Estado visual do leque: completo (verde), em andamento (amarelo), obstrução alta (vermelho) ou não iniciado (cinza).
+function estadoDoLeque(furos){
+  const obstr = furos.filter(f=>f.obstruido).length;
+  if(obstrucaoAlta(obstr, furos.length)) return 'obs';
+  if(furos.length && furos.every(f=> f.obstruido || (f.perfilado && f.topografado))) return 'ok';
+  if(furos.some(f=> f.perfilado || f.topografado || f.obstruido)) return 'and';
+  return 'ini';
+}
+const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado' };
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
   const expandido = checklistExpandido.has(c.id);
@@ -2559,14 +2568,14 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${estadoDoLeque(furos)}" title="Leque ${ROTULO_ESTADO[estadoDoLeque(furos)]}">
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
         <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span></span>
         ${progresso}
         ${obstr ? (obstrucaoAlta(obstr, furos.length)
-          ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length} obstr.</span>`
+          ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length}<span class="txt"> obstr.</span></span>`
           : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
       </div>
       ${resumo}
@@ -3581,12 +3590,34 @@ function desfazerMarcaFuro(antes){
 }
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
-function pulsarMarcaFuro(f, funcao){
+const ESTADO_ANTERIOR_LEQUE = new Map();
+function guardarEstadoLeque(lequeId){
+  const furos = checklistFuros.filter(x=>x.checklistLequeId===lequeId);
+  ESTADO_ANTERIOR_LEQUE.set(lequeId, estadoDoLeque(furos));
+}
+// Movimento curto e discreto ao marcar: caixa "estala", a barra cresce a partir do valor anterior
+// e, se o leque mudou de estado (ex.: ficou completo), a borda dá um brilho. Respeita "reduzir movimento".
+function pulsarMarcaFuro(f, funcao, anterior){
   try{
     const alvo = document.querySelector(`input[onchange*="${funcao}('${f.id}')"]`);
     if(alvo) alvo.classList.add('pulso');
     const card = document.getElementById('ck-card-' + f.checklistLequeId);
-    if(card) card.querySelectorAll('.ck-prog-linha .num').forEach(n=> n.classList.add('pulso'));
+    if(!card) return;
+    card.querySelectorAll('.ck-prog-linha .num').forEach(n=> n.classList.add('pulso'));
+    const topo = funcao === 'toggleChecklistFuroTopografado';
+    const barra = card.querySelector(topo ? '.ck-prog-linha.topo .ck-prog-bar i' : '.ck-prog-linha:not(.topo) .ck-prog-bar i');
+    const furos = checklistFuros.filter(x=>x.checklistLequeId===f.checklistLequeId);
+    const marcado = topo ? f.topografado : f.perfilado;
+    const agora = furos.filter(x=> topo ? x.topografado : x.perfilado).length;
+    const antes = agora + (marcado ? -1 : 1);
+    if(barra && furos.length){
+      const de = Math.max(0, antes) / furos.length * 100, para = agora / furos.length * 100;
+      barra.style.setProperty('--de', de + '%');
+      barra.style.setProperty('--para', para + '%');
+      barra.classList.add('cresce');
+    }
+    const est = estadoDoLeque(furos);
+    if(anterior && anterior !== est){ card.classList.add('brilho'); }
   }catch(e){}
 }
 function toggleChecklistFuro(id){
@@ -3594,6 +3625,7 @@ function toggleChecklistFuro(id){
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
   const antes = fotoFuro(f);
+  guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
   // Guarda quando foi marcado (ou limpa, se desmarcar) — é isso que permite
   // depois calcular "quanto foi perfilado hoje/essa semana/esse mês" de
@@ -3602,7 +3634,7 @@ function toggleChecklistFuro(id){
   enfileirar('checklist_furos', 'update', { id: f.id, perfilado: f.perfilado, perfilado_em: f.perfiladoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
-  pulsarMarcaFuro(f, 'toggleChecklistFuro');
+  pulsarMarcaFuro(f, 'toggleChecklistFuro', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.`);
 }
 
@@ -3611,12 +3643,13 @@ function toggleChecklistFuroTopografado(id){
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; }
   const antes = fotoFuro(f);
+  guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
   f.topografadoEm = f.topografado ? new Date().toISOString() : null;
   enfileirar('checklist_furos', 'update', { id: f.id, topografado: f.topografado, topografado_em: f.topografadoEm });
   salvarChecklistFurosLocal();
   renderChecklist();
-  pulsarMarcaFuro(f, 'toggleChecklistFuroTopografado');
+  pulsarMarcaFuro(f, 'toggleChecklistFuroTopografado', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.topografado ? 'topografado' : 'topografado desmarcado'}.`);
 }
 

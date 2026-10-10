@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261009213000">
+<link rel="stylesheet" href="style.css?v=20261009222000">
 
 </head>
 <body>
@@ -601,6 +601,7 @@
             </div>
 
             <div id="checklist-vazio" style="margin-top:16px;"><div class="estado-vazio"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><strong>Nenhum leque no checklist deste realce</strong><span>Adicione os leques para marcar perfilado, topografado e obstruído.</span><button type="button" onclick="const d=document.getElementById('checklist-adicionar');d.open=true;d.dataset.tocado='1';d.scrollIntoView({behavior:'smooth',block:'center'})">Adicionar leques</button></div></div>
+            <div class="ck-legenda" aria-label="legenda das cores dos leques"><span><i class="ok"></i>Completo</span><span><i class="and"></i>Em andamento</span><span><i class="obs"></i>Obstrução alta</span><span><i class="ini"></i>Não iniciado</span></div>
             <div class="checklist-grid" id="checklist-grid"></div>
             <div class="ck-acoes-lote" id="checklist-acoes-lote" style="display:none;"></div>
           </div>
@@ -728,7 +729,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261009213000"></script>
+<script src="script.js?v=20261009222000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
