@@ -367,12 +367,13 @@ function blocoObstruidosWhatsApp(itens){
     const local = (c.localizacao||'').trim();
     const furos = obs.map(f=>`F${f.numero}`).join(', ');
     const total = checklistFurosDoLeque(c.id).length;
-    const alerta = obstrucaoAlta(obs.length, total) ? ` -> ATENCAO: ${obs.length} de ${total} furos obstruidos` : '';
+    const alerta = obstrucaoAlta(obs.length, total) ? ` ⚠️ ATENCAO: ${obs.length} de ${total} furos obstruidos` : '';
     linhas.push(`${PREFIXO[c.tipo]}${c.numero}${local ? ' ('+semAcento(local)+')' : ''}: ${furos}${alerta}`);
   });
-  return linhas.length ? `[FUROS OBSTRUIDOS]\n${linhas.join('\n')}` : '';
+  return linhas.length ? `⛔ *FUROS OBSTRUIDOS*\n${linhas.join('\n')}` : '';
 }
 
+function barraWa(pct){ const n = Math.round(Math.max(0,Math.min(100,pct))/10); return '▓'.repeat(n) + '░'.repeat(10-n); }
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
 // Resumo (leques + furos + listas) de um conjunto de leques do checklist.
@@ -386,14 +387,14 @@ function resumoChecklistItens(itens){
   const pf = total > 0 ? Math.round((fp / total) * 100) : 0;
   const pt = total > 0 ? Math.round((ft / total) * 100) : 0;
   const topo = c=>{ const fl = checklistFurosDoLeque(c.id); return fl.length > 0 && fl.every(f=>f.topografado); };
-  const lista = (rotulo, codigos)=> codigos.length ? `[${rotulo}]\n${codigos.join('\n')}\n` : '';
+  const lista = (rotulo, codigos)=> codigos.length ? `*${rotulo}*\n${codigos.join('\n')}\n` : '';
   let t = `Leques: ${feitos}/${itens.length} perfilados\n`;
-  t += `Furos: ${fp}/${total} perfilados (${pf}%) - ${ft}/${total} topografados (${pt}%)\n`;
-  t += lista('PERFILADOS', compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado)));
-  t += lista('PENDENTES', compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado)));
+  t += `Furos perfilados: ${fp}/${total} (${pf}%)\n${barraWa(pf)}\nFuros topografados: ${ft}/${total} (${pt}%)\n${barraWa(pt)}\n`;
+  t += lista('✅ PERFILADOS', compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado)));
+  t += lista('🟡 PENDENTES', compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado)));
   t += `\n`;
-  t += lista('TOPOGRAFADOS', compactarCodigosEmIntervalos(itens.filter(topo)));
-  t += lista('PENDENTES TOPOGRAFIA', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c))));
+  t += lista('✅ TOPOGRAFADOS', compactarCodigosEmIntervalos(itens.filter(topo)));
+  t += lista('🟡 PENDENTES TOPOGRAFIA', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c))));
   return t.trim();
 }
 
@@ -407,7 +408,7 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
     grupos.get(chave).push(c);
   });
   const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
-  let bloco = `*Realce ${semAcento(nomeRealce)}*\n`;
+  let bloco = `📍 *Realce ${semAcento(nomeRealce)}*\n`;
   const partes = chaves.map(k=>{
     const titulo = k ? `*Local: ${semAcento(k)}*` : `*Local nao informado*`;
     return `${titulo}\n${resumoChecklistItens(grupos.get(k))}`;
@@ -419,12 +420,12 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
   if(comObs.length){
-    bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
+    bloco += `\n\n📝 *OBSERVACOES DOS LEQUES*\n`;
     bloco += comObs.map(c=> `${PREFIXO[c.tipo]}${c.numero}${c.localizacao ? ' ('+semAcento(c.localizacao)+')' : ''}: ${c.observacao}`).join('\n');
   }
   const obsGerais = checklistObsGeraisDoAnel(anelId);
   if(obsGerais.length){
-    bloco += `\n\n[OBSERVACOES GERAIS]\n`;
+    bloco += `\n\n📝 *OBSERVACOES GERAIS*\n`;
     bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
   }
   return bloco.trim();
@@ -461,20 +462,20 @@ function montarBlocoRealceParaWhatsApp(anelId){
   }));
 
   if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
-    return `*Realce ${nomeRealce}*\nNada no checklist ainda.`;
+    return `📍 *Realce ${nomeRealce}*\nNada no checklist ainda.`;
   }
 
-  let bloco = `*Realce ${nomeRealce}*\n`;
+  let bloco = `📍 *Realce ${nomeRealce}*\n`;
   if(itens.length > 0){
     bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
-    bloco += `Furos: ${furosPerfilados}/${totalFuros} perfilados (${pctFuros}%) - ${furosTopografados}/${totalFuros} topografados (${pctTopo}%)\n`;
+    bloco += `Furos perfilados: ${furosPerfilados}/${totalFuros} (${pctFuros}%)\n${barraWa(pctFuros)}\nFuros topografados: ${furosTopografados}/${totalFuros} (${pctTopo}%)\n${barraWa(pctTopo)}\n`;
     // Cada intervalo (ou leque avulso) vai numa linha própria, pra ler de relance.
-    const lista = (rotulo, codigos)=> codigos.length ? `[${rotulo}]\n${codigos.join('\n')}\n` : '';
-    bloco += lista('PERFILADOS', codigosPerfilados);
-    bloco += lista('PENDENTES', codigosPendentes);
+    const lista = (rotulo, codigos)=> codigos.length ? `*${rotulo}*\n${codigos.join('\n')}\n` : '';
+    bloco += lista('✅ PERFILADOS', codigosPerfilados);
+    bloco += lista('🟡 PENDENTES', codigosPendentes);
     bloco += `\n`;
-    bloco += lista('TOPOGRAFADOS', codigosTopografados);
-    bloco += lista('PENDENTES TOPOGRAFIA', codigosPendentesTopografia);
+    bloco += lista('✅ TOPOGRAFADOS', codigosTopografados);
+    bloco += lista('🟡 PENDENTES TOPOGRAFIA', codigosPendentesTopografia);
     bloco = bloco.trim();
   }
 
@@ -486,14 +487,14 @@ function montarBlocoRealceParaWhatsApp(anelId){
   if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
   if(lequesComObs.length){
-    bloco += `\n\n[OBSERVACOES DOS LEQUES]\n`;
+    bloco += `\n\n📝 *OBSERVACOES DOS LEQUES*\n`;
     bloco += lequesComObs.map(c=> `${PREFIXO[c.tipo]}${c.numero}: ${c.observacao}`).join('\n');
   }
 
   // Observações gerais do realce (não ligadas a nenhum leque específico).
   const obsGerais = checklistObsGeraisDoAnel(anelId);
   if(obsGerais.length){
-    bloco += `\n\n[OBSERVACOES GERAIS]\n`;
+    bloco += `\n\n📝 *OBSERVACOES GERAIS*\n`;
     bloco += obsGerais.map(o=> `- ${o.texto}`).join('\n');
   }
 
@@ -504,7 +505,7 @@ function montarBlocoRealceParaWhatsApp(anelId){
 // pra equipe se orientar mesmo quando turnos diferentes perfilaram realces
 // diferentes.
 function montarRelatorioChecklistParaWhatsApp(idsRealces){
-  let msg = `*Checklist de Perfilagem*\n`;
+  let msg = `📋 *CHECKLIST DE PERFILAGEM*\n`;
   msg += `${new Date().toLocaleString('pt-BR')}\n`;
   msg += `${idsRealces.length} realce${idsRealces.length>1?'s':''}\n\n`;
   msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n----------\n\n');
@@ -525,7 +526,7 @@ function montarBlocoProdutividadeSemanalWhatsApp(){
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
   const semAcento = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '');
   const lista = equipesDoProjeto();
-  let out = `*PRODUTIVIDADE SEMANAL*\n${dd(inicio)} a ${dd(fim)}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
+  let out = `📈 *PRODUTIVIDADE SEMANAL*\n${dd(inicio)} a ${dd(fim)}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
   if(lista.length === 0) return out + 'Nenhuma equipe cadastrada neste projeto.';
   let totM = 0, totP = 0;
   out += lista.map(e=>{
@@ -546,7 +547,7 @@ function montarBlocoProdutividadeMensalWhatsApp(){
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
   const { lista, porEquipe, semanas } = calcularProdutividadeMensal(chave);
   const projeto = configApp.projetoAtivo || '';
-  let out = `*PRODUTIVIDADE MENSAL*\n${semAcento(nomeMesDaChave(chave))}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
+  let out = `📈 *PRODUTIVIDADE MENSAL*\n${semAcento(nomeMesDaChave(chave))}${projeto ? ' - Projeto ' + semAcento(projeto) : ''}\n\n`;
   if(lista.length === 0) return out + 'Nenhuma equipe cadastrada neste projeto.';
   let totM = 0, totP = 0;
   out += lista.map(e=>{
@@ -568,7 +569,7 @@ function montarResumoTurnoWhatsApp(){
   const [ano, mes, dd] = dia.split('-');
   const noDia = iso => iso && chaveDia(iso) === dia;
   const turnoTxt = turnoInfo.turnoNumero ? `Turno ${turnoInfo.turnoNumero}${turnoInfo.turnoLetra ? ' ' + turnoInfo.turnoLetra : ''}` : 'Turno nao informado';
-  let t = `*RESUMO DO TURNO*\n${dd}/${mes}/${ano} - ${turnoTxt}\n`;
+  let t = `📋 *RESUMO DO TURNO*\n${dd}/${mes}/${ano} - ${turnoTxt}\n`;
   if(turnoInfo.projeto) t += `Projeto: ${A(turnoInfo.projeto)}\n`;
   if(turnoInfo.local) t += `Local: ${A(turnoInfo.local)}\n`;
   if(turnoInfo.tecnicos) t += `Tecnicos: ${A(turnoInfo.tecnicos)}\n`;
@@ -586,7 +587,7 @@ function montarResumoTurnoWhatsApp(){
     if(f.perfilado && noDia(f.perfiladoEm)){ perfDia++; pessoa(f.perfiladoPor).perf++; }
     if(f.topografado && noDia(f.topografadoEm)){ topoDia++; pessoa(f.topografadoPor).topo++; }
   });
-  t += `\n*FEITO NO DIA*\nFuros perfilados: ${perfDia}\nFuros topografados: ${topoDia}\n`;
+  t += `\n🔧 *FEITO NO DIA*\nFuros perfilados: ${perfDia}\nFuros topografados: ${topoDia}\n`;
   if(porPessoa.size > 1 || (porPessoa.size === 1 && !porPessoa.has('(sem nome)'))){
     t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
   }
@@ -598,16 +599,16 @@ function montarResumoTurnoWhatsApp(){
     lancamentosProd.forEach(l=>{ if(l.equipeId === e.id && l.data === dia){ m += l.metros; p += l.pontos; } });
     return (m || p) ? `- ${A(e.nome)}: ${num(m)} m perfilados | ${Math.round(p)} pontos topografados` : '';
   }).filter(Boolean);
-  if(linhasEq.length) t += `\n*PRODUCAO DAS EQUIPES*\n${linhasEq.join('\n')}\n`;
+  if(linhasEq.length) t += `\n👷 *PRODUCAO DAS EQUIPES*\n${linhasEq.join('\n')}\n`;
 
   // Situação do realce ativo (pendências e obstruídos)
   const anel = aneis.find(a=>a.id===anelAtivoId);
   if(anel){
     const itens = checklistDoAnel(anel.id);
     if(itens.length){
-      t += `\n*SITUACAO DO REALCE ${A(anel.nome)}*\n`;
+      t += `\n📍 *SITUACAO DO REALCE ${A(anel.nome)}*\n`;
       const temLocal = itens.some(c=>(c.localizacao||'').trim());
-      if(temLocal) t += montarBlocoRealceComLocais(anel.id, itens, anel.nome).replace(/^\*Realce [^\n]*\*\n/, '') + '\n';
+      if(temLocal) t += montarBlocoRealceComLocais(anel.id, itens, anel.nome).replace(/^📍 \*Realce [^\n]*\*\n/, '') + '\n';
       else{
         t += resumoChecklistItens(itens) + '\n';
         const obstr = blocoObstruidosWhatsApp(itens);
@@ -615,15 +616,15 @@ function montarResumoTurnoWhatsApp(){
         const porEq = blocoEquipesWhatsApp(itens);
         if(porEq) t += `\n${porEq}\n`;
         const obsG = checklistObsGeraisDoAnel(anel.id);
-        if(obsG.length) t += `\n[OBSERVACOES GERAIS]\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
+        if(obsG.length) t += `\n📝 *OBSERVACOES GERAIS*\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
       }
     }
   }
 
   const obs = observacoesDoTurnoAtual();
-  if(obs.length) t += `\n*OBSERVACOES DO TURNO*\n${obs.map(o=>'- '+A(o.texto)).join('\n')}\n`;
+  if(obs.length) t += `\n📝 *OBSERVACOES DO TURNO*\n${obs.map(o=>'- '+A(o.texto)).join('\n')}\n`;
   const nFotos = fotosDoTurnoAtual().length;
-  if(nFotos) t += `\nFotos registradas no turno: ${nFotos}\n`;
+  if(nFotos) t += `\n📷 Fotos registradas no turno: ${nFotos}\n`;
   return A(t.trim());
 }
 function renderResumoTurno(){
@@ -1286,7 +1287,7 @@ function blocoEquipesWhatsApp(itens){
   const linhas = [];
   perf.forEach((q,n)=> linhas.push(`Perfilagem - ${semAcento(n)}: ${q} furo(s)`));
   topo.forEach((q,n)=> linhas.push(`Topografia - ${semAcento(n)}: ${q} furo(s)`));
-  return linhas.length ? `[POR EQUIPE]\n${linhas.join('\n')}` : '';
+  return linhas.length ? `👷 *POR EQUIPE*\n${linhas.join('\n')}` : '';
 }
 function textoEquipesLeque(c){
   const p = nomeDaEquipeId(c.equipePerfId), t = nomeDaEquipeId(c.equipeTopoId);
