@@ -160,8 +160,8 @@ function editAnelModal(anel){
               ${projetos.map(p=> `<option value="${escHtml(p.nome)}" ${anel.projeto===p.nome ? 'selected' : ''}>${escHtml(p.nome)}</option>`).join('')}
             </select>
           </div>
-          <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
-            <input id="edit-anel-oculto-whatsapp" type="checkbox" style="width:17px; height:17px;" ${anel.ocultoWhatsapp ? 'checked' : ''}>
+          <label class="field pref-linha" style="margin-bottom:16px;">
+            <input id="edit-anel-oculto-whatsapp" type="checkbox" ${anel.ocultoWhatsapp ? 'checked' : ''}>
             <span>Ocultar da lista de envio por WhatsApp (ex: realce já finalizado)</span>
           </label>
           <div class="modal-actions">

@@ -527,3 +527,47 @@ function mostrarEsqueletos(on){
   if(!b || !i) return;
   b.addEventListener('click', ()=>{ const ver = i.type === 'password'; i.type = ver ? 'text' : 'password'; b.textContent = ver ? 'Ocultar' : 'Mostrar'; b.setAttribute('aria-pressed', ver); b.setAttribute('aria-label', ver ? 'ocultar senha' : 'mostrar senha'); i.focus(); });
 })();
+
+
+/* ================= Componentes: Esc fecha janelas, dicas (?) em janelinha, toque com ondinha ================= */
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+  const ov = document.querySelector('.modal-overlay'); if(!ov) return;
+  const c = ov.querySelector('#modal-cancelar, #fila-fechar, #tut-pular, .modal-fechar, button.ghost');
+  if(c){ e.preventDefault(); c.click(); }
+});
+
+// "?" abre uma janelinha curta no lugar de expandir o texto no meio do formulário.
+document.addEventListener('click', e=>{
+  const sum = e.target.closest && e.target.closest('.ajuda > summary');
+  if(!sum) return;
+  e.preventDefault();
+  const det = sum.parentElement, hint = det.querySelector('.hint');
+  const root = el('modal-root'); if(!root || !hint) return;
+  const titulo = (det.closest('.view-card, .panel') && (det.closest('.view-card, .panel').querySelector('.view-card-label, h2') || {}).textContent) || 'Ajuda';
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-ajuda" role="dialog" aria-modal="true">
+    <div class="modal-ico" aria-hidden="true">?</div><h3>${escHtml(String(titulo).trim().replace(/\s+/g,' ').slice(0,60))}</h3>
+    <div class="modal-ajuda-txt">${hint.innerHTML}</div>
+    <div class="modal-actions"><button class="steel modal-fechar" id="ajuda-ok">Entendi</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('ajuda-ok').onclick = fechar; el('ajuda-ok').focus();
+  el('modal-overlay').addEventListener('click', ev=>{ if(ev.target.id === 'modal-overlay') fechar(); });
+});
+
+// Ondinha no toque: confirma que o dedo (de luva) acertou.
+document.addEventListener('pointerdown', e=>{
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const alvo = e.target.closest && e.target.closest('button:not(.tab-item):not(.ck-furo-num):not(.ck-arrastar):not(:disabled), .ck-chip, .ck-cab, .sit-botoes button, .menu-mais button');
+  if(!alvo || alvo.closest('.tabbar')) return;
+  const r = alvo.getBoundingClientRect();
+  if(r.width > 520 || r.height > 140) return; // não em cartões enormes
+  const pos = getComputedStyle(alvo).position;
+  const marcou = pos === 'static';
+  if(marcou) alvo.style.position = 'relative';
+  const antes = alvo.style.overflow; alvo.style.overflow = 'hidden';
+  const d = Math.max(r.width, r.height) * 2;
+  const o = document.createElement('span'); o.className = 'ondinha';
+  o.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d/2}px;top:${e.clientY - r.top - d/2}px`;
+  alvo.appendChild(o);
+  setTimeout(()=>{ o.remove(); alvo.style.overflow = antes; if(marcou) alvo.style.position = ''; }, 520);
+}, { passive:true });
