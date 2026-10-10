@@ -1643,6 +1643,7 @@ function criarLeque(){
     turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: letraQuemPerfilou, criadoPor, fotoUrl: null
   };
   leques.push(novoLeque);
+  CARDS_NOVOS.add(novoId);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
     turno_numero: novoLeque.turnoNumero, turno_letra: novoLeque.turnoLetra, criado_por: criadoPor
@@ -2166,8 +2167,10 @@ function moverLequeChecklist(id, delta){
   if(i < 0 || j < 0 || j >= lista.length){ showToast(delta < 0 ? 'Já é o primeiro desta lista.' : 'Já é o último desta lista.'); return; }
   const ids = lista.map(x=>x.id);
   ids.splice(j, 0, ids.splice(i, 1)[0]);
+  const posAntes = posicoesCards();
   aplicarNovaOrdemChecklist(ids);
   renderChecklist();
+  animarTrocaCards(posAntes);
   const cartao = document.getElementById('ck-card-' + id);
   if(cartao) cartao.scrollIntoView({ block:'nearest', behavior:'smooth' });
 }
@@ -2381,6 +2384,7 @@ function renderChecklist(){
     }).join('');
   }
   renderBarraLoteChecklist(visiveis);
+  aplicarEntradaCards();
 }
 
 // ---------- Checklist: filtros, grupos e seleção em lote ----------
@@ -3229,6 +3233,73 @@ function abrirModalEscolherRealcesWhatsApp(){
 }
 el('btn-enviar-whatsapp').addEventListener('click', abrirModalEscolherRealcesWhatsApp);
 
+// ---------- Movimento de entrada ----------
+// 1) Barras crescem do zero e os números contam até o valor ao abrir a aba.
+function contarNumeros(el, ms){
+  const final = el._finalTexto || el.textContent;
+  if(!/\d/.test(final)) return;
+  el._finalTexto = final;
+  const token = (el._tokenContar = (el._tokenContar || 0) + 1);
+  let ini = null;
+  const passo = agora=>{
+    if(token !== el._tokenContar) return; // outra contagem assumiu
+    if(ini === null) ini = agora;
+    const t = Math.max(0, Math.min(1, (agora - ini) / ms)), e = 1 - Math.pow(1 - t, 3);
+    el.textContent = final.replace(/\d+(?:[.,]\d+)?/g, m=>{
+      const dec = (m.split(/[.,]/)[1] || '').length, sep = m.includes(',') ? ',' : '.';
+      const v = parseFloat(m.replace(',', '.')) * e;
+      return dec ? v.toFixed(dec).replace('.', sep) : String(Math.round(v));
+    });
+    if(t < 1 && el.isConnected) requestAnimationFrame(passo); else { el.textContent = final; el._finalTexto = null; }
+  };
+  requestAnimationFrame(passo);
+}
+function animarEntradaDaAba(viewId){
+  try{
+    if(semMovimento()) return;
+    const raiz = document.getElementById('view-' + viewId); if(!raiz) return;
+    let i = 0;
+    raiz.querySelectorAll('.progress-fill, .ck-prog-bar i, .equipe-barra').forEach(b=>{
+      const alvo = b.style.width; if(!alvo || alvo === '0%' || alvo === '0px') return;
+      b.animate([{ width:'0%' }, { width:alvo }], { duration:650, delay: Math.min(i++, 14) * 25, easing:'cubic-bezier(.2,.7,.2,1)', fill:'backwards' });
+    });
+    raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor').forEach(n=> contarNumeros(n, 650));
+  }catch(e){}
+}
+// 2) Leque novo desliza para dentro; ao mover para cima/baixo os cards trocam de lugar suavemente (FLIP).
+const CARDS_NOVOS = new Set();
+function aplicarEntradaCards(){
+  if(!CARDS_NOVOS.size) return;
+  const ids = [...CARDS_NOVOS]; CARDS_NOVOS.clear();
+  if(semMovimento()) return;
+  ids.forEach(id=>{
+    const c = document.getElementById('ck-card-' + id) || document.querySelector(`.leque-group[data-leque-id="${id}"]`);
+    if(c) c.animate([{ opacity:0, transform:'translateY(-14px) scale(.98)' }, { opacity:1, transform:'none' }], { duration:320, easing:'cubic-bezier(.2,.8,.3,1.1)' });
+  });
+}
+function posicoesCards(){
+  const m = new Map();
+  document.querySelectorAll('.checklist-leque-card').forEach(c=> m.set(c.id, c.getBoundingClientRect().top));
+  return m;
+}
+function animarTrocaCards(antes){
+  if(semMovimento()) return;
+  document.querySelectorAll('.checklist-leque-card').forEach(c=>{
+    const y0 = antes.get(c.id); if(y0 == null) return;
+    const dy = y0 - c.getBoundingClientRect().top;
+    if(Math.abs(dy) > 2) c.animate([{ transform:`translateY(${dy}px)` }, { transform:'none' }], { duration:280, easing:'cubic-bezier(.2,.7,.2,1)' });
+  });
+}
+// 3) Furo obstruído: a linha treme uma vez e o risco se desenha da esquerda para a direita.
+function animarObstrucao(furoId){
+  try{
+    if(semMovimento()) return;
+    const inp = document.querySelector(`input[onchange*="definirObstrucaoChecklistFuro('${furoId}'"]`);
+    const tr = inp && inp.closest('tr'); if(!tr) return;
+    tr.classList.add('obstr-entra');
+    setTimeout(()=> tr.classList.remove('obstr-entra'), 800);
+  }catch(e){}
+}
 // Abrir/fechar com movimento curto: o conteúdo desliza e a seta gira. Respeita "reduzir movimento".
 function semMovimento(){ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !document.body.animate; }
 function animarAbrir(corpo, seta){
@@ -3350,6 +3421,7 @@ function adicionarAoChecklist(){
     const tsLeque = new Date(base + adicionados).toISOString();
     const novoItem = { id: novoId, anelId: anelAtivo.id, tipo, numero, perfilado: false, observacao: '', localizacao, ts: tsLeque };
     checklistLeques.push(novoItem);
+    CARDS_NOVOS.add(novoId);
     regsLeques.push({ id: novoId, anel_id: anelAtivo.id, tipo, numero, perfilado: false, localizacao: localizacao || null, criado_em: tsLeque });
     if(furoDe !== null){
       for(let fn = furoDe; fn <= furoAte; fn++){
@@ -3741,6 +3813,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   enfileirar('checklist_furos', 'update', { id: f.id, obstruido: valor || null });
   salvarChecklistFurosLocal();
   renderChecklist();
+  if(valor) animarObstrucao(f.id);
   avisoDesfazerFuro(f, antes, valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
 }
 
@@ -5082,6 +5155,7 @@ function render(){
   });
 
   lista.innerHTML = algumConteudo ? html : `<div class="empty">Nenhum registro corresponde aos filtros.</div>`;
+  aplicarEntradaCards();
 }
 
 function renderAll(){
@@ -5266,6 +5340,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  if(viewId === 'checklist' || viewId === 'infografico') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
   if(viewId === 'aneis' && anelFxPendente.size){
     const ids = [...anelFxPendente]; anelFxPendente.clear();
     requestAnimationFrame(()=> ids.forEach(id=> brilharBorda(document.querySelector(`.anel-row[data-anel-id="${id}"]`), false)));
