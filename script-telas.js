@@ -431,6 +431,7 @@ function calcularEstatisticasInfografico(){
   let metrosHoje = 0, metrosSemana = 0, metrosMes = 0, metrosSemanaAnt = 0;
   let furosTopoHoje = 0, furosTopoSemana = 0, furosTopoMes = 0, furosTopoSemanaAnt = 0;
   const porDia = {}; // chaveDia -> soma de metros perfilados
+  const porDiaPerf = {}; // chaveDia -> furos perfilados no checklist
   const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
 
   const iniSemanaISO = dataISOLocal(inicioSemana), iniMesISO = dataISOLocal(inicioMes);
@@ -458,6 +459,7 @@ function calcularEstatisticasInfografico(){
   lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.pontos) somaTopo(l.data, Number(l.pontos)); });
 
   furos.forEach(f=>{
+    if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1; }
     // Topografia continua sendo contagem de furos marcados no checklist (não metros).
     if(f.topografadoEm){
       const dataMarcacaoTopo = new Date(f.topografadoEm);
@@ -479,7 +481,8 @@ function calcularEstatisticasInfografico(){
     serieDiaria.push({
       dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
       metros: porDia[chave] || 0,
-      furosTopo: porDiaTopo[chave] || 0
+      furosTopo: porDiaTopo[chave] || 0,
+      furosPerf: porDiaPerf[chave] || 0
     });
   }
 
@@ -1035,6 +1038,7 @@ function renderInfograficoResumo(){
   // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
   const metaSemanalTotal = equipesDoProjeto().reduce((t,e)=> t + (e.metaSemanal > 0 ? e.metaSemanal : 0), 0);
   desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
+  desenharGraficoAreaInfografico('infografico-chart-perf-dia', 'infografico-eixo-x-perf', stats.serieDiaria, 'furosPerf', 'var(--est-ok)');
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }
 
