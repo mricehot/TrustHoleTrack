@@ -97,7 +97,19 @@ function siglaEquipe(id){
   return t.length <= 3 ? t.toUpperCase() : t.slice(0,3).toUpperCase();
 }
 function corEquipe(id){ let h = 0; for(const ch of String(id)) h = (h*31 + ch.charCodeAt(0)) % 360; return h; }
+// Equipe de quem obstruiu: a gravada; nas marcas antigas, a equipe atual do autor (se vinculado).
+function equipeObsEfetivaId(f){
+  if(f.equipeObsId) return f.equipeObsId;
+  if(!f.obstruido || !f.obstruidoPor || typeof usuariosEmpresa === 'undefined') return null;
+  const a = String(f.obstruidoPor).toLowerCase();
+  const u = usuariosEmpresa.find(x=> (x.nome||'').toLowerCase() === a || (x.email||'').split('@')[0].toLowerCase() === a);
+  return u ? u.equipeId : null;
+}
 function htmlEtiquetaEquipeFuro(f){
+  if(f.obstruido){
+    const o = equipeObsEfetivaId(f);
+    return o && siglaEquipe(o) ? `<span class="ck-eq-tags"><b class="ck-eq-tag" style="--h:${corEquipe(o)}" title="obstruiu: ${escHtml(nomeDaEquipeId(o))}">${escHtml(siglaEquipe(o))}</b></span>` : '';
+  }
   const p = f.perfilado ? equipePerfEfetivaId(f) : null, t = f.topografado ? equipeTopoEfetivaId(f) : null;
   if(!p && !t) return '';
   const chip = (id, rot)=> id && siglaEquipe(id) ? `<b class="ck-eq-tag" style="--h:${corEquipe(id)}" title="${rot}: ${escHtml(nomeDaEquipeId(id))}">${escHtml(siglaEquipe(id))}</b>` : '';
@@ -110,7 +122,7 @@ function textoQuemQuando(f){
   const eqP = nomeDaEquipeId(equipePerfEfetivaId(f)), eqT = nomeDaEquipeId(equipeTopoEfetivaId(f));
   if(f.perfilado && (f.perfiladoPor || f.perfiladoEm)) partes.push(`perfilado${f.perfiladoPor ? ' por ' + f.perfiladoPor : ''}${eqP ? ' (' + eqP + ')' : ''} ${horaCurta(f.perfiladoEm)}`.trim());
   if(f.topografado && (f.topografadoPor || f.topografadoEm)) partes.push(`topografado${f.topografadoPor ? ' por ' + f.topografadoPor : ''}${eqT ? ' (' + eqT + ')' : ''} ${horaCurta(f.topografadoEm)}`.trim());
-  if(f.obstruido && f.obstruidoPor) partes.push(`obstruído por ${f.obstruidoPor}`);
+  if(f.obstruido && f.obstruidoPor){ const eqO = nomeDaEquipeId(equipeObsEfetivaId(f)); partes.push(`obstruído por ${f.obstruidoPor}${eqO ? ' (' + eqO + ')' : ''}`); }
   return partes.join(' · ');
 }
 // Vários furos obstruídos no mesmo leque costumam indicar problema da região (queda de rocha,
@@ -1276,7 +1288,7 @@ function avisarSoQuemMarcou(autor, equipeId){
 function podeDesmarcarFuro(f, tipo){
   if(tipo === 'perf') return podeDesmarcar(f.perfiladoPor, equipePerfEfetivaId(f));
   if(tipo === 'topo') return podeDesmarcar(f.topografadoPor, equipeTopoEfetivaId(f));
-  return podeDesmarcar(f.obstruidoPor, null);
+  return podeDesmarcar(f.obstruidoPor, equipeObsEfetivaId(f));
 }
 function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
@@ -1635,7 +1647,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   const valor = motivo ? OBSTRUIDO_VALOR : '';
-  if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, null); return; }
+  if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, equipeObsEfetivaId(f)); return; }
   vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
   f.obstruido = valor;
