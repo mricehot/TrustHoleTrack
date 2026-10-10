@@ -759,3 +759,40 @@ function completarEquipeDoLeque(lequeId){
     renderChecklist();
   });
 }
+
+/* ================= Contador do meu turno ================= */
+function contagemMeuTurno(){
+  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
+  const noDia = iso => iso && chaveDia(iso) === dia;
+  const minha = minhaEquipeId();
+  const eu = (nomeDoUsuario() || '').toLowerCase();
+  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
+  const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
+  let perf = 0, topo = 0;
+  checklistFuros.forEach(f=>{
+    if(!leques.has(f.checklistLequeId)) return;
+    const meuP = minha ? equipePerfEfetivaId(f) === minha : (eu && (f.perfiladoPor||'').toLowerCase() === eu);
+    const meuT = minha ? equipeTopoEfetivaId(f) === minha : (eu && (f.topografadoPor||'').toLowerCase() === eu);
+    if(f.perfilado && noDia(f.perfiladoEm) && meuP) perf++;
+    if(f.topografado && noDia(f.topografadoEm) && meuT) topo++;
+  });
+  return { perf, topo, quem: minha ? nomeDaEquipeId(minha) : 'você' };
+}
+let ultimoContadorTurno = '';
+function renderMeuTurno(){
+  const box = el('meu-turno-faixa'); if(!box) return;
+  if(!usuarioAtual){ box.hidden = true; return; }
+  const c = contagemMeuTurno();
+  const chave = c.perf + '/' + c.topo + '/' + c.quem;
+  box.hidden = false;
+  box.innerHTML = `<span class="mt-quem">Hoje · ${escHtml(c.quem)}</span><span class="mt-n"><b>${c.perf}</b> perfilados</span><span class="mt-n"><b>${c.topo}</b> topografados</span>`;
+  if(chave !== ultimoContadorTurno && ultimoContadorTurno !== '' && !semMovimento()){
+    box.animate([{ background:'var(--surface-2)' }, { background:'rgba(34,197,94,.28)' }, { background:'var(--surface-2)' }], { duration:700 });
+  }
+  ultimoContadorTurno = chave;
+}
+(function(){
+  const orig = renderChecklist;
+  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMeuTurno(); }catch(e){} return r; };
+  window.addEventListener('load', ()=> setTimeout(renderMeuTurno, 800));
+})();

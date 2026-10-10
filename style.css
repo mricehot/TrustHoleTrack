@@ -1909,3 +1909,9 @@ tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-
 :root[data-theme="dark"] .ck-eq-tag{ color:hsl(var(--h) 70% 75%); }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .ck-eq-tag{ color:hsl(var(--h) 70% 75%); } }
 .ck-eq-tag.vazio{ background:transparent; color:var(--muted); border-color:var(--line); }
+
+/* Contador do meu turno */
+.meu-turno-faixa{ display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline; padding:8px 14px; margin:0 0 10px; background:var(--surface-2); border:1px solid var(--line); border-left:5px solid var(--moss, #4d7c4d); border-radius:8px; font-size:13px; }
+.meu-turno-faixa[hidden]{ display:none; }
+.meu-turno-faixa .mt-quem{ font-weight:700; letter-spacing:.03em; text-transform:uppercase; font-size:11px; color:var(--muted); }
+.meu-turno-faixa .mt-n b{ font-family:var(--mono); font-size:18px; }
