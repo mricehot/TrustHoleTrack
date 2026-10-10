@@ -225,6 +225,7 @@ function htmlCardChecklist(c, agrupado){
             <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
             <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
+          <button type="button" class="ghost so-gestor" onclick="verHistoricoLeque('${c.id}')">🕘 Histórico</button>
           <button type="button" class="ghost perigo so-gestor" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
         </div>
       </div>`;
@@ -1295,6 +1296,17 @@ async function confirmarEquipeErrada(f, tipo, donaId, depois){
   try{ depois(); } finally{ equipeConfirmada.delete(k); }
 }
 // Só quem marcou (a mesma pessoa ou alguém da mesma equipe) pode desmarcar. Marcas sem autor registrado (antigas) ficam livres.
+// Leque concluído (todos os furos perfilados e topografados ou obstruídos) fica travado: só o gestor reabre.
+function lequeConcluidoTravado(lequeId){
+  if(typeof ehGestor === 'function' && ehGestor()) return false;
+  const furos = checklistFuros.filter(x=>x.checklistLequeId===lequeId);
+  if(!furos.length) return false;
+  return furos.every(f=> f.obstruido || (f.perfilado && f.topografado));
+}
+function avisarLequeTravado(){
+  showToast('Leque concluído: só o gestor pode reabrir.', { tipo:'aviso' });
+  renderChecklist();
+}
 function podeDesmarcar(autor, equipeId){
   if(!autor) return true;
   const eu = (typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '').toLowerCase();
@@ -1316,6 +1328,7 @@ function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
   if(!c) return;
   if(c.perfilado && !podeDesmarcar(c.perfiladoPor, c.equipePerfId)){ avisarSoQuemMarcou(c.perfiladoPor, c.equipePerfId); return; }
+  if(c.perfilado && lequeConcluidoTravado(c.id)){ avisarLequeTravado(); return; }
   const antes = c.perfilado;
   c.perfilado = !c.perfilado;
   enfileirar('checklist_leques', 'update', { id: c.id, perfilado: c.perfilado });
@@ -1629,6 +1642,7 @@ function toggleChecklistFuro(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; } // furo obstruído não aceita outra marcação
+  if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.perfilado && !podeDesmarcarFuro(f,'perf')){ avisarSoQuemMarcou(f.perfiladoPor, equipePerfEfetivaId(f)); return; }
   if(!f.perfilado && !equipeConfirmada.has(f.id+':perf')){ const d = equipeDivergente(f,'perf'); if(d){ confirmarEquipeErrada(f,'perf',d,()=>toggleChecklistFuro(id)); return; } }
   const antes = fotoFuro(f);
@@ -1652,6 +1666,7 @@ function toggleChecklistFuroTopografado(id){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   if(f.obstruido){ renderChecklist(); return; }
+  if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.topografado && !podeDesmarcarFuro(f,'topo')){ avisarSoQuemMarcou(f.topografadoPor, equipeTopoEfetivaId(f)); return; }
   if(!f.topografado && !equipeConfirmada.has(f.id+':topo')){ const d = equipeDivergente(f,'topo'); if(d){ confirmarEquipeErrada(f,'topo',d,()=>toggleChecklistFuroTopografado(id)); return; } }
   const antes = fotoFuro(f);
@@ -1674,6 +1689,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const f = checklistFuros.find(x=>x.id===id);
   if(!f) return;
   const valor = motivo ? OBSTRUIDO_VALOR : '';
+  if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, equipeObsEfetivaId(f)); return; }
   vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
@@ -1844,4 +1860,33 @@ function enviarLequeWhatsApp(id){
   const texto = montarResumoLequeWhatsApp(c);
   const numero = configApp.whatsapp;
   window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+// Histórico de quem mexeu (só gestor): lê checklist_historico, preenchido por gatilho no banco.
+async function verHistoricoLeque(id){
+  if(!exigirGestor('ver o histórico')) return;
+  const c = checklistLeques.find(x=>x.id===id); if(!c) return;
+  const ids = checklistFurosDoLeque(id).map(f=>f.id);
+  const nums = {}; checklistFurosDoLeque(id).forEach(f=>{ nums[f.id] = f.numero; });
+  let linhas = [];
+  try{
+    const { data, error } = await db.from('checklist_historico').select('*').or(`registro_id.eq.${id},registro_id.in.(${ids.join(',')})`).order('em',{ascending:false}).limit(80);
+    if(error) throw error;
+    linhas = data || [];
+  }catch(e){ showToast('Histórico indisponível (migration do histórico ainda não aplicada?).', { tipo:'aviso' }); return; }
+  const rot = { perfilado:'perfilado', topografado:'topografado', obstruido:'obstruído', metragem:'metragem', observacao:'anotação', criado:'criado', removido:'removido' };
+  const fmt = v=> v === 'true' ? 'sim' : v === 'false' ? 'não' : (v == null || v === '' ? '—' : v);
+  const html = linhas.length ? linhas.map(l=>{
+    const quando = new Date(l.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const alvo = l.tabela === 'checklist_furos' ? 'F' + (nums[l.registro_id] || l.furo_numero || '?') : PREFIXO[c.tipo] + c.numero;
+    const quem = (l.usuario_email || '').split('@')[0] || '?';
+    return `<li style="padding:6px 0;border-bottom:1px solid var(--borda,#ddd);font-size:.9rem;"><b>${escHtml(alvo)}</b> ${escHtml(rot[l.campo] || l.campo)}: ${escHtml(fmt(l.valor_antigo))} → <b>${escHtml(fmt(l.valor_novo))}</b><br><span style="opacity:.7">${escHtml(quem)} · ${quando}</span></li>`;
+  }).join('') : '<li style="padding:8px 0;">Nenhuma alteração registrada.</li>';
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box" style="max-height:80vh;overflow:auto;">
+    <p style="font-weight:700;">Histórico de ${escHtml(PREFIXO[c.tipo] + c.numero)}</p><ul style="list-style:none;padding:0;margin:0 0 12px;">${html}</ul>
+    <div class="modal-actions"><button class="steel" id="modal-fechar">Fechar</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('modal-fechar').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
 }
