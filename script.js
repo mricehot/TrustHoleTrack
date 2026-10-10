@@ -701,6 +701,7 @@ function carimbarAutor(tabela, acao, registro){
     if('perfilado' in registro){ registro.perfilado_por = registro.perfilado ? eu : null; if(f) f.perfiladoPor = registro.perfilado ? eu : ''; if(eq && registro.perfilado){ registro.equipe_perfilagem_id = eq; if(f) f.equipePerfId = eq; } }
     if('topografado' in registro){ registro.topografado_por = registro.topografado ? eu : null; if(f) f.topografadoPor = registro.topografado ? eu : ''; if(eq && registro.topografado){ registro.equipe_topografia_id = eq; if(f) f.equipeTopoId = eq; } }
     if('obstruido' in registro){ registro.obstruido_por = registro.obstruido ? eu : null; if(f) f.obstruidoPor = registro.obstruido ? eu : ''; }
+    if(f && eq && typeof completarEquipeDoLeque === 'function') setTimeout(()=>completarEquipeDoLeque(f.checklistLequeId), 0);
   }else if(tabela === 'checklist_leques' && 'perfilado' in registro){
     const c = checklistLeques.find(x=>x.id===registro.id);
     registro.perfilado_por = registro.perfilado ? eu : null; if(c) c.perfiladoPor = registro.perfilado ? eu : '';

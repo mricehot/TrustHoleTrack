@@ -737,3 +737,25 @@ function renderUsuariosEquipes(){
   atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); carregarUsuariosEmpresa(); return r; };
   window.addEventListener('load', ()=> setTimeout(carregarUsuariosEmpresa, 1500));
 })();
+
+// Se o leque inteiro foi perfilado (ou topografado) por uma só equipe, grava essa equipe no leque.
+function completarEquipeDoLeque(lequeId){
+  const c = checklistLeques.find(x=>x.id === lequeId); if(!c) return;
+  const fl = checklistFurosDoLeque(c.id).filter(f=>!f.obstruido);
+  if(!fl.length) return;
+  const campos = [
+    { feito:'perfilado', efetiva:equipePerfEfetivaId, chave:'equipePerfId', col:'equipe_perfilagem_id' },
+    { feito:'topografado', efetiva:equipeTopoEfetivaId, chave:'equipeTopoId', col:'equipe_topografia_id' }
+  ];
+  campos.forEach(k=>{
+    if(c[k.chave]) return; // respeita equipe já definida no leque
+    if(!fl.every(f=>f[k.feito])) return;
+    const ids = new Set(fl.map(f=>k.efetiva(f)));
+    if(ids.size !== 1) return;
+    const id = [...ids][0]; if(!id) return;
+    c[k.chave] = id;
+    enfileirar('checklist_leques', 'update', { id: c.id, [k.col]: id });
+    if(typeof salvarChecklistLocal === 'function') salvarChecklistLocal();
+    renderChecklist();
+  });
+}
