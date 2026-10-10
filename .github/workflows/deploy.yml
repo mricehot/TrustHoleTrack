@@ -27,9 +27,10 @@ jobs:
       - name: Preparar pasta de saída
         run: |
           mkdir -p site
-          cp dash.html index.html script.js style.css site/
-          [ -f manifest.json ] && cp manifest.json site/ || true
-          [ -f sw.js ] && cp sw.js site/ || true
+          cp dash.html index.html style.css site/
+          cp script.js script-*.js site/
+          cp manifest.webmanifest sw.js site/
+          cp icon-*.png site/
           [ -d icons ] && cp -r icons site/ || true
 
       - name: Substituir a URL e a chave do Supabase
@@ -55,7 +56,7 @@ jobs:
       - name: Atualizar a versão de cache (?v=...)
         run: |
           VERSAO="${{ github.run_number }}-${GITHUB_SHA::7}"
-          sed -i -E "s/(script\.js\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
+          sed -i -E "s/(script[a-z-]*\.js\?v=)[^\"]+/\1${VERSAO}/g" site/dash.html
           sed -i -E "s/(style\.css\?v=)[^\"]+/\1${VERSAO}/" site/dash.html
 
       - name: Configurar o Pages

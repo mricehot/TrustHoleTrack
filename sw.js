@@ -7,7 +7,7 @@
  * (os dados ficam no aparelho pelo próprio app, e as alterações pendentes na fila dele).
  */
 const CACHE = 'blasthole-shell-v1';
-const LOCAIS = ['./dash.html', './style.css', './script.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const LOCAIS = ['./dash.html', './style.css', './script.js', './script-leques.js', './script-checklist.js', './script-turno-pdf.js', './script-telas.js', './script-sessao.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const CDNS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
