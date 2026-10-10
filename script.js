@@ -2578,6 +2578,7 @@ function htmlCardChecklist(c, agrupado){
           ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length}<span class="txt"> obstr.</span></span>`
           : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
       </div>
+      ${estadoDoLeque(furos) === 'ok' ? '<span class="ck-selo-ok" aria-label="leque completo" title="leque completo">✓</span>' : ''}
       ${resumo}
       ${corpo}
     </div>`;
@@ -3590,6 +3591,28 @@ function desfazerMarcaFuro(antes){
 }
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
+// Leque a 100%: brilho que atravessa o card, selo ✓ que "salta" e confete curto, mais vibração leve.
+function celebrarLequeCompleto(card, lequeId){
+  try{
+    if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    card.classList.add('completo-fx');
+    const cores = ['#2e9b57','#e0a21b','#2f6b9a','#5fcf8a','#f0c75e'];
+    const caixa = document.createElement('div'); caixa.className = 'confete'; caixa.setAttribute('aria-hidden','true');
+    for(let i=0;i<14;i++){
+      const p = document.createElement('i');
+      const ang = (-100 + Math.random()*200) * Math.PI/180, dist = 40 + Math.random()*55;
+      p.style.setProperty('--dx', Math.round(Math.sin(ang)*dist) + 'px');
+      p.style.setProperty('--dy', Math.round(-Math.cos(ang)*dist*0.35 + (Math.random()*30 - 5)) + 'px');
+      p.style.setProperty('--r', Math.round(Math.random()*360) + 'deg');
+      p.style.background = cores[i % cores.length];
+      p.style.animationDelay = (Math.random()*60) + 'ms';
+      caixa.appendChild(p);
+    }
+    card.appendChild(caixa);
+    setTimeout(()=>{ caixa.remove(); card.classList.remove('completo-fx'); }, 1400);
+    if(navigator.vibrate) navigator.vibrate([18, 40, 28]);
+  }catch(e){}
+}
 const ESTADO_ANTERIOR_LEQUE = new Map();
 function guardarEstadoLeque(lequeId){
   const furos = checklistFuros.filter(x=>x.checklistLequeId===lequeId);
@@ -3618,6 +3641,7 @@ function pulsarMarcaFuro(f, funcao, anterior){
     }
     const est = estadoDoLeque(furos);
     if(anterior && anterior !== est){ card.classList.add('brilho'); }
+    if(est === 'ok' && anterior !== 'ok') celebrarLequeCompleto(card, f.checklistLequeId);
   }catch(e){}
 }
 function toggleChecklistFuro(id){

@@ -1422,3 +1422,17 @@ input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
   .ck-prog-linha .rot{ width:26px; font-size:11px; }
   .ck-prog-linha .num{ width:34px; font-size:11px; }
 }
+
+/* Leque a 100%: selo ✓, brilho que atravessa e confete curto */
+.ck-selo-ok{ position:absolute; top:4px; right:6px; width:17px; height:17px; border-radius:50%; background:var(--est-ok); color:#fff; font-size:11px; font-weight:800; line-height:17px; text-align:center; pointer-events:none; }
+@keyframes seloSalta{ 0%{ transform:scale(0) rotate(-40deg); } 60%{ transform:scale(1.5) rotate(8deg); } 100%{ transform:scale(1) rotate(0); } }
+.completo-fx .ck-selo-ok{ animation:seloSalta .5s cubic-bezier(.2,.8,.3,1.3) .15s both; }
+@keyframes brilhoVarre{ from{ transform:translateX(-120%) skewX(-18deg); opacity:.0; } 20%{ opacity:.9; } to{ transform:translateX(420%) skewX(-18deg); opacity:0; } }
+.completo-fx::after{ content:''; position:absolute; top:0; bottom:0; left:0; width:35%; pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent); animation:brilhoVarre .8s ease-out .05s both; }
+@keyframes cardLevanta{ 0%{ transform:translateY(0); } 35%{ transform:translateY(-3px); } 100%{ transform:translateY(0); } }
+.completo-fx{ animation:cardBrilho .9s ease-out, cardLevanta .45s ease-out; }
+.confete{ position:absolute; left:56px; top:28px; width:0; height:0; pointer-events:none; z-index:3; }
+.confete i{ position:absolute; width:6px; height:9px; border-radius:2px; opacity:0; animation:confeteVoa .95s cubic-bezier(.15,.7,.3,1) both; }
+@keyframes confeteVoa{ 0%{ opacity:1; transform:translate(0,0) rotate(0) scale(.6); } 70%{ opacity:1; } 100%{ opacity:0; transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(1); } }
+@media (prefers-reduced-motion: reduce){ .completo-fx, .completo-fx::after, .completo-fx .ck-selo-ok, .confete i{ animation:none; } }
