@@ -225,6 +225,7 @@ function htmlCardChecklist(c, agrupado){
         <div class="ck-ferramentas">
           ${furos.length > 1 ? `<button type="button" class="ghost" onclick="abrirMarcarFaixa('${c.id}')">Marcar faixa de furos</button>` : ''}
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
+          ${furos.some(f=> f.fotoUrl || fotosPendentes.has(f.id)) ? `<button type="button" class="ghost" onclick="enviarFotosWhatsApp(['${c.id}'])">📷 Enviar fotos</button>` : ''}
         </div>
         <details class="ck-mais-acoes so-gestor" ${ckMaisAbertos.has(c.id) ? 'open' : ''} ontoggle="alternarMaisAcoes('${c.id}', this.open)">
           <summary>Mais ações do gestor</summary>

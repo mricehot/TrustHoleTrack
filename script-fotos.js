@@ -140,6 +140,32 @@ async function fotosEmDiaParaRelatorio(){
   await Promise.race([enviarFotosPendentes(), new Promise(r=> setTimeout(r, 20000))]);
 }
 
+// Envia as fotos como IMAGENS (o texto do WhatsApp só leva link). Usa o compartilhamento do celular:
+// abre a lista de apps, a pessoa escolhe o WhatsApp e o contato/grupo.
+async function enviarFotosWhatsApp(idsLeques){
+  const lista = [];
+  idsLeques.forEach(lid=>{
+    const c = checklistLeques.find(x=>x.id===lid); if(!c) return;
+    checklistFurosDoLeque(lid).forEach(f=>{ if(f.fotoUrl || fotosPendentes.has(f.id)) lista.push({ f, nome: `${PREFIXO[c.tipo]}${c.numero}-F${f.numero}` }); });
+  });
+  if(!lista.length){ showToast('Nenhuma foto de furo neste envio.', { tipo:'aviso' }); return; }
+  showToast(`Preparando ${lista.length} foto(s)…`);
+  const arquivos = [];
+  for(const it of lista){
+    try{
+      let blob = fotosPendentes.has(it.f.id) ? fotosPendentes.get(it.f.id).blob : null;
+      if(!blob){ const r = await fetch(it.f.fotoUrl); if(!r.ok) throw new Error('http ' + r.status); blob = await r.blob(); }
+      arquivos.push(new File([blob], it.nome + '.jpg', { type: blob.type || 'image/jpeg' }));
+    }catch(e){ /* sem sinal para baixar essa: segue com as outras */ }
+  }
+  if(!arquivos.length){ showToast('Não consegui carregar as fotos (sem sinal?). Tente de novo com internet.', { tipo:'aviso' }); return; }
+  if(!(navigator.canShare && navigator.canShare({ files: arquivos }))){
+    showToast('Este aparelho não envia fotos pelo app. Use os links que vão no relatório.', { tipo:'aviso' }); return;
+  }
+  try{ await navigator.share({ files: arquivos, text: 'Fotos: ' + lista.map(x=>x.nome).join(', ') }); }
+  catch(e){ if(e && e.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento.', { tipo:'aviso' }); }
+}
+
 window.addEventListener('online', ()=> setTimeout(enviarFotosPendentes, 800));
 setInterval(enviarFotosPendentes, 30000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') setTimeout(enviarFotosPendentes, 1000); });
