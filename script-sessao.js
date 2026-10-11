@@ -475,16 +475,26 @@ function abrirFilaOffline(){
 /* ================= Tutorial do primeiro uso ================= */
 const TUTORIAL_KEY = 'perfilagem-tutorial-v1';
 function tutorialJaVisto(){ try{ return localStorage.getItem(TUTORIAL_KEY) === '1'; }catch(e){ return true; } }
-const TUTORIAL_PASSOS = [
-  { icone:'📍', titulo:'1. Realce e leques', texto:'Na aba <b>Realce</b>, crie ou escolha o realce em que você está. Depois, no <b>Checklist</b>, toque em “Adicionar leques” e informe os números e os furos de cada um.' },
-  { icone:'✅', titulo:'2. Marcar furos', texto:'Abra o leque e toque na célula do furo: <b>Perf.</b> (perfilado), <b>Topo</b> (topografado) ou <b>Obstr.</b>. Marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo.' },
-  { icone:'🎨', titulo:'3. Cores e ícones', texto:'Cada leque mostra o estado: ✓ completo (verde), ◐ em andamento (amarelo), ⚠ obstrução alta (vermelho) e ○ não iniciado (cinza). A barra fixa no topo mostra o andamento do realce.' },
-  { icone:'📶', titulo:'4. Sem sinal e WhatsApp', texto:'Sem internet, continue marcando: tudo fica guardado no aparelho e sobe sozinho. Toque no aviso <b>salvo / sem salvar</b> no canto para ver o que falta. Ao fim do turno, use <b>Enviar no WhatsApp</b> na aba Turno.' }
+const PASSOS_TECNICO = [
+  { icone:'✅', titulo:'1. Marcar furos', texto:'No <b>Checklist</b>, abra o leque e toque na célula do furo: <b>Perf.</b> (perfilado), <b>Topo</b> (topografado) ou <b>Obstr.</b>. Marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo.' },
+  { icone:'⚡', titulo:'2. Vários furos de uma vez', texto:'No leque, toque em <b>Marcar faixa de furos</b>: escolha “do F03 até o F08” e confirme. Furos já marcados e obstruídos ficam de fora, e dá para desfazer.' },
+  { icone:'👷', titulo:'3. Sua equipe é automática', texto:'O app já sabe a sua equipe: cada marcação sai no seu nome e na sua equipe. <b>Só quem marcou (ou a mesma equipe) pode desmarcar.</b> Leque concluído fica travado; só o gestor reabre.' },
+  { icone:'📝', titulo:'4. Anotar e obstruir', texto:'Toque no <b>✎</b> do furo para anotar algo (água, rocha solta, acesso). Furo obstruído conta como resolvido e a nota vai no relatório do WhatsApp.' },
+  { icone:'📶', titulo:'5. Sem sinal', texto:'Sem internet, continue marcando: tudo fica guardado no aparelho e sobe sozinho. Toque no aviso <b>salvo / sem salvar</b> para ver o que falta. Antes de trocar de turno, suba até um ponto com sinal.' }
 ];
+const PASSOS_GESTOR = [
+  { icone:'📍', titulo:'1. Realce e leques', texto:'Só o gestor cria <b>realces</b> e <b>leques</b>. Na aba <b>Realce</b> crie o realce; no <b>Checklist</b>, “Adicionar leques” com os números e furos. Os técnicos só marcam.' },
+  { icone:'📊', titulo:'2. Painel por projeto', texto:'Em <b>Mais → Painel</b>: avanço de cada realce, <b>leques parados</b> há mais de 4 h com os furos que faltam e a produção por equipe. Dá para enviar tudo no WhatsApp.' },
+  { icone:'👥', titulo:'3. Equipes e papéis', texto:'Em <b>Gerenciar equipes</b> você trava cada usuário numa equipe (as marcações saem sozinhas com ela) e define quem é <b>gestor</b> ou <b>técnico</b>. Corrija a equipe de um furo antigo pelos seletores do furo.' },
+  { icone:'🕘', titulo:'4. Histórico e reabrir', texto:'No leque, <b>🕘 Histórico</b> mostra quem marcou, desmarcou ou removeu cada coisa. Leque concluído só você reabre. No relatório, a seção <b>Em andamento</b> mostra os furos que faltam.' },
+  { icone:'📶', titulo:'5. Atualização automática', texto:'O app puxa as mudanças da equipe a cada 45 s sem você clicar. Sem sinal, as marcações ficam guardadas e sobem sozinhas quando voltar.' }
+];
+function passosTutorial(){ return (typeof ehGestor === 'function' && ehGestor()) ? PASSOS_GESTOR : PASSOS_TECNICO; }
+const TUTORIAL_PASSOS = { get length(){ return passosTutorial().length; }, map(f){ return passosTutorial().map(f); }, [Symbol.iterator](){ return passosTutorial()[Symbol.iterator](); } };
 function fecharTutorial(){ try{ localStorage.setItem(TUTORIAL_KEY, '1'); }catch(e){} const r = el('modal-root'); if(r) r.innerHTML = ''; }
 function abrirTutorial(i){
   const root = el('modal-root'); if(!root) return;
-  const p = TUTORIAL_PASSOS[i]; const ultimo = i === TUTORIAL_PASSOS.length - 1;
+  const p = passosTutorial()[i]; const ultimo = i === TUTORIAL_PASSOS.length - 1;
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga tutorial-box">
     <div class="tut-icone" aria-hidden="true">${p.icone}</div><h3 style="margin:0 0 8px">${p.titulo}</h3><p>${p.texto}</p>
     <div class="tut-pontos" aria-hidden="true">${TUTORIAL_PASSOS.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>
@@ -1015,4 +1025,36 @@ function renderPainelGestor(){
 (function(){
   const orig = atualizarDoServidor;
   atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); if(document.body.dataset.view === 'painel') renderPainelGestor(); return r; };
+})();
+
+
+/* ================= Dica do dia (uma por vez, some quando o usuário diz "Entendi") ================= */
+const DICAS_KEY = 'perfilagem-dicas-vistas-v1';
+const DICAS = [
+  { id:'faixa', para:'todos', texto:'<b>Dica:</b> no leque, “Marcar faixa de furos” marca do F03 ao F08 de uma vez.' },
+  { id:'desfazer', para:'todos', texto:'<b>Dica:</b> marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo, logo depois de marcar.' },
+  { id:'nota', para:'todos', texto:'<b>Dica:</b> toque no ✎ do furo para anotar (água, rocha solta, acesso). A nota vai no relatório do WhatsApp.' },
+  { id:'busca', para:'todos', texto:'<b>Dica:</b> na busca, digite <b>12.5</b> para ir direto ao furo 5 do leque 12.' },
+  { id:'sinal', para:'todos', texto:'<b>Dica:</b> sem sinal, siga marcando. O que ficou guardado sobe sozinho; antes de trocar de turno, suba até um ponto com sinal.' },
+  { id:'painel', para:'gestor', texto:'<b>Dica:</b> em Mais → Painel você vê leques parados e o que falta em cada um, por projeto.' },
+  { id:'historico', para:'gestor', texto:'<b>Dica:</b> o 🕘 Histórico do leque mostra quem marcou, desmarcou ou removeu cada coisa.' },
+  { id:'equipes', para:'gestor', texto:'<b>Dica:</b> trave cada usuário numa equipe em Gerenciar equipes e as marcações saem sozinhas com a equipe certa.' }
+];
+function dicasVistas(){ try{ return JSON.parse(localStorage.getItem(DICAS_KEY) || '[]'); }catch(e){ return []; } }
+function renderDicaDoDia(){
+  const box = document.getElementById('dica-do-dia'); if(!box) return;
+  const gestor = typeof ehGestor === 'function' && ehGestor();
+  const vistas = dicasVistas();
+  const d = DICAS.find(x=> !vistas.includes(x.id) && (x.para === 'todos' || (x.para === 'gestor') === gestor));
+  if(!d){ box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="dica-texto">${d.texto}</span><button type="button" class="ghost dica-ok" onclick="dispensarDica('${d.id}')">Entendi</button>`;
+}
+function dispensarDica(id){
+  try{ const v = dicasVistas(); if(!v.includes(id)) v.push(id); localStorage.setItem(DICAS_KEY, JSON.stringify(v)); }catch(e){}
+  renderDicaDoDia();
+}
+(function(){
+  const orig = renderChecklist;
+  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderDicaDoDia(); }catch(e){} return r; };
 })();
