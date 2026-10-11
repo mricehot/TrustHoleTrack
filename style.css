@@ -2134,3 +2134,16 @@ body.modo-leitura #foto-remover, body.modo-leitura #foto-trocar, body.modo-leitu
 body.modo-leitura [onclick*="alternarModoSelecaoChecklist"], body.modo-leitura .notas-rapidas{ display:none !important; }
 body.modo-leitura .checklist-furos-tabela input[type="checkbox"], body.modo-leitura .ck-check, body.modo-leitura .status-dot, body.modo-leitura .ck-furo-num{ pointer-events:none; }
 body.modo-leitura .checklist-furos-tabela input[type="checkbox"]{ opacity:.8; }
+
+/* Leques nao iniciados: respiracao suave na barra lateral (aguardando vez) */
+@keyframes respiraIni{
+  0%,100%{ border-left-color:color-mix(in srgb, var(--est-ini) 35%, transparent); }
+  50%{ border-left-color:var(--est-ini); }
+}
+.checklist-leque-card[data-est=ini],
+.leque-group[data-est=ini]{ animation:respiraIni 3.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce){
+  .checklist-leque-card[data-est=ini], .leque-group[data-est=ini]{ animation:none; }
+}
+body.modo-leitura .checklist-leque-card[data-est=ini],
+body.modo-leitura .leque-group[data-est=ini]{ animation:none; }
