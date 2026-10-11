@@ -1,7 +1,7 @@
 // ---------- Checklist: filtros, grupos e seleção em lote ----------
 const ckMaisAbertos = new Set();
 function alternarMaisAcoes(id, aberto){ if(aberto) ckMaisAbertos.add(id); else ckMaisAbertos.delete(id); }
-const NOTAS_RAPIDAS = ['Rocha solta', 'Acesso bloqueado', 'Furo desviado', 'Equipamento parado'];
+const NOTAS_RAPIDAS = ['Rocha solta', 'Tela danificada', 'Acesso bloqueado', 'Furo desviado', 'Equipamento parado'];
 const MOTIVOS_OBSTRUCAO = ['Rocha', 'Tela'];
 let checklistFiltro = { status:'todos', local:'', busca:'' };
 const checklistGruposFechados = new Set(); // "anelId|localização" — só na sessão

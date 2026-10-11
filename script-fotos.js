@@ -68,8 +68,19 @@ function tirarFotoFuro(id){
     atualizarIndicadorSalvamento(); renderChecklist();
     showToast(navigator.onLine ? `Foto de F${f.numero} guardada, enviando…` : `Foto de F${f.numero} guardada no aparelho. Sobe sozinha quando houver sinal.`, { tipo:'ok' });
     enviarFotosPendentes();
+    if(!f.observacao) setTimeout(()=> anotarAposFoto(id), 500); // nota com um toque logo depois da foto
   });
   inp.click();
+}
+async function anotarAposFoto(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f || f.observacao) return;
+  if(document.querySelector('.modal-overlay')) return;
+  const novo = await editarObservacaoModal('', NOTAS_RAPIDAS, `Nota para F${f.numero} (opcional)`);
+  if(!novo) return;
+  f.observacao = novo.slice(0, 200);
+  enfileirar('checklist_furos', 'update', { id: f.id, observacao: f.observacao });
+  salvarChecklistFurosLocal(); renderChecklist();
+  showToast(`Anotação de F${f.numero} salva.`, { tipo:'ok' });
 }
 
 async function enviarFotosPendentes(){

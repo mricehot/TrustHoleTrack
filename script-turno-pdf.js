@@ -40,6 +40,10 @@ el('btn-salvar-config').addEventListener('click', salvarConfig);
   t.checked = !!prefsUx.tela; v.checked = !!prefsUx.vibrar;
   t.addEventListener('change', ()=>{ prefsUx.tela = t.checked; salvarPrefsUx(); atualizarWakeLock(); });
   v.addEventListener('change', ()=>{ prefsUx.vibrar = v.checked; salvarPrefsUx(); if(v.checked) vibrarCurto([12, 40, 12]); });
+  const ct = el('pref-contraste'), gr = el('pref-grande');
+  if(ct){ ct.checked = !!prefsUx.contraste; ct.addEventListener('change', ()=>{ prefsUx.contraste = ct.checked; salvarPrefsUx(); aplicarPrefsVisuais(); }); }
+  if(gr){ gr.checked = !!prefsUx.grande; gr.addEventListener('change', ()=>{ prefsUx.grande = gr.checked; salvarPrefsUx(); aplicarPrefsVisuais(); }); }
+  aplicarPrefsVisuais();
 })();
 
 // O filtro de projeto ativo já aplica na hora, sem precisar clicar em
@@ -262,13 +266,13 @@ function adicionarObservacaoTurno(textoPronto, rapida){
   }else showToast('Observação adicionada.');
 }
 
-function editarObservacaoModal(valorAtual, atalhos){
+function editarObservacaoModal(valorAtual, atalhos, titulo){
   return new Promise(resolve=>{
     const root = el('modal-root');
     root.innerHTML = `
       <div class="modal-overlay" id="modal-overlay">
         <div class="modal-box">
-          <p style="font-weight:700;">Editar observação</p>
+          <p style="font-weight:700;">${escHtml(titulo || 'Editar observação')}</p>
           <div class="field" style="margin-bottom:16px;">
             <label for="obs-turno-editar-input">Texto</label>
             <input id="obs-turno-editar-input" type="text" maxlength="300" value="${(valorAtual || '').replace(/"/g,'&quot;')}">
