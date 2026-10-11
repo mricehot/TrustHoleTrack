@@ -289,6 +289,15 @@ function renderPainelTrabalho(){
 
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
 
+  // Formulários recolhidos: abrem sozinhos quando há medição em andamento (para lançar furos) e fecham ao terminar.
+  const detForms = el('perf-forms');
+  if(detForms){
+    const chave = lequeAberto ? lequeAberto.id : '';
+    if(detForms.dataset.ultimo !== chave){ detForms.dataset.ultimo = chave; detForms.open = !!lequeAberto; }
+    const rs = el('perf-forms-resumo');
+    if(rs) rs.textContent = lequeAberto ? `＋ Adicionar furos em ${lequeCode(lequeAberto)} (medição em andamento)` : '＋ Criar medição / adicionar furo';
+  }
+
   const formLeque = el('form-leque');
   const boxAtual = el('leque-atual-box');
   if(lequeAberto){

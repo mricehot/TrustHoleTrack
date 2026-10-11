@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261012150000">
+<link rel="stylesheet" href="style.css?v=20261012161000">
 
 </head>
 <body>
@@ -155,6 +155,8 @@
           <button type="button" class="steel" onclick="puxarDoChecklist()">Puxar leques e furos do checklist</button>
           <span class="hint">Traz do checklist os leques e furos do realce ativo. Depois é só preencher as metragens.</span>
         </div>
+        <details class="perf-forms" id="perf-forms">
+          <summary id="perf-forms-resumo">＋ Criar medição / adicionar furo</summary>
         <div class="row-2" id="painel-trabalho">
           <div class="panel so-gestor" id="painel-leque">
             <h2 id="leque-panel-title">Criar Medição</h2>
@@ -249,6 +251,7 @@
             </div>
           </div>
         </div>
+        </details>
 
         <div class="filters">
           <button type="button" class="ghost" id="btn-filtros" aria-expanded="false" aria-controls="filtros-campos">Filtros <span class="count-badge" id="filtros-ativos" hidden>0</span></button>
@@ -821,12 +824,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261012150000"></script>
-<script src="script-leques.js?v=20261012150000"></script>
-<script src="script-checklist.js?v=20261012150000"></script>
-<script src="script-turno-pdf.js?v=20261012150000"></script>
-<script src="script-telas.js?v=20261012150000"></script>
-<script src="script-sessao.js?v=20261012150000"></script>
+<script src="script.js?v=20261012161000"></script>
+<script src="script-leques.js?v=20261012161000"></script>
+<script src="script-checklist.js?v=20261012161000"></script>
+<script src="script-turno-pdf.js?v=20261012161000"></script>
+<script src="script-telas.js?v=20261012161000"></script>
+<script src="script-sessao.js?v=20261012161000"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
