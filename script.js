@@ -1098,7 +1098,7 @@ function editFuroModal(furo){
           </div>
           <div class="field" style="margin-bottom:16px;">
             <label for="edit-furo-observacao">Observação (opcional)</label>
-            <input id="edit-furo-observacao" type="text" value="${escHtml(furo.observacao || '')}" maxlength="300" placeholder="ex: desviou por veio de água">
+            <input id="edit-furo-observacao" type="text" value="${escHtml(furo.observacao || '')}" maxlength="300" placeholder="ex: desviou por rocha solta">
           </div>
           <label class="field" style="margin-bottom:16px; display:flex; align-items:center; gap:8px; flex-direction:row;">
             <input id="edit-furo-refazer" type="checkbox" style="width:17px; height:17px; accent-color:var(--amber);" ${furo.precisaRefazer ? 'checked' : ''}>
