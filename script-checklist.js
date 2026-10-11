@@ -1885,6 +1885,23 @@ function enviarLequeWhatsApp(id){
   window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
+// Feito e desfeito se anulam: se um campo mudou de A para B e depois voltou para A, os dois
+// registros saem da lista e fica só a alteração que permanece. Recebe as linhas do mais novo ao mais antigo.
+function liquidarHistorico(linhas){
+  const norm = v=> (v == null || v === '' || v === 'false') ? '' : String(v);
+  const pilhas = new Map(), descartar = new Set();
+  linhas.slice().reverse().forEach(l=>{ // do mais antigo ao mais novo
+    if(l.campo === 'criado' || l.campo === 'removido') return;
+    const chave = l.registro_id + '|' + l.campo;
+    const pilha = pilhas.get(chave) || [];
+    const topo = pilha[pilha.length - 1];
+    if(topo && norm(topo.valor_antigo) === norm(l.valor_novo) && norm(topo.valor_novo) === norm(l.valor_antigo)){
+      pilha.pop(); descartar.add(topo); descartar.add(l);
+    }else pilha.push(l);
+    pilhas.set(chave, pilha);
+  });
+  return linhas.filter(l=> !descartar.has(l));
+}
 // Histórico de quem mexeu (só gestor): lê checklist_historico, preenchido por gatilho no banco.
 async function verHistoricoLeque(id){
   if(!exigirGestor('ver o histórico')) return;
@@ -1893,9 +1910,9 @@ async function verHistoricoLeque(id){
   const nums = {}; checklistFurosDoLeque(id).forEach(f=>{ nums[f.id] = f.numero; });
   let linhas = [];
   try{
-    const { data, error } = await db.from('checklist_historico').select('*').or(`registro_id.eq.${id},registro_id.in.(${ids.join(',')})`).order('em',{ascending:false}).limit(80);
+    const { data, error } = await db.from('checklist_historico').select('*').or(`registro_id.eq.${id},registro_id.in.(${ids.join(',')})`).order('em',{ascending:false}).limit(400);
     if(error) throw error;
-    linhas = data || [];
+    linhas = liquidarHistorico(data || []).slice(0, 80);
   }catch(e){ showToast('Histórico indisponível (migration do histórico ainda não aplicada?).', { tipo:'aviso' }); return; }
   const rot = { perfilado:'perfilado', topografado:'topografado', obstruido:'obstruído', metragem:'metragem', observacao:'anotação', criado:'criado', removido:'removido' };
   const fmt = v=> v === 'true' ? 'sim' : v === 'false' ? 'não' : (v == null || v === '' ? '—' : v);
