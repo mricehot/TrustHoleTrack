@@ -324,7 +324,7 @@ async function exportarTurnoOuCombinado(){
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
-const VIEWS_SECUNDARIAS = ['painel','historico','config','tecnico'];
+const VIEWS_SECUNDARIAS = ['infografico','painel','historico','config','tecnico'];
 const ORDEM_VIEWS = ['turno','aneis','perfilagem','checklist','infografico','painel','historico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){

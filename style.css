@@ -2013,3 +2013,18 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .dica-do-dia{ display:flex; gap:10px; align-items:center; justify-content:space-between; border:1px solid var(--line); border-left:4px solid #2e7bb5; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:.9rem; background:rgba(46,123,181,.08); }
 .dica-do-dia[hidden]{ display:none; }
 .dica-ok{ min-height:44px; white-space:nowrap; }
+
+/* Simplificação: ícones, filtro único, metragem inline, ações do gestor recolhidas */
+.ic{ font-style:normal; font-weight:700; }
+.ic-perf{ color:#2e7bb5; } .ic-topo{ color:#2e9b5f; } .ic-obs{ color:#b3261e; }
+.checklist-furos-tabela th .ic{ font-size:1.05rem; }
+.ck-prog-linha .rot.ic{ width:1.4em; text-align:center; }
+.ck-filtro-status select{ width:100%; min-height:48px; font-size:1rem; }
+.ck-chips{ display:block; }
+.ck-furo-metragem td{ padding:6px 8px; background:rgba(46,123,181,.08); }
+.ck-furo-metragem label{ display:inline-flex; flex-direction:column; gap:2px; font-size:.78rem; font-family:inherit; }
+.ck-furo-metragem input{ min-height:44px; width:8.5rem; font-size:1rem; }
+.ck-furo-metragem button{ min-height:44px; margin-left:8px; vertical-align:bottom; }
+.ck-mais-acoes{ margin-top:8px; border-top:1px dashed var(--line); padding-top:6px; }
+.ck-mais-acoes summary{ min-height:44px; display:flex; align-items:center; cursor:pointer; font-weight:600; font-size:.9rem; }
+.ck-mais-acoes .ck-equipes{ margin:6px 0; }

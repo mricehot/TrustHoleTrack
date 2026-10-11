@@ -1058,3 +1058,29 @@ function dispensarDica(id){
   const orig = renderChecklist;
   renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderDicaDoDia(); }catch(e){} return r; };
 })();
+
+
+/* ================= Técnico: abre direto no primeiro leque pendente ================= */
+let aberturaTecnicoFeita = false;
+function abrirNoPendenteDoTecnico(){
+  if(aberturaTecnicoFeita || !usuarioAtual) return;
+  if(ehGestor()) { aberturaTecnicoFeita = true; return; }
+  if(document.querySelector('.modal-overlay')) return;
+  const itens = (typeof checklistDoAnelAtivo === 'function') ? checklistDoAnelAtivo() : [];
+  if(!itens.length) return; // dados ainda não chegaram: tenta de novo na próxima atualização
+  aberturaTecnicoFeita = true;
+  const c = itens.find(x=> lequePendentePerfilagem(x) || lequePendenteTopografia(x));
+  mostrarView('checklist');
+  if(!c) return;
+  checklistExpandido.add(c.id);
+  renderChecklist();
+  const f = checklistFurosDoLeque(c.id).find(x=> !x.obstruido && (!x.perfilado || !x.topografado));
+  setTimeout(()=>{
+    if(f && typeof destacarLinhaFuro === 'function') destacarLinhaFuro(f.id);
+    else { const card = document.getElementById('ck-card-' + c.id); if(card) card.scrollIntoView({ block:'center' }); }
+  }, 150);
+}
+(function(){
+  const orig = atualizarDoServidor;
+  atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); try{ abrirNoPendenteDoTecnico(); }catch(e){} return r; };
+})();
