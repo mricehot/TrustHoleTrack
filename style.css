@@ -2053,3 +2053,10 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .ck-motivo{ display:block; color:#b3261e; font-size:.7rem; font-family:var(--mono); }
 .notas-rapidas{ display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 14px; }
 .notas-rapidas .ck-chip{ min-height:44px; }
+
+/* Leque ainda não iniciado: esmaecido de leve; volta ao normal ao tocar, abrir ou selecionar. */
+.checklist-leque-card[data-est=ini]{ opacity:.7; transition:opacity .15s; }
+.checklist-leque-card[data-est=ini]:hover,
+.checklist-leque-card[data-est=ini]:focus-within,
+.checklist-leque-card[data-est=ini].selecionado,
+.checklist-leque-card[data-est=ini]:has(.ck-cab[aria-expanded=true]){ opacity:1; }
