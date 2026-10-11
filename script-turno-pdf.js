@@ -40,10 +40,6 @@ el('btn-salvar-config').addEventListener('click', salvarConfig);
   t.checked = !!prefsUx.tela; v.checked = !!prefsUx.vibrar;
   t.addEventListener('change', ()=>{ prefsUx.tela = t.checked; salvarPrefsUx(); atualizarWakeLock(); });
   v.addEventListener('change', ()=>{ prefsUx.vibrar = v.checked; salvarPrefsUx(); if(v.checked) vibrarCurto([12, 40, 12]); });
-  const ct = el('pref-contraste'), gr = el('pref-grande');
-  if(ct){ ct.checked = !!prefsUx.contraste; ct.addEventListener('change', ()=>{ prefsUx.contraste = ct.checked; salvarPrefsUx(); aplicarPrefsVisuais(); }); }
-  if(gr){ gr.checked = !!prefsUx.grande; gr.addEventListener('change', ()=>{ prefsUx.grande = gr.checked; salvarPrefsUx(); aplicarPrefsVisuais(); }); }
-  aplicarPrefsVisuais();
 })();
 
 // O filtro de projeto ativo já aplica na hora, sem precisar clicar em

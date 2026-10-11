@@ -19,9 +19,7 @@ const el = id => document.getElementById(id);
 
 // ---------- Conforto no campo: vibração e tela acesa ----------
 const PREFS_UX_KEY = 'perfilagem-prefs-ux-v1';
-const prefsUx = { tela: true, vibrar: true, metragem: true, contraste: false, grande: false };
-function aplicarPrefsVisuais(){ document.body.classList.toggle('alto-contraste', !!prefsUx.contraste); document.body.classList.toggle('botoes-grandes', !!prefsUx.grande); }
-document.addEventListener('DOMContentLoaded', aplicarPrefsVisuais);
+const prefsUx = { tela: true, vibrar: true, metragem: true };
 try{ Object.assign(prefsUx, JSON.parse(localStorage.getItem(PREFS_UX_KEY) || '{}')); }catch(e){}
 function salvarPrefsUx(){ try{ localStorage.setItem(PREFS_UX_KEY, JSON.stringify(prefsUx)); }catch(e){} }
 function vibrarCurto(padrao){ if(prefsUx.vibrar && navigator.vibrate){ try{ navigator.vibrate(padrao || 12); }catch(e){} } }
