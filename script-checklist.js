@@ -224,6 +224,7 @@ function htmlCardChecklist(c, agrupado){
           ${furos.length ? `
             <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
             <button type="button" class="ghost so-gestor" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
+          ${furos.length > 1 ? `<button type="button" class="ghost" onclick="abrirMarcarFaixa('${c.id}')">Marcar faixa de furos</button>` : ''}
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
           <button type="button" class="ghost so-gestor" onclick="verHistoricoLeque('${c.id}')">🕘 Histórico</button>
           <button type="button" class="ghost perigo so-gestor" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
@@ -1912,4 +1913,46 @@ async function verHistoricoLeque(id){
   const fechar = ()=>{ root.innerHTML = ''; };
   el('modal-fechar').onclick = fechar;
   el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+}
+
+// Marcar faixa: perfilado ou topografado de F03 até F08 de uma vez (menos toques com luva).
+function abrirMarcarFaixa(lequeId){
+  const c = checklistLeques.find(x=>x.id===lequeId); if(!c) return;
+  const fl = checklistFurosDoLeque(lequeId); if(fl.length < 2) return;
+  const opts = (sel)=> fl.map((f,i)=>`<option value="${i}" ${i===sel?'selected':''}>F${escHtml(String(f.numero))}</option>`).join('');
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;">Marcar faixa · ${escHtml(PREFIXO[c.tipo]+c.numero)}</p>
+    <div class="field"><label>O que marcar<select id="faixa-tipo"><option value="perfilado">Perfilado</option><option value="topografado">Topografado</option></select></label></div>
+    <div class="field"><label>Do furo<select id="faixa-de">${opts(0)}</select></label></div>
+    <div class="field" style="margin-bottom:16px;"><label>Até o furo<select id="faixa-ate">${opts(fl.length-1)}</select></label></div>
+    <p class="hint" id="faixa-previa"></p>
+    <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="steel" id="modal-salvar">Marcar</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  const faixa = ()=>{
+    let i = parseInt(el('faixa-de').value,10), j = parseInt(el('faixa-ate').value,10);
+    if(i > j) [i,j] = [j,i];
+    const tipo = el('faixa-tipo').value;
+    return { tipo, alvo: fl.slice(i, j+1).filter(f=> !f.obstruido && !(tipo === 'perfilado' ? f.perfilado : f.topografado)), total: j-i+1 };
+  };
+  const previa = ()=>{ const r = faixa(); el('faixa-previa').textContent = r.alvo.length ? `Vai marcar ${r.alvo.length} furo(s): ${r.alvo.map(f=>'F'+f.numero).join(', ')}.` : 'Nenhum furo a marcar nessa faixa (já marcados ou obstruídos).'; };
+  ['faixa-tipo','faixa-de','faixa-ate'].forEach(id=> el(id).addEventListener('change', previa));
+  previa();
+  el('modal-cancelar').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('modal-salvar').onclick = ()=>{ const r = faixa(); fechar(); aplicarFaixa(lequeId, r.tipo, r.alvo); };
+}
+function aplicarFaixa(lequeId, tipo, alvo){
+  if(!alvo.length){ showToast('Nenhum furo para marcar nessa faixa.'); return; }
+  const agora = new Date().toISOString();
+  const snap = [];
+  alvo.forEach(f=>{
+    snap.push({ id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm });
+    if(tipo === 'perfilado'){ f.perfilado = true; f.perfiladoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, perfilado:true, perfilado_em:agora }); }
+    else { f.topografado = true; f.topografadoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, topografado:true, topografado_em:agora }); }
+  });
+  vibrarCurto(10);
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(`${alvo.length} furo(s) marcados como ${tipo === 'perfilado' ? 'perfilados' : 'topografados'}.`, { acaoLabel:'Desfazer', onAcao: ()=> desfazerLoteChecklist([], snap) });
 }
