@@ -669,6 +669,26 @@ async function executarEnvio(tabela, acao, registro, silencioso){
     }
   }catch(err){
     const motivo = err && err.message ? err.message : 'sem conexão';
+    // Erros que nunca vão passar por repetir (o servidor recusou de vez): sai da fila em vez de
+    // ficar "sem salvar" para sempre. FK = o realce/leque não existe mais no servidor; RLS = sem permissão.
+    const fkQuebrada = err && (err.code === '23503' || /foreign key/i.test(motivo));
+    const semPermissao = err && (err.code === '42501' || /row-level security|permission denied/i.test(motivo));
+    if(tabela === 'usuario_realce_ativo' && fkQuebrada){
+      falhasDeEnvio.delete(chave);
+      if(!silencioso) showToast('O realce que estava ativo não existe mais. Escolha outro na lista.', { tipo:'aviso' });
+      try{
+        if(anelAtivoId && !aneis.some(a=>a.id===anelAtivoId)){ anelAtivoId = aneis.length ? aneis[0].id : null; }
+        if(anelAtivoId && registro.anel_id !== anelAtivoId) gravarRealceAtivoDoUsuario(anelAtivoId);
+        if(typeof renderAll === 'function') renderAll();
+      }catch(e){}
+      return;
+    }
+    if(semPermissao && acao === 'insert' && ['aneis','leques','checklist_leques','checklist_furos'].includes(tabela)){
+      falhasDeEnvio.delete(chave);
+      if(!silencioso) showToast('Só o gestor pode criar isso. O item foi descartado.', { tipo:'aviso' });
+      setTimeout(()=>{ try{ atualizarDoServidor(); }catch(e){} }, 300);
+      return;
+    }
     registrarFalhaNaFila(chave, tabela, acao, registro, motivo);
     // Falha de rede repetida não enche a tela de avisos: um aviso a cada 30 s no máximo.
     // O indicador "N sem salvar" continua mostrando que há pendências.
