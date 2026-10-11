@@ -143,6 +143,8 @@ function estadoDoLeque(furos){
 }
 const ICONE_ESTADO = { ok:'✓', and:'◐', obs:'⚠', ini:'○' };
 const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado' };
+// Leque 100%: todos os furos perfilados e topografados, nenhum obstruído (ganha os raios discretos).
+function leque100(furos){ return furos.length > 0 && furos.every(f=> f.perfilado && f.topografado && !f.obstruido); }
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
   const expandido = checklistExpandido.has(c.id);
@@ -241,7 +243,8 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${estadoDoLeque(furos)}" title="Leque ${ROTULO_ESTADO[estadoDoLeque(furos)]}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${estadoDoLeque(furos)}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[estadoDoLeque(furos)]}">
+      ${leque100(furos) ? '<span class="ck-raios" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar so-gestor" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}

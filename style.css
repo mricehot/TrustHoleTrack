@@ -2106,3 +2106,15 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 /* Furo sem dados: cinza em vez de "Livre" verde */
 .status-dot.pendente{ background:var(--muted,#8a8f98); }
 .sit-chip.sit-pendente{ color:var(--muted); border-style:dashed; font-weight:600; }
+
+/* Leque 100% (perfilado + topografado, sem obstrução): raios pequenos que piscam de vez em quando */
+.checklist-leque-card[data-raios]{ position:relative; }
+.ck-raios{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:1; }
+.ck-raios i{ position:absolute; width:9px; height:15px; background:#ffd23f; opacity:0;
+  clip-path:polygon(58% 0,8% 56%,44% 56%,28% 100%,92% 38%,54% 38%); filter:drop-shadow(0 0 3px rgba(255,210,63,.9));
+  animation:raioPisca 5.2s infinite; }
+.ck-raios i:nth-child(1){ top:6px; right:46px; animation-delay:.4s; transform:rotate(12deg); }
+.ck-raios i:nth-child(2){ top:20px; right:16px; animation-delay:2.1s; transform:rotate(-14deg) scale(.8); }
+.ck-raios i:nth-child(3){ bottom:8px; right:64px; animation-delay:3.7s; transform:rotate(8deg) scale(.7); }
+@keyframes raioPisca{ 0%,86%,100%{ opacity:0; } 88%{ opacity:1; } 90%{ opacity:.15; } 92%{ opacity:1; } 96%{ opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .ck-raios i{ animation:none; opacity:.75; } }
