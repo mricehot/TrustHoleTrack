@@ -424,6 +424,25 @@ function blocoNotasFurosWhatsApp(itens){
   return linhas.length ? `📝 *NOTAS DOS FUROS*\n${linhas.join('\n')}` : '';
 }
 
+// Leques que já começaram (algum furo perfilado ou topografado) mas ainda não terminaram:
+// mostra, furo a furo, o que falta perfilar e o que falta topografar (obstruídos não contam).
+function blocoEmAndamentoWhatsApp(itens){
+  const linhas = [];
+  itens.forEach(c=>{
+    const fl = checklistFurosDoLeque(c.id);
+    if(!fl.length || !fl.some(f=>f.perfilado || f.topografado)) return;
+    const uteis = fl.filter(f=>!f.obstruido);
+    const faltaPerf = uteis.filter(f=>!f.perfilado), faltaTopo = uteis.filter(f=>!f.topografado);
+    if(!faltaPerf.length && !faltaTopo.length) return;
+    const nomes = arr=> arr.map(f=>'F'+f.numero).join(', ');
+    const local = (c.localizacao||'').trim();
+    const linha = (rot, falta)=> falta.length
+      ? `  ▸ ${rot}: ${uteis.length - falta.length}/${uteis.length} - FALTAM ${nomes(falta)}`
+      : `  ▸ ${rot}: completa ✅`;
+    linhas.push(`*${PREFIXO[c.tipo]}${c.numero}*${local ? ' ('+semAcento(local)+')' : ''}\n${linha('Perfilagem', faltaPerf)}\n${linha('Topografia', faltaTopo)}`);
+  });
+  return linhas.length ? `🔶 *EM ANDAMENTO (INCOMPLETOS)*\n${linhas.join('\n')}` : '';
+}
 function barraWa(pct){ const n = Math.round(Math.max(0,Math.min(100,pct))/10); return '▓'.repeat(n) + '░'.repeat(10-n); }
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
@@ -446,6 +465,8 @@ function resumoChecklistItens(itens){
   t += `\n`;
   t += lista('✅ TOPOGRAFADOS', compactarCodigosEmIntervalos(itens.filter(topo)));
   t += lista('🟡 PENDENTES TOPOGRAFIA', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c))));
+  const andamento = blocoEmAndamentoWhatsApp(itens);
+  if(andamento) t += `\n${andamento}\n`;
   return t.trim();
 }
 
@@ -529,6 +550,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
     bloco += `\n`;
     bloco += lista('✅ TOPOGRAFADOS', codigosTopografados);
     bloco += lista('🟡 PENDENTES TOPOGRAFIA', codigosPendentesTopografia);
+    const andamento = blocoEmAndamentoWhatsApp(itens);
+    if(andamento) bloco += `\n${andamento}\n`;
     bloco = bloco.trim();
   }
 
