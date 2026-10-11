@@ -46,6 +46,7 @@ function renderAneisMenu(){
         ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
         <span class="spacer"></span>
         <button class="ghost anel-wa" onclick="enviarRealceWhatsApp('${a.id}')" title="enviar as informações deste realce pelo WhatsApp (sem PDF)" aria-label="enviar ${escHtml(a.nome)} pelo WhatsApp">💬 WhatsApp</button>
+        <button class="ghost anel-wa" onclick="enviarImagemRealce('${a.id}')" title="relatório deste realce como imagem (para o WhatsApp)">🖼 Imagem</button>
         ${checklistFuros.some(f=> (f.fotoUrl || (typeof fotosPendentes !== 'undefined' && fotosPendentes.has(f.id))) && itensA.some(c=>c.id===f.checklistLequeId)) ? `<button class="ghost anel-wa" onclick="enviarFotosWhatsApp(checklistDoAnel('${a.id}').map(c=>c.id))" title="enviar as fotos dos furos deste realce (como imagens)">📷 Fotos</button>` : ''}
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
         <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
