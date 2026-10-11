@@ -866,3 +866,91 @@ function aplicarPapel(){
   if(campo) campo.value = rotuloPapel() + (minhaEquipeId() ? ' · ' + nomeDaEquipeId(minhaEquipeId()) : '');
 }
 window.addEventListener('load', ()=> setTimeout(aplicarPapel, 300));
+
+
+/* ================= Painel do gestor ================= */
+const PAINEL_PARADO_HORAS = 4; // leque começado sem nenhuma marcação nova há tanto tempo = "parado"
+function ultimaMarcaDoLeque(furos){
+  let m = 0;
+  furos.forEach(f=>{ [f.perfiladoEm, f.topografadoEm].forEach(t=>{ const v = t ? Date.parse(t) : 0; if(v > m) m = v; }); });
+  return m;
+}
+function formatarHaQuanto(ms){
+  const min = Math.max(1, Math.round(ms / 60000));
+  if(min < 60) return min + ' min';
+  const h = Math.floor(min / 60);
+  return h < 24 ? h + ' h' : Math.floor(h / 24) + ' d';
+}
+function dadosPainelRealce(anel){
+  const leques = checklistDoAnel(anel.id);
+  const ids = new Set(leques.map(c=>c.id));
+  const furos = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
+  const uteis = furos.filter(f=>!f.obstruido);
+  const perf = uteis.filter(f=>f.perfilado).length, topo = uteis.filter(f=>f.topografado).length;
+  let completos = 0; const parados = []; const andamento = [];
+  leques.forEach(c=>{
+    const fl = checklistFurosDoLeque(c.id), ut = fl.filter(f=>!f.obstruido);
+    if(!fl.length) return;
+    const faltaP = ut.filter(f=>!f.perfilado), faltaT = ut.filter(f=>!f.topografado);
+    if(!faltaP.length && !faltaT.length){ completos++; return; }
+    if(!fl.some(f=>f.perfilado || f.topografado)) return;
+    const ultima = ultimaMarcaDoLeque(fl);
+    const item = { c, faltaP, faltaT, ultima };
+    andamento.push(item);
+    if(ultima && Date.now() - ultima > PAINEL_PARADO_HORAS * 3600000) parados.push(item);
+  });
+  return { anel, leques, total: leques.length, completos, furosTotal: uteis.length, perf, topo,
+    obstruidos: furos.length - uteis.length, parados, andamento,
+    pP: uteis.length ? Math.round(perf / uteis.length * 100) : 0, pT: uteis.length ? Math.round(topo / uteis.length * 100) : 0 };
+}
+function producaoPorEquipePainel(){
+  const hoje = chaveDia(new Date().toISOString());
+  const semana = chaveDia(inicioDaSemana(new Date()).toISOString());
+  const mapa = new Map();
+  const pega = id=>{ if(!mapa.has(id)) mapa.set(id, { hojeM:0, hojeP:0, semM:0, semP:0 }); return mapa.get(id); };
+  lancamentosEfetivos().forEach(l=>{
+    const d = String(l.data).slice(0,10), o = pega(l.equipeId);
+    if(d >= semana){ o.semM += Number(l.metros)||0; o.semP += Number(l.pontos)||0; }
+    if(d === hoje){ o.hojeM += Number(l.metros)||0; o.hojeP += Number(l.pontos)||0; }
+  });
+  checklistFuros.forEach(f=>{
+    if(!f.topografado || !f.topografadoEm) return;
+    const eq = equipeTopoEfetivaId(f); if(!eq) return;
+    const d = chaveDia(f.topografadoEm), o = pega(eq);
+    if(d >= semana) o.semP++;
+    if(d === hoje) o.hojeP++;
+  });
+  return mapa;
+}
+function renderPainelGestor(){
+  const body = document.getElementById('painel-body'); if(!body) return;
+  const nums = l=> l.map(f=>'F'+f.numero).join(', ');
+  const dados = aneis.map(dadosPainelRealce).filter(d=>d.total > 0)
+    .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
+  let h = '';
+  const totParados = dados.reduce((n,d)=> n + d.parados.length, 0);
+  h += `<div class="painel-resumo"><div><b>${dados.length}</b><span>realce(s)</span></div><div><b>${dados.filter(d=>d.completos===d.total).length}</b><span>concluído(s)</span></div><div class="${totParados ? 'alerta' : ''}"><b>${totParados}</b><span>leque(s) parado(s)</span></div></div>`;
+  if(!dados.length) h += '<p class="hint">Nenhum realce com checklist ainda.</p>';
+  dados.forEach(d=>{
+    const ativo = d.anel.id === anelAtivoId;
+    h += `<article class="painel-realce${d.completos === d.total ? ' ok' : ''}">
+      <header><b>${escHtml(d.anel.nome)}</b>${ativo ? '<span class="tag">ativo</span>' : ''}<span class="painel-leques">${d.completos}/${d.total} leques</span></header>
+      <div class="painel-barra"><span>Perfilagem ${d.perf}/${d.furosTotal} · ${d.pP}%</span><i style="--p:${d.pP}%"></i></div>
+      <div class="painel-barra"><span>Topografia ${d.topo}/${d.furosTotal} · ${d.pT}%</span><i style="--p:${d.pT}%"></i></div>
+      ${d.obstruidos ? `<p class="painel-obs">⛔ ${d.obstruidos} furo(s) obstruído(s)</p>` : ''}
+      ${d.parados.length ? `<div class="painel-parados"><b>⚠ Parados há mais de ${PAINEL_PARADO_HORAS} h</b>${d.parados.map(i=>`<p><b>${escHtml(PREFIXO[i.c.tipo]+i.c.numero)}</b> · última marcação há ${formatarHaQuanto(Date.now()-i.ultima)}<br>${i.faltaP.length ? 'Falta perfilar: '+nums(i.faltaP) : 'Perfilagem completa'} · ${i.faltaT.length ? 'falta topografar: '+nums(i.faltaT) : 'topografia completa'}</p>`).join('')}</div>` : ''}
+      ${d.andamento.length > d.parados.length ? `<details class="painel-andamento"><summary>${d.andamento.length - d.parados.length} leque(s) em andamento</summary>${d.andamento.filter(i=>!d.parados.includes(i)).map(i=>`<p><b>${escHtml(PREFIXO[i.c.tipo]+i.c.numero)}</b> · ${i.faltaP.length ? 'falta perfilar: '+nums(i.faltaP) : 'perfilagem completa'} · ${i.faltaT.length ? 'falta topografar: '+nums(i.faltaT) : 'topografia completa'}</p>`).join('')}</details>` : ''}
+    </article>`;
+  });
+  const prod = producaoPorEquipePainel();
+  const fmt = n=> (Math.round(n*10)/10).toString().replace('.', ',');
+  const linhas = [...prod.entries()].map(([id,o])=> `<tr><td>${escHtml(nomeDaEquipeId(id) || 'Sem equipe')}</td><td>${fmt(o.hojeM)} m · ${o.hojeP} pt</td><td>${fmt(o.semM)} m · ${o.semP} pt</td></tr>`);
+  h += `<article class="painel-realce"><header><b>Produção por equipe</b></header>${linhas.length ? `<table class="painel-prod"><thead><tr><th>Equipe</th><th>Hoje</th><th>Semana</th></tr></thead><tbody>${linhas.join('')}</tbody></table>` : '<p class="hint">Sem lançamentos nesta semana.</p>'}</article>`;
+  body.innerHTML = h;
+  const t = document.getElementById('painel-atualizado');
+  if(t) t.textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+(function(){
+  const orig = atualizarDoServidor;
+  atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); if(document.body.dataset.view === 'painel') renderPainelGestor(); return r; };
+})();

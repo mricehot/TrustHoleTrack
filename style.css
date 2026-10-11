@@ -1982,3 +1982,25 @@ tr.ck-furo-eq input[type=text]{ width:100%; min-height:44px; }
 
 /* Papéis: o técnico não vê o que é só do gestor */
 body[data-papel="tecnico"] .so-gestor{ display:none !important; }
+
+/* Painel do gestor */
+.painel-body{ padding:12px; display:flex; flex-direction:column; gap:12px; }
+.painel-resumo{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.painel-resumo div{ border:1px solid var(--line); border-radius:6px; padding:10px; text-align:center; display:flex; flex-direction:column; }
+.painel-resumo b{ font-size:1.5rem; }
+.painel-resumo span{ font-size:.75rem; opacity:.75; }
+.painel-resumo .alerta{ border-color:#d98a00; background:rgba(217,138,0,.12); }
+.painel-realce{ border:1px solid var(--line); border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:8px; min-width:0; }
+.painel-realce.ok{ opacity:.8; }
+.painel-realce header{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.painel-leques{ margin-left:auto; font-size:.85rem; opacity:.8; }
+.painel-barra span{ font-size:.82rem; display:block; margin-bottom:3px; }
+.painel-barra i{ display:block; height:8px; border-radius:4px; background:rgba(128,128,128,.25); position:relative; overflow:hidden; }
+.painel-barra i::after{ content:''; position:absolute; inset:0; width:var(--p); background:#2e9b5f; border-radius:4px; }
+.painel-obs{ margin:0; font-size:.88rem; }
+.painel-parados{ border-left:4px solid #d98a00; padding:6px 10px; background:rgba(217,138,0,.1); font-size:.88rem; }
+.painel-parados p, .painel-andamento p{ margin:6px 0 0; overflow-wrap:anywhere; }
+.painel-andamento{ font-size:.88rem; }
+.painel-andamento summary{ min-height:40px; display:flex; align-items:center; cursor:pointer; }
+.painel-prod{ width:100%; border-collapse:collapse; font-size:.88rem; }
+.painel-prod th,.painel-prod td{ text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }

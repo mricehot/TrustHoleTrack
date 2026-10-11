@@ -324,8 +324,8 @@ async function exportarTurnoOuCombinado(){
 el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
 
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
-const VIEWS_SECUNDARIAS = ['historico','config','tecnico'];
-const ORDEM_VIEWS = ['turno','aneis','perfilagem','checklist','infografico','historico','config','tecnico'];
+const VIEWS_SECUNDARIAS = ['painel','historico','config','tecnico'];
+const ORDEM_VIEWS = ['turno','aneis','perfilagem','checklist','infografico','painel','historico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;
@@ -343,6 +343,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  if(viewId === 'painel' && typeof renderPainelGestor === 'function') renderPainelGestor();
   if(viewId === 'tecnico' && typeof atualizarAvatarEMeuDia === 'function') atualizarAvatarEMeuDia();
   atualizarWakeLock();
   if(viewAnterior && viewAnterior !== viewId){
@@ -381,6 +382,7 @@ function fecharSheetMais(){
     item.type = 'button';
     item.className = 'sheet-item';
     item.dataset.view = orig.dataset.view;
+    if(orig.classList.contains('so-gestor')) item.classList.add('so-gestor');
     item.setAttribute('role', 'menuitem');
     item.innerHTML = orig.querySelector('.tab-icon').innerHTML + '<span>' + orig.querySelector('.tab-label').textContent + '</span>';
     item.addEventListener('click', ()=> mostrarView(item.dataset.view));
