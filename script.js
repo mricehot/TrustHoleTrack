@@ -275,16 +275,22 @@ let projetos = []; // { id, nome, ts } — lista de projetos que os realces pode
 let checklistExpandido = new Set(); // ids de checklist_leques com a tabela de furos aberta (só na sessão, não persiste)
 let furos = [];        // { id, lequeId, numero, metragemEsperada, metragemReal, situacao, ts }
 let anelAtivoId = null;
-let lequesColapsados = new Set();
+let lequesColapsados = new Set();   // recolhidos pelo usuário
+let lequesExpandidos = new Set();   // abertos pelo usuário (por padrão só o leque em andamento vem aberto)
+function lequeColapsado(l){
+  if(lequesColapsados.has(l.id)) return true;
+  return !(lequesExpandidos.has(l.id) || l.status === 'aberto');
+}
 let lequesSelecionados = new Set();
 
 function toggleLeque(id){
   const sel = `.leque-group[data-leque-id="${id}"]`;
-  if(!lequesColapsados.has(id)){
-    animarFechar(document.querySelector(sel + ' .tabela-wrap, ' + sel + ' .sem-furos'), document.querySelector(sel + ' .toggle-leque'), ()=>{ lequesColapsados.add(id); render(); });
+  const lq = leques.find(x=>x.id===id);
+  if(lq && !lequeColapsado(lq)){
+    animarFechar(document.querySelector(sel + ' .tabela-wrap, ' + sel + ' .sem-furos'), document.querySelector(sel + ' .toggle-leque'), ()=>{ lequesExpandidos.delete(id); lequesColapsados.add(id); render(); });
     return;
   }
-  lequesColapsados.delete(id);
+  lequesColapsados.delete(id); lequesExpandidos.add(id);
   render();
   animarAbrir(document.querySelector(sel + ' .tabela-wrap, ' + sel + ' .sem-furos'), document.querySelector(sel + ' .toggle-leque'));
 }

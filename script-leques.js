@@ -1283,5 +1283,20 @@ function abrirPreencherMetragens(lequeId){
     fechar(); salvarLocal(); renderAll();
     showToast(mudancas.size ? `Metragens salvas (${mudancas.size} furo(s)).` : 'Nada mudou.');
   };
+  // Aviso na hora: real muito diferente da esperada (até 5% ok; até 15% amarelo; acima vermelho) — pega erro de digitação.
+  const lerN = x=>{ const n = parseFloat(String(x.value).trim().replace(',', '.')); return isNaN(n) ? 0 : n; };
+  const avisar = realInp=>{
+    const espInp = root.querySelector(`.pm-grade input[data-id="${realInp.dataset.id}"][data-campo="esp"]`);
+    const esp = espInp ? lerN(espInp) : 0, real = lerN(realInp);
+    if(!(esp > 0) || !(real > 0)){ delete realInp.dataset.nivel; realInp.title = ''; return; }
+    const dif = real - esp, pct = Math.abs(dif) / esp * 100;
+    realInp.dataset.nivel = pct <= 5 ? 'ok' : pct <= 15 ? 'atencao' : 'fora';
+    realInp.title = pct <= 5 ? '' : `${dif > 0 ? 'Passou' : 'Faltou'} ${fmt1(Math.abs(dif))} m (${Math.round(pct)}%) em relação à esperada. Confira se digitou certo.`;
+  };
+  inputs.forEach(inp=> inp.addEventListener('input', ()=>{
+    if(inp.dataset.campo === 'real') avisar(inp);
+    else{ const r = root.querySelector(`.pm-grade input[data-id="${inp.dataset.id}"][data-campo="real"]`); if(r) avisar(r); }
+  }));
+  inputs.filter(i=>i.dataset.campo === 'real').forEach(avisar);
   const primeiro = inputs.find(i=>!i.value) || inputs[0]; if(primeiro) primeiro.focus();
 }

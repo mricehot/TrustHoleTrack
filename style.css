@@ -2098,3 +2098,7 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
   .leque-group td[data-l]::before{ margin-right:3px; font-size:8.5px; }
 }
 @media (max-width:700px){ .leque-group td.c-real, .leque-group td.c-var{ padding-left:6px !important; } }
+
+/* Metragem real fora do esperado (modal Preencher metragens) */
+.pm-grade input[data-nivel=atencao]{ border-color:#e0a21b; background:rgba(224,162,27,.16); box-shadow:0 0 0 2px rgba(224,162,27,.35); }
+.pm-grade input[data-nivel=fora]{ border-color:#d6453d; background:rgba(214,69,61,.16); box-shadow:0 0 0 2px rgba(214,69,61,.4); }

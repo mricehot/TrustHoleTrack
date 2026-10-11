@@ -85,7 +85,7 @@ function render(){
         </tr>` : ''}`;
       }).join('');
 
-      const colapsado = lequesColapsados.has(l.id);
+      const colapsado = lequeColapsado(l);
       const selecionado = lequesSelecionados.has(l.id);
 
       return `
