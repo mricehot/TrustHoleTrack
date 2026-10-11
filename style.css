@@ -2032,3 +2032,12 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .ck-prog-linha .rot.ic{ width:auto; min-width:2.4em; text-align:left; }
 .checklist-furos-tabela th .ic{ font-size:.82rem; }
 .checklist-furos-tabela th .ic{ text-transform:none; }
+
+/* Perfilagem alimentada pelo checklist */
+.perf-puxar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.perf-puxar button{ min-height:48px; }
+.metr-pend{ opacity:.55; }
+.metr-falta{ color:#d98a00; }
+.pm-grade{ display:grid; grid-template-columns:auto 1fr 1fr; gap:8px; align-items:center; margin:8px 0 14px; max-height:55vh; overflow:auto; }
+.pm-grade input{ min-height:46px; font-size:1.05rem; width:100%; }
+.pm-furo{ font-family:var(--mono); font-weight:700; }

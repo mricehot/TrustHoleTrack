@@ -69,9 +69,9 @@ function render(){
         return `
         <tr>
           <td class="c-furo"><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
-          <td class="c-esp" data-l="Esperada">${fmt1(Number(f.metragemEsperada))} m</td>
-          <td class="c-real" data-l="Real">${fmt1(Number(f.metragemReal))} m</td>
-          <td class="diff c-var ${diffClass(diff)}" data-l="Variação">${diffLabel(diff)}</td>
+          <td class="c-esp" data-l="Esperada">${Number(f.metragemEsperada) > 0 ? fmt1(Number(f.metragemEsperada)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
+          <td class="c-real" data-l="Real">${(Number(f.metragemReal) > 0 || Number(f.metragemEsperada) > 0) ? fmt1(Number(f.metragemReal)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
+          <td class="diff c-var ${Number(f.metragemEsperada) > 0 ? diffClass(diff) : ''}" data-l="Variação">${Number(f.metragemEsperada) > 0 ? diffLabel(diff) : '—'}</td>
           <td class="c-sit"><span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span></td>
           <td class="actions">
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
@@ -112,9 +112,11 @@ function render(){
                 <div><b>${fmt1(totalRealL)}</b> m real</div>
                 <div class="${varL < 0 ? 'neg' : (varL > 0 ? 'pos' : '')}"><b>${diffLabel(varL)}</b> var.</div>
                 ${alertasL ? `<div><b>${alertasL}</b> alertas</div>` : ''}
+                ${(()=>{ const sem = todosFurosL.filter(f=> f.situacao !== 'obstruido' && !(Number(f.metragemEsperada) > 0)).length; return sem ? `<div class="metr-falta"><b>${sem}</b> sem metragem</div>` : ''; })()}
               </div>
               ${totalEspL > 0 ? `<div class="lq-barra" title="${pctMetros}% da metragem esperada" role="img" aria-label="${pctMetros}% da metragem esperada"><i style="width:${pctMetros}%"></i></div>` : ''}
               <div class="leque-actions">
+                <button class="icon icon-metragens" onclick="abrirPreencherMetragens('${l.id}')" title="preencher esperada e real de todos os furos">📏 Preencher metragens</button>
                 ${podeEditar ? `<button class="icon icon-editar" onclick="editarLeque('${l.id}')" title="editar leque">✎ editar</button>` : ''}
                 <button class="icon" onclick="exportarLequePDF('${l.id}')" title="exportar PDF deste leque sozinho">⬇ PDF</button>
                 ${podeEditar ? `
@@ -343,6 +345,7 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'turno') renderResumoTurno();
+  if(viewId === 'perfilagem' && typeof puxarDoChecklist === 'function') setTimeout(()=>puxarDoChecklist(true), 200);
   if(viewId === 'painel' && typeof renderPainelGestor === 'function') renderPainelGestor();
   if(viewId === 'tecnico' && typeof atualizarAvatarEMeuDia === 'function') atualizarAvatarEMeuDia();
   atualizarWakeLock();

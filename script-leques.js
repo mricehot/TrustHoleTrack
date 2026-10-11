@@ -1143,3 +1143,118 @@ function atualizarFaixaLeque(lequeAberto){
     ${vara ? `<span class="fx-sit varado">${vara} varado${vara===1?'':'s'}</span>` : ''}
     ${obs ? `<span class="fx-sit obstruido">${obs} obstruído${obs===1?'':'s'}</span>` : ''}`;
 }
+
+
+/* ================= Perfilagem alimentada pelo checklist ================= */
+// O checklist é a lista de leques e furos do realce. Aqui eles são "puxados" para a aba
+// Perfilagem, e a equipe só preenche as metragens (esperada e real).
+// Esperada 0 = ainda não preenchida (o banco não aceita vazio).
+const numSemZero = n => String(n == null ? '' : n).trim().replace(/^0+(?=\d)/, '');
+let puxandoChecklist = false;
+function pendenciasPuxarChecklist(anelId){
+  const novosLeques = [], novosFuros = [], ajustes = [];
+  checklistDoAnel(anelId).forEach(c=>{
+    let l = leques.find(x=> x.anelId === anelId && x.tipo === c.tipo && numSemZero(x.numero) === numSemZero(c.numero));
+    if(!l) l = novosLeques.find(x=> x.tipo === c.tipo && numSemZero(x.numero) === numSemZero(c.numero));
+    if(!l){
+      l = { id: uuidv4(), anelId, tipo: c.tipo, numero: normalizarNumero(c.numero), nome: null, status: 'fechado', orientacao: 'descendente',
+            turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null, criadoPor: usuarioAtual ? usuarioAtual.id : null, fotoUrl: null };
+      novosLeques.push(l);
+    }
+    checklistFurosDoLeque(c.id).forEach(cf=>{
+      const f = furos.find(x=> x.lequeId === l.id && numSemZero(x.numero) === numSemZero(cf.numero));
+      const sit = cf.obstruido ? 'obstruido' : 'livre';
+      const metr = cf.metragem != null && cf.metragem > 0 ? Number(cf.metragem) : 0;
+      if(!f){
+        novosFuros.push({ id: uuidv4(), lequeId: l.id, numero: normalizarNumero(cf.numero), metragemEsperada: 0, metragemReal: metr, situacao: sit, observacao: '', precisaRefazer: false, ts: new Date().toISOString() });
+      }else{
+        const mud = {};
+        if(cf.obstruido && f.situacao === 'livre') mud.situacao = 'obstruido';
+        if(metr > 0 && !(f.metragemReal > 0)) mud.metragem_real = metr;
+        if(Object.keys(mud).length) ajustes.push({ f, mud });
+      }
+    });
+  });
+  return { novosLeques, novosFuros, ajustes };
+}
+async function puxarDoChecklist(silencioso){
+  if(puxandoChecklist) return;
+  if(!silencioso && !exigirGestor('puxar o checklist para a perfilagem')) return;
+  if(silencioso && !ehGestor()) return;
+  const anel = aneis.find(a=>a.id===anelAtivoId); if(!anel) return;
+  const { novosLeques, novosFuros, ajustes } = pendenciasPuxarChecklist(anel.id);
+  if(!novosLeques.length && !novosFuros.length && !ajustes.length){
+    if(!silencioso) showToast('A perfilagem já está igual ao checklist.');
+    return;
+  }
+  puxandoChecklist = true;
+  try{
+    novosLeques.forEach(l=> leques.push(l));
+    novosFuros.forEach(f=> furos.push(f));
+    ajustes.forEach(({ f, mud })=>{
+      if(mud.situacao) f.situacao = mud.situacao;
+      if(mud.metragem_real != null) f.metragemReal = mud.metragem_real;
+    });
+    salvarLocal();
+    renderAll();
+    // Leques primeiro (os furos dependem deles no banco), depois furos e ajustes.
+    await Promise.all(novosLeques.map(l=> executarEnvio('leques', 'insert', { id:l.id, anel_id:l.anelId, tipo:l.tipo, numero:l.numero, nome:null, status:l.status, orientacao:l.orientacao, turno_numero:l.turnoNumero, turno_letra:l.turnoLetra, criado_por:l.criadoPor }, true)));
+    const lequeFalhou = novosLeques.some(l=> falhasDeEnvio.has('leques:insert:' + l.id));
+    const regFuro = f=> ({ id:f.id, leque_id:f.lequeId, numero:f.numero, metragem_esperada:f.metragemEsperada, metragem_real:f.metragemReal, situacao:f.situacao, observacao:'' });
+    if(lequeFalhou){
+      // sem sinal: guarda os furos na fila logo atrás dos leques, para subirem na ordem certa
+      novosFuros.forEach(f=> registrarFalhaNaFila('furos:insert:' + f.id, 'furos', 'insert', regFuro(f), 'sem conexão'));
+      persistirFila(); atualizarIndicadorSalvamento();
+    }else{
+      for(let i = 0; i < novosFuros.length; i += 12){
+        await Promise.all(novosFuros.slice(i, i + 12).map(f=> executarEnvio('furos', 'insert', regFuro(f), true)));
+      }
+    }
+    ajustes.forEach(({ f, mud })=> enfileirar('furos', 'update', Object.assign({ id: f.id }, mud)));
+    showToast(`Perfilagem atualizada pelo checklist: ${novosLeques.length} leque(s), ${novosFuros.length} furo(s) novos${ajustes.length ? ', ' + ajustes.length + ' ajuste(s)' : ''}. Falta só preencher as metragens.`);
+  }finally{ puxandoChecklist = false; }
+}
+
+// Preencher as metragens de um leque de uma vez: uma linha por furo, só números.
+function abrirPreencherMetragens(lequeId){
+  const l = leques.find(x=>x.id===lequeId); if(!l) return;
+  const fl = furos.filter(f=>f.lequeId===lequeId).sort((a,b)=> String(a.numero).localeCompare(String(b.numero), undefined, {numeric:true}));
+  if(!fl.length){ showToast('Esse leque ainda não tem furos.'); return; }
+  const v = n=> n > 0 ? String(n).replace('.', ',') : '';
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
+    <p style="font-weight:700;">Metragens · ${escHtml(lequeCode(l))}</p>
+    <div class="pm-grade"><span></span><b>Esperada (m)</b><b>Real (m)</b>
+      ${fl.map(f=> f.situacao === 'obstruido'
+        ? `<span class="pm-furo">F${escHtml(String(f.numero))} ⛔</span><span class="hint" style="grid-column:span 2">obstruído</span>`
+        : `<span class="pm-furo">F${escHtml(String(f.numero))}</span>
+           <input type="text" inputmode="decimal" enterkeyhint="next" maxlength="6" data-id="${f.id}" data-campo="esp" value="${v(f.metragemEsperada)}" aria-label="F${escHtml(String(f.numero))} esperada">
+           <input type="text" inputmode="decimal" enterkeyhint="${f.id === fl[fl.length-1].id ? 'done' : 'next'}" maxlength="6" data-id="${f.id}" data-campo="real" value="${v(f.metragemReal)}" aria-label="F${escHtml(String(f.numero))} real">`).join('')}
+    </div>
+    <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="steel" id="modal-salvar">Salvar</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  const inputs = [...root.querySelectorAll('.pm-grade input')];
+  inputs.forEach((inp, i)=> inp.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); (inputs[i+1] || el('modal-salvar')).focus(); } }));
+  el('modal-cancelar').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('modal-salvar').onclick = ()=>{
+    const lido = x=>{ const t = x.value.trim().replace(',', '.'); if(t === '') return 0; const n = parseFloat(t); return isNaN(n) ? NaN : n; };
+    const mudancas = new Map();
+    for(const inp of inputs){
+      const n = lido(inp);
+      if(isNaN(n) || n < 0 || n > 999){ inp.focus(); showToast('Use só números (ex.: 12,5).', { tipo:'aviso' }); return; }
+      const id = inp.dataset.id, f = furos.find(x=>x.id===id); if(!f) continue;
+      const campo = inp.dataset.campo === 'esp' ? 'metragemEsperada' : 'metragemReal';
+      if(Number(f[campo]) !== n){ if(!mudancas.has(id)) mudancas.set(id, {}); mudancas.get(id)[campo] = n; }
+    }
+    mudancas.forEach((m, id)=>{
+      const f = furos.find(x=>x.id===id); const reg = { id };
+      if('metragemEsperada' in m){ f.metragemEsperada = m.metragemEsperada; reg.metragem_esperada = m.metragemEsperada; }
+      if('metragemReal' in m){ f.metragemReal = m.metragemReal; reg.metragem_real = m.metragemReal; }
+      enfileirar('furos', 'update', reg);
+    });
+    fechar(); salvarLocal(); renderAll();
+    showToast(mudancas.size ? `Metragens salvas (${mudancas.size} furo(s)).` : 'Nada mudou.');
+  };
+  const primeiro = inputs.find(i=>!i.value) || inputs[0]; if(primeiro) primeiro.focus();
+}
