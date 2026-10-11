@@ -2191,3 +2191,12 @@ li.feito .lb-txt{ text-decoration:line-through; color:var(--muted); }
 .lembretes-painel li.feito .lb-chk::after{ content:none; }
 .lembretes-painel .lb-del{ margin:-8px -8px -8px 0; }
 .lembretes-painel .lb-novo input{ font-family:inherit; }
+
+/* Formulario de novo realce: quebra em linhas em vez de espremer os campos (nome sozinho na primeira linha) */
+.anel-form{ flex-wrap:wrap; }
+.anel-form input, .anel-form select{ min-width:0; }
+.anel-form select{ flex:0 1 190px; }
+.anel-form button{ flex:0 0 auto; }
+.anel-form select{ flex:0 0 190px; width:190px; }
+.anel-form input[type=text]#anel-nivel{ flex:1 1 200px; width:auto; }
+@media (max-width:480px){ .anel-form select{ flex:0 0 auto; width:100%; } }
