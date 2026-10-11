@@ -1367,7 +1367,7 @@ function fanSVG(furosDoLeque, orientacao){
     const t = n === 1 ? 0.5 : i/(n-1);
     const angle = start + spread * t;
     const x2 = cx + Math.cos(angle) * 18, y2 = cy + Math.sin(angle) * 18;
-    const color = f.situacao === 'obstruido' ? 'var(--amber)' : f.situacao === 'varado' ? 'var(--steel)' : 'var(--moss)';
+    const color = f.situacao === 'obstruido' ? 'var(--amber)' : f.situacao === 'varado' ? 'var(--steel)' : (typeof semDados === 'function' && semDados(f)) ? 'var(--muted,#8a8f98)' : 'var(--moss)';
     lines += `<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-linecap="round" opacity="0.9"/>`;
   });
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--muted)"/>${lines}</svg>`;

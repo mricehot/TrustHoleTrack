@@ -2102,3 +2102,7 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 /* Metragem real fora do esperado (modal Preencher metragens) */
 .pm-grade input[data-nivel=atencao]{ border-color:#e0a21b; background:rgba(224,162,27,.16); box-shadow:0 0 0 2px rgba(224,162,27,.35); }
 .pm-grade input[data-nivel=fora]{ border-color:#d6453d; background:rgba(214,69,61,.16); box-shadow:0 0 0 2px rgba(214,69,61,.4); }
+
+/* Furo sem dados: cinza em vez de "Livre" verde */
+.status-dot.pendente{ background:var(--muted,#8a8f98); }
+.sit-chip.sit-pendente{ color:var(--muted); border-style:dashed; font-weight:600; }

@@ -1,3 +1,5 @@
+// Furo ainda sem nenhum dado lançado: a situação 'livre' é só o padrão do banco, não uma informação.
+function semDados(f){ return f.situacao === 'livre' && !(Number(f.metragemReal) > 0); }
 // ---------- Filtros + lista/histórico ----------
 function render(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
@@ -59,8 +61,14 @@ function render(){
       const podeEditar = souDonoDoLeque(l);
       const todosFurosL = furos.filter(f=>f.lequeId===l.id);
       const nObsL = todosFurosL.filter(f=>f.situacao==='obstruido').length;
-      const estL = l.status === 'aberto' ? 'and' : (!todosFurosL.length ? 'ini' : (obstrucaoAlta(nObsL, todosFurosL.length) ? 'obs' : 'ok'));
-      const ROT_EST_P = { and:'aberto', ok:'fechado', obs:'fechado com obstruções', ini:'sem furos' };
+      // Sem metragem real lançada não é "fechado e ok": cinza se nenhum furo tem dados, amarelo se faltam alguns.
+      const uteisL = todosFurosL.filter(f=>f.situacao!=='obstruido');
+      const semRealL = uteisL.filter(f=>!(Number(f.metragemReal) > 0)).length;
+      const estL = l.status === 'aberto' ? 'and' : (!todosFurosL.length ? 'ini'
+        : (uteisL.length && semRealL === uteisL.length) ? 'ini'
+        : semRealL > 0 ? 'and'
+        : (obstrucaoAlta(nObsL, todosFurosL.length) ? 'obs' : 'ok'));
+      const ROT_EST_P = { and:'aberto', ok:'fechado', obs:'fechado com obstruções', ini:todosFurosL.length ? 'sem metragens' : 'sem furos' };
       const ICO_EST_P = { and:'◐', ok:'✓', obs:'⚠', ini:'○' };
       const pctMetros = totalEspL > 0 ? Math.min(100, Math.round(totalRealL / totalEspL * 100)) : 0;
 
@@ -68,11 +76,11 @@ function render(){
         const diff = Number(f.metragemReal||0) - Number(f.metragemEsperada||0);
         return `
         <tr>
-          <td class="c-furo"><span class="status-dot ${f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
+          <td class="c-furo"><span class="status-dot ${semDados(f) ? 'pendente' : f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
           <td class="c-esp" data-l="Esperada">${Number(f.metragemEsperada) > 0 ? fmt1(Number(f.metragemEsperada)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
-          <td class="c-real" data-l="Real">${(Number(f.metragemReal) > 0 || Number(f.metragemEsperada) > 0) ? fmt1(Number(f.metragemReal)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
-          <td class="diff c-var ${Number(f.metragemEsperada) > 0 ? diffClass(diff) : ''}" data-l="Variação">${Number(f.metragemEsperada) > 0 ? diffLabel(diff) : '—'}</td>
-          <td class="c-sit"><span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span></td>
+          <td class="c-real" data-l="Real">${Number(f.metragemReal) > 0 ? fmt1(Number(f.metragemReal)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
+          <td class="diff c-var ${(Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0) ? diffClass(diff) : ''}" data-l="Variação">${(Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0) ? diffLabel(diff) : '—'}</td>
+          <td class="c-sit">${semDados(f) ? '<span class="sit-chip sit-pendente"><i aria-hidden="true">○</i>Pendente</span>' : `<span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span>`}</td>
           <td class="actions">
             <button class="icon icon-refazer ${f.precisaRefazer ? 'ativo' : ''}" onclick="toggleRefazerFuro('${f.id}')" title="${f.precisaRefazer ? 'desmarcar — já não precisa mais refazer' : 'marcar que precisa ser refeito'}"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
             <button class="icon icon-editar" onclick="editarFuro('${f.id}')" title="editar">✎</button>
@@ -101,7 +109,7 @@ function render(){
               <span class="code">${lequeCode(l)}</span>
               <span class="badge-tipo ${l.tipo}">${tipoLabel(l.tipo)}</span>
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
-              <span class="status ${l.status}"><i class="lq-ico" data-est="${estL}" aria-hidden="true">${ICO_EST_P[estL]}</i>${l.status === 'aberto' ? 'aberto' : 'fechado'}</span>
+              <span class="status ${l.status}"><i class="lq-ico" data-est="${estL}" aria-hidden="true">${ICO_EST_P[estL]}</i>${l.status === 'aberto' ? 'aberto' : (estL === 'ini' && todosFurosL.length ? 'sem metragens' : estL === 'and' ? 'incompleto' : 'fechado')}</span>
               ${l.nome ? `<span class="hint">${escHtml(l.nome)}</span>` : ''}
               ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
             </div>
@@ -147,7 +155,7 @@ function render(){
       html += `
         <div class="anel-section">
           <div class="anel-section-head"><b>${escHtml(a.nome)}</b></div>
-          <div class="ck-legenda" aria-label="legenda dos estados dos leques"><span><i class="and">◐</i>Aberto</span><span><i class="ok">✓</i>Fechado</span><span><i class="obs">⚠</i>Fechado c/ obstruções</span><span><i class="ini">○</i>Sem furos</span></div>
+          <div class="ck-legenda" aria-label="legenda dos estados dos leques"><span><i class="and">◐</i>Aberto</span><span><i class="ok">✓</i>Fechado</span><span><i class="obs">⚠</i>Fechado c/ obstruções</span><span><i class="ini">○</i>Sem furos ou metragens</span></div>
           ${gruposHTML}
         </div>
       `;
