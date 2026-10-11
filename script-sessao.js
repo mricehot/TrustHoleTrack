@@ -668,7 +668,7 @@ function renderPassagemTurno(){
   const box = el('passagem-lista'); if(!box) return;
   const d = pendenciasPassagem();
   const r = el('passagem-resumo');
-  if(r) r.textContent = d.total ? `${d.nPerf} a perfilar · ${d.nTopo} a topografar` : '';
+  if(r) r.textContent = !d.total ? '' : (d.linhas.length ? `${d.nPerf} a perfilar · ${d.nTopo} a topografar` : '✓ nada pendente');
   const lista = (rot, arr)=> arr.length ? `<span class="pass-grupo"><em>${rot}</em> ${arr.slice(0,10).join(', ')}${arr.length>10 ? ` +${arr.length-10}` : ''}</span>` : '';
   box.innerHTML = !d.total ? '<div class="hint">Nenhum leque no checklist deste realce.</div>'
     : (d.linhas.length ? d.linhas.slice(0,12).map(l=>`<div class="pass-linha"><b>${escHtml(l.cod)}</b><div>${l.vazio ? '<span class="pass-grupo"><em>sem furos lançados</em></span>' : lista('perfilar', l.perf) + lista('topografar', l.topo) + lista('obstruído', l.obs)}</div></div>`).join('') + (d.linhas.length > 12 ? `<div class="hint">+${d.linhas.length-12} leques com pendência</div>` : '')

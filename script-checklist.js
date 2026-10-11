@@ -776,6 +776,7 @@ function salvarTurnoSecoes(){ try{ localStorage.setItem(TURNO_SECOES_KEY, JSON.s
 function secaoTurnoRecolhida(chave){
   if(chave in turnoSecoes) return !!turnoSecoes[chave];
   if(chave === 'comunicados') return comunicadosVigentesNoEscopo().length === 0; // vazio: começa recolhido
+  if(chave === 'passagem' || chave === 'exportar') return true; // uso raro: começa recolhido (o resumo no título mostra o essencial)
   return false;
 }
 function aplicarSecoesTurno(){
