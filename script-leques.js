@@ -41,6 +41,7 @@ function renderAneisMenu(){
       <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}" data-est="${estA}">
         <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${escHtml(a.nivel)}</span>` : ''}
+        <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>
         ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
         ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
         <span class="spacer"></span>
@@ -161,6 +162,13 @@ function editAnelModal(anel){
               ${projetos.map(p=> `<option value="${escHtml(p.nome)}" ${anel.projeto===p.nome ? 'selected' : ''}>${escHtml(p.nome)}</option>`).join('')}
             </select>
           </div>
+          <div class="field" style="margin-bottom:16px;">
+            <label for="edit-anel-orientacao">Orientação do realce</label>
+            <select id="edit-anel-orientacao">
+              <option value="descendente" ${anel.orientacao !== 'ascendente' ? 'selected' : ''}>↓ Descendente</option>
+              <option value="ascendente" ${anel.orientacao === 'ascendente' ? 'selected' : ''}>↑ Ascendente</option>
+            </select>
+          </div>
           <label class="field pref-linha" style="margin-bottom:16px;">
             <input id="edit-anel-oculto-whatsapp" type="checkbox" ${anel.ocultoWhatsapp ? 'checked' : ''}>
             <span>Ocultar da lista de envio por WhatsApp (ex: realce já finalizado)</span>
@@ -181,7 +189,7 @@ function editAnelModal(anel){
       const projeto = el('edit-anel-projeto').value;
       const ocultoWhatsapp = el('edit-anel-oculto-whatsapp').checked;
       if(!nome){ showToast('Preencha o nome do realce.'); return; }
-      fechar({ nome, nivel, projeto, ocultoWhatsapp });
+      fechar({ nome, nivel, projeto, ocultoWhatsapp, orientacao: el('edit-anel-orientacao').value });
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
@@ -192,7 +200,7 @@ function editarAnel(id){
   if(!exigirGestor('editar realce')) return;
   const a = aneis.find(x=>x.id===id);
   if(!a) return;
-  editAnelModal(a).then(resultado=>{
+  editAnelModal(a).then(async resultado=>{
     if(!resultado) return;
     if(aneis.some(x=>x.id!==id && x.nome.toLowerCase()===resultado.nome.toLowerCase())){
       showToast(`Já existe um realce chamado "${resultado.nome}".`);
@@ -202,7 +210,13 @@ function editarAnel(id){
     a.nivel = resultado.nivel;
     a.projeto = resultado.projeto;
     a.ocultoWhatsapp = resultado.ocultoWhatsapp;
-    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, projeto: a.projeto, oculto_whatsapp: a.ocultoWhatsapp });
+    const mudouOrientacao = (a.orientacao || 'descendente') !== resultado.orientacao;
+    a.orientacao = resultado.orientacao;
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, projeto: a.projeto, oculto_whatsapp: a.ocultoWhatsapp, orientacao: a.orientacao });
+    const lequesDoRealce = leques.filter(l=>l.anelId===a.id && l.orientacao !== a.orientacao);
+    if(mudouOrientacao && lequesDoRealce.length && await confirmDialog(`Aplicar "${a.orientacao}" também aos ${lequesDoRealce.length} leque(s) já criados deste realce?`, 'Aplicar a todos')){
+      lequesDoRealce.forEach(l=>{ l.orientacao = a.orientacao; enfileirar('leques', 'update', { id: l.id, orientacao: a.orientacao }); });
+    }
     if(a.id === anelAtivoId) sincronizarLocalComNivelDoAnel();
     salvarLocal();
     renderAll();
@@ -227,14 +241,15 @@ function criarAnel(){
     showToast('Já existe um realce com esse nome.');
     return;
   }
+  const orientacao = (el('anel-orientacao') && el('anel-orientacao').value) || 'descendente';
   const novoId = uuidv4();
-  aneis.push({ id: novoId, nome, ativo: false, nivel, projeto, ocultoWhatsapp: false });
+  aneis.push({ id: novoId, nome, ativo: false, nivel, orientacao, projeto, ocultoWhatsapp: false });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
   sincronizarLocalComNivelDoAnel();
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: false, nivel, projeto });
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: false, nivel, projeto, orientacao });
   // o FK exige o realce já gravado; o upsert tem debounce, então chega depois do insert
   gravarRealceAtivoDoUsuario(novoId);
   campoNome.value = '';
@@ -686,7 +701,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
   showToast('Projeto restaurado.');
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, observacao: row.observacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipeObsId: row.equipe_obstrucao_id || null, observacao: row.observacao || '', ts: row.criado_em }; }
@@ -1157,7 +1172,7 @@ function pendenciasPuxarChecklist(anelId){
     let l = leques.find(x=> x.anelId === anelId && x.tipo === c.tipo && numSemZero(x.numero) === numSemZero(c.numero));
     if(!l) l = novosLeques.find(x=> x.tipo === c.tipo && numSemZero(x.numero) === numSemZero(c.numero));
     if(!l){
-      l = { id: uuidv4(), anelId, tipo: c.tipo, numero: normalizarNumero(c.numero), nome: null, status: 'fechado', orientacao: 'descendente',
+      l = { id: uuidv4(), anelId, tipo: c.tipo, numero: normalizarNumero(c.numero), nome: null, status: 'fechado', orientacao: (aneis.find(a=>a.id===anelId) || {}).orientacao || 'descendente',
             turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null, criadoPor: usuarioAtual ? usuarioAtual.id : null, fotoUrl: null };
       novosLeques.push(l);
     }

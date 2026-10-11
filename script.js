@@ -785,6 +785,9 @@ function sincronizarLocalComNivelDoAnel(){
   // associado ao realce ativo (configurado na criação/edição do realce).
   const campoProjeto = el('turno-projeto');
   if(campoProjeto) campoProjeto.value = anel.projeto || '';
+  // Leques novos herdam a orientação do realce ativo (o chip do formulário já vem marcado).
+  const orient = anel.orientacao || 'descendente';
+  document.querySelectorAll('#leque-orientacao-group .chip').forEach(c=> c.classList.toggle('active', c.dataset.val === orient));
   saveTurnoInfo();
 }
 
