@@ -1098,7 +1098,7 @@ function animarEntradaDaAba(viewId){
     let i = 0;
     raiz.querySelectorAll('.progress-fill, .ck-prog-bar i, .equipe-barra').forEach(b=>{
       const alvo = b.style.width; if(!alvo || alvo === '0%' || alvo === '0px') return;
-      b.animate([{ width:'0%' }, { width:alvo }], { duration:650, delay: Math.min(i++, 14) * 25, easing:'cubic-bezier(.2,.7,.2,1)', fill:'backwards' });
+      b.animate([{ width:'0%' }, { width:alvo }], { duration:b.matches('.ck-prog-bar i') ? 1100 : 650, delay: Math.min(i++, 14) * 25, easing:b.matches('.ck-prog-bar i') ? 'cubic-bezier(.4,0,.85,.55)' : 'cubic-bezier(.2,.7,.2,1)', fill:'backwards' });
     });
     raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor, .pt-kpi .valor').forEach(n=> contarNumeros(n, 650));
   }catch(e){}

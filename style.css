@@ -1401,7 +1401,7 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
 @keyframes marcaEstala{ 0%{ transform:scale(1); filter:drop-shadow(0 0 0 rgba(46,155,87,.0)); } 35%{ transform:scale(1.28); filter:drop-shadow(0 0 5px rgba(46,155,87,.55)); } 100%{ transform:scale(1); filter:drop-shadow(0 0 0 rgba(46,155,87,0)); } }
 input.pulso{ animation:marcaEstala .32s cubic-bezier(.2,.8,.3,1.2); }
 @keyframes barraCresce{ from{ width:var(--de); } to{ width:var(--para); } }
-.ck-prog-bar i.cresce{ animation:barraCresce .4s cubic-bezier(.2,.7,.2,1); }
+.ck-prog-bar i.cresce{ animation:barraCresce 1.1s cubic-bezier(.4,0,.85,.55); } /* começa devagar e acelera */
 @keyframes cardBrilho{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--est) 55%, transparent); } 100%{ box-shadow:0 0 0 10px transparent; } }
 .checklist-leque-card.brilho{ animation:cardBrilho .7s ease-out; }
 @media (prefers-reduced-motion: reduce){
@@ -1846,7 +1846,7 @@ body.dark-mode .toast{ background:#2c2b3b; }
 /* Barras de progresso */
 .progress-track{ height:14px; border-radius:8px; }
 .progress-fill{ border-radius:8px; transition:width .6s cubic-bezier(.2,.7,.2,1); background-image:linear-gradient(90deg,rgba(255,255,255,.18),transparent); }
-.ck-prog-bar i{ transition:width .5s cubic-bezier(.2,.7,.2,1); }
+.ck-prog-bar i{ transition:width 1.1s cubic-bezier(.4,0,.85,.55); }
 /* Ajuda (?) vira botão que abre janelinha */
 .ajuda > summary{ cursor:pointer; background:var(--steel); color:#fff; border-color:var(--steel); }
 .ajuda > .hint{ display:none !important; }
