@@ -1107,3 +1107,32 @@ function sugerirLocalChecklist(){
   const orig = renderChecklist;
   renderChecklist = function(){ const r = orig.apply(this, arguments); try{ sugerirLocalChecklist(); }catch(e){} return r; };
 })();
+
+/* ================= Modo conferência (só leitura) ================= */
+// Para o supervisor ou o turno seguinte conferir o estado sem risco de marcar algo sem querer.
+// Não é gravado: ao reabrir o app volta ao normal.
+let modoLeitura = false;
+const FUNCOES_BLOQUEADAS_LEITURA = [
+  'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'toggleChecklistLeque',
+  'aplicarFaixa', 'abrirMarcarFaixa', 'aplicarLoteChecklist', 'alternarModoSelecaoChecklist', 'editarObservacaoFuro', 'editarObservacaoChecklistLeque', 'removerObservacaoChecklistLeque',
+  'editarLocalizacaoChecklistLeque', 'tirarFotoFuro', 'adicionarFurosAoChecklist', 'adicionarAoChecklist', 'removerChecklistFuro', 'removerChecklistLeque',
+  'definirEquipeFuro', 'definirEquipeLeque', 'editarFuro', 'abrirPreencherMetragens', 'toggleRefazerFuro', 'ciclarSituacaoFuro', 'removerFuro', 'editarLeque', 'puxarDoChecklist'
+];
+(function(){
+  FUNCOES_BLOQUEADAS_LEITURA.forEach(nome=>{
+    const orig = window[nome]; if(typeof orig !== 'function') return;
+    window[nome] = function(){
+      if(modoLeitura){ showToast('Modo conferência: só leitura. Saia dele para marcar.', { tipo:'aviso' }); try{ renderChecklist(); }catch(e){} return; }
+      return orig.apply(this, arguments);
+    };
+  });
+})();
+function definirModoLeitura(on){
+  modoLeitura = !!on;
+  document.body.classList.toggle('modo-leitura', modoLeitura);
+  const b = document.getElementById('banner-leitura'); if(b) b.hidden = !modoLeitura;
+  const btn = document.getElementById('btn-modo-leitura'); if(btn) btn.setAttribute('aria-pressed', String(modoLeitura));
+  try{ document.querySelector('.modal-overlay') && (document.getElementById('modal-root').innerHTML = ''); }catch(e){}
+  try{ renderAll(); }catch(e){}
+  if(modoLeitura) showToast('Modo conferência ligado: nada pode ser marcado.', { tipo:'ok' });
+}

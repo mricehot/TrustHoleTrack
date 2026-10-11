@@ -2122,3 +2122,15 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 /* Foto do furo */
 .icon-foto{ opacity:.85; }
 .icon-foto.tem{ opacity:1; color:var(--est-ok,#2e9b57); }
+
+/* ================= Modo conferência (só leitura) ================= */
+.banner-leitura{ position:fixed; top:0; left:0; right:0; z-index:2500; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; background:#3a2f7a; color:#fff; font-weight:700; font-size:.95rem; box-shadow:0 2px 10px rgba(0,0,0,.35); }
+.banner-leitura[hidden]{ display:none; }
+.banner-leitura button{ min-height:40px; padding:0 16px; border-radius:8px; border:2px solid #fff; background:transparent; color:#fff; font-weight:700; }
+body.modo-leitura{ padding-top:56px; }
+body.modo-leitura .so-gestor, body.modo-leitura .ck-arrastar, body.modo-leitura .icon-remover, body.modo-leitura .icon-nota, body.modo-leitura .icon-foto:not(.tem),
+body.modo-leitura .ck-mais-acoes, body.modo-leitura .perf-forms, body.modo-leitura .perf-puxar, body.modo-leitura .icon-metragens, body.modo-leitura .icon-editar, body.modo-leitura .icon-refazer,
+body.modo-leitura #foto-remover, body.modo-leitura #foto-trocar, body.modo-leitura .ck-furo-motivo, body.modo-leitura .checklist-furos-add, body.modo-leitura [onclick*="abrirMarcarFaixa"],
+body.modo-leitura [onclick*="alternarModoSelecaoChecklist"], body.modo-leitura .notas-rapidas{ display:none !important; }
+body.modo-leitura .checklist-furos-tabela input[type="checkbox"], body.modo-leitura .ck-check, body.modo-leitura .status-dot, body.modo-leitura .ck-furo-num{ pointer-events:none; }
+body.modo-leitura .checklist-furos-tabela input[type="checkbox"]{ opacity:.8; }
