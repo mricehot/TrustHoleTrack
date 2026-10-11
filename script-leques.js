@@ -704,7 +704,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
 function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, observacao: row.observacao || '', ts: row.criado_em }; }
-function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipeObsId: row.equipe_obstrucao_id || null, observacao: row.observacao || '', ts: row.criado_em }; }
+function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipeObsId: row.equipe_obstrucao_id || null, metragemEsperada: row.metragem_esperada != null ? Number(row.metragem_esperada) : null, obstruidoMotivo: row.obstruido_motivo || '', observacao: row.observacao || '', ts: row.criado_em }; }
 
 function carregarChecklistLocal(){
   try{
@@ -1181,11 +1181,12 @@ function pendenciasPuxarChecklist(anelId){
       const sit = cf.obstruido ? 'obstruido' : 'livre';
       const metr = cf.metragem != null && cf.metragem > 0 ? Number(cf.metragem) : 0;
       if(!f){
-        novosFuros.push({ id: uuidv4(), lequeId: l.id, numero: normalizarNumero(cf.numero), metragemEsperada: 0, metragemReal: metr, situacao: sit, observacao: '', precisaRefazer: false, ts: new Date().toISOString() });
+        novosFuros.push({ id: uuidv4(), lequeId: l.id, numero: normalizarNumero(cf.numero), metragemEsperada: cf.metragemEsperada > 0 ? Number(cf.metragemEsperada) : 0, metragemReal: metr, situacao: sit, observacao: '', precisaRefazer: false, ts: new Date().toISOString() });
       }else{
         const mud = {};
         if(cf.obstruido && f.situacao === 'livre') mud.situacao = 'obstruido';
         if(metr > 0 && !(f.metragemReal > 0)) mud.metragem_real = metr;
+        if(cf.metragemEsperada > 0 && !(f.metragemEsperada > 0)) mud.metragem_esperada = Number(cf.metragemEsperada);
         if(Object.keys(mud).length) ajustes.push({ f, mud });
       }
     });
@@ -1209,6 +1210,7 @@ async function puxarDoChecklist(silencioso){
     ajustes.forEach(({ f, mud })=>{
       if(mud.situacao) f.situacao = mud.situacao;
       if(mud.metragem_real != null) f.metragemReal = mud.metragem_real;
+      if(mud.metragem_esperada != null) f.metragemEsperada = mud.metragem_esperada;
     });
     salvarLocal();
     renderAll();

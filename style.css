@@ -2041,3 +2041,15 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .pm-grade{ display:grid; grid-template-columns:auto 1fr 1fr; gap:8px; align-items:center; margin:8px 0 14px; max-height:55vh; overflow:auto; }
 .pm-grade input{ min-height:46px; font-size:1.05rem; width:100%; }
 .pm-furo{ font-family:var(--mono); font-weight:700; }
+
+/* Esperada, motivo da obstrução e notas rápidas */
+.ck-esperada-leque{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; margin:6px 0; }
+.ck-esperada-leque label{ display:flex; flex-direction:column; gap:2px; font-size:.8rem; }
+.ck-esperada-leque input{ min-height:44px; width:8rem; font-size:1rem; }
+.checklist-furos-add input[id^="cf-esp-"]{ max-width:9rem; }
+.ck-furo-motivo td{ padding:6px 8px; background:rgba(179,38,30,.07); font-size:.82rem; }
+.ck-motivos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.ck-motivos .ck-chip, .ck-motivos button{ min-height:44px; }
+.ck-motivo{ display:block; color:#b3261e; font-size:.7rem; font-family:var(--mono); }
+.notas-rapidas{ display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 14px; }
+.notas-rapidas .ck-chip{ min-height:44px; }

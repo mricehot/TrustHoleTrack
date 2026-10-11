@@ -263,7 +263,7 @@ function adicionarObservacaoTurno(textoPronto, rapida){
   }else showToast('Observação adicionada.');
 }
 
-function editarObservacaoModal(valorAtual){
+function editarObservacaoModal(valorAtual, atalhos){
   return new Promise(resolve=>{
     const root = el('modal-root');
     root.innerHTML = `
@@ -274,6 +274,7 @@ function editarObservacaoModal(valorAtual){
             <label for="obs-turno-editar-input">Texto</label>
             <input id="obs-turno-editar-input" type="text" maxlength="300" value="${(valorAtual || '').replace(/"/g,'&quot;')}">
           </div>
+          ${atalhos && atalhos.length ? `<div class="notas-rapidas" role="group" aria-label="notas rápidas">${atalhos.map(a=>`<button type="button" class="ck-chip nota-rapida">${escHtml(a)}</button>`).join('')}</div>` : ''}
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -291,6 +292,11 @@ function editarObservacaoModal(valorAtual){
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('obs-turno-editar-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
+    root.querySelectorAll('.nota-rapida').forEach(b=> b.addEventListener('click', ()=>{
+      const inp = el('obs-turno-editar-input'); const v = inp.value.trim();
+      if(v.toLowerCase().includes(b.textContent.toLowerCase())) return;
+      inp.value = v ? v + '; ' + b.textContent : b.textContent;
+    }));
     el('obs-turno-editar-input').focus();
   });
 }

@@ -1084,3 +1084,26 @@ function abrirNoPendenteDoTecnico(){
   const orig = atualizarDoServidor;
   atualizarDoServidor = async function(){ const r = await orig.apply(this, arguments); try{ abrirNoPendenteDoTecnico(); }catch(e){} return r; };
 })();
+
+
+/* ================= Local herdado ao adicionar leques ================= */
+// A localização sugerida vem do último leque do realce ativo; sem leques, do nível do realce.
+// Se a pessoa digitar outra coisa, o app para de sugerir até ela trocar de realce.
+function sugerirLocalChecklist(){
+  const inp = document.getElementById('checklist-localizacao'); if(!inp) return;
+  const anel = aneis.find(a=>a.id===anelAtivoId); if(!anel) return;
+  if(inp.dataset.anelSugerido !== anel.id) delete inp.dataset.editado; // trocou de realce: sugere de novo
+  if(inp.dataset.editado === '1') return;
+  const ultimo = checklistLeques.filter(c=> c.anelId === anel.id && (c.localizacao || '').trim())
+    .sort((a,b)=> String(b.ts || '').localeCompare(String(a.ts || '')))[0];
+  const sugestao = ultimo ? ultimo.localizacao.trim() : (anel.nivel || '').trim();
+  inp.dataset.anelSugerido = anel.id;
+  if(sugestao && inp.value !== sugestao){ inp.value = sugestao; inp.dataset.auto = '1'; }
+  else if(!sugestao && inp.dataset.auto === '1'){ inp.value = ''; delete inp.dataset.auto; }
+}
+(function(){
+  const inp = document.getElementById('checklist-localizacao');
+  if(inp) inp.addEventListener('input', ()=>{ inp.dataset.editado = '1'; delete inp.dataset.auto; });
+  const orig = renderChecklist;
+  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ sugerirLocalChecklist(); }catch(e){} return r; };
+})();
