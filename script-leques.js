@@ -1028,7 +1028,7 @@ function renderChecklist(){
   const textoFurosBarra = el('checklist-progresso-furos-texto');
   const barraFuros = el('checklist-progresso-furos-barra');
   if(textoFurosBarra && barraFuros){
-    const furosFeitosNoRealce = todosFurosDoRealce.filter(f=>f.perfilado || f.obstruido).length;
+    const furosFeitosNoRealce = todosFurosDoRealce.filter(f=>f.perfilado).length;
     const totalFurosNoRealce = todosFurosDoRealce.length;
     const percentual = totalFurosNoRealce > 0 ? Math.round((furosFeitosNoRealce / totalFurosNoRealce) * 100) : 0;
     textoFurosBarra.textContent = `${furosFeitosNoRealce}/${totalFurosNoRealce} · ${percentual}%`;
@@ -1038,7 +1038,7 @@ function renderChecklist(){
   const textoTopoBarra = el('checklist-progresso-topo-texto');
   const barraTopo = el('checklist-progresso-topo-barra');
   if(textoTopoBarra && barraTopo){
-    const topografadosNoRealce = todosFurosDoRealce.filter(f=>f.topografado || f.obstruido).length;
+    const topografadosNoRealce = todosFurosDoRealce.filter(f=>f.topografado).length;
     const totalFurosNoRealce = todosFurosDoRealce.length;
     const percentual = totalFurosNoRealce > 0 ? Math.round((topografadosNoRealce / totalFurosNoRealce) * 100) : 0;
     textoTopoBarra.textContent = `${topografadosNoRealce}/${totalFurosNoRealce} · ${percentual}%`;
