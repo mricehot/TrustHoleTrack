@@ -146,8 +146,8 @@ function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
   const expandido = checklistExpandido.has(c.id);
   const furos = checklistFurosDoLeque(c.id);
-  const feitos = furos.filter(f=>f.perfilado).length;
-  const topo = furos.filter(f=>f.topografado).length;
+  const feitos = furos.filter(f=>f.perfilado || f.obstruido).length; // obstruído conta como concluído
+  const topo = furos.filter(f=>f.topografado || f.obstruido).length;
   const obstr = furos.filter(f=>f.obstruido).length;
   const pct = n=> furos.length ? Math.round((n / furos.length) * 100) : 0;
   const sel = checklistSelecionados.has(c.id);
@@ -464,8 +464,8 @@ function resumoChecklistItens(itens){
   const feitos = itens.filter(c=>c.perfilado).length;
   const ids = new Set(itens.map(c=>c.id));
   const todosFuros = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
-  const fp = todosFuros.filter(f=>f.perfilado).length;
-  const ft = todosFuros.filter(f=>f.topografado).length;
+  const fp = todosFuros.filter(f=>f.perfilado || f.obstruido).length;
+  const ft = todosFuros.filter(f=>f.topografado || f.obstruido).length;
   const total = todosFuros.length;
   const pf = total > 0 ? Math.round((fp / total) * 100) : 0;
   const pt = total > 0 ? Math.round((ft / total) * 100) : 0;
@@ -527,8 +527,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
 
   const idsLequesChecklist = new Set(itens.map(c=>c.id));
   const todosFuros = checklistFuros.filter(f=>idsLequesChecklist.has(f.checklistLequeId));
-  const furosPerfilados = todosFuros.filter(f=>f.perfilado).length;
-  const furosTopografados = todosFuros.filter(f=>f.topografado).length;
+  const furosPerfilados = todosFuros.filter(f=>f.perfilado || f.obstruido).length;
+  const furosTopografados = todosFuros.filter(f=>f.topografado || f.obstruido).length;
   const totalFuros = todosFuros.length;
   const pctFuros = totalFuros > 0 ? Math.round((furosPerfilados / totalFuros) * 100) : 0;
   const pctTopo = totalFuros > 0 ? Math.round((furosTopografados / totalFuros) * 100) : 0;
@@ -1672,7 +1672,7 @@ function pulsarMarcaFuro(f, funcao, anterior){
     const barra = card.querySelector(topo ? '.ck-prog-linha.topo .ck-prog-bar i' : '.ck-prog-linha:not(.topo) .ck-prog-bar i');
     const furos = checklistFuros.filter(x=>x.checklistLequeId===f.checklistLequeId);
     const marcado = topo ? f.topografado : f.perfilado;
-    const agora = furos.filter(x=> topo ? x.topografado : x.perfilado).length;
+    const agora = furos.filter(x=> x.obstruido || (topo ? x.topografado : x.perfilado)).length;
     const antes = agora + (marcado ? -1 : 1);
     if(barra && furos.length){
       const de = Math.max(0, antes) / furos.length * 100, para = agora / furos.length * 100;
@@ -1861,7 +1861,7 @@ async function editarObservacaoFuro(id){
 function montarResumoLequeWhatsApp(c){
   const fl = checklistFurosDoLeque(c.id);
   const cod = PREFIXO[c.tipo] + c.numero;
-  const perf = fl.filter(f=>f.perfilado).length, topo = fl.filter(f=>f.topografado).length, tot = fl.length;
+  const perf = fl.filter(f=>f.perfilado || f.obstruido).length, topo = fl.filter(f=>f.topografado || f.obstruido).length, tot = fl.length;
   const pf = tot ? Math.round(perf / tot * 100) : 0, pt = tot ? Math.round(topo / tot * 100) : 0;
   const anel = aneis.find(a=>a.id===c.anelId);
   let t = `📍 *${cod}*${anel ? ' - Realce ' + semAcento(anel.nome) : ''}\n`;

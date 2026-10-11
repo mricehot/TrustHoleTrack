@@ -896,7 +896,7 @@ function dadosPainelRealce(anel){
   const ids = new Set(leques.map(c=>c.id));
   const furos = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
   const uteis = furos.filter(f=>!f.obstruido);
-  const perf = uteis.filter(f=>f.perfilado).length, topo = uteis.filter(f=>f.topografado).length;
+  const perf = furos.filter(f=>f.perfilado || f.obstruido).length, topo = furos.filter(f=>f.topografado || f.obstruido).length; // obstruído conta como concluído
   let completos = 0; const parados = []; const andamento = [];
   leques.forEach(c=>{
     const fl = checklistFurosDoLeque(c.id), ut = fl.filter(f=>!f.obstruido);
@@ -909,9 +909,9 @@ function dadosPainelRealce(anel){
     andamento.push(item);
     if(ultima && Date.now() - ultima > PAINEL_PARADO_HORAS * 3600000) parados.push(item);
   });
-  return { anel, leques, total: leques.length, completos, furosTotal: uteis.length, perf, topo,
+  return { anel, leques, total: leques.length, completos, furosTotal: furos.length, perf, topo,
     obstruidos: furos.length - uteis.length, parados, andamento,
-    pP: uteis.length ? Math.round(perf / uteis.length * 100) : 0, pT: uteis.length ? Math.round(topo / uteis.length * 100) : 0 };
+    pP: furos.length ? Math.round(perf / furos.length * 100) : 0, pT: furos.length ? Math.round(topo / furos.length * 100) : 0 };
 }
 const PAINEL_PROJ_KEY = 'perfilagem-painel-projeto-v1';
 let painelProjeto = null; // null = ainda não escolhido (usa o do realce ativo); '*' = todos
