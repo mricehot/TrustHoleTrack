@@ -834,11 +834,17 @@ async function buscarTudo(tabela){
 
 // Busca a versão mais recente do servidor. Só sobrescreve o que está local
 // se não houver nada pendente (pra nunca perder alterações ainda não enviadas).
+// Impressão digital dos dados que vêm do servidor, para saber se uma atualização trouxe algo novo.
+function assinaturaDosDados(){
+  try{ return JSON.stringify([aneis, leques, furos, turnoObservacoes, fotosTurno, checklistLeques, checklistFuros, checklistObservacoesGerais, projetos, equipes, lancamentosProd, comunicados, anelAtivoId]); }
+  catch(e){ return String(Math.random()); }
+}
 async function atualizarDoServidor(){
   if(!navigator.onLine) return false;
   // Nunca troca os dados locais pelos do servidor enquanto houver alteração sua
   // ainda não enviada — senão as marcações feitas sem sinal "sumiriam" da tela.
   if(falhasDeEnvio.size > 0 || debouncesPendentes.size > 0 || enviosEmAndamento > 0) return false;
+  const assinaturaAntes = assinaturaDosDados();
   try{
     // produtividade_lancamentos é tolerante: se a tabela ainda não foi criada no Supabase, não derruba o resto da sincronização
     const eqResp = await buscarTudo('equipes');
@@ -885,6 +891,8 @@ async function atualizarDoServidor(){
     anelAtivoId = escolhido;
     if(escolhido && escolhido !== escolhaServidor) gravarRealceAtivoDoUsuario(escolhido);
     sincronizarLocalComNivelDoAnel();
+    // Nada mudou no servidor: não redesenha a tela (redesenhar tudo a cada atualização fazia a tela piscar e tremer).
+    if(assinaturaAntes === assinaturaDosDados()){ registrarSincronizacaoOk(); return true; }
     salvarLocal();
     salvarObsLocal();
     salvarFotosTurnoLocal();
