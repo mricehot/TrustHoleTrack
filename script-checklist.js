@@ -1,7 +1,7 @@
 // ---------- Checklist: filtros, grupos e seleção em lote ----------
 const ckMaisAbertos = new Set();
 function alternarMaisAcoes(id, aberto){ if(aberto) ckMaisAbertos.add(id); else ckMaisAbertos.delete(id); }
-const NOTAS_RAPIDAS = ['Água no furo', 'Rocha solta', 'Acesso bloqueado', 'Furo desviado', 'Equipamento parado'];
+const NOTAS_RAPIDAS = ['Rocha solta', 'Acesso bloqueado', 'Furo desviado', 'Equipamento parado'];
 const MOTIVOS_OBSTRUCAO = ['Rocha', 'Tela'];
 let checklistFiltro = { status:'todos', local:'', busca:'' };
 const checklistGruposFechados = new Set(); // "anelId|localização" — só na sessão
@@ -845,7 +845,7 @@ function renderPainelTurno(){
 el('pt-ir-checklist').addEventListener('click', ()=> mostrarView('checklist'));
 
 // Observações em um toque.
-const ATALHOS_OBS = ['Infiltração de água', 'Rocha solta', 'Equipamento parado', 'Falta de ventilação', 'Aguardando liberação', 'Acesso bloqueado'];
+const ATALHOS_OBS = ['Rocha solta', 'Equipamento parado', 'Falta de ventilação', 'Aguardando liberação', 'Acesso bloqueado'];
 (function iniciarAtalhosObs(){
   const box = el('obs-atalhos'); if(!box) return;
   box.innerHTML = ATALHOS_OBS.map((t,i)=> `<button type="button" class="obs-atalho" data-i="${i}">${t}</button>`).join('');

@@ -479,7 +479,7 @@ const PASSOS_TECNICO = [
   { icone:'✅', titulo:'1. Marcar furos', texto:'No <b>Checklist</b>, abra o leque e toque na célula do furo: <b>Perf.</b> (perfilado), <b>Topo</b> (topografado) ou <b>Obstr.</b>. Marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo.' },
   { icone:'⚡', titulo:'2. Vários furos de uma vez', texto:'No leque, toque em <b>Marcar faixa de furos</b>: escolha “do F03 até o F08” e confirme. Furos já marcados e obstruídos ficam de fora, e dá para desfazer.' },
   { icone:'👷', titulo:'3. Sua equipe é automática', texto:'O app já sabe a sua equipe: cada marcação sai no seu nome e na sua equipe. <b>Só quem marcou (ou a mesma equipe) pode desmarcar.</b> Leque concluído fica travado; só o gestor reabre.' },
-  { icone:'📝', titulo:'4. Anotar e obstruir', texto:'Toque no <b>✎</b> do furo para anotar algo (água, rocha solta, acesso). Furo obstruído conta como resolvido e a nota vai no relatório do WhatsApp.' },
+  { icone:'📝', titulo:'4. Anotar e obstruir', texto:'Toque no <b>✎</b> do furo para anotar algo (rocha solta, acesso). Furo obstruído conta como resolvido e a nota vai no relatório do WhatsApp.' },
   { icone:'📶', titulo:'5. Sem sinal', texto:'Sem internet, continue marcando: tudo fica guardado no aparelho e sobe sozinho. Toque no aviso <b>salvo / sem salvar</b> para ver o que falta. Antes de trocar de turno, suba até um ponto com sinal.' }
 ];
 const PASSOS_GESTOR = [
@@ -1033,7 +1033,7 @@ const DICAS_KEY = 'perfilagem-dicas-vistas-v1';
 const DICAS = [
   { id:'faixa', para:'todos', texto:'<b>Dica:</b> no leque, “Marcar faixa de furos” marca do F03 ao F08 de uma vez.' },
   { id:'desfazer', para:'todos', texto:'<b>Dica:</b> marcou errado? Toque em <b>Desfazer</b> no aviso que aparece embaixo, logo depois de marcar.' },
-  { id:'nota', para:'todos', texto:'<b>Dica:</b> toque no ✎ do furo para anotar (água, rocha solta, acesso). A nota vai no relatório do WhatsApp.' },
+  { id:'nota', para:'todos', texto:'<b>Dica:</b> toque no ✎ do furo para anotar (rocha solta, acesso). A nota vai no relatório do WhatsApp.' },
   { id:'busca', para:'todos', texto:'<b>Dica:</b> na busca, digite <b>12.5</b> para ir direto ao furo 5 do leque 12.' },
   { id:'sinal', para:'todos', texto:'<b>Dica:</b> sem sinal, siga marcando. O que ficou guardado sobe sozinho; antes de trocar de turno, suba até um ponto com sinal.' },
   { id:'painel', para:'gestor', texto:'<b>Dica:</b> em Mais → Painel você vê leques parados e o que falta em cada um, por projeto.' },
