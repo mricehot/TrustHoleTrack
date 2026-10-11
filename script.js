@@ -506,7 +506,7 @@ function carregarLocal(){
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno',
-  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado',
+  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado', lembretes: 'Lembrete',
   checklist_furos: 'Marcação do checklist', checklist_leques: 'Leque do checklist', checklist_observacoes_gerais: 'Observação do checklist',
   equipes: 'Equipe', produtividade_lancamentos: 'Produção da equipe', projetos: 'Projeto', fotos_turno: 'Foto do turno'
 };

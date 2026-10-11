@@ -2147,3 +2147,47 @@ body.modo-leitura .checklist-furos-tabela input[type="checkbox"]{ opacity:.8; }
 }
 body.modo-leitura .checklist-leque-card[data-est=ini],
 body.modo-leitura .leque-group[data-est=ini]{ animation:none; }
+
+/* ===== Lembretes rapidos: painel lateral (tela larga) / botao flutuante (celular) ===== */
+.lembretes-painel{ position:fixed; z-index:1400; display:flex; flex-direction:column; gap:8px; background:var(--surface); border:1px solid var(--line); color:var(--text, inherit); box-shadow:0 8px 28px rgba(0,0,0,.28); }
+.lembretes-painel[hidden], .lembretes-fab[hidden]{ display:none; }
+.lb-topo{ display:flex; align-items:center; gap:8px; }
+.lb-topo strong{ font-size:15px; }
+.lb-cont{ font-size:12px; color:var(--muted); flex:1; }
+.lb-x, .lb-del{ background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; min-width:32px; min-height:32px; padding:0; }
+.lb-novo{ display:flex; gap:6px; }
+.lb-novo input{ flex:1; min-width:0; font-size:16px; padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; }
+.lb-novo button{ width:44px; font-size:22px; font-weight:700; border-radius:8px; border:none; background:var(--steel, #2a6fa8); color:#fff; cursor:pointer; }
+.lb-lista{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; overflow-y:auto; }
+.lb-lista li{ display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); }
+.lb-lista li.lb-vazio{ border:none; background:none; color:var(--muted); font-size:13px; padding:4px 2px; }
+.lb-chk{ flex:none; width:24px; height:24px; margin-top:1px; border:2px solid var(--muted); border-radius:6px; background:transparent; cursor:pointer; padding:0; }
+li.feito .lb-chk{ background:var(--est-ok, #2e9b57); border-color:var(--est-ok, #2e9b57); }
+li.feito .lb-chk::after{ content:'✓'; color:#fff; font-size:15px; font-weight:800; line-height:1; }
+.lb-txt{ flex:1; min-width:0; font-size:14px; line-height:1.35; word-break:break-word; cursor:text; padding-top:2px; }
+li.feito .lb-txt{ text-decoration:line-through; color:var(--muted); }
+.lb-feitos summary{ cursor:pointer; font-size:13px; color:var(--muted); padding:4px 0; }
+.lb-limpar{ margin-top:6px; font-size:12px; background:none; border:1px solid var(--line); border-radius:8px; padding:6px 10px; color:var(--muted); cursor:pointer; }
+.lembretes-fab{ position:fixed; z-index:1400; width:52px; height:52px; border-radius:50%; border:none; background:var(--steel, #2a6fa8); color:#fff; font-size:24px; box-shadow:0 4px 14px rgba(0,0,0,.35); cursor:pointer; }
+.lembretes-fab i{ position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 5px; border-radius:10px; background:#d6453d; color:#fff; font:700 12px/20px var(--mono, monospace); font-style:normal; text-align:center; }
+
+/* celular / tablet: bottom sheet e botao acima da barra de abas */
+.lembretes-painel{ left:8px; right:8px; bottom:calc(70px + env(safe-area-inset-bottom)); max-height:62vh; padding:12px; border-radius:14px; }
+.lembretes-fab{ right:12px; bottom:calc(80px + env(safe-area-inset-bottom)); }
+.lembretes-painel .lb-lista{ max-height:36vh; }
+
+/* tela larga: painel fixo na lateral direita, conteudo cede espaco */
+@media (min-width:1101px){
+  .lembretes-painel{ left:auto; right:0; top:0; bottom:0; width:288px; max-height:none; border-radius:0; border-width:0 0 0 1px; padding:16px 14px; box-shadow:-4px 0 18px rgba(0,0,0,.12); }
+  .lembretes-painel .lb-lista{ max-height:none; flex:0 1 auto; }
+  .lembretes-fab{ right:16px; bottom:56px; }
+  body.com-lembretes{ padding-right:288px; }
+  body.com-lembretes .tabbar{ }
+}
+@media print{ .lembretes-painel, .lembretes-fab{ display:none !important; } body.com-lembretes{ padding-right:0 !important; } }
+.lembretes-painel .lb-chk, .lembretes-painel .lb-del{ width:44px; min-width:44px; height:44px; min-height:44px; margin:-8px -6px -8px -8px; padding:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; }
+.lembretes-painel .lb-chk::before{ content:''; width:24px; height:24px; border:2px solid var(--muted); border-radius:6px; box-sizing:border-box; display:block; }
+.lembretes-painel li.feito .lb-chk::before{ content:'✓'; background:var(--est-ok,#2e9b57); border-color:var(--est-ok,#2e9b57); color:#fff; font-size:15px; font-weight:800; line-height:20px; text-align:center; }
+.lembretes-painel li.feito .lb-chk::after{ content:none; }
+.lembretes-painel .lb-del{ margin:-8px -8px -8px 0; }
+.lembretes-painel .lb-novo input{ font-family:inherit; }
