@@ -2004,3 +2004,6 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .painel-andamento summary{ min-height:40px; display:flex; align-items:center; cursor:pointer; }
 .painel-prod{ width:100%; border-collapse:collapse; font-size:.88rem; }
 .painel-prod th,.painel-prod td{ text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
+
+.painel-proj{ display:flex; flex-direction:column; gap:4px; font-size:.82rem; font-weight:600; }
+.painel-proj select{ min-height:44px; font-size:1rem; }

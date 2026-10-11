@@ -903,19 +903,44 @@ function dadosPainelRealce(anel){
     obstruidos: furos.length - uteis.length, parados, andamento,
     pP: uteis.length ? Math.round(perf / uteis.length * 100) : 0, pT: uteis.length ? Math.round(topo / uteis.length * 100) : 0 };
 }
-function producaoPorEquipePainel(){
+const PAINEL_PROJ_KEY = 'perfilagem-painel-projeto-v1';
+let painelProjeto = null; // null = ainda não escolhido (usa o do realce ativo); '*' = todos
+function projetosDoPainel(){
+  const set = new Set();
+  aneis.forEach(a=> set.add(a.projeto || ''));
+  projetos.forEach(pr=> set.add(pr.nome));
+  return [...set].sort((a,b)=> (a === '') - (b === '') || a.localeCompare(b, 'pt-BR'));
+}
+function projetoSelecionadoPainel(){
+  const lista = projetosDoPainel();
+  if(painelProjeto === null){
+    try{ painelProjeto = localStorage.getItem(PAINEL_PROJ_KEY); }catch(e){}
+  }
+  if(painelProjeto === '*' || (painelProjeto !== null && lista.includes(painelProjeto))) return painelProjeto;
+  const ativo = aneis.find(a=>a.id===anelAtivoId);
+  const padrao = ativo ? (ativo.projeto || '') : (configApp.projetoAtivo || '');
+  return lista.includes(padrao) ? padrao : (lista[0] != null ? lista[0] : '*');
+}
+function escolherProjetoPainel(v){
+  painelProjeto = v;
+  try{ localStorage.setItem(PAINEL_PROJ_KEY, v); }catch(e){}
+  renderPainelGestor();
+}
+function producaoPorEquipePainel(projeto){
   const hoje = chaveDia(new Date().toISOString());
   const semana = chaveDia(inicioDaSemana(new Date()).toISOString());
   const mapa = new Map();
   const pega = id=>{ if(!mapa.has(id)) mapa.set(id, { hojeM:0, hojeP:0, semM:0, semP:0 }); return mapa.get(id); };
+  const daqui = id=>{ if(projeto === '*') return true; const e = equipes.find(x=>x.id===id); return !!e && (e.projeto || '') === projeto; };
   lancamentosEfetivos().forEach(l=>{
+    if(!daqui(l.equipeId)) return;
     const d = String(l.data).slice(0,10), o = pega(l.equipeId);
     if(d >= semana){ o.semM += Number(l.metros)||0; o.semP += Number(l.pontos)||0; }
     if(d === hoje){ o.hojeM += Number(l.metros)||0; o.hojeP += Number(l.pontos)||0; }
   });
   checklistFuros.forEach(f=>{
     if(!f.topografado || !f.topografadoEm) return;
-    const eq = equipeTopoEfetivaId(f); if(!eq) return;
+    const eq = equipeTopoEfetivaId(f); if(!eq || !daqui(eq)) return;
     const d = chaveDia(f.topografadoEm), o = pega(eq);
     if(d >= semana) o.semP++;
     if(d === hoje) o.hojeP++;
@@ -925,16 +950,17 @@ function producaoPorEquipePainel(){
 function renderPainelGestor(){
   const body = document.getElementById('painel-body'); if(!body) return;
   const nums = l=> l.map(f=>'F'+f.numero).join(', ');
-  const dados = aneis.map(dadosPainelRealce).filter(d=>d.total > 0)
+  const proj = projetoSelecionadoPainel();
+  const dados = aneis.filter(a=> proj === '*' || (a.projeto || '') === proj).map(dadosPainelRealce).filter(d=>d.total > 0)
     .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
-  let h = '';
+  let h = `<label class="painel-proj">Projeto<select onchange="escolherProjetoPainel(this.value)" aria-label="Projeto do painel"><option value="*"${proj==='*'?' selected':''}>Todos os projetos</option>${projetosDoPainel().map(n=>`<option value="${escHtml(n)}"${n===proj?' selected':''}>${escHtml(n || 'Geral (sem projeto)')}</option>`).join('')}</select></label>`;
   const totParados = dados.reduce((n,d)=> n + d.parados.length, 0);
   h += `<div class="painel-resumo"><div><b>${dados.length}</b><span>realce(s)</span></div><div><b>${dados.filter(d=>d.completos===d.total).length}</b><span>concluído(s)</span></div><div class="${totParados ? 'alerta' : ''}"><b>${totParados}</b><span>leque(s) parado(s)</span></div></div>`;
-  if(!dados.length) h += '<p class="hint">Nenhum realce com checklist ainda.</p>';
+  if(!dados.length) h += '<p class="hint">Nenhum realce com checklist neste projeto.</p>';
   dados.forEach(d=>{
     const ativo = d.anel.id === anelAtivoId;
     h += `<article class="painel-realce${d.completos === d.total ? ' ok' : ''}">
-      <header><b>${escHtml(d.anel.nome)}</b>${ativo ? '<span class="tag">ativo</span>' : ''}<span class="painel-leques">${d.completos}/${d.total} leques</span></header>
+      <header><b>${escHtml(d.anel.nome)}</b>${proj==='*' ? `<span class="tag">${escHtml(d.anel.projeto || 'Geral')}</span>` : ''}${ativo ? '<span class="tag">ativo</span>' : ''}<span class="painel-leques">${d.completos}/${d.total} leques</span></header>
       <div class="painel-barra"><span>Perfilagem ${d.perf}/${d.furosTotal} · ${d.pP}%</span><i style="--p:${d.pP}%"></i></div>
       <div class="painel-barra"><span>Topografia ${d.topo}/${d.furosTotal} · ${d.pT}%</span><i style="--p:${d.pT}%"></i></div>
       ${d.obstruidos ? `<p class="painel-obs">⛔ ${d.obstruidos} furo(s) obstruído(s)</p>` : ''}
@@ -942,10 +968,10 @@ function renderPainelGestor(){
       ${d.andamento.length > d.parados.length ? `<details class="painel-andamento"><summary>${d.andamento.length - d.parados.length} leque(s) em andamento</summary>${d.andamento.filter(i=>!d.parados.includes(i)).map(i=>`<p><b>${escHtml(PREFIXO[i.c.tipo]+i.c.numero)}</b> · ${i.faltaP.length ? 'falta perfilar: '+nums(i.faltaP) : 'perfilagem completa'} · ${i.faltaT.length ? 'falta topografar: '+nums(i.faltaT) : 'topografia completa'}</p>`).join('')}</details>` : ''}
     </article>`;
   });
-  const prod = producaoPorEquipePainel();
+  const prod = producaoPorEquipePainel(proj);
   const fmt = n=> (Math.round(n*10)/10).toString().replace('.', ',');
   const linhas = [...prod.entries()].map(([id,o])=> `<tr><td>${escHtml(nomeDaEquipeId(id) || 'Sem equipe')}</td><td>${fmt(o.hojeM)} m · ${o.hojeP} pt</td><td>${fmt(o.semM)} m · ${o.semP} pt</td></tr>`);
-  h += `<article class="painel-realce"><header><b>Produção por equipe</b></header>${linhas.length ? `<table class="painel-prod"><thead><tr><th>Equipe</th><th>Hoje</th><th>Semana</th></tr></thead><tbody>${linhas.join('')}</tbody></table>` : '<p class="hint">Sem lançamentos nesta semana.</p>'}</article>`;
+  h += `<article class="painel-realce"><header><b>Produção por equipe</b>${proj !== '*' ? `<span class="tag">${escHtml(proj || 'Geral')}</span>` : ''}</header>${linhas.length ? `<table class="painel-prod"><thead><tr><th>Equipe</th><th>Hoje</th><th>Semana</th></tr></thead><tbody>${linhas.join('')}</tbody></table>` : '<p class="hint">Sem lançamentos nesta semana.</p>'}</article>`;
   body.innerHTML = h;
   const t = document.getElementById('painel-atualizado');
   if(t) t.textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
