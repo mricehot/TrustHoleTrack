@@ -169,7 +169,7 @@ function htmlCardChecklist(c, agrupado){
   if(expandido){
     const tabela = furos.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">⛔</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">Obs.</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
