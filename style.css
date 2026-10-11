@@ -2007,3 +2007,5 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 
 .painel-proj{ display:flex; flex-direction:column; gap:4px; font-size:.82rem; font-weight:600; }
 .painel-proj select{ min-height:44px; font-size:1rem; }
+
+.painel-wa{ min-height:48px; width:100%; }

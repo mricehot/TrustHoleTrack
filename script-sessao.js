@@ -947,13 +947,49 @@ function producaoPorEquipePainel(projeto){
   });
   return mapa;
 }
+function montarPainelWhatsApp(){
+  const proj = projetoSelecionadoPainel();
+  const dados = aneis.filter(a=> proj === '*' || (a.projeto || '') === proj).map(dadosPainelRealce).filter(d=>d.total > 0)
+    .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
+  const nums = l=> l.map(f=>'F'+f.numero).join(', ');
+  const agora = new Date();
+  let t = `📊 *PAINEL DO GESTOR*\n${proj === '*' ? 'Todos os projetos' : 'Projeto ' + semAcento(proj || 'Geral')}\n${agora.toLocaleDateString('pt-BR')}, ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}\n`;
+  if(!dados.length) return t + '\nNenhum realce com checklist.';
+  dados.forEach(d=>{
+    t += `\n📍 *Realce ${semAcento(d.anel.nome)}*${proj === '*' ? ' (' + semAcento(d.anel.projeto || 'Geral') + ')' : ''}\n`;
+    t += `Leques concluidos: ${d.completos}/${d.total}\nPerfilagem: ${d.perf}/${d.furosTotal} (${d.pP}%)\n${barraWa(d.pP)}\nTopografia: ${d.topo}/${d.furosTotal} (${d.pT}%)\n${barraWa(d.pT)}\n`;
+    if(d.obstruidos) t += `⛔ Furos obstruidos: ${d.obstruidos}\n`;
+    if(d.parados.length){
+      t += `\n⚠️ *PARADOS HA MAIS DE ${PAINEL_PARADO_HORAS} H*\n`;
+      d.parados.forEach(i=>{ t += `${PREFIXO[i.c.tipo]}${i.c.numero} (ultima marcacao ha ${formatarHaQuanto(Date.now()-i.ultima)})\n  ▸ Perfilagem: ${i.faltaP.length ? 'FALTAM ' + nums(i.faltaP) : 'completa ✅'}\n  ▸ Topografia: ${i.faltaT.length ? 'FALTAM ' + nums(i.faltaT) : 'completa ✅'}\n`; });
+    }
+    const outros = d.andamento.filter(i=>!d.parados.includes(i));
+    if(outros.length){
+      t += `\n🔶 *EM ANDAMENTO*\n`;
+      outros.forEach(i=>{ t += `${PREFIXO[i.c.tipo]}${i.c.numero}\n  ▸ Perfilagem: ${i.faltaP.length ? 'FALTAM ' + nums(i.faltaP) : 'completa ✅'}\n  ▸ Topografia: ${i.faltaT.length ? 'FALTAM ' + nums(i.faltaT) : 'completa ✅'}\n`; });
+    }
+  });
+  const prod = producaoPorEquipePainel(proj);
+  const fmt = n=> (Math.round(n*10)/10).toString().replace('.', ',');
+  if(prod.size){
+    t += `\n👷 *PRODUCAO POR EQUIPE*\n`;
+    prod.forEach((o,id)=>{ t += `*${semAcento(nomeDaEquipeId(id) || 'Sem equipe')}*: hoje ${fmt(o.hojeM)} m / ${o.hojeP} pt | semana ${fmt(o.semM)} m / ${o.semP} pt\n`; });
+  }
+  return t.trim();
+}
+function enviarPainelWhatsApp(){
+  if(!exigirGestor('enviar o painel')) return;
+  const texto = montarPainelWhatsApp();
+  const numero = configApp.whatsapp;
+  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
 function renderPainelGestor(){
   const body = document.getElementById('painel-body'); if(!body) return;
   const nums = l=> l.map(f=>'F'+f.numero).join(', ');
   const proj = projetoSelecionadoPainel();
   const dados = aneis.filter(a=> proj === '*' || (a.projeto || '') === proj).map(dadosPainelRealce).filter(d=>d.total > 0)
     .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
-  let h = `<label class="painel-proj">Projeto<select onchange="escolherProjetoPainel(this.value)" aria-label="Projeto do painel"><option value="*"${proj==='*'?' selected':''}>Todos os projetos</option>${projetosDoPainel().map(n=>`<option value="${escHtml(n)}"${n===proj?' selected':''}>${escHtml(n || 'Geral (sem projeto)')}</option>`).join('')}</select></label>`;
+  let h = `<label class="painel-proj">Projeto<select onchange="escolherProjetoPainel(this.value)" aria-label="Projeto do painel"><option value="*"${proj==='*'?' selected':''}>Todos os projetos</option>${projetosDoPainel().map(n=>`<option value="${escHtml(n)}"${n===proj?' selected':''}>${escHtml(n || 'Geral (sem projeto)')}</option>`).join('')}</select></label><button type="button" class="steel painel-wa" onclick="enviarPainelWhatsApp()">Enviar painel no WhatsApp</button>`;
   const totParados = dados.reduce((n,d)=> n + d.parados.length, 0);
   h += `<div class="painel-resumo"><div><b>${dados.length}</b><span>realce(s)</span></div><div><b>${dados.filter(d=>d.completos===d.total).length}</b><span>concluído(s)</span></div><div class="${totParados ? 'alerta' : ''}"><b>${totParados}</b><span>leque(s) parado(s)</span></div></div>`;
   if(!dados.length) h += '<p class="hint">Nenhum realce com checklist neste projeto.</p>';
