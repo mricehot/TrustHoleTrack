@@ -1879,6 +1879,36 @@ function montarResumoLequeWhatsApp(c){
   if(c.observacao) t += `\n📝 *OBSERVACAO*\n${semAcento(c.observacao)}\n`;
   return semAcento(t.trim()).replace(/\u0301/g, '');
 }
+// Realce inteiro por WhatsApp (aba Realce): resumo do checklist + metragens da Perfilagem, no lugar do PDF.
+function montarRealceWhatsApp(anelId){
+  const anel = aneis.find(a=>a.id===anelId); if(!anel) return '';
+  const vir = n=> fmt1(n).replace('.', ',');
+  let t = montarBlocoRealceParaWhatsApp(anelId);
+  const info = [anel.nivel ? 'Nivel ' + anel.nivel : '', anel.orientacao === 'ascendente' ? 'Ascendente' : anel.orientacao === 'descendente' ? 'Descendente' : ''].filter(Boolean).join(' - ');
+  if(info) t = t.replace(/^(📍 \*Realce [^\n]*\*)/, `$1\n${semAcento(info)}`);
+  const lqs = leques.filter(l=>l.anelId === anelId).slice().sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, {numeric:true}));
+  const linhas = [];
+  let tEsp = 0, tReal = 0;
+  lqs.forEach(l=>{
+    const fl = furos.filter(f=>f.lequeId === l.id);
+    if(!fl.length) return;
+    const esp = fl.reduce((s,f)=>s + Number(f.metragemEsperada||0), 0), real = fl.reduce((s,f)=>s + Number(f.metragemReal||0), 0);
+    const sem = fl.filter(f=> f.situacao !== 'obstruido' && !(Number(f.metragemReal) > 0)).length;
+    tEsp += esp; tReal += real;
+    const dif = real - esp;
+    linhas.push(`${lequeCode(l)}: esp ${vir(esp)} m | real ${vir(real)} m | ${dif > 0 ? '+' : ''}${vir(dif)} m${sem ? ' (' + sem + ' sem metragem)' : ''}`);
+  });
+  if(linhas.length){
+    const dt = tReal - tEsp;
+    t += `\n\n📏 *METRAGENS (ESPERADA x REAL)*\n${linhas.join('\n')}\n*Total: esp ${vir(tEsp)} m | real ${vir(tReal)} m | ${dt > 0 ? '+' : ''}${vir(dt)} m*`;
+  }
+  return semAcento(t).replace(/\u0301/g, '');
+}
+function enviarRealceWhatsApp(anelId){
+  const texto = montarRealceWhatsApp(anelId); if(!texto) return;
+  const numero = configApp.whatsapp;
+  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
 function enviarLequeWhatsApp(id){
   const c = checklistLeques.find(x=>x.id===id); if(!c) return;
   const texto = montarResumoLequeWhatsApp(c);

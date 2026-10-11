@@ -45,6 +45,7 @@ function renderAneisMenu(){
         ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
         ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
         <span class="spacer"></span>
+        <button class="ghost anel-wa" onclick="enviarRealceWhatsApp('${a.id}')" title="enviar as informações deste realce pelo WhatsApp (sem PDF)" aria-label="enviar ${escHtml(a.nome)} pelo WhatsApp">💬 WhatsApp</button>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
         <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
           ? '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
