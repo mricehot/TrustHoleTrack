@@ -2028,3 +2028,7 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .ck-mais-acoes{ margin-top:8px; border-top:1px dashed var(--line); padding-top:6px; }
 .ck-mais-acoes summary{ min-height:44px; display:flex; align-items:center; cursor:pointer; font-weight:600; font-size:.9rem; }
 .ck-mais-acoes .ck-equipes{ margin:6px 0; }
+
+.ck-prog-linha .rot.ic{ width:auto; min-width:2.4em; text-align:left; }
+.checklist-furos-tabela th .ic{ font-size:.82rem; }
+.checklist-furos-tabela th .ic{ text-transform:none; }

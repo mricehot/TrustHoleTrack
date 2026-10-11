@@ -154,8 +154,8 @@ function htmlCardChecklist(c, agrupado){
     : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="marcar ${codigo} como perfilado" title="marcar leque como perfilado"></label>`;
   const progresso = furos.length ? `
       <div class="ck-progresso">
-        <div class="ck-prog-linha"><span class="rot ic ic-perf" title="perfilado" aria-label="perfilado">⬇</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos===furos.length ? '✓' : ''}${feitos}/${furos.length}</span></div>
-        <div class="ck-prog-linha topo"><span class="rot ic ic-topo" title="topografado" aria-label="topografado">◎</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo===furos.length ? '✓' : ''}${topo}/${furos.length}</span></div>
+        <div class="ck-prog-linha"><span class="rot ic ic-perf" title="perfilado" aria-label="perfilado">Per.</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos===furos.length ? '✓' : ''}${feitos}/${furos.length}</span></div>
+        <div class="ck-prog-linha topo"><span class="rot ic ic-topo" title="topografado" aria-label="topografado">Top.</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo===furos.length ? '✓' : ''}${topo}/${furos.length}</span></div>
       </div>`
     : `<div class="ck-progresso"><span class="ck-sem-furos">sem furos ainda</span></div>`;
   const local = (c.localizacao||'').trim();
@@ -169,7 +169,7 @@ function htmlCardChecklist(c, agrupado){
   if(expandido){
     const tabela = furos.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">⬇</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">◎</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">⛔</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">⛔</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
