@@ -2118,3 +2118,7 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .ck-raios i:nth-child(3){ bottom:8px; right:64px; animation-delay:3.7s; transform:rotate(8deg) scale(.7); }
 @keyframes raioPisca{ 0%,86%,100%{ opacity:0; } 88%{ opacity:1; } 90%{ opacity:.15; } 92%{ opacity:1; } 96%{ opacity:0; } }
 @media (prefers-reduced-motion: reduce){ .ck-raios i{ animation:none; opacity:.75; } }
+
+/* Foto do furo */
+.icon-foto{ opacity:.85; }
+.icon-foto.tem{ opacity:1; color:var(--est-ok,#2e9b57); }

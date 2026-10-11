@@ -182,7 +182,7 @@ function htmlCardChecklist(c, agrupado){
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
-                  <td class="ck-acoes-furo"><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
+                  <td class="ck-acoes-furo"><button type="button" class="icon icon-foto ${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'tem' : ''}" onclick="${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'verFotoFuro' : 'tirarFotoFuro'}('${f.id}')" title="${fotosPendentes.has(f.id) ? 'foto guardada no aparelho, aguardando sinal' : f.fotoUrl ? 'ver foto do furo' : 'tirar foto do furo'}" aria-label="foto de F${f.numero}">${fotosPendentes.has(f.id) ? '⏳' : '📷'}</button><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
                 ${(f.id === motivoPendenteId && f.obstruido && !f.obstruidoMotivo) ? `<tr class="ck-furo-motivo"><td colspan="5"><span>Motivo da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : ''}
                 ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
@@ -507,6 +507,8 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   if(obstruidos) bloco += `\n\n${obstruidos}`;
   const notasF = blocoNotasFurosWhatsApp(itens);
   if(notasF) bloco += `\n\n${notasF}`;
+  const fotosF = blocoFotosFurosWhatsApp(itens);
+  if(fotosF) bloco += `\n\n${fotosF}`;
   const porEquipe = blocoEquipesWhatsApp(itens);
   if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
@@ -578,6 +580,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
   if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
   const notasFTxt = blocoNotasFurosWhatsApp(itens);
   if(notasFTxt) bloco += `\n\n${notasFTxt}`;
+  const fotosFTxt = blocoFotosFurosWhatsApp(itens);
+  if(fotosFTxt) bloco += `\n\n${fotosFTxt}`;
   const porEquipeTxt = blocoEquipesWhatsApp(itens);
   if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
@@ -744,6 +748,8 @@ function montarResumoTurnoWhatsApp(){
         if(porEq) t += `\n${porEq}\n`;
         const notasF = blocoNotasFurosWhatsApp(itens);
         if(notasF) t += `\n${notasF}\n`;
+        const fotosT = blocoFotosFurosWhatsApp(itens);
+        if(fotosT) t += `\n${fotosT}\n`;
         const obsG = checklistObsGeraisDoAnel(anel.id);
         if(obsG.length) t += `\n📝 *OBSERVACOES GERAIS*\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
       }
@@ -876,14 +882,17 @@ el('btn-resumo-turno-whatsapp').addEventListener('click', ()=>{
 });
 el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTurno(); showToast('Resumo atualizado.', { erro:false }); });
 
-function enviarRelatorioWhatsApp(idsRealces){
+// Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
+function abrirWhatsApp(url){ const w = window.open(url, '_blank'); if(!w) location.href = url; }
+async function enviarRelatorioWhatsApp(idsRealces){
   if(!configApp.whatsapp){
     showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
     return;
   }
+  await fotosEmDiaParaRelatorio();
   const mensagem = montarRelatorioChecklistParaWhatsApp(idsRealces);
   const url = `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}`;
-  window.open(url, '_blank');
+  abrirWhatsApp(url);
 }
 
 // Antes de enviar, deixa escolher quais realces entram no relatório — útil
@@ -1879,6 +1888,7 @@ function montarResumoLequeWhatsApp(c){
   if(!naoIniciado && pendT.length) t += `\n*🟡 PENDENTES TOPOGRAFIA*\n${pendT.join(', ')}\n`;
   if(obs.length) t += `\n⛔ *OBSTRUIDOS*\n${obs.join(', ')}\n`;
   const notas = blocoNotasFurosWhatsApp([c]); if(notas) t += `\n${notas}\n`;
+  const fotosL = blocoFotosFurosWhatsApp([c]); if(fotosL) t += `\n${fotosL}\n`;
   if(c.observacao) t += `\n📝 *OBSERVACAO*\n${semAcento(c.observacao)}\n`;
   return semAcento(t.trim()).replace(/\u0301/g, '');
 }
@@ -1907,16 +1917,18 @@ function montarRealceWhatsApp(anelId){
   }
   return semAcento(t).replace(/\u0301/g, '');
 }
-function enviarRealceWhatsApp(anelId){
+async function enviarRealceWhatsApp(anelId){
+  await fotosEmDiaParaRelatorio();
   const texto = montarRealceWhatsApp(anelId); if(!texto) return;
   const numero = configApp.whatsapp;
-  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  abrirWhatsApp(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`);
 }
-function enviarLequeWhatsApp(id){
+async function enviarLequeWhatsApp(id){
   const c = checklistLeques.find(x=>x.id===id); if(!c) return;
+  await fotosEmDiaParaRelatorio();
   const texto = montarResumoLequeWhatsApp(c);
   const numero = configApp.whatsapp;
-  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  abrirWhatsApp(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`);
 }
 
 // Feito e desfeito se anulam: se um campo mudou de A para B e depois voltou para A, os dois
@@ -1948,7 +1960,7 @@ async function verHistoricoLeque(id){
     if(error) throw error;
     linhas = liquidarHistorico(data || []).slice(0, 80);
   }catch(e){ showToast('Histórico indisponível (migration do histórico ainda não aplicada?).', { tipo:'aviso' }); return; }
-  const rot = { perfilado:'perfilado', topografado:'topografado', obstruido:'obstruído', metragem:'metragem', observacao:'anotação', criado:'criado', removido:'removido' };
+  const rot = { foto_url:'foto', perfilado:'perfilado', topografado:'topografado', obstruido:'obstruído', metragem:'metragem', observacao:'anotação', criado:'criado', removido:'removido' };
   const fmt = v=> v === 'true' ? 'sim' : v === 'false' ? 'não' : (v == null || v === '' ? '—' : v);
   const html = linhas.length ? linhas.map(l=>{
     const quando = new Date(l.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});

@@ -589,7 +589,9 @@ function atualizarIndicadorSalvamento(){
   const salvando = enviosEmAndamento > 0 || debouncesPendentes.size > 0;
   if(pill){
     let estado, texto;
-    if(qtdFalhas > 0){ estado = 'erro'; texto = `${qtdFalhas} sem salvar`; }
+    const qtdFotos = (typeof fotosPendentes !== 'undefined') ? fotosPendentes.size : 0;
+    if(qtdFalhas > 0){ estado = 'erro'; texto = `${qtdFalhas} sem salvar` + (qtdFotos ? ` · ${qtdFotos} foto(s)` : ''); }
+    else if(qtdFotos > 0){ estado = 'offline'; texto = `${qtdFotos} foto(s) aguardando envio`; }
     else if(!navigator.onLine){ estado = 'offline'; texto = 'sem internet'; }
     else if(salvando){ estado = 'salvando'; texto = 'salvando...'; }
     else { estado = 'salvo'; texto = 'salvo'; }
