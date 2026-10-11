@@ -181,12 +181,37 @@ let ultimoRefreshFoco = Date.now();
 document.addEventListener('visibilitychange', async ()=>{
   if(document.visibilityState !== 'visible') return;
   if(!usuarioAtual || !navigator.onLine) return;
-  if(Date.now() - ultimoRefreshFoco < 60000) return;
+  if(Date.now() - ultimoRefreshFoco < 15000) return;
   if(falhasDeEnvio.size > 0 || enviosEmAndamento > 0) return;
   if(document.querySelector('.modal-overlay')) return;
   ultimoRefreshFoco = Date.now();
   try{ await atualizarDoServidor(); }catch(e){}
 });
+
+// ---------- Atualização automática ----------
+// Além do tempo real do checklist, puxa tudo do servidor de tempos em tempos (realces, equipes,
+// produção, papéis...). Só roda com o app visível, com internet, sem nada pendente de envio e
+// sem o usuário no meio de uma edição (janela aberta, campo em foco, arrastando).
+const INTERVALO_AUTO_MS = 45000;
+let autoAtualizando = false;
+function usuarioEditandoAgora(){
+  if(document.querySelector('.modal-overlay')) return true;
+  const a = document.activeElement;
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+  if(document.querySelector('.arrastando, .ck-arrastando, body.arrastando-checklist')) return true;
+  return false;
+}
+async function atualizacaoAutomatica(){
+  if(autoAtualizando || !usuarioAtual) return;
+  if(document.visibilityState !== 'visible' || !navigator.onLine) return;
+  if(falhasDeEnvio.size > 0 || debouncesPendentes.size > 0 || enviosEmAndamento > 0) return;
+  if(usuarioEditandoAgora()) return;
+  if(Date.now() - ultimoRefreshFoco < INTERVALO_AUTO_MS - 5000) return;
+  autoAtualizando = true;
+  try{ ultimoRefreshFoco = Date.now(); await atualizarDoServidor(); }catch(e){}
+  finally{ autoAtualizando = false; }
+}
+setInterval(atualizacaoAutomatica, INTERVALO_AUTO_MS);
 
 // ---------- Tempo real: dois técnicos no mesmo realce ----------
 // O Supabase avisa quando alguém marca/desmarca algo no checklist. A tela
