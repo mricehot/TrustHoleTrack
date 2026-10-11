@@ -463,27 +463,22 @@ function calcularEstatisticasInfografico(){
   lancamentosEfetivos().forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
   // Topografia lançada pelas equipes (pontos por dia) entra junto com os furos marcados no checklist
   // — antes só o checklist contava, e o gráfico ficava parado quando a equipe lançava só o total do dia.
-  const somaTopo = (chave, n)=>{
-    porDiaTopo[chave] = (porDiaTopo[chave] || 0) + n;
+  // Topografia: a equipe lança "pontos do dia" e o checklist tem os furos marcados — são o MESMO trabalho
+  // visto de dois lados. Somar os dois contava cada furo duas vezes. Por dia vale o MAIOR dos dois.
+  const topoLancado = {}, topoChecklist = {};
+  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.pontos) topoLancado[l.data] = (topoLancado[l.data] || 0) + Number(l.pontos); });
+  furos.forEach(f=>{
+    if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1; }
+    // Só conta o furo que continua topografado (marcação desfeita não entra).
+    if(f.topografado && f.topografadoEm){ const ct = chaveDia(f.topografadoEm); topoChecklist[ct] = (topoChecklist[ct] || 0) + 1; }
+  });
+  new Set([...Object.keys(topoLancado), ...Object.keys(topoChecklist)]).forEach(chave=>{
+    const n = Math.max(topoLancado[chave] || 0, topoChecklist[chave] || 0);
+    porDiaTopo[chave] = n;
     if(chave === hojeChave) furosTopoHoje += n;
     if(chave >= iniSemanaISO) furosTopoSemana += n;
     else if(chave >= iniSemanaAntISO) furosTopoSemanaAnt += n;
     if(chave >= iniMesISO) furosTopoMes += n;
-  };
-  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.pontos) somaTopo(l.data, Number(l.pontos)); });
-
-  furos.forEach(f=>{
-    if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1; }
-    // Topografia continua sendo contagem de furos marcados no checklist (não metros).
-    if(f.topografadoEm){
-      const dataMarcacaoTopo = new Date(f.topografadoEm);
-      const chaveTopo = chaveDia(f.topografadoEm);
-      porDiaTopo[chaveTopo] = (porDiaTopo[chaveTopo] || 0) + 1;
-      if(chaveTopo === hojeChave) furosTopoHoje++;
-      if(dataMarcacaoTopo >= inicioSemana) furosTopoSemana++;
-      else if(dataMarcacaoTopo >= inicioSemanaAnt) furosTopoSemanaAnt++;
-      if(dataMarcacaoTopo >= inicioMes) furosTopoMes++;
-    }
   });
 
   // Últimos 14 dias, do mais antigo pro mais recente, pro gráfico.
