@@ -2216,3 +2216,7 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
 .lb-alvo select{ flex:1; min-width:0; font-size:14px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; min-height:40px; }
 .lb-alvo select[hidden]{ display:none; }
 .lembretes-painel .lb-ir{ flex:none; align-self:flex-start; min-height:32px; padding:2px 8px; font-size:12px; font-weight:700; border-radius:999px; border:1px solid var(--steel,#2a6fa8); background:transparent; color:var(--steel,#2a6fa8); cursor:pointer; white-space:nowrap; }
+
+/* Janelas (modais) ficam acima da barra de abas, dos bancos e do painel de lembretes */
+.modal-overlay{ z-index:2600; }
+.toast{ z-index:2700 !important; }
