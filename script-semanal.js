@@ -48,6 +48,41 @@ function calcularRealcesSemana(iniISO, fimISO){
   return out;
 }
 
+// Mês até o sábado da semana (ou até hoje, se a semana ainda não acabou): acumulado, ritmo, projeção e tendência de 4 semanas.
+function calcularMesSemana(ini, lista, efet){
+  const sab = new Date(ini); sab.setDate(sab.getDate() + 5);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const corte = sab > hoje ? hoje : sab;
+  const iniMes = new Date(sab.getFullYear(), sab.getMonth(), 1), fimMes = new Date(sab.getFullYear(), sab.getMonth() + 1, 0);
+  const util = d => d.getDay() !== 0; // domingo é folga; feriados não são descontados
+  let diasMes = 0, passados = 0;
+  for(let d = new Date(iniMes); d <= fimMes; d.setDate(d.getDate() + 1)){ if(util(d)){ diasMes++; if(d <= corte) passados++; } }
+  const restantes = Math.max(0, diasMes - passados);
+  const a = dataISOLocal(iniMes), b = dataISOLocal(corte);
+  const porEq = lista.map(e => {
+    let m = 0, p = 0; efet.forEach(l => { if(l.equipeId === e.id && l.data >= a && l.data <= b){ m += l.metros; p += l.pontos; } });
+    const meta = e.metaMensal > 0 ? e.metaMensal : (e.metaSemanal > 0 ? arred2(e.metaSemanal * diasMes / 6) : 0);
+    return { nome: e.nome, metros: arred2(m), pontos: Math.round(p), meta };
+  }).sort((x, y) => y.metros - x.metros);
+  const acum = arred2(porEq.reduce((t, e) => t + e.metros, 0)), pontos = porEq.reduce((t, e) => t + e.pontos, 0);
+  const meta = arred2(porEq.reduce((t, e) => t + e.meta, 0));
+  const ritmo = passados ? acum / passados : 0;
+  const proj = acum + ritmo * restantes;
+  const semanaMeta = lista.reduce((t, e) => t + (e.metaSemanal > 0 ? e.metaSemanal : (e.metaMensal > 0 ? e.metaMensal * 6 / diasMes : 0)), 0);
+  const semanas = [];
+  for(let k = 3; k >= 0; k--){
+    const i0 = new Date(ini); i0.setDate(i0.getDate() - 7 * k); const i1 = new Date(i0); i1.setDate(i1.getDate() + 6);
+    const x = dataISOLocal(i0), y = dataISOLocal(i1); let m = 0;
+    efet.forEach(l => { if(l.data >= x && l.data <= y) m += l.metros; });
+    semanas.push({ rotulo: ddmmRS(i0), metros: arred2(m), atual: k === 0 });
+  }
+  const mediaSem = semanas.reduce((t, w) => t + w.metros, 0) / 4;
+  return { nome: iniMes.toLocaleDateString('pt-BR', { month: 'long' }), corte, diasMes, passados, restantes, acum, pontos, meta, ritmo, proj,
+    pctAcum: meta ? Math.round(acum / meta * 100) : null, pctProj: meta ? Math.round(proj / meta * 100) : null,
+    faltaProj: meta ? Math.max(0, arred2(meta - proj)) : null, necessario: meta && restantes ? Math.max(0, (meta - acum) / restantes) : null,
+    porEq, semanas, semanaMeta, mediaSem, varMedia: varRS(semanas[3].metros, mediaSem) };
+}
+
 function calcularResumoSemanal(offset){
   const ini = inicioDaSemana(new Date()); ini.setDate(ini.getDate() + offset * 7);
   const fim = new Date(ini); fim.setDate(fim.getDate() + 6);
@@ -92,7 +127,7 @@ function calcularResumoSemanal(offset){
   });
   return { ini, fim, iniISO, fimISO, equipes: equipesR, dias, tot, diasTrab: diasTrabTotal, melhorDia,
     mediaDia: diasTrabTotal ? arred2(tot.m / diasTrabTotal) : 0, varM: varRS(tot.m, tot.am), varP: varRS(Math.round(tot.p), Math.round(tot.ap)),
-    pctMeta: tot.meta ? Math.round(tot.m / tot.meta * 100) : null, realces: calcularRealcesSemana(iniISO, fimISO), furosPerf, furosTopo, projeto: configApp.projetoAtivo || '' };
+    pctMeta: tot.meta ? Math.round(tot.m / tot.meta * 100) : null, realces: calcularRealcesSemana(iniISO, fimISO), mes: calcularMesSemana(ini, lista, efet), furosPerf, furosTopo, projeto: configApp.projetoAtivo || '' };
 }
 
 const setaRS = v => v === null ? '(sem base na semana passada)' : v === 0 ? '(= semana passada)' : (v > 0 ? '▲ +' : '▼ ') + v + '% vs semana passada';
@@ -109,6 +144,17 @@ function montarResumoSemanalWhatsApp(offset){
   o += `\nChecklist na semana: ${plural(r.furosPerf, 'furo perfilado', 'furos perfilados')} | ${plural(r.furosTopo, 'furo topografado', 'furos topografados')}`;
   o += `\nDias de producao: ${r.diasTrab}${r.diasTrab ? ' | media ' + numRS(r.mediaDia) + ' m/dia' : ''}`;
   if(r.melhorDia) o += `\nMelhor dia: ${semAcentoRS(r.melhorDia.nome)} ${ddmmRS(r.melhorDia.data)} - ${numRS(r.melhorDia.metros)} m`;
+  if(r.mes && (r.mes.acum || r.mes.meta)){
+    const m = r.mes;
+    o += `\n\n*MES DE ${semAcentoRS(m.nome).toUpperCase()}* (ate ${ddmmRS(m.corte)})\nAcumulado: *${numRS(m.acum)} m*${m.meta ? ' (' + m.pctAcum + '% da meta de ' + numRS(m.meta) + ' m)' : ''} | ${plural(m.pontos, 'ponto', 'pontos')}`;
+    o += `\nRitmo: ${numRS(m.ritmo)} m/dia util (${m.passados} de ${m.diasMes} dias uteis)`;
+    if(m.meta){
+      o += `\nProjecao de fechamento: *${numRS(m.proj)} m* (${m.pctProj}% da meta)${m.faltaProj ? ' - faltam ' + numRS(m.faltaProj) + ' m' : ' - meta batida no ritmo atual'}`;
+      if(m.restantes && m.necessario !== null) o += `\nPara bater a meta: ${numRS(m.necessario)} m/dia nos ${m.restantes} dias uteis restantes`;
+    }
+    o += `\nUltimas 4 semanas: ` + m.semanas.map(w => numRS(w.metros)).join(' | ') + ` (media ${numRS(m.mediaSem)} m${m.varMedia ? '; esta semana ' + (m.varMedia > 0 ? '+' : '') + m.varMedia + '%' : ''})`;
+    if(m.porEq.length > 1) o += '\nPor equipe no mes: ' + m.porEq.map(e => `${semAcentoRS(e.nome)} ${numRS(e.metros)} m`).join(' | ');
+  }
   o += '\n\n*DIA A DIA*\n' + r.dias.map(d => {
     if(!d.metros && !d.pontos) return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${d.folga ? 'folga' : 'sem producao'}`;
     return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${numRS(d.metros)} m | ${Math.round(d.pontos)} ${Math.round(d.pontos) === 1 ? 'ponto' : 'pontos'}`;
@@ -185,6 +231,35 @@ function cartaoResumoSemanalHTML(r){
         <span>melhor dia <b style="color:${cor.txt}">${melhor}</b></span>
         <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
   }).join('');
+  const mes = r.mes, mesTem = mes && (mes.acum || mes.meta);
+  let mesHTML = '';
+  if(mesTem){
+    const corProj = mes.pctProj === null ? cor.txt : mes.pctProj >= 100 ? cor.ver : mes.pctProj >= 80 ? '#a56a00' : '#d6453d';
+    const fundoProj = mes.pctProj === null ? cor.fundo : mes.pctProj >= 100 ? '#eef8f1' : mes.pctProj >= 80 ? '#fff7ec' : '#fdeeed';
+    const pa = mes.meta ? Math.min(100, mes.acum / mes.meta * 100) : 0, pp = mes.meta ? Math.max(0, Math.min(100, mes.proj / mes.meta * 100) - pa) : 0;
+    const qd = (rot, val, sub, c, fundo) => `<div style="flex:1;min-width:0;background:${fundo || cor.fundo};border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${c || cor.mut};font-weight:700;">${rot}</div><div style="font:700 26px 'JetBrains Mono',monospace;margin-top:4px;color:${c || cor.txt};">${val}</div><div style="font-size:12px;color:${c || cor.mut};margin-top:3px;">${sub}</div></div>`;
+    const maxS = Math.max(1, mes.semanaMeta || 0, ...mes.semanas.map(w => w.metros));
+    const barrasS = mes.semanas.map(w => `<div style="flex:1;text-align:center;"><div style="font:700 12px monospace;">${numRS(w.metros)}</div><div style="height:${Math.max(2, Math.round(w.metros / maxS * 96))}px;background:${w.atual ? cor.amb : '#ffb4a2'};border-radius:6px 6px 2px 2px;"></div></div>`).join('');
+    mesHTML = `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Mês de ${e2(mes.nome)} <span style="font-weight:500;color:${cor.mut};font-size:12px;">· acumulado até ${ddmmRS(mes.corte)}${mes.meta ? ' e projeção de fechamento' : ''}</span></div>
+      <div style="display:flex;gap:10px;">
+        ${qd('Acumulado do mês', numRS(mes.acum) + '<span style="font-size:14px;color:' + cor.mut + '"> m</span>', mes.meta ? mes.pctAcum + '% da meta de ' + numRS(mes.meta) + ' m' : Math.round(mes.pontos) + ' pontos topografados')}
+        ${qd('Ritmo atual', numRS(mes.ritmo) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', mes.passados + ' de ' + mes.diasMes + ' dias úteis')}
+        ${mes.meta ? qd('Projeção de fechamento', numRS(mes.proj) + '<span style="font-size:14px;"> m</span>', mes.pctProj + '% da meta · ' + (mes.faltaProj ? 'faltam ' + numRS(mes.faltaProj) + ' m' : 'meta batida'), corProj, fundoProj) : ''}
+        ${mes.meta && mes.restantes ? qd('Necessário p/ meta', numRS(mes.necessario) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', 'nos ' + mes.restantes + ' dias úteis que restam') : ''}</div>
+      ${mes.meta ? `<div style="margin-top:14px;position:relative;"><div style="height:16px;background:#ece9f2;border-radius:8px;position:relative;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:${pa}%;background:${cor.amb};"></div><div style="position:absolute;left:${pa}%;top:0;height:100%;width:${pp}%;background:#ffcfc2;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:${cor.mut};margin-top:6px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span><b style="color:#ffb4a2">■</b> projeção no ritmo atual: +${numRS(Math.max(0, mes.proj - mes.acum))} m</span><span>meta ${numRS(mes.meta)} m</span></div></div>` : ''}
+      <div style="display:flex;gap:18px;margin-top:16px;">
+        <div style="flex:1.2;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">Tendência · últimas 4 semanas${mes.semanaMeta ? ` <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">(meta semanal ${numRS(mes.semanaMeta)} m)</span>` : ''}</div>
+          <div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:14px;border-bottom:1px solid ${cor.lin};padding:0 6px;">
+            ${mes.semanaMeta ? `<div style="position:absolute;left:0;right:0;bottom:${Math.round(mes.semanaMeta / maxS * 96)}px;border-top:2px dashed #8a94a6;"></div>` : ''}${barrasS}</div>
+          <div style="display:flex;gap:14px;padding:0 6px;font-size:11.5px;color:${cor.mut};text-align:center;margin-top:4px;">${mes.semanas.map(w => `<span style="flex:1;${w.atual ? 'color:' + cor.txt + ';font-weight:700;' : ''}">${w.rotulo}${w.atual ? ' (esta)' : ''}</span>`).join('')}</div>
+          <div style="font-size:12px;color:${cor.mut};margin-top:8px;">Média das 4 semanas: <b style="color:${cor.txt}">${numRS(mes.mediaSem)} m</b>${mes.varMedia ? ` · esta semana ${seta(mes.varMedia)} da média` : ''}</div></div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">Acumulado do mês por equipe</div>
+          <div style="border:1px solid ${cor.lin};border-radius:10px;overflow:hidden;font-size:12.5px;">
+            ${mes.porEq.map((e, i) => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:${i % 2 ? cor.fundo : '#fff'};"><span><b>${e2(e.nome)}</b></span><span style="font:700 13px monospace;">${numRS(e.metros)} m${mes.acum ? ' · ' + Math.round(e.metros / mes.acum * 100) + '%' : ''}</span></div>`).join('')}
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid ${cor.lin};"><span style="color:${cor.mut}">Pontos topografados no mês</span><span style="font:700 13px monospace;color:${cor.aco};">${Math.round(mes.pontos)}</span></div></div>
+          ${mes.meta && mes.restantes && mes.necessario !== null && mes.ritmo && mes.necessario > mes.ritmo ? `<div style="margin-top:10px;padding:8px 12px;border-left:4px solid #e0a25a;background:#fff7ec;border-radius:4px;font-size:12px;">Para fechar em ${numRS(mes.meta)} m, o ritmo precisa subir de <b>${numRS(mes.ritmo)}</b> para <b>${numRS(mes.necessario)} m/dia</b> (+${Math.round((mes.necessario / mes.ritmo - 1) * 100)}%).</div>` : ''}</div></div>`;
+  }
   const realcesHTML = r.realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou na semana</span></div>` + r.realces.map(x => {
     const p = n => x.furos ? Math.round(n / x.furos * 100) : 0;
     const barra = (n, c) => `<div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${p(n)}%;height:100%;background:${c};"></div></div>`;
@@ -217,6 +292,7 @@ function cartaoResumoSemanalHTML(r){
       ${kpi('Furos no checklist', r.furosPerf + ' / ' + r.furosTopo, 'perfilados / topografados')}
       ${kpi('Dias de produção', r.diasTrab, r.diasTrab ? 'média ' + numRS(r.mediaDia) + ' m/dia' : 'sem produção')}</div>
     ${r.melhorDia ? `<div style="margin-top:10px;font-size:13px;color:${cor.mut};">Melhor dia da semana: <b style="color:${cor.txt}">${r.melhorDia.nome} ${ddmmRS(r.melhorDia.data)}</b> com <b style="color:${cor.txt}">${numRS(r.melhorDia.metros)} m</b></div>` : ''}
+    ${mesHTML}
     <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· pontos topografados em azul</span></div>
     <div style="display:flex;gap:8px;">${barras}</div>
     <div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ordenadas por metros</span></div>

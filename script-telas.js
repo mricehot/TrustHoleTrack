@@ -619,7 +619,7 @@ let equipes = [];               // { id, projeto, nome, integrantes, ordem }
 let lancamentosProd = [];  // { id, equipeId, data (AAAA-MM-DD), metros, pontos } — cada lançamento do turno, com data
 let infoSemanaOffset = 0;       // 0 = semana atual, -1 = semana passada...
 
-function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0, metaSemanal: row.meta_semanal_metros != null ? Number(row.meta_semanal_metros) : null }; }
+function mapEquipe(row){ return { id: row.id, projeto: row.projeto || '', nome: row.nome, integrantes: row.integrantes || '', ordem: row.ordem != null ? Number(row.ordem) : 0, metaSemanal: row.meta_semanal_metros != null ? Number(row.meta_semanal_metros) : null, metaMensal: row.meta_mensal_metros != null ? Number(row.meta_mensal_metros) : null }; }
 function mapLancamento(row){ return { id: row.id, equipeId: row.equipe_id, data: String(row.data).slice(0,10), metros: Number(row.metros || 0), pontos: Number(row.pontos || 0) }; }
 function carregarEquipesLocal(){
   try{ equipes = JSON.parse(localStorage.getItem(EQUIPES_LOCAL_KEY) || '[]'); }catch(e){ equipes = []; }
@@ -940,6 +940,7 @@ function abrirModalEquipes(){
       <div class="field"><label>Nome da equipe</label><input type="text" class="eq-nome" value="${escHtml(e.nome)}" maxlength="40"></div>
       <div class="field"><label>Integrantes</label><input type="text" class="eq-integrantes" value="${escHtml(e.integrantes)}" maxlength="120" placeholder="ex.: João / Maria"></div>
       <div class="field"><label>Meta semanal de metros (opcional)</label><input type="text" inputmode="decimal" class="eq-meta" value="${e.metaSemanal > 0 ? String(e.metaSemanal).replace('.', ',') : ''}" maxlength="8" placeholder="ex.: 120"></div>
+      <div class="field"><label>Meta mensal de metros (opcional)</label><input type="text" inputmode="decimal" class="eq-meta-mes" value="${e.metaMensal > 0 ? String(e.metaMensal).replace('.', ',') : ''}" maxlength="8" placeholder="vazio = calcula pela semanal"></div>
       <button type="button" class="ghost perigo eq-apagar" data-id="${e.id}">Apagar equipe</button>
     </div>`).join('');
   root.innerHTML = `
@@ -952,6 +953,7 @@ function abrirModalEquipes(){
           <div class="field"><label>Nova equipe — nome</label><input type="text" id="eq-novo-nome" maxlength="40" placeholder="ex.: Equipe F"></div>
           <div class="field"><label>Integrantes</label><input type="text" id="eq-novo-integrantes" maxlength="120" placeholder="ex.: João / Maria"></div>
           <div class="field"><label>Meta semanal de metros (opcional)</label><input type="text" inputmode="decimal" id="eq-novo-meta" maxlength="8" placeholder="ex.: 120"></div>
+          <div class="field"><label>Meta mensal de metros (opcional)</label><input type="text" inputmode="decimal" id="eq-novo-meta-mes" maxlength="8" placeholder="vazio = calcula pela semanal"></div>
           <button type="button" class="steel" id="eq-adicionar">+ Adicionar equipe</button>
         </div>
         <div id="eq-usuarios"></div>
@@ -978,9 +980,12 @@ function abrirModalEquipes(){
       const metaTxt = item.querySelector('.eq-meta').value.trim().replace(',', '.');
       const metaNum = parseFloat(metaTxt);
       const meta = metaTxt !== '' && !isNaN(metaNum) && metaNum > 0 ? metaNum : null;
-      if(nome !== e.nome || integrantes !== e.integrantes || meta !== (e.metaSemanal > 0 ? e.metaSemanal : null)){
-        e.nome = nome; e.integrantes = integrantes; e.metaSemanal = meta; alterou = true;
-        enfileirar('equipes', 'update', { id: e.id, nome: e.nome, integrantes: e.integrantes, meta_semanal_metros: meta });
+      const mesTxt = (item.querySelector('.eq-meta-mes') ? item.querySelector('.eq-meta-mes').value : '').trim().replace(',', '.');
+      const mesNum = parseFloat(mesTxt);
+      const metaMes = mesTxt !== '' && !isNaN(mesNum) && mesNum > 0 ? mesNum : null;
+      if(nome !== e.nome || integrantes !== e.integrantes || meta !== (e.metaSemanal > 0 ? e.metaSemanal : null) || metaMes !== (e.metaMensal > 0 ? e.metaMensal : null)){
+        e.nome = nome; e.integrantes = integrantes; e.metaSemanal = meta; e.metaMensal = metaMes; alterou = true;
+        enfileirar('equipes', 'update', { id: e.id, nome: e.nome, integrantes: e.integrantes, meta_semanal_metros: meta, meta_mensal_metros: metaMes });
       }
     });
     if(alterou) salvarEquipesLocal();
@@ -995,6 +1000,11 @@ function abrirModalEquipes(){
     if(mTxt !== '' && !isNaN(mNum) && mNum > 0){
       nova.metaSemanal = mNum;
       enfileirar('equipes', 'update', { id: nova.id, meta_semanal_metros: mNum });
+    }
+    const mmTxt = (el('eq-novo-meta-mes') ? el('eq-novo-meta-mes').value : '').trim().replace(',', '.'), mmNum = parseFloat(mmTxt);
+    if(mmTxt !== '' && !isNaN(mmNum) && mmNum > 0){
+      nova.metaMensal = mmNum;
+      enfileirar('equipes', 'update', { id: nova.id, meta_mensal_metros: mmNum });
     }
     salvarEquipesLocal();
     return true;
@@ -1027,7 +1037,7 @@ function abrirModalEquipes(){
     showToast('Equipe apagada.', { acaoLabel: 'Desfazer', onAcao: ()=>{
       if(equipes.some(x=>x.id === e.id)) return;
       equipes.push(e);
-      enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem, meta_semanal_metros: e.metaSemanal > 0 ? e.metaSemanal : null });
+      enfileirar('equipes', 'insert', { id: e.id, projeto: e.projeto, nome: e.nome, integrantes: e.integrantes, ordem: e.ordem, meta_semanal_metros: e.metaSemanal > 0 ? e.metaSemanal : null, meta_mensal_metros: e.metaMensal > 0 ? e.metaMensal : null });
       lancamentos.forEach(r=>{
         lancamentosProd.push(r);
         enfileirar('produtividade_lancamentos', 'insert', { id: r.id, equipe_id: r.equipeId, data: r.data, metros: r.metros, pontos: r.pontos });
