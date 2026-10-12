@@ -2,6 +2,9 @@
 // Fecha a semana (segunda a domingo; domingo é folga) com tudo de produtividade: totais, comparação com a semana
 // passada, dia a dia e cada equipe (meta, melhor dia, dias trabalhados). Sai como IMAGEM e como MENSAGEM de WhatsApp.
 let resumoSemOffset = 0;
+const HACHURA_RS = 'url(data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><rect width='8' height='8' fill='#ffe1d9'/><path d='M-2,2 L2,-2 M0,8 L8,0 M6,10 L10,6' stroke='#ffb4a2' stroke-width='3'/></svg>") + ')'; // projeção listrada (funciona no html2canvas)
+const hachuraPngRS = (w, h) => { try { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#ffe1d9'; x.fillRect(0, 0, w, h); x.strokeStyle = '#ffb4a2'; x.lineWidth = 3.5; x.beginPath(); for (let k = -h; k < w + h; k += 8) { x.moveTo(k, h); x.lineTo(k + h, 0); } x.stroke(); return c.toDataURL('image/png'); } catch (e) { return ''; } };
+const hachuraSvgRS = (w, h, st) => `<img alt="" src="${hachuraPngRS(w || 900, h)}" style="display:block;height:${h}px;width:${w ? w + 'px' : 'auto'};max-width:none;object-fit:none;object-position:left top;${st || ''}">`;
 const COR_EQUIPES_RS = ['#1f8a8a', '#6b5b95', '#a8710a', '#a23b72', '#4b4fb3', '#4f7a3f']; // mesmas cores das equipes no sistema (tema claro)
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const semAcentoRS = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -78,7 +81,7 @@ function calcularMesSemana(ini, lista, efet){
     semanas.push({ rotulo: ddmmRS(i0), metros: arred2(m), atual: k === 0 });
   }
   const mediaSem = semanas.reduce((t, w) => t + w.metros, 0) / 4;
-  return { nome: iniMes.toLocaleDateString('pt-BR', { month: 'long' }), corte, diasMes, passados, restantes, acum, pontos, meta, ritmo, proj,
+  return { nome: iniMes.toLocaleDateString('pt-BR', { month: 'long' }), fimMes, corte, diasMes, passados, restantes, acum, pontos, meta, ritmo, proj,
     pctAcum: meta ? Math.round(acum / meta * 100) : null, pctProj: meta ? Math.round(proj / meta * 100) : null,
     faltaProj: meta ? Math.max(0, arred2(meta - proj)) : null, necessario: meta && restantes ? Math.max(0, (meta - acum) / restantes) : null,
     porEq, semanas, semanaMeta, mediaSem, varMedia: varRS(semanas[3].metros, mediaSem) };
@@ -126,7 +129,7 @@ function calcularResumoSemanal(offset){
     if(f.perfilado && f.perfiladoEm){ const c = chaveDia(f.perfiladoEm); if(c >= iniISO && c <= fimISO) furosPerf++; }
     if(f.topografado && f.topografadoEm){ const c = chaveDia(f.topografadoEm); if(c >= iniISO && c <= fimISO) furosTopo++; }
   });
-  return { ini, fim, iniISO, fimISO, equipes: equipesR, dias, tot, diasTrab: diasTrabTotal, melhorDia,
+  return { offset, ini, fim, iniISO, fimISO, equipes: equipesR, dias, tot, diasTrab: diasTrabTotal, melhorDia,
     mediaDia: diasTrabTotal ? arred2(tot.m / diasTrabTotal) : 0, varM: varRS(tot.m, tot.am), varP: varRS(Math.round(tot.p), Math.round(tot.ap)),
     pctMeta: tot.meta ? Math.round(tot.m / tot.meta * 100) : null, realces: calcularRealcesSemana(iniISO, fimISO), mes: calcularMesSemana(ini, lista, efet), furosPerf, furosTopo, projeto: configApp.projetoAtivo || '' };
 }
@@ -137,7 +140,7 @@ function montarResumoSemanalWhatsApp(offset){
   const r = calcularResumoSemanal(offset);
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
   const quem = typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '';
-  let o = `📊 *RESUMO SEMANAL*\n${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}${r.projeto ? ' - Projeto ' + semAcentoRS(r.projeto) : ''}\n`;
+  let o = `📊 *RESUMO SEMANAL${r.offset === 0 ? ' (SEMANA ATUAL)' : ''}*\n${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}${r.projeto ? ' - Projeto ' + semAcentoRS(r.projeto) : ''}\n`;
   if(!r.equipes.length) return o + '\nNenhuma equipe cadastrada neste projeto.';
   o += `\n*TOTAL DA SEMANA*\nPerfilagem: *${numRS(r.tot.m)} m* ${setaRS(r.varM)}`;
   if(r.pctMeta !== null) o += `\nMeta semanal: ${r.pctMeta}% (${numRS(r.tot.m)} de ${numRS(r.tot.meta)} m)`;
@@ -241,7 +244,7 @@ function cartaoResumoSemanalHTML(r){
   if(mesTem){
     const corProj = mes.pctProj === null ? cor.txt : mes.pctProj >= 100 ? cor.ver : mes.pctProj >= 80 ? '#a56a00' : '#d6453d';
     const fundoProj = mes.pctProj === null ? cor.fundo : mes.pctProj >= 100 ? '#eef8f1' : mes.pctProj >= 80 ? '#fff7ec' : '#fdeeed';
-    const baseBarra = Math.max(1, mes.meta || mes.proj), pa = Math.min(100, mes.acum / baseBarra * 100), pp = Math.max(0, Math.min(100, mes.proj / baseBarra * 100) - pa);
+    const baseBarra = Math.max(1, mes.meta || 0, mes.proj), pa = Math.min(100, mes.acum / baseBarra * 100), pp = Math.max(0, Math.min(100, mes.proj / baseBarra * 100) - pa);
     const qd = (rot, val, sub, c, fundo) => `<div style="flex:1;min-width:0;background:${fundo || cor.fundo};border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${c || cor.mut};font-weight:700;">${rot}</div><div style="font:700 26px 'JetBrains Mono',monospace;margin-top:4px;color:${c || cor.txt};">${val}</div><div style="font-size:12px;color:${c || cor.mut};margin-top:3px;">${sub}</div></div>`;
     const maxS = Math.max(1, mes.semanaMeta || 0, ...mes.semanas.map(w => w.metros));
     const barrasS = mes.semanas.map(w => `<div style="flex:1;text-align:center;"><div style="font:700 12px monospace;">${numRS(w.metros)}</div><div style="height:${Math.max(2, Math.round(w.metros / maxS * 96))}px;background:${w.atual ? cor.amb : '#ffb4a2'};border-radius:6px 6px 2px 2px;"></div></div>`).join('');
@@ -251,8 +254,9 @@ function cartaoResumoSemanalHTML(r){
         ${qd('Ritmo atual', numRS(mes.ritmo) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', mes.passados + ' de ' + mes.diasMes + ' dias úteis')}
         ${mes.meta ? qd('Projeção de fechamento', numRS(mes.proj) + '<span style="font-size:14px;"> m</span>', mes.pctProj + '% da meta · ' + (mes.faltaProj ? 'faltam ' + numRS(mes.faltaProj) + ' m' : 'meta batida'), corProj, fundoProj) : qd('Projeção de fechamento', numRS(mes.proj) + '<span style="font-size:14px;color:' + cor.mut + '"> m</span>', 'no ritmo atual até o fim do mês · sem meta cadastrada')}
         ${mes.meta && mes.restantes ? qd('Necessário p/ meta', numRS(mes.necessario) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', 'nos ' + mes.restantes + ' dias úteis que restam') : ''}</div>
-      ${true ? `<div style="margin-top:14px;position:relative;"><div style="height:16px;background:#ece9f2;border-radius:8px;position:relative;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:${pa}%;background:${cor.amb};"></div><div style="position:absolute;left:${pa}%;top:0;height:100%;width:${pp}%;background:#ffcfc2;"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:${cor.mut};margin-top:6px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span><b style="color:#ffb4a2">■</b> projeção no ritmo atual: +${numRS(Math.max(0, mes.proj - mes.acum))} m</span><span>${mes.meta ? 'meta ' + numRS(mes.meta) + ' m' : 'projeção ' + numRS(mes.proj) + ' m'}</span></div></div>` : ''}
+      <div style="margin-top:14px;position:relative;"><div style="height:16px;background:#ece9f2;border-radius:8px;position:relative;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:${pa}%;background:${cor.amb};"></div><div style="position:absolute;left:${pa}%;top:0;height:100%;width:${pp}%;overflow:hidden;">${hachuraSvgRS(0,16,'display:block;width:100%;height:100%;')}</div></div>
+        ${mes.meta ? `<div style="position:absolute;left:${(mes.meta / baseBarra * 100).toFixed(1)}%;top:-4px;height:24px;margin-left:-3px;border-right:3px solid ${cor.txt};"></div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:${cor.mut};margin-top:6px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span><span style="display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:4px;">${hachuraSvgRS(11,11,'border-radius:2px;')}</span>projeção até ${ddmmRS(mes.fimMes)} (+${numRS(Math.max(0, mes.proj - mes.acum))} m no ritmo atual)</span><span>${mes.meta ? '<b style="color:' + cor.txt + '">|</b> meta ' + numRS(mes.meta) + ' m' : 'projeção ' + numRS(mes.proj) + ' m'}</span></div></div>
       <div style="display:flex;gap:18px;margin-top:16px;">
         <div style="flex:1.2;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">Tendência · últimas 4 semanas${mes.semanaMeta ? ` <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">(meta semanal ${numRS(mes.semanaMeta)} m)</span>` : ''}</div>
           <div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:14px;border-bottom:1px solid ${cor.lin};padding:0 6px;">
@@ -291,7 +295,8 @@ function cartaoResumoSemanalHTML(r){
       <div><div style="font-size:12px;letter-spacing:2px;font-weight:700;color:${cor.amb};">RESUMO SEMANAL</div>
         <div style="font-size:24px;font-weight:800;margin-top:2px;">${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}</div></div>
       <div style="text-align:right;font-size:13px;color:${cor.mut};">${r.projeto ? 'Projeto ' + e2(r.projeto) : 'Todos os projetos'}<br>perfilagem e topografia</div></div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
+    <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">${r.offset === 0 ? 'Semana atual' : 'Semana'} <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}${r.offset === 0 ? ' · em andamento' : ''}</span></div>
+    <div style="display:flex;gap:10px;">
       ${kpi('Metros perfilados', numRS(r.tot.m) + '<span style="font-size:14px;color:' + cor.mut + '"> m</span>', seta(r.varM) + ' vs semana passada' + (r.pctMeta !== null ? ' · ' + r.pctMeta + '% da meta' : ''))}
       ${kpi('Pontos topografados', Math.round(r.tot.p), seta(r.varP) + ' vs semana passada')}
       ${kpi('Furos no checklist', r.furosPerf + ' / ' + r.furosTopo, 'perfilados / topografados')}
