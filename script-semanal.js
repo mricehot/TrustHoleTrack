@@ -205,13 +205,14 @@ function cartaoResumoSemanalHTML(r){
       <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${cor.mut};font-weight:700;">${rot}</div>
       <div style="font:700 26px 'JetBrains Mono',ui-monospace,monospace;margin-top:4px;color:${cor.txt};">${val}</div>
       <div style="font-size:12px;margin-top:3px;color:${cor.mut};">${sub}</div></div>`;
+  const nomeCurtoEq = n => { const t = String(n || '').replace(/^\s*(equipe|eq\.?|turma)\s+/i, '').trim() || String(n || ''); return t.length > 11 ? t.slice(0, 10) + '…' : t; };
   const maxM = Math.max(1, ...r.dias.map(d => d.metros));
   const ordemEq = r.equipes.slice().sort((x, y) => COR_EQUIPES_RS.indexOf(x.cor) - COR_EQUIPES_RS.indexOf(y.cor));
   const barras = r.dias.map(d => {
     const h = Math.round(d.metros / maxM * 110);
     const corpo = d.folga && !d.metros && !d.pontos
       ? `<div style="height:110px;width:100%;border-radius:6px;background:#eeecf3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cor.mut};">folga</div>`
-      : `<div style="height:110px;width:100%;display:flex;align-items:flex-end;"><div style="width:100%;height:${Math.max(h, d.metros ? 3 : 0)}px;display:flex;flex-direction:column-reverse;border-radius:6px 6px 2px 2px;overflow:hidden;">${ordemEq.map(e => { const v = d.porEq[e.id] || 0; if(!v) return ''; const hs = v / d.metros * Math.max(h, 3); return `<div style="height:${hs.toFixed(1)}px;background:${e.cor};border-top:1px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font:700 10.5px monospace;overflow:hidden;">${hs >= 15 ? numRS(v) : ''}</div>`; }).join('')}</div></div>`;
+      : `<div style="height:110px;width:100%;display:flex;align-items:flex-end;"><div style="width:100%;height:${Math.max(h, d.metros ? 3 : 0)}px;display:flex;flex-direction:column-reverse;border-radius:6px 6px 2px 2px;overflow:hidden;">${ordemEq.map(e => { const v = d.porEq[e.id] || 0; if(!v) return ''; const hs = v / d.metros * Math.max(h, 3); const curto = nomeCurtoEq(e.nome), conteudo = hs >= 30 ? `<div style="font:700 10.5px 'Inter',sans-serif;line-height:1.1;max-width:100%;overflow:hidden;white-space:nowrap;">${e2(curto)}</div><div style="font:700 12px monospace;line-height:1.2;">${numRS(v)}</div>` : hs >= 15 ? `<div style="font:700 10px 'Inter',sans-serif;white-space:nowrap;overflow:hidden;">${e2(curto.slice(0, 7))} ${numRS(v)}</div>` : ''; return `<div style="height:${hs.toFixed(1)}px;background:${e.cor};border-top:1px solid #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;overflow:hidden;padding:0 3px;box-sizing:border-box;">${conteudo}</div>`; }).join('')}</div></div>`;
     return `<div style="flex:1;min-width:0;text-align:center;">
       <div style="font:700 13px 'JetBrains Mono',monospace;height:18px;color:${cor.txt};">${d.metros ? numRS(d.metros) : (d.folga ? '' : '–')}</div>${corpo}
       <div style="font-size:12px;font-weight:700;margin-top:6px;color:${cor.txt};">${d.nome}</div>
