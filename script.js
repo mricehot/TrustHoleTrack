@@ -510,7 +510,7 @@ function carregarLocal(){
 const NOME_TABELA_FILA = {
   aneis: 'Realce', leques: 'Leque', furos: 'Furo',
   turno_info: 'Dados do turno', turno_observacoes: 'Observação do turno',
-  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado', lembretes: 'Lembrete',
+  usuario_realce_ativo: 'Realce ativo', comunicados: 'Comunicado', lembretes: 'Lembrete', turno_checklist_itens: 'Item do checklist de turno', turno_checklist_marcas: 'Marcação do início de turno', turno_recados: 'Recado do turno',
   checklist_furos: 'Marcação do checklist', checklist_leques: 'Leque do checklist', checklist_observacoes_gerais: 'Observação do checklist',
   equipes: 'Equipe', produtividade_lancamentos: 'Produção da equipe', projetos: 'Projeto', fotos_turno: 'Foto do turno'
 };

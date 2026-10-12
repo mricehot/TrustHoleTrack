@@ -8,6 +8,28 @@ const checklistGruposFechados = new Set(); // "anelId|localização" — só na 
 let checklistModoSelecao = false;
 const checklistSelecionados = new Set();
 
+// Favoritos: leques que a pessoa fixa no topo da lista. Ficam salvos neste aparelho, por usuário.
+const chaveFavoritosLeques = ()=> 'perfilagem-ck-fav-v1:' + ((typeof usuarioAtual !== 'undefined' && usuarioAtual && usuarioAtual.id) || 'anon');
+let checklistFavoritos = new Set();
+let checklistFavoritosDe = null;
+function carregarFavoritosLeques(){
+  const k = chaveFavoritosLeques();
+  if(checklistFavoritosDe === k) return;
+  checklistFavoritosDe = k;
+  try{ checklistFavoritos = new Set(JSON.parse(localStorage.getItem(k) || '[]')); }catch(e){ checklistFavoritos = new Set(); }
+}
+function ehFavoritoLeque(c){ carregarFavoritosLeques(); return checklistFavoritos.has(c.id); }
+function alternarFavoritoLeque(id){
+  carregarFavoritosLeques();
+  const c = checklistLeques.find(x=>x.id===id);
+  const cod = c ? PREFIXO[c.tipo] + c.numero : '';
+  if(checklistFavoritos.has(id)){ checklistFavoritos.delete(id); showToast(`${cod} saiu dos fixados.`, { erro:false }); }
+  else{ checklistFavoritos.add(id); showToast(`${cod} fixado no topo.`, { erro:false }); }
+  try{ localStorage.setItem(chaveFavoritosLeques(), JSON.stringify([...checklistFavoritos])); }catch(e){}
+  if(typeof vibrarCurto === 'function') vibrarCurto(10);
+  renderChecklist();
+}
+
 function lequePendentePerfilagem(c){ return !c.perfilado; }
 function lequePendenteTopografia(c){
   const fl = checklistFurosDoLeque(c.id);
@@ -30,6 +52,9 @@ function filtrarItensChecklist(itens){
     if(f.status === 'pend-perf' && !lequePendentePerfilagem(c)) return false;
     if(f.status === 'pend-topo' && !lequePendenteTopografia(c)) return false;
     if(f.status === 'obstruidos' && !lequeTemObstruido(c)) return false;
+    if(f.status === 'andamento' && estadoDoLeque(checklistFurosDoLeque(c.id)) !== 'and') return false;
+    if(f.status === 'favoritos' && !ehFavoritoLeque(c)) return false;
+    if(f.status === 'concluidos' && estadoDoLeque(checklistFurosDoLeque(c.id)) !== 'ok') return false;
     const loc = (c.localizacao||'').trim();
     if(f.local === '__sem__' && loc) return false;
     if(f.local && f.local !== '__sem__' && loc !== f.local) return false;
@@ -43,10 +68,13 @@ function renderFiltrosChecklist(itens){
     todos: itens.length,
     'pend-perf': itens.filter(lequePendentePerfilagem).length,
     'pend-topo': itens.filter(lequePendenteTopografia).length,
-    obstruidos: itens.filter(lequeTemObstruido).length
+    obstruidos: itens.filter(lequeTemObstruido).length,
+    favoritos: itens.filter(ehFavoritoLeque).length,
+    andamento: itens.filter(c=>estadoDoLeque(checklistFurosDoLeque(c.id)) === 'and').length,
+    concluidos: itens.filter(c=>estadoDoLeque(checklistFurosDoLeque(c.id)) === 'ok').length
   };
   const chips = [
-    ['todos','Todos',''], ['pend-perf','Perfilar',''], ['pend-topo','Topografar',''], ['obstruidos','Obstruídos','alerta']
+    ['todos','Todos',''], ['favoritos','⭐ Favoritos',''], ['andamento','Em andamento',''], ['pend-perf','Perfilar',''], ['pend-topo','Topografar',''], ['obstruidos','Obstruídos','alerta'], ['concluidos','Concluídos','']
   ];
   el('checklist-chips').innerHTML = `<label class="ck-filtro-status"><span class="sr-only">Mostrar</span><select onchange="definirFiltroChecklist(this.value)" aria-label="Mostrar leques">${chips.map(([v, rot])=>`<option value="${v}" ${checklistFiltro.status===v ? 'selected' : ''}>${rot} (${cont[v]})</option>`).join('')}</select></label>`;
 
@@ -254,6 +282,7 @@ function htmlCardChecklist(c, agrupado){
         ${obstr ? (obstrucaoAlta(obstr, furos.length)
           ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length}<span class="txt"> obstr.</span></span>`
           : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
+        <button type="button" class="ck-fav ${ehFavoritoLeque(c) ? 'on' : ''}" aria-pressed="${ehFavoritoLeque(c)}" aria-label="${ehFavoritoLeque(c) ? 'tirar ' + codigo + ' dos fixados' : 'fixar ' + codigo + ' no topo'}" title="${ehFavoritoLeque(c) ? 'fixado no topo' : 'fixar no topo'}" onclick="event.stopPropagation();alternarFavoritoLeque('${c.id}')" onkeydown="event.stopPropagation()">${ehFavoritoLeque(c) ? '★' : '☆'}</button>
       </div>
       ${estadoDoLeque(furos) === 'ok' ? '<span class="ck-selo-ok" aria-label="leque completo" title="leque completo">✓</span>' : ''}
       ${resumo}

@@ -6,8 +6,8 @@
  * rede falha ou demora mais de 4 segundos. Nada de dados do Supabase é guardado aqui
  * (os dados ficam no aparelho pelo próprio app, e as alterações pendentes na fila dele).
  */
-const CACHE = 'blasthole-shell-v8';
-const LOCAIS = ['./dash.html', './style.css', './script.js', './script-leques.js', './script-checklist.js', './script-fotos.js', './script-relatorio-imagem.js', './script-turno-pdf.js', './script-telas.js', './script-sessao.js', './script-lembretes.js', './script-plano.js', './script-conforto.js', './script-semanal.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const CACHE = 'blasthole-shell-v9';
+const LOCAIS = ['./dash.html', './style.css', './script.js', './script-leques.js', './script-checklist.js', './script-fotos.js', './script-relatorio-imagem.js', './script-turno-pdf.js', './script-telas.js', './script-sessao.js', './script-lembretes.js', './script-plano.js', './script-conforto.js', './script-semanal.js', './script-inicio-turno.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const CDNS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',

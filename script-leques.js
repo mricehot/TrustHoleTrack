@@ -1092,19 +1092,22 @@ function renderChecklist(){
     return;
   }
 
-  const temLocal = visiveis.some(c=>(c.localizacao||'').trim());
+  const fixados = visiveis.filter(ehFavoritoLeque);
+  const resto = fixados.length ? visiveis.filter(c=>!ehFavoritoLeque(c)) : visiveis;
+  const htmlFixados = fixados.length ? `<div class="ck-grupo ck-fixados"><div class="ck-grupo-cab ck-fixados-cab"><span aria-hidden="true">⭐</span><span>Fixados</span><span class="resumo">${fixados.filter(c=>c.perfilado).length}/${fixados.length} perfilados</span></div><div class="ck-lista">${fixados.map(c=>htmlCardChecklist(c, false)).join('')}</div></div>` : '';
+  const temLocal = resto.some(c=>(c.localizacao||'').trim());
   if(!temLocal){
-    grid.innerHTML = `<div class="ck-lista">${visiveis.map(c=>htmlCardChecklist(c, false)).join('')}</div>`;
+    grid.innerHTML = htmlFixados + (resto.length ? `<div class="ck-lista">${resto.map(c=>htmlCardChecklist(c, false)).join('')}</div>` : '');
   }else{
     const grupos = new Map();
-    visiveis.forEach(c=>{
+    resto.forEach(c=>{
       const k = (c.localizacao||'').trim();
       if(!grupos.has(k)) grupos.set(k, []);
       grupos.get(k).push(c);
     });
     const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
     window.__ckGrupos = chaves;
-    grid.innerHTML = chaves.map((k, idx)=>{
+    grid.innerHTML = htmlFixados + chaves.map((k, idx)=>{
       const lista = grupos.get(k);
       const chave = anelAtivoId + '|' + k;
       const fechado = checklistGruposFechados.has(chave);

@@ -313,6 +313,13 @@
       </section>
 
       <section class="view" id="view-turno">
+        <div class="view-card accent-amber" id="card-inicio-turno" data-secao="inicio">
+          <div class="view-card-header">
+            <span class="view-card-label">Início de turno</span>
+            <span class="tag" id="inicio-cont">—</span>
+          </div>
+          <div class="turno-body" id="inicio-turno-corpo"></div>
+        </div>
         <div class="view-card accent-amber" id="card-painel-turno" data-secao="painel">
           <div class="view-card-header">
             <span class="view-card-label">Painel do turno</span>
@@ -846,6 +853,7 @@
 <script src="script-plano.js?v="></script>
 <script src="script-conforto.js?v="></script>
 <script src="script-semanal.js?v="></script>
+<script src="script-inicio-turno.js?v="></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
