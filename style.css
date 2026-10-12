@@ -2200,3 +2200,4 @@ li.feito .lb-txt{ text-decoration:line-through; color:var(--muted); }
 .anel-form select{ flex:0 0 190px; width:190px; }
 .anel-form input[type=text]#anel-nivel{ flex:1 1 200px; width:auto; }
 @media (max-width:480px){ .anel-form select{ flex:0 0 auto; width:100%; } }
+.numero-muda{ color:var(--est-ok,#2e9b57); font-variant-numeric:tabular-nums; transition:color .3s; }

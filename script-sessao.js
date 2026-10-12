@@ -1136,3 +1136,37 @@ function definirModoLeitura(on){
   try{ renderAll(); }catch(e){}
   if(modoLeitura) showToast('Modo conferência ligado: nada pode ser marcado.', { tipo:'ok' });
 }
+
+// ---------- Números que contam ao mudar ----------
+// Quando um contador (faixa "Hoje · você", quadros do Painel do turno) muda por causa de uma marcação,
+// o número sobe rodando do valor antigo até o novo, em vez de trocar de repente.
+const ULTIMOS_NUMEROS = {};
+function contarMudanca(chave, elemento){
+  if(!elemento) return;
+  const novo = parseInt(elemento.textContent, 10);
+  if(isNaN(novo)){ return; }
+  const antigo = ULTIMOS_NUMEROS[chave];
+  ULTIMOS_NUMEROS[chave] = novo;
+  if(antigo === undefined || antigo === novo || semMovimento()) return;
+  const ms = Math.min(700, 250 + Math.abs(novo - antigo) * 40), ini = performance.now();
+  const token = (elemento._tokenCM = (elemento._tokenCM || 0) + 1);
+  elemento.classList.add('numero-muda');
+  const passo = agora=>{
+    if(token !== elemento._tokenCM) return;
+    const t = Math.min(1, (agora - ini) / ms), e = 1 - Math.pow(1 - t, 3);
+    elemento.textContent = String(Math.round(antigo + (novo - antigo) * e));
+    if(t < 1 && elemento.isConnected) requestAnimationFrame(passo);
+    else { elemento.textContent = String(novo); elemento.classList.remove('numero-muda'); }
+  };
+  requestAnimationFrame(passo);
+}
+function aplicarContagemNumeros(){
+  document.querySelectorAll('#meu-turno-faixa .mt-n b').forEach((b, i)=> contarMudanca('mt' + i, b));
+  document.querySelectorAll('#pt-kpis .pt-kpi .valor').forEach((v, i)=> contarMudanca('pt' + i, v));
+}
+(function(){
+  ['renderMeuTurno', 'renderPainelTurno'].forEach(nome=>{
+    const orig = window[nome]; if(typeof orig !== 'function') return;
+    window[nome] = function(){ const r = orig.apply(this, arguments); try{ aplicarContagemNumeros(); }catch(e){} return r; };
+  });
+})();
