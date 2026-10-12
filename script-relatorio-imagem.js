@@ -191,19 +191,43 @@ async function gerarImagemRealce(anelId){
   return { blob, nome: d.nome };
 }
 
+// Abre uma janela com a prévia da imagem do relatório e os botões Baixar / Enviar (igual ao resumo semanal).
 async function enviarImagemRealce(anelId){
   const anel = aneis.find(a=>a.id === anelId); if(!anel) return;
   showToast('Gerando a imagem do relatório…');
   let img;
   try{ img = await gerarImagemRealce(anelId); }catch(e){ showToast('Não consegui gerar a imagem.', { tipo:'erro' }); return; }
   if(!img || !img.blob){ showToast('Não consegui gerar a imagem.', { tipo:'erro' }); return; }
-  const arq = new File([img.blob], `relatorio-${String(anel.nome).replace(/[^\w-]+/g, '_')}.png`, { type:'image/png' });
-  if(navigator.canShare && navigator.canShare({ files:[arq] })){
-    try{ await navigator.share({ files:[arq], text: `Relatório do ${anel.nome}` }); }
-    catch(e){ if(e && e.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento.', { tipo:'aviso' }); }
-    return;
-  }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(arq); a.download = arq.name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=> URL.revokeObjectURL(a.href), 4000);
-  showToast('Imagem baixada. Anexe no WhatsApp.', { tipo:'ok' });
+  const nomeArq = `relatorio-${String(anel.nome).replace(/[^\w-]+/g, '_')}.png`;
+  const arq = new File([img.blob], nomeArq, { type:'image/png' });
+  const url = URL.createObjectURL(img.blob), root = el('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box modal-box-larga resumo-sem-box">
+        <p style="font-weight:700;margin:0 0 10px;">Relatório do realce · ${escHtml(anel.nome)}</p>
+        <div class="resumo-sem-previa"><img src="${url}" alt="relatório do realce ${escHtml(anel.nome)}" style="display:block;width:100%;height:auto;"></div>
+        <div class="modal-actions resumo-sem-acoes" style="margin-top:12px;">
+          <button type="button" class="steel" id="ri-baixar">Baixar imagem</button>
+          <button type="button" class="steel" id="ri-enviar">Enviar imagem</button>
+          <button type="button" class="ghost" id="ri-fechar">Fechar</button>
+        </div>
+      </div>
+    </div>`;
+  const fechar = ()=>{ root.innerHTML = ''; setTimeout(()=> URL.revokeObjectURL(url), 4000); };
+  el('modal-overlay').addEventListener('click', ev=>{ if(ev.target.id === 'modal-overlay') fechar(); });
+  el('ri-fechar').addEventListener('click', fechar);
+  el('ri-baixar').addEventListener('click', ()=>{
+    const a = document.createElement('a'); a.href = url; a.download = nomeArq; document.body.appendChild(a); a.click(); a.remove();
+    showToast('Imagem baixada: ' + nomeArq, { tipo:'ok' });
+  });
+  el('ri-enviar').addEventListener('click', async ()=>{
+    if(navigator.canShare && navigator.canShare({ files:[arq] })){
+      try{ await navigator.share({ files:[arq], text: `Relatório do ${anel.nome}` }); }
+      catch(e){ if(e && e.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento.', { tipo:'aviso' }); }
+      return;
+    }
+    const a = document.createElement('a'); a.href = url; a.download = nomeArq; document.body.appendChild(a); a.click(); a.remove();
+    abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+    showToast('Imagem baixada. Anexe no WhatsApp que abriu.', { tipo:'ok' });
+  });
 }
