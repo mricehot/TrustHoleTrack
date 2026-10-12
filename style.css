@@ -2201,3 +2201,14 @@ li.feito .lb-txt{ text-decoration:line-through; color:var(--muted); }
 .anel-form input[type=text]#anel-nivel{ flex:1 1 200px; width:auto; }
 @media (max-width:480px){ .anel-form select{ flex:0 0 auto; width:100%; } }
 .numero-muda{ color:var(--est-ok,#2e9b57); font-variant-numeric:tabular-nums; transition:color .3s; }
+
+/* Metragem direto na linha (Perfilagem) */
+.metr-inline{ width:76px; min-width:0; padding:8px 8px; font-size:16px; text-align:right; font-variant-numeric:tabular-nums; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; box-sizing:border-box; }
+.metr-inline:focus{ outline:2px solid var(--steel,#2a6fa8); background:var(--surface); }
+.metr-inline[data-nivel=atencao]{ border-color:#e0a21b; background:color-mix(in srgb,#e0a21b 14%, var(--surface-2)); }
+.metr-inline[data-nivel=fora]{ border-color:#d6453d; background:color-mix(in srgb,#d6453d 14%, var(--surface-2)); }
+body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; background:transparent; }
+@media (max-width:700px){
+  .leque-group td:has(.metr-inline)::before{ display:block; margin:0 0 2px; font-size:10px; }
+  .leque-group td .metr-inline{ width:100%; max-width:120px; min-height:44px; }
+}

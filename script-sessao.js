@@ -1116,7 +1116,7 @@ const FUNCOES_BLOQUEADAS_LEITURA = [
   'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'toggleChecklistLeque',
   'aplicarFaixa', 'abrirMarcarFaixa', 'aplicarLoteChecklist', 'alternarModoSelecaoChecklist', 'editarObservacaoFuro', 'editarObservacaoChecklistLeque', 'removerObservacaoChecklistLeque',
   'editarLocalizacaoChecklistLeque', 'tirarFotoFuro', 'adicionarFurosAoChecklist', 'adicionarAoChecklist', 'removerChecklistFuro', 'removerChecklistLeque',
-  'definirEquipeFuro', 'definirEquipeLeque', 'editarFuro', 'abrirPreencherMetragens', 'toggleRefazerFuro', 'ciclarSituacaoFuro', 'removerFuro', 'editarLeque', 'puxarDoChecklist'
+  'definirEquipeFuro', 'definirEquipeLeque', 'editarFuro', 'abrirPreencherMetragens', 'toggleRefazerFuro', 'ciclarSituacaoFuro', 'removerFuro', 'editarLeque', 'puxarDoChecklist', 'salvarMetragemInline'
 ];
 (function(){
   FUNCOES_BLOQUEADAS_LEITURA.forEach(nome=>{

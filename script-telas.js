@@ -77,8 +77,8 @@ function render(){
         return `
         <tr>
           <td class="c-furo"><span class="status-dot ${semDados(f) ? 'pendente' : f.situacao}" onclick="ciclarSituacaoFuro('${f.id}')" title="clique pra mudar a situação"></span>${furoCode(l,f)}${f.precisaRefazer ? '<span class="badge-refazer" title="precisa ser refeito">refazer</span>' : ''}</td>
-          <td class="c-esp" data-l="Esperada">${Number(f.metragemEsperada) > 0 ? fmt1(Number(f.metragemEsperada)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
-          <td class="c-real" data-l="Real">${Number(f.metragemReal) > 0 ? fmt1(Number(f.metragemReal)) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>'}</td>
+          <td class="c-esp" data-l="Esperada">${celulaMetragem(f, 'esp', podeEditar)}</td>
+          <td class="c-real" data-l="Real">${celulaMetragem(f, 'real', podeEditar)}</td>
           <td class="diff c-var ${(Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0) ? diffClass(diff) : ''}" data-l="Variação">${(Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0) ? diffLabel(diff) : '—'}</td>
           <td class="c-sit">${semDados(f) ? '<span class="sit-chip sit-pendente"><i aria-hidden="true">○</i>Pendente</span>' : `<span class="sit-chip sit-${f.situacao}"><i aria-hidden="true">${{livre:'✓',obstruido:'⛔',varado:'◎'}[f.situacao]||'•'}</i>${situacaoLabel(f.situacao)}</span>`}</td>
           <td class="actions">
@@ -1054,3 +1054,64 @@ function renderInfograficoResumo(){
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }
 
+
+
+// ---------- Metragem direto na linha do furo (Perfilagem) ----------
+// Esperada e Real viram campos na própria linha: digita, Enter e já cai no próximo campo. Salva ao sair do campo.
+function celulaMetragem(f, campo, podeEditar){
+  const valor = Number(campo === 'esp' ? f.metragemEsperada : f.metragemReal);
+  if(!podeEditar || f.situacao === 'obstruido')
+    return valor > 0 ? fmt1(valor) + ' m' : '<span class="metr-pend" title="falta preencher">—</span>';
+  const rot = `F${f.numero} ${campo === 'esp' ? 'esperada' : 'real'} (m)`;
+  return `<input type="text" class="metr-inline" inputmode="decimal" enterkeyhint="next" maxlength="6" placeholder="—" data-id="${f.id}" data-campo="${campo}" value="${valor > 0 ? String(valor).replace('.', ',') : ''}" aria-label="${escHtml(rot)}" onfocus="this.select()" onkeydown="metragemInlineTecla(event, this)" onchange="salvarMetragemInline(this)" onblur="metragemInlineSaiu()">`;
+}
+function avaliarMetragemInline(inp){
+  const linha = inp.closest('tr'); if(!linha) return;
+  const lerN = x=>{ const n = parseFloat(String(x.value).trim().replace(',', '.')); return isNaN(n) ? 0 : n; };
+  const esp = linha.querySelector('.metr-inline[data-campo="esp"]'), real = linha.querySelector('.metr-inline[data-campo="real"]');
+  if(!esp || !real) return;
+  const e = lerN(esp), r = lerN(real);
+  if(!(e > 0) || !(r > 0)){ delete real.dataset.nivel; real.title = ''; return; }
+  const pct = Math.abs(r - e) / e * 100;
+  real.dataset.nivel = pct <= 5 ? 'ok' : pct <= 15 ? 'atencao' : 'fora';
+  real.title = pct <= 5 ? '' : `${r > e ? 'Passou' : 'Faltou'} ${fmt1(Math.abs(r - e))} m (${Math.round(pct)}%) em relação à esperada. Confira se digitou certo.`;
+}
+function salvarMetragemInline(inp){
+  const f = furos.find(x=>x.id === inp.dataset.id); if(!f) return;
+  const l = leques.find(x=>x.id === f.lequeId);
+  if(typeof souDonoDoLeque === 'function' && !souDonoDoLeque(l)){ showToast('Só quem criou este leque pode editar os furos dele.'); return; }
+  const campo = inp.dataset.campo === 'esp' ? 'metragemEsperada' : 'metragemReal';
+  const t = inp.value.trim().replace(',', '.');
+  const n = t === '' ? 0 : parseFloat(t);
+  if(isNaN(n) || n < 0 || n > 999){ showToast('Use só números (ex.: 12,5).', { tipo:'aviso' }); inp.value = Number(f[campo]) > 0 ? String(f[campo]).replace('.', ',') : ''; return; }
+  avaliarMetragemInline(inp);
+  if(Number(f[campo]) === n) return;
+  f[campo] = n;
+  enfileirar('furos', 'update', { id: f.id, [campo === 'metragemEsperada' ? 'metragem_esperada' : 'metragem_real']: n });
+  salvarLocal();
+  // Atualiza só a variação desta linha (sem redesenhar a tela, pra não tirar o cursor do campo).
+  const linha = inp.closest('tr'), cel = linha && linha.querySelector('.c-var');
+  if(cel){
+    const ok = Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0;
+    const diff = Number(f.metragemReal || 0) - Number(f.metragemEsperada || 0);
+    cel.className = 'diff c-var ' + (ok ? diffClass(diff) : '');
+    cel.textContent = ok ? diffLabel(diff) : '—';
+  }
+}
+let timerRedesenhoMetragem = null;
+function metragemInlineSaiu(){
+  // Quando o cursor sai de todos os campos de metragem, redesenha (totais, barra e estado do leque).
+  clearTimeout(timerRedesenhoMetragem);
+  timerRedesenhoMetragem = setTimeout(()=>{
+    if(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('metr-inline')) return;
+    renderAll();
+  }, 250);
+}
+function metragemInlineTecla(ev, inp){
+  if(ev.key !== 'Enter') return;
+  ev.preventDefault();
+  salvarMetragemInline(inp);
+  const todos = [...document.querySelectorAll('.metr-inline')], i = todos.indexOf(inp);
+  const prox = todos[i + 1];
+  if(prox) prox.focus(); else inp.blur();
+}
