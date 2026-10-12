@@ -126,6 +126,10 @@ function atualizarLabelUltimaSync(){
   else if(segundos < 60) texto = `sincronizado há ${segundos}s`;
   else if(segundos < 3600) texto = `sincronizado há ${Math.floor(segundos/60)}min`;
   else texto = `sincronizado há ${Math.floor(segundos/3600)}h`;
+  try{
+    const u = JSON.parse(localStorage.getItem('perfilagem-ultimo-envio-v1') || 'null');
+    if(u && Date.now() - u.ts < 3 * 3600 * 1000) texto += ` · ${u.n} enviada(s) às ${new Date(u.ts).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })} ✓`;
+  }catch(e){}
   label.textContent = texto;
 }
 setInterval(atualizarLabelUltimaSync, 30000);
@@ -629,6 +633,7 @@ async function reenviarFalhas(){
   const btn = document.getElementById('btn-reenviar-falhas');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
   const itens = Array.from(falhasDeEnvio.values()).sort((a,b)=> ORDEM_ACAO[a.acao] - ORDEM_ACAO[b.acao]);
+  const totalReenvio = itens.length;
   for(const f of itens){
     falhasDeEnvio.delete(f.chave);
     await executarEnvio(f.tabela, f.acao, f.registro, true);
@@ -640,7 +645,13 @@ async function reenviarFalhas(){
   reenviandoFalhas = false;
   if(btn){ btn.disabled = false; btn.textContent = 'Tentar de novo'; }
   atualizarIndicadorSalvamento();
-  if(falhasDeEnvio.size === 0) showToast('Tudo salvo.');
+  if(falhasDeEnvio.size === 0){
+    // Confirmação clara depois de subir do fundo da mina: quantas alterações foram e a que horas.
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    const n = totalReenvio;
+    showToast(n > 0 ? `✓ ${n} alteração(ões) enviada(s) às ${hora}. O próximo turno já vê.` : 'Tudo salvo.', { tipo:'ok' });
+    if(n > 0){ try{ localStorage.setItem('perfilagem-ultimo-envio-v1', JSON.stringify({ n, ts: Date.now() })); }catch(e){} if(typeof vibrarCurto === 'function') vibrarCurto([15, 60, 15]); }
+  }
 }
 
 let ultimoToastFalha = 0;
