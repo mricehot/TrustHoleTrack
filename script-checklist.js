@@ -932,6 +932,7 @@ async function gerarImagemInfografico(){
       card.style.width = '860px'; card.style.maxWidth = 'none'; card.style.margin = '0'; card.style.border = 'none'; card.style.boxShadow = 'none';
       // Tira tudo que é controle (botões, lançamento, ajuda, navegação) — fica só o relatório.
       card.querySelectorAll('button, .ajuda, .inp-somar, .equipe-soma, .ck-form-topo, .view-card-header .spacer, #infografico-vazio').forEach(n=> n.remove());
+      card.querySelectorAll('.info-grafico, .infografico-kpi, .progress-fill, .equipe-barra').forEach(n=>{ n.classList.remove('info-grafico', 'fx-ativo', 'cheio'); n.style.animation = 'none'; }); // efeitos de tela não vão na imagem
       card.querySelectorAll('.equipe-semana-nav').forEach(n=>{ n.style.justifyContent = 'center'; });
       // Gráficos SVG: o html2canvas não resolve var(--cor) dentro do SVG nem respeita
       // preserveAspectRatio="none" (cortava a direita e deixava o gráfico vazio). Aqui

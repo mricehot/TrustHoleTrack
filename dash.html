@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=20261012000308">
+<link rel="stylesheet" href="style.css?v=20261012000429">
 
 </head>
 <body>
@@ -781,18 +781,21 @@
             <div class="equipe-total" id="infografico-equipes-mes-total"></div>
 
             <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Metros perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — soma dos metros lançados pelas equipes. Cada lançamento entra no dia em que foi feito.</div></details></div>
+            <div class="info-grafico">
             
             <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x"></div>
+            <div class="chart-eixo-x" id="infografico-eixo-x"></div></div>
 
             <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Furos perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — quantos furos foram marcados como perfilados no checklist em cada dia. Sobe a cada marcação, sem precisar lançar metros.</div></details></div>
+            <div class="info-grafico">
             <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-perf-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x-perf"></div>
+            <div class="chart-eixo-x" id="infografico-eixo-x-perf"></div></div>
 
             <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Furos topografados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — quantos furos foram topografados a cada dia (contagem, não metros). Se a equipe lançou os pontos do dia e o checklist também foi marcado, vale o maior dos dois, sem contar o mesmo furo duas vezes.</div></details></div>
+            <div class="info-grafico">
             
             <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-topo-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x-topo"></div>
+            <div class="chart-eixo-x" id="infografico-eixo-x-topo"></div></div>
 
             <div class="infografico-percentuais">
               <div>
@@ -829,17 +832,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=20261012000308"></script>
-<script src="script-leques.js?v=20261012000308"></script>
-<script src="script-checklist.js?v=20261012000308"></script>
-<script src="script-fotos.js?v=20261012000308"></script>
-<script src="script-relatorio-imagem.js?v=20261012000308"></script>
-<script src="script-turno-pdf.js?v=20261012000308"></script>
-<script src="script-telas.js?v=20261012000308"></script>
-<script src="script-sessao.js?v=20261012000308"></script>
-<script src="script-lembretes.js?v=20261012000308"></script>
-<script src="script-plano.js?v=20261012000308"></script>
-<script src="script-conforto.js?v=20261012000308"></script>
+<script src="script.js?v=20261012000429"></script>
+<script src="script-leques.js?v=20261012000429"></script>
+<script src="script-checklist.js?v=20261012000429"></script>
+<script src="script-fotos.js?v=20261012000429"></script>
+<script src="script-relatorio-imagem.js?v=20261012000429"></script>
+<script src="script-turno-pdf.js?v=20261012000429"></script>
+<script src="script-telas.js?v=20261012000429"></script>
+<script src="script-sessao.js?v=20261012000429"></script>
+<script src="script-lembretes.js?v=20261012000429"></script>
+<script src="script-plano.js?v=20261012000429"></script>
+<script src="script-conforto.js?v=20261012000429"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
