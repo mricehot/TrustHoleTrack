@@ -1,4 +1,34 @@
 // ---------- Anéis (menu separado) ----------
+// Favoritos de realce: ficam salvos neste aparelho, por usuário.
+const chaveFavoritosRealces = ()=> 'perfilagem-realce-fav-v1:' + ((typeof usuarioAtual !== 'undefined' && usuarioAtual && usuarioAtual.id) || 'anon');
+let realcesFavoritos = new Set(), realcesFavoritosDe = null;
+let realceFiltro = { status:'todos', busca:'' };
+function carregarFavoritosRealces(){
+  const k = chaveFavoritosRealces(); if(realcesFavoritosDe === k) return;
+  realcesFavoritosDe = k;
+  try{ realcesFavoritos = new Set(JSON.parse(localStorage.getItem(k) || '[]')); }catch(e){ realcesFavoritos = new Set(); }
+}
+function ehFavoritoRealce(id){ carregarFavoritosRealces(); return realcesFavoritos.has(id); }
+function alternarFavoritoRealce(id){
+  carregarFavoritosRealces();
+  const a = aneis.find(x=>x.id===id); const nome = a ? a.nome : 'Realce';
+  if(realcesFavoritos.has(id)){ realcesFavoritos.delete(id); showToast(`${nome} saiu dos fixados.`, { erro:false }); }
+  else{ realcesFavoritos.add(id); showToast(`${nome} fixado no topo.`, { erro:false }); }
+  try{ localStorage.setItem(chaveFavoritosRealces(), JSON.stringify([...realcesFavoritos])); }catch(e){}
+  if(typeof vibrarCurto === 'function') vibrarCurto(10);
+  renderAneisMenu();
+}
+function definirFiltroRealce(status){ realceFiltro.status = status; renderAneisMenu(); }
+function definirBuscaRealce(txt){ realceFiltro.busca = txt; renderAneisMenu(); const i = el('anel-busca'); if(i){ i.focus(); try{ i.setSelectionRange(txt.length, txt.length); }catch(e){} } }
+function estadoRealce(a){
+  const itensA = checklistDoAnel(a.id);
+  const idsA = new Set(itensA.map(c=>c.id));
+  const furosA = checklistFuros.filter(f=>idsA.has(f.checklistLequeId));
+  const pctA = furosA.length ? Math.round(furosA.filter(f=>f.perfilado && f.topografado || f.obstruido).length / furosA.length * 100) : 0;
+  const est = !itensA.length ? 'ini' : pctA >= 100 ? 'ok' : (furosA.some(f=>f.perfilado||f.topografado||f.obstruido) ? 'and' : 'ini');
+  return { itensA, furosA, pctA, est, obstruido: furosA.some(f=>f.obstruido) };
+}
+
 function renderAneisMenu(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   el('anel-menu-current').textContent = anelAtivo ? `ativo: ${anelAtivo.nome}` : 'nenhum realce ativo';
@@ -29,16 +59,44 @@ function renderAneisMenu(){
     lista.innerHTML = `<div class="hint">Nenhum realce do projeto "${escHtml(filtroProjeto)}" ainda. Troque o filtro em Config, ou crie um realce associado a esse projeto.</div>`;
     return;
   }
-  lista.innerHTML = aneisFiltrados.map(a=>{
+  // filtros: busca por nome, chips de situação e favoritos fixados no topo
+  carregarFavoritosRealces();
+  const infos = new Map(aneisFiltrados.map(a=>[a.id, estadoRealce(a)]));
+  const cont = { todos: aneisFiltrados.length,
+    favoritos: aneisFiltrados.filter(a=>realcesFavoritos.has(a.id)).length,
+    and: aneisFiltrados.filter(a=>infos.get(a.id).est === 'and').length,
+    obs: aneisFiltrados.filter(a=>infos.get(a.id).obstruido).length,
+    ok: aneisFiltrados.filter(a=>infos.get(a.id).est === 'ok').length };
+  const chips = [['todos','Todos'], ['favoritos','⭐ Favoritos'], ['and','Em andamento'], ['obs','Obstruídos'], ['ok','Concluídos']];
+  let barra = el('anel-filtros');
+  if(!barra){ barra = document.createElement('div'); barra.id = 'anel-filtros'; barra.className = 'anel-filtros'; lista.parentNode.insertBefore(barra, lista); }
+  if(!barra.querySelector('input')){
+    barra.innerHTML = '<input id="anel-busca" type="search" enterkeyhint="search" autocomplete="off" aria-label="Buscar realce por nome" placeholder="🔍 Buscar realce (ex.: N14, GAN-14)"><div class="anel-chips" id="anel-chips" role="group" aria-label="Filtrar realces"></div>';
+    barra.querySelector('input').addEventListener('input', ev=> definirBuscaRealce(ev.target.value));
+  }
+  barra.style.display = aneisFiltrados.length > 3 ? '' : 'none';
+  const campo = barra.querySelector('input'); if(campo.value !== realceFiltro.busca) campo.value = realceFiltro.busca;
+  el('anel-chips').innerHTML = chips.map(([v, rot])=>`<button type="button" class="anel-chip" aria-pressed="${realceFiltro.status===v}" onclick="definirFiltroRealce('${v}')">${rot} (${cont[v]})</button>`).join('');
+  const termo = realceFiltro.busca.trim().toLowerCase();
+  let visiveis = aneisFiltrados.filter(a=>{
+    const i = infos.get(a.id), s = realceFiltro.status;
+    if(s === 'favoritos' && !realcesFavoritos.has(a.id)) return false;
+    if(s === 'and' && i.est !== 'and') return false;
+    if(s === 'obs' && !i.obstruido) return false;
+    if(s === 'ok' && i.est !== 'ok') return false;
+    if(termo && !String(a.nome||'').toLowerCase().includes(termo)) return false;
+    return true;
+  });
+  if(!visiveis.length){ lista.innerHTML = '<div class="hint">Nenhum realce com esse filtro. Toque em "Todos" para ver a lista completa.</div>'; return; }
+  const fixados = visiveis.filter(a=>realcesFavoritos.has(a.id));
+  if(fixados.length) visiveis = visiveis.filter(a=>!realcesFavoritos.has(a.id));
+  const htmlLinha = a=>{
     const ativo = a.id === anelAtivoId;
-    const itensA = checklistDoAnel(a.id);
-    const idsA = new Set(itensA.map(c=>c.id));
-    const furosA = checklistFuros.filter(f=>idsA.has(f.checklistLequeId));
-    const pctA = furosA.length ? Math.round(furosA.filter(f=>f.perfilado && f.topografado || f.obstruido).length / furosA.length * 100) : 0;
-    const estA = !itensA.length ? 'ini' : pctA >= 100 ? 'ok' : (furosA.some(f=>f.perfilado||f.topografado||f.obstruido) ? 'and' : 'ini');
+    const { itensA, furosA, pctA, est: estA } = infos.get(a.id);
     const icoA = { ok:'✓', and:'◐', ini:'○' }[estA];
     return `
       <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}" data-est="${estA}">
+        <button type="button" class="fav-estrela ${ehFavoritoRealce(a.id) ? 'on' : ''}" aria-pressed="${ehFavoritoRealce(a.id)}" aria-label="${ehFavoritoRealce(a.id) ? 'tirar ' + escHtml(a.nome) + ' dos fixados' : 'fixar ' + escHtml(a.nome) + ' no topo'}" title="${ehFavoritoRealce(a.id) ? 'fixado no topo' : 'fixar no topo'}" onclick="alternarFavoritoRealce('${a.id}')">${ehFavoritoRealce(a.id) ? '★' : '☆'}</button>
         <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${escHtml(a.nivel)}</span>` : ''}
         <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>
@@ -60,7 +118,8 @@ function renderAneisMenu(){
         ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
       </div>
     `;
-  }).join('');
+  };
+  lista.innerHTML = (fixados.length ? `<div class="anel-fixados"><div class="anel-fixados-cab"><span aria-hidden="true">⭐</span><span>Fixados</span><span class="resumo">${fixados.length} realce${fixados.length===1?'':'s'}</span></div>${fixados.map(htmlLinha).join('')}</div>` : '') + visiveis.map(htmlLinha).join('');
 }
 
 function usarAnel(id){
@@ -1092,22 +1151,19 @@ function renderChecklist(){
     return;
   }
 
-  const fixados = visiveis.filter(ehFavoritoLeque);
-  const resto = fixados.length ? visiveis.filter(c=>!ehFavoritoLeque(c)) : visiveis;
-  const htmlFixados = fixados.length ? `<div class="ck-grupo ck-fixados"><div class="ck-grupo-cab ck-fixados-cab"><span aria-hidden="true">⭐</span><span>Fixados</span><span class="resumo">${fixados.filter(c=>c.perfilado).length}/${fixados.length} perfilados</span></div><div class="ck-lista">${fixados.map(c=>htmlCardChecklist(c, false)).join('')}</div></div>` : '';
-  const temLocal = resto.some(c=>(c.localizacao||'').trim());
+  const temLocal = visiveis.some(c=>(c.localizacao||'').trim());
   if(!temLocal){
-    grid.innerHTML = htmlFixados + (resto.length ? `<div class="ck-lista">${resto.map(c=>htmlCardChecklist(c, false)).join('')}</div>` : '');
+    grid.innerHTML = `<div class="ck-lista">${visiveis.map(c=>htmlCardChecklist(c, false)).join('')}</div>`;
   }else{
     const grupos = new Map();
-    resto.forEach(c=>{
+    visiveis.forEach(c=>{
       const k = (c.localizacao||'').trim();
       if(!grupos.has(k)) grupos.set(k, []);
       grupos.get(k).push(c);
     });
     const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
     window.__ckGrupos = chaves;
-    grid.innerHTML = htmlFixados + chaves.map((k, idx)=>{
+    grid.innerHTML = chaves.map((k, idx)=>{
       const lista = grupos.get(k);
       const chave = anelAtivoId + '|' + k;
       const fechado = checklistGruposFechados.has(chave);

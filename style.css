@@ -2331,13 +2331,19 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 .beq-meta span{ position:absolute; left:2px; top:-17px; font:11px var(--mono); color:var(--muted); }
 @media (max-width:640px){ .beq-seg b{ font-size:9px; letter-spacing:-.3px; } .beq-topo{ font-size:9.5px; letter-spacing:-.4px; } }
 
-/* Favoritos do checklist (fixar leque no topo) */
-.ck-fav{ min-width:44px; min-height:44px; margin-left:auto; border:0; background:transparent; font-size:26px; line-height:1; color:#a9a8b8; cursor:pointer; border-radius:10px; flex:none; }
-.ck-fav.on{ color:#e0a21b; }
-.ck-fav:active{ transform:scale(.9); }
-.ck-fixados-cab{ display:flex; align-items:center; gap:8px; min-height:36px; padding:4px 8px; font-weight:700; color:var(--text); }
-.ck-fixados-cab .resumo{ margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:600; color:var(--muted); }
-.ck-fixados{ border-left:4px solid #e0a21b; border-radius:8px; background:rgba(224,162,27,.06); padding:2px 0 4px; margin-bottom:10px; }
+/* Favoritos de realce (fixar no topo da lista de realces) */
+.fav-estrela{ min-width:44px; min-height:44px; border:0; background:transparent; font-size:26px; line-height:1; color:#a9a8b8; cursor:pointer; border-radius:10px; flex:none; text-transform:none; padding:0; }
+.fav-estrela.on{ color:#e0a21b; }
+.fav-estrela:active{ transform:scale(.9); }
+.anel-fixados-cab{ display:flex; align-items:center; gap:8px; min-height:36px; padding:4px 8px; font-weight:700; color:var(--text); }
+.anel-fixados-cab .resumo{ margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:600; color:var(--muted); }
+.anel-fixados{ border-left:4px solid #e0a21b; border-radius:8px; background:rgba(224,162,27,.06); padding:2px 6px 6px; margin-bottom:12px; }
+.anel-filtros{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.anel-filtros input[type=search]{ min-height:48px; width:100%; }
+.anel-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.anel-chip{ min-height:44px; padding:8px 14px; border-radius:99px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-weight:600; font-size:14px; text-transform:none; letter-spacing:0; }
+.anel-chip[aria-pressed=true]{ background:var(--navy); color:#fff; border-color:var(--navy); }
+body.dark-mode .anel-chip[aria-pressed=true]{ background:#e9e8f3; color:#191231; border-color:#e9e8f3; }
 
 /* Início de turno */
 .inicio-prog{ margin:4px 0 10px; font-size:14px; color:var(--muted); }
@@ -2365,7 +2371,6 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 body.dark-mode .inicio-recado{ background:rgba(224,162,27,.14); color:var(--text); }
 body.dark-mode .inicio-recado small{ color:var(--muted); }
 .inicio-caixa, .inicio-caixa .txt{ text-transform:none; letter-spacing:0; }
-.ck-fav{ text-transform:none; }
 .ck-cab .ck-progresso{ overflow:hidden; }
 .ck-cab .ck-prog-bar{ min-width:10px; }
 .ck-cab .ck-obstr{ flex:none; }
