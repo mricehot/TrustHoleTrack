@@ -277,7 +277,7 @@ function cartaoResumoSemanalHTML(r){
       ${x.problemas.length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed ${cor.lin};"><div style="font-weight:700;font-size:12.5px;color:#d6453d;">⚠ Obstruções e problemas</div>` + x.problemas.map(p => `
         <div style="margin-top:6px;padding:6px 10px;border-left:4px solid ${p.alto ? '#d6453d' : '#e0a25a'};background:${p.alto ? '#fdeeed' : '#fff7ec'};border-radius:4px;font-size:12.5px;">
           <b>${p.rotulo}</b>${p.alto ? ` <span style="color:#d6453d;font-weight:700;">· ${p.obstruidos.length} de ${p.total} furos obstruídos — verificar a região</span>` : ''}
-          ${p.obstruidos.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> obstruído${f.motivo ? ' (' + e2(f.motivo) + ')' : ''}${f.eq ? ' · ' + e2(f.eq) : ''}${f.por ? ' · ' + e2(f.por) : ''}${f.foto ? ' · 📷 foto' : ''}${f.nota ? '<br><i style="color:' + cor.txt + '">“' + e2(f.nota) + '”</i>' : ''}</div>`).join('')}
+          ${p.obstruidos.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> obstruído${f.motivo ? ' (' + e2(f.motivo) + ')' : ''}${f.eq ? ' · ' + e2(f.eq) : ''}${f.foto ? ' · 📷 foto' : ''}${f.nota ? '<br><i style="color:' + cor.txt + '">“' + e2(f.nota) + '”</i>' : ''}</div>`).join('')}
           ${p.notas.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> nota: <i style="color:${cor.txt}">“${e2(f.texto)}”</i>${f.foto ? ' · 📷 foto' : ''}</div>`).join('')}
           ${p.obsLeque ? `<div style="color:${cor.mut};margin-top:2px;">Obs do leque: <i style="color:${cor.txt}">“${e2(p.obsLeque)}”</i></div>` : ''}</div>`).join('') + '</div>' : ''}</div>`;
   }).join('') : '';
