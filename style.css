@@ -2212,3 +2212,7 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
   .leque-group td:has(.metr-inline)::before{ display:block; margin:0 0 2px; font-size:10px; }
   .leque-group td .metr-inline{ width:100%; max-width:120px; min-height:44px; }
 }
+.lb-alvo{ display:flex; gap:6px; }
+.lb-alvo select{ flex:1; min-width:0; font-size:14px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; min-height:40px; }
+.lb-alvo select[hidden]{ display:none; }
+.lembretes-painel .lb-ir{ flex:none; align-self:flex-start; min-height:32px; padding:2px 8px; font-size:12px; font-weight:700; border-radius:999px; border:1px solid var(--steel,#2a6fa8); background:transparent; color:var(--steel,#2a6fa8); cursor:pointer; white-space:nowrap; }
