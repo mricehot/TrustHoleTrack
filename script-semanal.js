@@ -8,6 +8,40 @@ const numRS = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',').replac
 const ddmmRS = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
 const varRS = (atual, ant) => !ant ? (atual ? null : 0) : Math.round((atual - ant) / ant * 100);
 
+
+// Realces e leques: andamento geral e o que mudou na semana. Mesma base do checklist.
+function calcularRealcesSemana(iniISO, fimISO){
+  const naSemana = iso => { if(!iso) return false; const c = chaveDia(iso); return c >= iniISO && c <= fimISO; };
+  const out = [];
+  aneisNoEscopoAtual().forEach(a => {
+    const leques = checklistLeques.filter(c => c.anelId === a.id).sort((x, y) => (parseInt(x.numero, 10) || 0) - (parseInt(y.numero, 10) || 0));
+    if(!leques.length) return;
+    const R = { nome: a.nome, leques: { total: leques.length, ok: 0, and: 0, obs: 0, ini: 0 }, furos: 0, perf: 0, topo: 0, obstr: 0, perfSem: 0, topoSem: 0,
+      finalizados: [], andamento: [], naoIniciados: [], obstruidos: [] };
+    leques.forEach(c => {
+      const fs = checklistFurosDoLeque(c.id), est = estadoDoLeque(fs), cod = { tipo: c.tipo, numero: c.numero }, rotulo = (PREFIXO[c.tipo] || '') + c.numero;
+      R.leques[est]++; R.furos += fs.length;
+      fs.forEach(f => {
+        if(f.perfilado) R.perf++; if(f.topografado) R.topo++; if(f.obstruido) R.obstr++;
+        if(f.perfilado && naSemana(f.perfiladoEm)) R.perfSem++;
+        if(f.topografado && naSemana(f.topografadoEm)) R.topoSem++;
+      });
+      const pendPerf = fs.filter(f => !f.obstruido && !f.perfilado).length, pendTopo = fs.filter(f => !f.obstruido && !f.topografado).length;
+      const obstrN = fs.filter(f => f.obstruido).length;
+      if(obstrN) R.obstruidos.push(`${rotulo} (${obstrN})`);
+      if(est === 'ok'){
+        // finalizado nesta semana = a última marcação que o fechou caiu dentro dela
+        const ult = fs.reduce((m, f) => { const t = Math.max(f.perfiladoEm ? +new Date(f.perfiladoEm) : 0, f.topografadoEm ? +new Date(f.topografadoEm) : 0); return t > m ? t : m; }, 0);
+        if(ult && naSemana(new Date(ult).toISOString())) R.finalizados.push(cod);
+      }else if(est === 'ini'){ R.naoIniciados.push(cod); }
+      else R.andamento.push({ cod, rotulo, pendPerf, pendTopo, obstr: obstrN, alto: est === 'obs' });
+    });
+    // só entra o realce que teve movimento na semana ou que ainda tem pendência
+    if(R.perfSem || R.topoSem || R.finalizados.length || R.andamento.length || R.naoIniciados.length) out.push(R);
+  });
+  return out;
+}
+
 function calcularResumoSemanal(offset){
   const ini = inicioDaSemana(new Date()); ini.setDate(ini.getDate() + offset * 7);
   const fim = new Date(ini); fim.setDate(fim.getDate() + 6);
@@ -52,7 +86,7 @@ function calcularResumoSemanal(offset){
   });
   return { ini, fim, iniISO, fimISO, equipes: equipesR, dias, tot, diasTrab: diasTrabTotal, melhorDia,
     mediaDia: diasTrabTotal ? arred2(tot.m / diasTrabTotal) : 0, varM: varRS(tot.m, tot.am), varP: varRS(Math.round(tot.p), Math.round(tot.ap)),
-    pctMeta: tot.meta ? Math.round(tot.m / tot.meta * 100) : null, furosPerf, furosTopo, projeto: configApp.projetoAtivo || '' };
+    pctMeta: tot.meta ? Math.round(tot.m / tot.meta * 100) : null, realces: calcularRealcesSemana(iniISO, fimISO), furosPerf, furosTopo, projeto: configApp.projetoAtivo || '' };
 }
 
 const setaRS = v => v === null ? '(sem base na semana passada)' : v === 0 ? '(= semana passada)' : (v > 0 ? '▲ +' : '▼ ') + v + '% vs semana passada';
@@ -82,6 +116,19 @@ function montarResumoSemanalWhatsApp(offset){
     t += `\n   ${setaRS(e.varM).replace(' vs semana passada', ' metros vs semana passada')}`;
     return t;
   }).join('\n\n');
+  if(r.realces.length){
+    o += '\n\n*REALCES E LEQUES*\n' + r.realces.map(x => {
+      const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;
+      let t = `*${semAcentoRS(x.nome)}*\n   Leques: ${x.leques.ok} completos de ${x.leques.total}` + (x.leques.and + x.leques.obs ? ` | ${x.leques.and + x.leques.obs} em andamento` : '') + (x.leques.ini ? ` | ${x.leques.ini} nao iniciados` : '');
+      t += `\n   Furos: perfilados ${x.perf}/${x.furos} (${pct(x.perf)}%) | topografados ${x.topo}/${x.furos} (${pct(x.topo)}%)`;
+      t += `\n   Na semana: +${x.perfSem} perfilados | +${x.topoSem} topografados`;
+      if(x.finalizados.length) t += `\n   Finalizados na semana: ${compactarCodigosEmIntervalos(x.finalizados).join(', ')}`;
+      if(x.andamento.length) t += `\n   Em andamento: ` + x.andamento.map(a => `${a.rotulo} (falta ${a.pendPerf} perf. / ${a.pendTopo} topo${a.obstr ? ', ' + a.obstr + ' obstr.' : ''})`).join('; ');
+      if(x.naoIniciados.length) t += `\n   Nao iniciados: ${compactarCodigosEmIntervalos(x.naoIniciados).join(', ')}`;
+      if(x.obstruidos.length) t += `\n   Com furo obstruido: ${x.obstruidos.join(', ')}`;
+      return t;
+    }).join('\n\n');
+  }
   if(quem) o += `\n\n_Resumo gerado por ${semAcentoRS(quem)}_`;
   return o;
 }
@@ -123,6 +170,22 @@ function cartaoResumoSemanalHTML(r){
         <span>melhor dia <b style="color:${cor.txt}">${melhor}</b></span>
         <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
   }).join('');
+  const realcesHTML = r.realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou na semana</span></div>` + r.realces.map(x => {
+    const p = n => x.furos ? Math.round(n / x.furos * 100) : 0;
+    const barra = (n, c) => `<div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${p(n)}%;height:100%;background:${c};"></div></div>`;
+    const chip = (txt, c) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:${c}1f;color:${c};border:1px solid ${c}55;font-size:12px;font-weight:600;">${txt}</span>`;
+    const linha = (rot, conteudo) => conteudo ? `<div style="margin-top:6px;font-size:12.5px;color:${cor.mut};"><b style="color:${cor.txt}">${rot}</b> ${conteudo}</div>` : '';
+    return `<div style="border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;"><b style="font-size:15px;">${e2(x.nome)}</b>
+        <span style="font-size:12.5px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:84px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:84px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
+      ${linha('Na semana:', `+${x.perfSem} perfilados · +${x.topoSem} topografados`)}
+      ${x.finalizados.length ? linha('Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
+      ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
+      ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
+      ${x.obstruidos.length ? linha('Com furo obstruído:', x.obstruidos.map(c => chip(c, '#d6453d')).join('')) : ''}</div>`;
+  }).join('') : '';
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
       <div><div style="font-size:12px;letter-spacing:2px;font-weight:700;color:${cor.amb};">RESUMO SEMANAL</div>
@@ -138,6 +201,7 @@ function cartaoResumoSemanalHTML(r){
     <div style="display:flex;gap:8px;">${barras}</div>
     <div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ordenadas por metros</span></div>
     ${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}
+    ${realcesHTML}
     <div style="margin-top:14px;font-size:11px;color:${cor.mut};display:flex;justify-content:space-between;"><span>BlastHole Manager${quem ? ' · ' + e2(quem) : ''}</span><span>gerado em ${ddmmRS(agora)} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}</span></div></div>`;
 }
 
