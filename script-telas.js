@@ -445,6 +445,7 @@ function calcularEstatisticasInfografico(){
   let metrosHoje = 0, metrosSemana = 0, metrosMes = 0, metrosSemanaAnt = 0;
   let furosTopoHoje = 0, furosTopoSemana = 0, furosTopoMes = 0, furosTopoSemanaAnt = 0;
   const porDia = {}; // chaveDia -> soma de metros perfilados
+  const porDiaEq = {}; // chaveDia -> { equipeId: metros } (para o gráfico empilhado por equipe)
   const porDiaPerf = {}; // chaveDia -> furos perfilados no checklist
   const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
 
@@ -460,7 +461,7 @@ function calcularEstatisticasInfografico(){
   };
   // 1) Metros lançados pelas equipes (cada lançamento tem data) — é o que entra no gráfico diário.
   const idsEquipesEscopo = new Set((configApp.projetoAtivo ? equipes.filter(e=>e.projeto === configApp.projetoAtivo) : equipes).map(e=>e.id));
-  lancamentosEfetivos().forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros) somaMetros(l.data, l.metros); });
+  lancamentosEfetivos().forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.metros){ somaMetros(l.data, l.metros); const pe = (porDiaEq[l.data] = porDiaEq[l.data] || {}); pe[l.equipeId] = (pe[l.equipeId] || 0) + l.metros; } });
   // Topografia lançada pelas equipes (pontos por dia) entra junto com os furos marcados no checklist
   // — antes só o checklist contava, e o gráfico ficava parado quando a equipe lançava só o total do dia.
   // Topografia: a equipe lança "pontos do dia" e o checklist tem os furos marcados — são o MESMO trabalho
@@ -487,7 +488,7 @@ function calcularEstatisticasInfografico(){
     const d = new Date(agora);
     d.setDate(d.getDate() - i);
     const chave = chaveDia(d);
-    const dadosDia = { metros: porDia[chave] || 0, furosTopo: porDiaTopo[chave] || 0, furosPerf: porDiaPerf[chave] || 0 };
+    const dadosDia = { metros: porDia[chave] || 0, furosTopo: porDiaTopo[chave] || 0, furosPerf: porDiaPerf[chave] || 0, porEq: porDiaEq[chave] || {} };
     serieDiaria.push(Object.assign({
       dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
       // Domingo é sempre folga (faixa listrada). Se mesmo assim houver produção, o ponto aparece por cima da faixa.
@@ -1100,11 +1101,46 @@ function renderInfograficoResumo(){
   // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
   const metaSemanalTotal = equipesDoProjeto().reduce((t,e)=> t + (e.metaSemanal > 0 ? e.metaSemanal : 0), 0);
   desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
+  desenharBarrasEquipesInfografico(stats.serieDiaria, metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
   desenharGraficoAreaInfografico('infografico-chart-perf-dia', 'infografico-eixo-x-perf', stats.serieDiaria, 'furosPerf', 'var(--est-ok)');
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }
 
 
+
+// Metros por dia, empilhado por equipe: o topo da barra é o total do dia; cada trecho colorido é uma equipe.
+// Com espaço, o nome da equipe aparece dentro do trecho; em telas estreitas, toque no trecho para ver quem é.
+function desenharBarrasEquipesInfografico(serie, meta){
+  const box = el('infografico-barras-eq'), svg = el('infografico-chart-dia');
+  if(!box || !svg) return;
+  const lista = equipesDoProjeto();
+  const usa = lista.length > 0;
+  svg.classList.toggle('oculto-barras', usa);
+  box.style.display = usa ? 'block' : 'none';
+  if(!usa) return;
+  const largura = box.getBoundingClientRect().width || 600, colW = largura / serie.length;
+  const nomeCurto = n => { const t = String(n || '').replace(/^\s*(equipe|eq\.?|turma)\s+/i, '').trim() || String(n || ''); return t.length > 10 ? t.slice(0, 9) + '…' : t; };
+  const maxV = Math.max(1, meta || 0, ...serie.map(d => d.metros)) * 1.12, H = 150;
+  const fmt = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+  const legenda = lista.map(e => `<span class="beq-leg"><i style="background:${corDaEquipe(e)}"></i>${escHtml(e.nome)}</span>`).join('');
+  const cols = serie.map((d, i) => {
+    const vazia = d.folga && !d.metros;
+    const alt = Math.round(d.metros / maxV * H);
+    const segs = lista.map(e => {
+      const v = d.porEq[e.id] || 0; if(!v) return '';
+      const hs = v / d.metros * alt;
+      const txt = colW >= 52 && hs >= 30 ? `<small>${escHtml(nomeCurto(e.nome))}</small><b>${fmt(v)}</b>` : (colW >= 52 && hs >= 15 ? `<b>${escHtml(nomeCurto(e.nome).slice(0, 6))} ${fmt(v)}</b>` : (colW >= 22 && hs >= 14 ? `<b>${fmt(v)}</b>` : ''));
+      return `<div class="beq-seg" data-eq="${e.id}" data-tip="${escHtml(e.nome)} · ${d.dia} · ${fmt(v)} m" title="${escHtml(e.nome)} · ${d.dia} · ${fmt(v)} m" style="height:${hs.toFixed(1)}px;background:${corDaEquipe(e)};">${txt}</div>`;
+    }).join('');
+    return `<div class="beq-col${vazia ? ' folga' : ''}"><div class="beq-topo">${vazia ? '' : (d.metros ? fmt(d.metros) : '')}</div><div class="beq-area">${vazia ? '<div class="beq-folga">folga</div>' : `<div class="beq-pilha" style="height:${Math.max(alt, d.metros ? 3 : 0)}px;">${segs}</div>`}</div></div>`;
+  }).join('');
+  const yMeta = meta > 0 ? Math.round(meta / maxV * H) : 0;
+  box.innerHTML = `<div class="beq-legenda">${legenda}</div><div class="beq-grade" style="--h:${H}px;">${meta > 0 ? `<div class="beq-meta" style="bottom:${yMeta + 0}px;"><span>meta/dia ${fmt(meta)}</span></div>` : ''}${cols}</div>`;
+  box.querySelectorAll('.beq-seg').forEach(sg => sg.addEventListener('click', () => showToast(sg.dataset.tip, { erro: false })));
+}
+// Ao girar o celular / redimensionar, as colunas mudam de largura: redesenha para ajustar nomes e valores.
+let _redimBeq = null;
+window.addEventListener('resize', ()=>{ clearTimeout(_redimBeq); _redimBeq = setTimeout(()=>{ try{ const v = el('view-infografico'); if(v && v.classList.contains('ativa') || (v && v.offsetParent)) renderInfograficoResumo(); }catch(e){} }, 250); });
 
 // ---------- Metragem direto na linha do furo (Perfilagem) ----------
 // Esperada e Real viram campos na própria linha: digita, Enter e já cai no próximo campo. Salva ao sair do campo.
