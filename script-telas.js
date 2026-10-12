@@ -574,7 +574,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       return;
     }
     const ultimo = i === pontos.length - 1;
-    svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}" cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
+    svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}"${ultimo ? ' class="info-ultimo"' : ''} cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
   });
   // Efeitos contínuos (só na tela; saem da imagem exportada): cometa correndo pela linha e anel pulsando no último ponto.
   if(linhaPath){

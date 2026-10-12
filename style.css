@@ -2265,8 +2265,10 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 /* ---------- Infográfico: efeitos contínuos, minimalistas ---------- */
 /* só 3 detalhes discretos: anel suave no último ponto, brilho raro na borda dos KPIs com produção e barra cheia respirando */
 .info-cometa{ display:none; }
-.info-pulso{ animation:infoHalo 4.5s ease-in-out infinite; }
-@keyframes infoHalo{ 0%,100%{ opacity:.08; } 50%{ opacity:.3; } } /* halo suave que respira atrás do último ponto, sem expandir */
+.info-pulso{ animation:infoHalo 3.2s ease-in-out infinite; }
+@keyframes infoHalo{ 0%,100%{ opacity:.12; } 50%{ opacity:.45; } }
+.info-ultimo{ transform-box:fill-box; transform-origin:center; animation:infoPonto 3.2s ease-in-out infinite; }
+@keyframes infoPonto{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.35); } } /* o último ponto e o halo respiram juntos */
 .infografico-kpi{ position:relative; }
 .infografico-kpi.fx-ativo::before{
   content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;
@@ -2280,6 +2282,6 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 #view-infografico .progress-fill.cheio{ animation:infoCheio 3.6s ease-in-out infinite; }
 @keyframes infoCheio{ 0%,100%{ box-shadow:0 0 0 0 rgba(46,155,87,0); } 50%{ box-shadow:0 0 8px 1px rgba(46,155,87,.4); } }
 @media (prefers-reduced-motion: reduce){
-  .info-pulso, .infografico-kpi.fx-ativo::before, #view-infografico .progress-fill.cheio{ animation:none !important; }
+  .info-pulso, .info-ultimo, .infografico-kpi.fx-ativo::before, #view-infografico .progress-fill.cheio{ animation:none !important; }
   .info-pulso{ display:none; }
 }
