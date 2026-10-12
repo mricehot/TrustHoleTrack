@@ -2262,41 +2262,24 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
   .chart-eixo-x span.todos b{ font-size:9.5px; letter-spacing:-.3px; }
 }
 
-/* ---------- Infográfico: efeitos contínuos (mesmo estilo do checklist) ---------- */
-/* gráficos: cometa percorre a linha, anel pulsa no último ponto, área e faixas de folga respiram */
-.info-cometa{ stroke-dasharray:7 93; animation:infoCometa 3.4s linear infinite; opacity:.9; }
-@keyframes infoCometa{ from{ stroke-dashoffset:7; } to{ stroke-dashoffset:-93; } }
-.info-pulso{ transform-box:fill-box; transform-origin:center; animation:infoPulso 2.2s ease-out infinite; }
-@keyframes infoPulso{ 0%{ transform:scale(1); opacity:.9; } 100%{ transform:scale(3.4); opacity:0; } }
-.info-area{ animation:infoRespira 4s ease-in-out infinite; }
-@keyframes infoRespira{ 0%,100%{ opacity:.6; } 50%{ opacity:1; } }
-.info-folga{ animation:infoRespira 5s ease-in-out infinite; }
-/* KPIs com produção: brilho percorre a borda de tempos em tempos + respiração do valor */
+/* ---------- Infográfico: efeitos contínuos, minimalistas ---------- */
+/* só 3 detalhes discretos: anel suave no último ponto, brilho raro na borda dos KPIs com produção e barra cheia respirando */
+.info-cometa{ display:none; }
+.info-pulso{ transform-box:fill-box; transform-origin:center; animation:infoPulso 3.6s ease-out infinite; }
+@keyframes infoPulso{ 0%{ transform:scale(1); opacity:.55; } 70%,100%{ transform:scale(2.6); opacity:0; } }
 .infografico-kpi{ position:relative; }
 .infografico-kpi.fx-ativo::before{
   content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;
   background:conic-gradient(from var(--ang), transparent 0deg, transparent 280deg, color-mix(in srgb,var(--amber) 85%,transparent) 335deg, #fff 355deg, transparent 360deg);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  animation:ckBrilhoLoop 8s linear infinite;
+  animation:ckBrilhoLoop 16s linear infinite;
 }
-.infografico-kpi.fx-ativo:nth-child(3n+2)::before{ animation-delay:-2.7s; }
-.infografico-kpi.fx-ativo:nth-child(3n)::before{ animation-delay:-5.3s; }
-.infografico-kpi.fx-ativo:nth-child(4n+4)::before{ animation-delay:-6.5s; }
-.infografico-kpi.fx-ativo .valor{ animation:infoValor 3.6s ease-in-out infinite; }
-@keyframes infoValor{ 0%,100%{ text-shadow:0 0 0 transparent; } 50%{ text-shadow:0 0 10px color-mix(in srgb,var(--amber) 45%,transparent); } }
-/* barras: brilho corre por dentro; cheia (100%) respira em verde */
-#view-infografico .progress-fill, #view-infografico .equipe-barra{ position:relative; overflow:hidden; }
-#view-infografico .progress-fill::after, #view-infografico .equipe-barra::after{
-  content:''; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(100deg, transparent 30%, rgba(255,255,255,.38) 50%, transparent 70%);
-  transform:translateX(-100%); animation:infoVarre 3.2s ease-in-out infinite;
-}
-@keyframes infoVarre{ 0%{ transform:translateX(-100%); } 60%,100%{ transform:translateX(100%); } }
-#view-infografico .progress-fill.cheio{ animation:infoCheio 2.4s ease-in-out infinite; }
-@keyframes infoCheio{ 0%,100%{ box-shadow:0 0 0 0 rgba(46,155,87,0); } 50%{ box-shadow:0 0 10px 2px rgba(46,155,87,.55); } }
+.infografico-kpi.fx-ativo:nth-child(3n+2)::before{ animation-delay:-5s; }
+.infografico-kpi.fx-ativo:nth-child(3n)::before{ animation-delay:-10s; }
+#view-infografico .progress-fill.cheio{ animation:infoCheio 3.6s ease-in-out infinite; }
+@keyframes infoCheio{ 0%,100%{ box-shadow:0 0 0 0 rgba(46,155,87,0); } 50%{ box-shadow:0 0 8px 1px rgba(46,155,87,.4); } }
 @media (prefers-reduced-motion: reduce){
-  .info-cometa, .info-pulso, .info-area, .info-folga, .infografico-kpi.fx-ativo::before, .infografico-kpi.fx-ativo .valor,
-  #view-infografico .progress-fill::after, #view-infografico .equipe-barra::after, #view-infografico .progress-fill.cheio{ animation:none !important; }
-  .info-cometa, .info-pulso{ display:none; }
+  .info-pulso, .infografico-kpi.fx-ativo::before, #view-infografico .progress-fill.cheio{ animation:none !important; }
+  .info-pulso{ display:none; }
 }
