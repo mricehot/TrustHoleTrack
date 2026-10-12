@@ -2252,3 +2252,4 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
 }
 body.modo-leitura .ck-barra-fixa{ display:none; }
 @media print{ .ck-barra-fixa{ display:none !important; } }
+.chart-eixo-x span.folga b{ color:var(--muted); font-weight:600; font-size:11px; }

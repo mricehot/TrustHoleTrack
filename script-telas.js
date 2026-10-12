@@ -487,12 +487,12 @@ function calcularEstatisticasInfografico(){
     const d = new Date(agora);
     d.setDate(d.getDate() - i);
     const chave = chaveDia(d);
-    serieDiaria.push({
+    const dadosDia = { metros: porDia[chave] || 0, furosTopo: porDiaTopo[chave] || 0, furosPerf: porDiaPerf[chave] || 0 };
+    serieDiaria.push(Object.assign({
       dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
-      metros: porDia[chave] || 0,
-      furosTopo: porDiaTopo[chave] || 0,
-      furosPerf: porDiaPerf[chave] || 0
-    });
+      // Domingo sem nenhuma produção = folga (não é "dia ruim"). Domingo trabalhado aparece normal.
+      folga: d.getDay() === 0 && !dadosDia.metros && !dadosDia.furosTopo && !dadosDia.furosPerf
+    }, dadosDia));
   }
 
   const totalFuros = furos.length;
@@ -521,8 +521,15 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   const passoX = (w - pad*2) / (serie.length - 1);
   const yDe = v => h - pad - ((v / max) * (h - pad - topo));
   const pontos = serie.map((d,i)=> [pad + i * passoX, yDe(d[chaveValor])]);
-  const linhaPath = pontos.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const areaPath = linhaPath + ` L${pontos[pontos.length-1][0]},${h-pad} L${pontos[0][0]},${h-pad} Z`;
+  // Dias de folga ficam fora da linha: ela liga o último dia trabalhado ao próximo, sem cair a zero.
+  const iTrab = serie.map((d,i)=> d.folga ? -1 : i).filter(i=> i >= 0);
+  const pTrab = iTrab.map(i=> pontos[i]);
+  const linhaPath = pTrab.length ? pTrab.map((p,i)=> (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') : '';
+  const areaPath = pTrab.length ? linhaPath + ` L${pTrab[pTrab.length-1][0]},${h-pad} L${pTrab[0][0]},${h-pad} Z` : '';
+  const idHach = 'hach-' + idSvg;
+  const faixasFolga = serie.map((d,i)=> !d.folga ? '' :
+    `<rect x="${(pontos[i][0] - passoX/2).toFixed(1)}" y="${topo - 8}" width="${passoX.toFixed(1)}" height="${h - pad - topo + 8}" style="fill:url(#${idHach});"/>`
+    + `<text x="${pontos[i][0].toFixed(1)}" y="${topo + 6}" text-anchor="middle" style="fill:#8a94a6; font-size:11px; font-weight:700; font-family:var(--mono);">folga</text>`).join('');
   const idGrad = 'grad-' + idSvg;
   const fmtV = v => chaveValor === 'metros' ? (Math.round(v*10)/10).toString().replace('.', ',') : String(v);
 
@@ -532,7 +539,9 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
         <stop data-exp="stop" offset="0%" style="stop-color:${corVar}; stop-opacity:0.35;"/>
         <stop data-exp="stop" offset="100%" style="stop-color:${corVar}; stop-opacity:0;"/>
       </linearGradient>
+      <pattern id="${idHach}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" style="stroke:#8a94a6; stroke-opacity:.35; stroke-width:2px;"/></pattern>
     </defs>
+    ${faixasFolga}
     <path d="${areaPath}" style="fill:url(#${idGrad});"/>
     <path data-exp="linha" d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
   `;
@@ -543,6 +552,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       + `<text data-exp="meta" x="${pad+2}" y="${ym-5}" style="fill:var(--muted); font-size:12px; font-family:var(--mono);">meta/dia ${fmtV(meta)}</text>`;
   }
   pontos.forEach((p,i)=>{
+    if(serie[i].folga) return;
     const ultimo = i === pontos.length - 1;
     svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}" cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
   });
@@ -550,7 +560,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   const iMax = serie.reduce((b,d,i)=> d[chaveValor] > serie[b][chaveValor] ? i : b, 0);
   const marcar = new Set([serie.length - 1]); if(serie[iMax][chaveValor] > 0) marcar.add(iMax);
   marcar.forEach(i=>{
-    const v = serie[i][chaveValor]; if(!v) return;
+    const v = serie[i][chaveValor]; if(!v || serie[i].folga) return;
     const x = Math.min(w - pad - 4, Math.max(pad + 4, pontos[i][0]));
     const ancora = x > w - 40 ? 'end' : (x < 40 ? 'start' : 'middle');
     svgHTML += `<text data-exp="valor" x="${ancora==='end' ? pontos[i][0]+4 : x}" y="${pontos[i][1]-9}" text-anchor="${ancora}" style="fill:var(--text); font-size:13px; font-weight:700; font-family:var(--mono);">${fmtV(v)}</text>`;
@@ -564,7 +574,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
     // sempre aparece. Cada rótulo mostra o valor do dia em cima da data.
     eixoX.innerHTML = serie.map((d,i)=>{
       const visivel = (serie.length - 1 - i) % 2 === 0;
-      return `<span class="${visivel ? '' : 'oculto'}"><b>${d[chaveValor] ? fmtV(d[chaveValor]) : '·'}</b>${d.dia}</span>`;
+      return `<span class="${visivel ? '' : 'oculto'}${d.folga ? ' folga' : ''}"><b>${d.folga ? 'folga' : (d[chaveValor] ? fmtV(d[chaveValor]) : '·')}</b>${d.dia}</span>`;
     }).join('');
   }
 }
