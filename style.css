@@ -2220,3 +2220,5 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
 /* Janelas (modais) ficam acima da barra de abas, dos bancos e do painel de lembretes */
 .modal-overlay{ z-index:2600; }
 .toast{ z-index:2700 !important; }
+.perf-plano{ margin-bottom:8px; }
+.perf-plano .btn-plano-ativo[hidden], .btn-plano-ativo[hidden]{ display:none; }
