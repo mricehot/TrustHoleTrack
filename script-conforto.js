@@ -116,3 +116,75 @@ function injetarBarrasFixas(){
   const origSalvar = salvarMetragemInline;
   salvarMetragemInline = function(){ const r = origSalvar.apply(this, arguments); try{ atualizarContadorMetragem(); }catch(e){} return r; };
 })();
+
+// ---------- Efeitos do Infográfico ----------
+// Sutis e rápidos (≤ ~1s), no mesmo estilo do checklist: números contam, barras enchem, gráficos se desenham.
+// Só rodam quando o dado muda ou a tela é aberta de novo; respeitam "reduzir movimento".
+(function(){
+  const IDS_NUM = ['metros-hoje','metros-semana','metros-mes','metros-ant','topo-hoje','topo-semana','topo-mes','topo-ant'];
+  const BARRAS = ['perfilado','topografado'];
+  const GRAFS = ['infografico-chart-dia','infografico-chart-perf-dia','infografico-chart-topo-dia'];
+  const ult = {}; // última assinatura animada por elemento
+  window.__infoReset = ()=>{ for(const k in ult) delete ult[k]; };
+
+  function contar(id, destino){
+    const e = document.getElementById(id); if(!e) return;
+    const tn = [...e.childNodes].find(n=> n.nodeType === 3); if(!tn) return;
+    const txt = tn.data.trim(), novo = parseFloat(txt.replace(',', '.'));
+    if(isNaN(novo) || ult[id] === txt) return;
+    const casas = (txt.split(/[.,]/)[1] || '').length, primeira = ult[id] === undefined, antigo = primeira ? novo : parseFloat(String(ult[id]).replace(',', '.'));
+    ult[id] = txt;
+    if(primeira || novo === antigo || semMovimento()) return; // na abertura da aba a contagem já é feita por animarEntradaDaAba
+    const ms = 700, ini = performance.now(), tok = (e._tokInfo = (e._tokInfo || 0) + 1);
+    const fmt = v => casas ? v.toFixed(casas).replace('.', ',') : String(Math.round(v));
+    const passo = agora=>{
+      if(tok !== e._tokInfo || !e.isConnected) return;
+      const t = Math.min(1, (agora - ini) / ms), k = 1 - Math.pow(1 - t, 3);
+      tn.data = fmt(antigo + (novo - antigo) * k);
+      if(t < 1) requestAnimationFrame(passo);
+      else { tn.data = txt; e.animate([{ filter:'brightness(1.5)' }, { filter:'brightness(1)' }], { duration:450 }); }
+    };
+    tn.data = fmt(antigo); requestAnimationFrame(passo);
+  }
+
+  function barra(nome){
+    const b = document.getElementById('infografico-pct-' + nome + '-barra'); if(!b) return;
+    const alvo = b.style.width, chave = 'barra-' + nome;
+    if(ult[chave] === alvo) return;
+    const primeira = ult[chave] === undefined, de = primeira ? '0%' : ult[chave];
+    ult[chave] = alvo;
+    if(semMovimento()) return;
+    if(!primeira) b.animate([{ width:de }, { width:alvo }], { duration:800, easing:'cubic-bezier(.2,.7,.2,1)' }); // na abertura, quem enche a barra é animarEntradaDaAba
+    if(parseFloat(alvo) >= 100) setTimeout(()=> b.isConnected && b.animate([{ boxShadow:'0 0 0 0 rgba(46,155,87,0)' }, { boxShadow:'0 0 10px 2px rgba(46,155,87,.55)' }, { boxShadow:'0 0 0 0 rgba(46,155,87,0)' }], { duration:900 }), 750);
+  }
+
+  function grafico(id){
+    const svg = document.getElementById(id); if(!svg) return;
+    const linha = svg.querySelector('path[data-exp="linha"]'); if(!linha) return;
+    const sig = linha.getAttribute('d'); if(ult[id] === sig) return;
+    ult[id] = sig;
+    if(semMovimento()) return;
+    const area = linha.previousElementSibling, pts = [...svg.querySelectorAll('circle[data-exp]')];
+    try{
+      const c = linha.getTotalLength();
+      linha.animate([{ strokeDasharray:c + ' ' + c, strokeDashoffset:c }, { strokeDasharray:c + ' ' + c, strokeDashoffset:0 }], { duration:900, easing:'cubic-bezier(.3,.6,.3,1)' });
+    }catch(e){}
+    if(area) area.animate([{ opacity:0 }, { opacity:1 }], { duration:900, easing:'ease-in' });
+    pts.forEach((p, i)=> p.animate([{ opacity:0, transform:'scale(.2)', transformBox:'fill-box', transformOrigin:'center' }, { opacity:1, transform:'scale(1)', transformBox:'fill-box', transformOrigin:'center' }], { duration:260, delay:350 + i * 35, fill:'backwards', easing:'ease-out' }));
+    svg.querySelectorAll('text[data-exp="valor"]').forEach(t=> t.animate([{ opacity:0 }, { opacity:1 }], { duration:300, delay:850, fill:'backwards' }));
+  }
+
+  const orig = window.renderInfograficoResumo;
+  if(typeof orig === 'function'){
+    window.renderInfograficoResumo = function(){
+      const r = orig.apply(this, arguments);
+      try{ IDS_NUM.forEach(n=> contar('infografico-' + n)); BARRAS.forEach(barra); GRAFS.forEach(grafico); }catch(e){}
+      return r;
+    };
+  }
+  // Ao voltar para a aba, as animações rodam de novo.
+  const om = window.mostrarView;
+  if(typeof om === 'function'){
+    window.mostrarView = function(v){ if(v === 'infografico') window.__infoReset(); return om.apply(this, arguments); };
+  }
+})();

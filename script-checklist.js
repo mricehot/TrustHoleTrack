@@ -1084,7 +1084,9 @@ el('btn-enviar-whatsapp').addEventListener('click', abrirModalEscolherRealcesWha
 // ---------- Movimento de entrada ----------
 // 1) Barras crescem do zero e os números contam até o valor ao abrir a aba.
 function contarNumeros(el, ms){
-  const final = el._finalTexto || el.textContent;
+  // Com unidade em <span> (ex.: "157,5<span>m</span>") anima só o número, sem perder o <span>.
+  const tn = el.children.length ? [...el.childNodes].find(n=> n.nodeType === 3) : null;
+  const final = el._finalTexto || (tn ? tn.data : el.textContent);
   if(!/\d/.test(final)) return;
   el._finalTexto = final;
   const token = (el._tokenContar = (el._tokenContar || 0) + 1);
@@ -1093,12 +1095,13 @@ function contarNumeros(el, ms){
     if(token !== el._tokenContar) return; // outra contagem assumiu
     if(ini === null) ini = agora;
     const t = Math.max(0, Math.min(1, (agora - ini) / ms)), e = 1 - Math.pow(1 - t, 3);
-    el.textContent = final.replace(/\d+(?:[.,]\d+)?/g, m=>{
+    const txtAtual = final.replace(/\d+(?:[.,]\d+)?/g, m=>{
       const dec = (m.split(/[.,]/)[1] || '').length, sep = m.includes(',') ? ',' : '.';
       const v = parseFloat(m.replace(',', '.')) * e;
       return dec ? v.toFixed(dec).replace('.', sep) : String(Math.round(v));
     });
-    if(t < 1 && el.isConnected) requestAnimationFrame(passo); else { el.textContent = final; el._finalTexto = null; }
+    if(tn) tn.data = txtAtual; else el.textContent = txtAtual;
+    if(t < 1 && el.isConnected) requestAnimationFrame(passo); else { if(tn) tn.data = final; else el.textContent = final; el._finalTexto = null; }
   };
   requestAnimationFrame(passo);
 }
