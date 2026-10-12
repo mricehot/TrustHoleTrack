@@ -145,7 +145,7 @@ function montarResumoSemanalWhatsApp(offset){
   o += `\nChecklist na semana: ${plural(r.furosPerf, 'furo perfilado', 'furos perfilados')} | ${plural(r.furosTopo, 'furo topografado', 'furos topografados')}`;
   o += `\nDias de producao: ${r.diasTrab}${r.diasTrab ? ' | media ' + numRS(r.mediaDia) + ' m/dia' : ''}`;
   if(r.melhorDia) o += `\nMelhor dia: ${semAcentoRS(r.melhorDia.nome)} ${ddmmRS(r.melhorDia.data)} - ${numRS(r.melhorDia.metros)} m`;
-  if(r.mes && r.equipes.length){
+  if(r.mes && (r.mes.acum || r.mes.meta)){
     const m = r.mes;
     o += `\n\n*MES DE ${semAcentoRS(m.nome).toUpperCase()}* (ate ${ddmmRS(m.corte)})\nAcumulado: *${numRS(m.acum)} m*${m.meta ? ' (' + m.pctAcum + '% da meta de ' + numRS(m.meta) + ' m)' : ''} | ${plural(m.pontos, 'ponto', 'pontos')}`;
     o += `\nRitmo: ${numRS(m.ritmo)} m/dia util (${m.passados} de ${m.diasMes} dias uteis)`;
@@ -235,7 +235,7 @@ function cartaoResumoSemanalHTML(r){
         <span>melhor dia <b style="color:${cor.txt}">${melhor}</b></span>
         <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
   }).join('');
-  const mes = r.mes, mesTem = mes && r.equipes.length;
+  const mes = r.mes, mesTem = mes && (mes.acum || mes.meta);
   let mesHTML = '';
   if(mesTem){
     const corProj = mes.pctProj === null ? cor.txt : mes.pctProj >= 100 ? cor.ver : mes.pctProj >= 80 ? '#a56a00' : '#d6453d';
