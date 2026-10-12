@@ -2287,10 +2287,12 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 }
 
 /* Gráficos do Infográfico: moldura com brilho percorrendo a borda, igual aos cards do checklist */
+.info-grafico:has(#infografico-chart-perf-dia){ --fx:var(--est-ok); }
+.info-grafico:has(#infografico-chart-topo-dia){ --fx:var(--steel); }
 .info-grafico{ position:relative; border-radius:8px; padding:6px 4px 2px; }
 .info-grafico::before{
   content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;
-  background:conic-gradient(from var(--ang), transparent 0deg, transparent 280deg, color-mix(in srgb,var(--amber) 85%,transparent) 335deg, #fff 355deg, transparent 360deg);
+  background:conic-gradient(from var(--ang), transparent 0deg, transparent 280deg, color-mix(in srgb,var(--fx,var(--amber)) 85%,transparent) 335deg, #fff 355deg, transparent 360deg);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   animation:ckBrilhoLoop 9s linear infinite;
