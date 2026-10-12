@@ -17,7 +17,7 @@ function calcularRealcesSemana(iniISO, fimISO){
   aneisNoEscopoAtual().forEach(a => {
     const leques = checklistLeques.filter(c => c.anelId === a.id).sort((x, y) => (parseInt(x.numero, 10) || 0) - (parseInt(y.numero, 10) || 0));
     if(!leques.length) return;
-    const R = { nome: a.nome, leques: { total: leques.length, ok: 0, and: 0, obs: 0, ini: 0 }, furos: 0, perf: 0, topo: 0, obstr: 0, perfSem: 0, topoSem: 0,
+    const R = { nome: a.nome, nivel: a.nivel || '', orient: a.orientacao || '', leques: { total: leques.length, ok: 0, and: 0, obs: 0, ini: 0 }, furos: 0, perf: 0, topo: 0, obstr: 0, perfSem: 0, topoSem: 0,
       finalizados: [], andamento: [], naoIniciados: [], obstruidos: [], problemas: [] };
     leques.forEach(c => {
       const fs = checklistFurosDoLeque(c.id), est = estadoDoLeque(fs), cod = { tipo: c.tipo, numero: c.numero }, rotulo = (PREFIXO[c.tipo] || '') + c.numero;
@@ -172,7 +172,7 @@ function montarResumoSemanalWhatsApp(offset){
   if(r.realces.length){
     o += '\n\n*REALCES E LEQUES*\n' + r.realces.map(x => {
       const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;
-      let t = `*${semAcentoRS(x.nome)}*\n   Leques: ${x.leques.ok} completos de ${x.leques.total}` + (x.leques.and + x.leques.obs ? ` | ${x.leques.and + x.leques.obs} em andamento` : '') + (x.leques.ini ? ` | ${x.leques.ini} nao iniciados` : '');
+      let t = `*${semAcentoRS(x.nome)}*${x.nivel && !String(x.nome).includes(x.nivel) ? ' - Nivel ' + semAcentoRS(x.nivel) : ''}\n   Leques: ${x.leques.ok} completos de ${x.leques.total}` + (x.leques.and + x.leques.obs ? ` | ${x.leques.and + x.leques.obs} em andamento` : '') + (x.leques.ini ? ` | ${x.leques.ini} nao iniciados` : '');
       t += `\n   Furos: perfilados ${x.perf}/${x.furos} (${pct(x.perf)}%) | topografados ${x.topo}/${x.furos} (${pct(x.topo)}%)`;
       t += `\n   Na semana: +${x.perfSem} perfilados | +${x.topoSem} topografados`;
       if(x.finalizados.length) t += `\n   Finalizados na semana: ${compactarCodigosEmIntervalos(x.finalizados).join(', ')}`;
@@ -286,7 +286,8 @@ function cartaoResumoSemanalHTML(r){
     const naoIni = x.naoIniciados.length ? `<div style="display:flex;align-items:center;gap:12px;padding:7px 10px;border-top:1px solid ${cor.lin};border-left:4px solid ${C.ini};font-size:12.5px;"><div style="width:112px;">${badge('○ Não iniciados', C.ini)}</div><div style="flex:1;color:${cor.mut};"><b style="color:${cor.txt}">${compactarCodigosEmIntervalos(x.naoIniciados).join(', ')}</b></div></div>` : '';
     return `<div style="border:1px solid ${cor.lin};border-radius:10px;margin-bottom:12px;background:#fff;overflow:hidden;">
       <div style="padding:12px 14px;background:${cor.fundo};">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:16px;">Realce ${e2(x.nome)}</b><span style="font-size:12.5px;color:${cor.mut};"><b style="color:${C.ok};font-size:15px;">${L.ok}</b> de ${L.total} leques completos</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;"><div><div style="font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:${cor.amb};">Realce</div><div style="font-size:21px;font-weight:800;line-height:1.15;">${e2(x.nome)}</div>
+          <div style="margin-top:4px;">${x.nivel && !String(x.nome).includes(x.nivel) ? `<span style="display:inline-block;margin-right:6px;padding:1px 9px;border-radius:999px;background:#ece9f2;font-size:11.5px;font-weight:700;">Nível ${e2(x.nivel)}</span>` : ''}${x.orient ? `<span style="display:inline-block;padding:1px 9px;border-radius:999px;background:#ece9f2;font-size:11.5px;font-weight:700;">${x.orient === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>` : ''}</div></div><span style="font-size:12.5px;color:${cor.mut};"><b style="color:${C.ok};font-size:15px;">${L.ok}</b> de ${L.total} leques completos</span></div>
         <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;margin:8px 0 4px;background:#ece9f2;">${seg(L.ok, C.ok)}${seg(L.and, C.and)}${seg(L.obs, C.obs)}${seg(L.ini, C.ini)}</div>
         <div style="font-size:11.5px;color:${cor.mut};"><b style="color:${C.ok}">■</b> ${L.ok} completos &nbsp; <b style="color:${C.and}">■</b> ${L.and} em andamento &nbsp; <b style="color:${C.obs}">■</b> ${L.obs} obstrução alta &nbsp; <b style="color:${C.ini}">■</b> ${L.ini} não iniciados</div>
         <div style="display:flex;gap:8px;margin-top:10px;">
