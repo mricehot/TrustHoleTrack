@@ -2265,8 +2265,8 @@ body.modo-leitura .ck-barra-fixa{ display:none; }
 /* ---------- Infográfico: efeitos contínuos, minimalistas ---------- */
 /* só 3 detalhes discretos: anel suave no último ponto, brilho raro na borda dos KPIs com produção e barra cheia respirando */
 .info-cometa{ display:none; }
-.info-pulso{ transform-box:fill-box; transform-origin:center; animation:infoPulso 3.6s ease-out infinite; }
-@keyframes infoPulso{ 0%{ transform:scale(1); opacity:.55; } 70%,100%{ transform:scale(2.6); opacity:0; } }
+.info-pulso{ animation:infoHalo 4.5s ease-in-out infinite; }
+@keyframes infoHalo{ 0%,100%{ opacity:.08; } 50%{ opacity:.3; } } /* halo suave que respira atrás do último ponto, sem expandir */
 .infografico-kpi{ position:relative; }
 .infografico-kpi.fx-ativo::before{
   content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; z-index:2; opacity:0;

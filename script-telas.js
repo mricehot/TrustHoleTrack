@@ -580,7 +580,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   if(linhaPath){
     svgHTML += `<path data-pulso class="info-cometa" pathLength="100" d="${linhaPath}" style="fill:none; stroke:#fff; stroke-width:3px; stroke-linecap:round; pointer-events:none;"/>`;
     const up = pTrab[pTrab.length-1];
-    if(serie[iTrab[iTrab.length-1]][chaveValor] > 0) svgHTML += `<circle data-pulso class="info-pulso" cx="${up[0].toFixed(1)}" cy="${up[1].toFixed(1)}" r="5" style="fill:none; stroke:${corVar}; stroke-width:2px; pointer-events:none;"/>`;
+    if(serie[iTrab[iTrab.length-1]][chaveValor] > 0) svgHTML += `<circle data-pulso class="info-pulso" cx="${up[0].toFixed(1)}" cy="${up[1].toFixed(1)}" r="10" style="fill:${corVar}; stroke:none; pointer-events:none;"/>`;
   }
   // Valores marcados: o maior e o último dia (quando maiores que zero)
   const iMax = serie.reduce((b,d,i)=> d[chaveValor] > serie[b][chaveValor] ? i : b, 0);
