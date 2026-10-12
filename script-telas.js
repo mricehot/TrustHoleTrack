@@ -562,8 +562,8 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       while(b < serie.length && vazia(serie[b])) b++;
       const ya = a >= 0 ? pontos[a][1] : (b < serie.length ? pontos[b][1] : p[1]);
       const yb = b < serie.length ? pontos[b][1] : ya;
-      const y = (a >= 0 && b < serie.length) ? ya + (yb - ya) * ((i - a) / (b - a)) : ya;
-      svgHTML += `<circle cx="${p[0]}" cy="${y.toFixed(1)}" r="3.5" style="fill:var(--surface); stroke:#8a94a6; stroke-width:1.5px; stroke-dasharray:2 2;"/>`;
+      const y = (a >= 0 && b < serie.length) ? ya + (yb - ya) * ((i - a) / (b - a)) : (h - pad); // na ponta (ex.: hoje é domingo) o anel fica no zero
+      svgHTML += `<circle cx="${p[0]}" cy="${y.toFixed(1)}" r="4.5" style="fill:var(--surface); stroke:#a9b3c6; stroke-width:2px; stroke-dasharray:2.5 2;"/>`;
       return;
     }
     const ultimo = i === pontos.length - 1;
