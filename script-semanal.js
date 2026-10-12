@@ -5,7 +5,7 @@ let resumoSemOffset = 0;
 const HACHURA_RS = 'url(data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'><rect width='8' height='8' fill='#ffe1d9'/><path d='M-2,2 L2,-2 M0,8 L8,0 M6,10 L10,6' stroke='#ffb4a2' stroke-width='3'/></svg>") + ')'; // projeção listrada (funciona no html2canvas)
 const hachuraPngRS = (w, h) => { try { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#ffe1d9'; x.fillRect(0, 0, w, h); x.strokeStyle = '#ffb4a2'; x.lineWidth = 3.5; x.beginPath(); for (let k = -h; k < w + h; k += 8) { x.moveTo(k, h); x.lineTo(k + h, 0); } x.stroke(); return c.toDataURL('image/png'); } catch (e) { return ''; } };
 const hachuraSvgRS = (w, h, st) => `<img alt="" src="${hachuraPngRS(w || 900, h)}" style="display:block;height:${h}px;width:${w ? w + 'px' : 'auto'};max-width:none;object-fit:none;object-position:left top;${st || ''}">`;
-const COR_EQUIPES_RS = ['#1f8a8a', '#6b5b95', '#a8710a', '#a23b72', '#4b4fb3', '#4f7a3f']; // mesmas cores das equipes no sistema (tema claro)
+const COR_EQUIPES_RS = ['#2f6690', '#7b6fb0', '#2a9d9a', '#c9962b', '#b0587a', '#7d8aa3']; // paleta do resumo: tons frios e suaves, sem competir com o vermelho do realizado nem o verde dos ganhos
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const semAcentoRS = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '');
 const numRS = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
