@@ -1197,8 +1197,8 @@ function pendenciasPuxarChecklist(anelId){
       }else{
         const mud = {};
         if(cf.obstruido && f.situacao === 'livre') mud.situacao = 'obstruido';
-        if(metr > 0 && !(f.metragemReal > 0)) mud.metragem_real = metr;
-        if(cf.metragemEsperada > 0 && !(f.metragemEsperada > 0)) mud.metragem_esperada = Number(cf.metragemEsperada);
+        // Metragens de furos que já existem na perfilagem NÃO são refeitas a partir do checklist: quem apagou ou
+        // corrigiu o valor na perfilagem não pode ver o número antigo do checklist voltar sozinho. Só furos novos copiam.
         if(Object.keys(mud).length) ajustes.push({ f, mud });
       }
     });
