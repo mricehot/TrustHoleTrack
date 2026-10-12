@@ -2,6 +2,7 @@
 // Fecha a semana (segunda a domingo; domingo é folga) com tudo de produtividade: totais, comparação com a semana
 // passada, dia a dia e cada equipe (meta, melhor dia, dias trabalhados). Sai como IMAGEM e como MENSAGEM de WhatsApp.
 let resumoSemOffset = 0;
+const COR_EQUIPES_RS = ['#1f8a8a', '#6b5b95', '#a8710a', '#a23b72', '#4b4fb3', '#4f7a3f']; // mesmas cores das equipes no sistema (tema claro)
 const DIAS_CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const semAcentoRS = t => String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '');
 const numRS = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',').replace(/,0$/, '');
@@ -95,7 +96,7 @@ function calcularResumoSemanal(offset){
   const dias = [];
   for(let i = 0; i < 7; i++){
     const d = new Date(ini); d.setDate(d.getDate() + i);
-    dias.push({ data: d, iso: dataISOLocal(d), nome: DIAS_CURTOS[d.getDay()], folga: d.getDay() === 0, metros: 0, pontos: 0 });
+    dias.push({ data: d, iso: dataISOLocal(d), nome: DIAS_CURTOS[d.getDay()], folga: d.getDay() === 0, metros: 0, pontos: 0, porEq: {} });
   }
   const equipesR = lista.map(e => {
     const meus = efet.filter(l => l.equipeId === e.id);
@@ -103,7 +104,7 @@ function calcularResumoSemanal(offset){
     meus.forEach(l => {
       if(l.data >= iniISO && l.data <= fimISO){
         metros += l.metros; pontos += l.pontos;
-        const d = dias.find(x => x.iso === l.data); if(d){ d.metros += l.metros; d.pontos += l.pontos; }
+        const d = dias.find(x => x.iso === l.data); if(d){ d.metros += l.metros; d.pontos += l.pontos; d.porEq[e.id] = (d.porEq[e.id] || 0) + l.metros; }
         porDia[l.data] = porDia[l.data] || { metros: 0, pontos: 0 }; porDia[l.data].metros += l.metros; porDia[l.data].pontos += l.pontos;
       }else if(l.data >= iniAntISO && l.data <= fimAntISO){ antM += l.metros; antP += l.pontos; }
     });
@@ -111,7 +112,7 @@ function calcularResumoSemanal(offset){
     let melhor = null; diasTrab.forEach(k => { if(!melhor || porDia[k].metros > melhor.metros) melhor = { iso: k, metros: porDia[k].metros, pontos: porDia[k].pontos }; });
     metros = arred2(metros); antM = arred2(antM);
     const meta = e.metaSemanal > 0 ? e.metaSemanal : 0;
-    return { id: e.id, nome: e.nome, integrantes: e.integrantes, metros, pontos: Math.round(pontos), antM, antP: Math.round(antP),
+    return { id: e.id, cor: COR_EQUIPES_RS[Math.max(0, lista.findIndex(x => x.id === e.id)) % 6], nome: e.nome, integrantes: e.integrantes, metros, pontos: Math.round(pontos), antM, antP: Math.round(antP),
       diasTrab: diasTrab.length, media: diasTrab.length ? arred2(metros / diasTrab.length) : 0, melhor, meta, pct: meta ? Math.round(metros / meta * 100) : null,
       varM: varRS(metros, antM), varP: varRS(Math.round(pontos), Math.round(antP)) };
   }).sort((a, b) => b.metros - a.metros || b.pontos - a.pontos);
@@ -205,23 +206,25 @@ function cartaoResumoSemanalHTML(r){
       <div style="font:700 26px 'JetBrains Mono',ui-monospace,monospace;margin-top:4px;color:${cor.txt};">${val}</div>
       <div style="font-size:12px;margin-top:3px;color:${cor.mut};">${sub}</div></div>`;
   const maxM = Math.max(1, ...r.dias.map(d => d.metros));
+  const ordemEq = r.equipes.slice().sort((x, y) => COR_EQUIPES_RS.indexOf(x.cor) - COR_EQUIPES_RS.indexOf(y.cor));
   const barras = r.dias.map(d => {
     const h = Math.round(d.metros / maxM * 110);
     const corpo = d.folga && !d.metros && !d.pontos
       ? `<div style="height:110px;width:100%;border-radius:6px;background:#eeecf3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cor.mut};">folga</div>`
-      : `<div style="height:110px;width:100%;display:flex;align-items:flex-end;"><div style="width:100%;height:${Math.max(h, d.metros ? 3 : 0)}px;background:${cor.amb};border-radius:6px 6px 2px 2px;"></div></div>`;
+      : `<div style="height:110px;width:100%;display:flex;align-items:flex-end;"><div style="width:100%;height:${Math.max(h, d.metros ? 3 : 0)}px;display:flex;flex-direction:column-reverse;border-radius:6px 6px 2px 2px;overflow:hidden;">${ordemEq.map(e => { const v = d.porEq[e.id] || 0; if(!v) return ''; const hs = v / d.metros * Math.max(h, 3); return `<div style="height:${hs.toFixed(1)}px;background:${e.cor};border-top:1px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font:700 10.5px monospace;overflow:hidden;">${hs >= 15 ? numRS(v) : ''}</div>`; }).join('')}</div></div>`;
     return `<div style="flex:1;min-width:0;text-align:center;">
       <div style="font:700 13px 'JetBrains Mono',monospace;height:18px;color:${cor.txt};">${d.metros ? numRS(d.metros) : (d.folga ? '' : '–')}</div>${corpo}
       <div style="font-size:12px;font-weight:700;margin-top:6px;color:${cor.txt};">${d.nome}</div>
       <div style="font-size:11px;color:${cor.mut};">${ddmmRS(d.data)}</div>
       <div style="font-size:11px;color:${cor.aco};font-weight:700;height:14px;">${d.pontos ? Math.round(d.pontos) + (Math.round(d.pontos) === 1 ? ' pt' : ' pts') : ''}</div></div>`;
   }).join('');
+  const legendaEq = ordemEq.map(e => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${e.cor};"></i>${e2(e.nome)}</span>`).join('');
   const cards = r.equipes.map((e, i) => {
     const largura = e.pct === null ? 0 : Math.min(100, e.pct);
     const melhor = e.melhor ? `${DIAS_CURTOS[new Date(e.melhor.iso + 'T12:00:00').getDay()]} ${ddmmRS(new Date(e.melhor.iso + 'T12:00:00'))} (${numRS(e.melhor.metros)} m)` : '–';
     return `<div style="border:1px solid ${cor.lin};border-left:6px solid ${e.pct !== null && e.pct >= 100 ? cor.ver : cor.amb};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-        <div style="font-weight:700;font-size:16px;color:${cor.txt};">${i + 1}º · ${e2(e.nome)}<span style="font-weight:500;font-size:12px;color:${cor.mut};margin-left:8px;">${e2(e.integrantes || '')}</span></div>
+        <div style="font-weight:700;font-size:16px;color:${cor.txt};">${i + 1}º · <i style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${e.cor};margin-right:6px;"></i>${e2(e.nome)}<span style="font-weight:500;font-size:12px;color:${cor.mut};margin-left:8px;">${e2(e.integrantes || '')}</span></div>
         <div style="font:700 20px 'JetBrains Mono',monospace;color:${cor.txt};white-space:nowrap;">${numRS(e.metros)} m</div></div>
       ${e.pct !== null ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${largura}%;height:100%;background:${e.pct >= 100 ? cor.ver : cor.amb};"></div></div><span style="font:700 12px 'JetBrains Mono',monospace;color:${cor.txt};">${e.pct}% de ${numRS(e.meta)} m</span></div>` : ''}
       ${e.diasTrab ? `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:12.5px;color:${cor.mut};">
@@ -293,7 +296,8 @@ function cartaoResumoSemanalHTML(r){
       ${kpi('Dias de produção', r.diasTrab, r.diasTrab ? 'média ' + numRS(r.mediaDia) + ' m/dia' : 'sem produção')}</div>
     ${r.melhorDia ? `<div style="margin-top:10px;font-size:13px;color:${cor.mut};">Melhor dia da semana: <b style="color:${cor.txt}">${r.melhorDia.nome} ${ddmmRS(r.melhorDia.data)}</b> com <b style="color:${cor.txt}">${numRS(r.melhorDia.metros)} m</b></div>` : ''}
     ${mesHTML}
-    <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· pontos topografados em azul</span></div>
+    <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· total no topo, equipes por cor · pontos topografados em azul</span></div>
+    <div style="font-size:12px;color:${cor.mut};margin-bottom:6px;">${legendaEq}</div>
     <div style="display:flex;gap:8px;">${barras}</div>
     <div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ordenadas por metros</span></div>
     ${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}
