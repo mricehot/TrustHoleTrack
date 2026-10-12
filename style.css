@@ -2253,3 +2253,11 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
 body.modo-leitura .ck-barra-fixa{ display:none; }
 @media print{ .ck-barra-fixa{ display:none !important; } }
 .chart-eixo-x span.folga b{ color:var(--muted); font-weight:600; font-size:11px; }
+/* Eixo do gráfico diário: todos os 14 dias visíveis */
+.chart-eixo-x span.todos{ font-size:10.5px; }
+.chart-eixo-x span.todos b{ font-size:11px; }
+.chart-eixo-x span.todos.folga b{ font-size:11px; color:var(--muted); }
+@media (max-width:480px){
+  .chart-eixo-x span.todos{ font-size:9px; letter-spacing:-.2px; }
+  .chart-eixo-x span.todos b{ font-size:9.5px; letter-spacing:-.3px; }
+}

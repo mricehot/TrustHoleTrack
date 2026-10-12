@@ -555,7 +555,17 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       + `<text data-exp="meta" x="${pad+2}" y="${ym-5}" style="fill:var(--muted); font-size:12px; font-family:var(--mono);">meta/dia ${fmtV(meta)}</text>`;
   }
   pontos.forEach((p,i)=>{
-    if(vazia(serie[i])) return;
+    if(vazia(serie[i])){
+      // O dia de folga não some do gráfico: um anel tracejado marca o dia em cima da linha que passa por ele.
+      let a = i - 1, b = i + 1;
+      while(a >= 0 && vazia(serie[a])) a--;
+      while(b < serie.length && vazia(serie[b])) b++;
+      const ya = a >= 0 ? pontos[a][1] : (b < serie.length ? pontos[b][1] : p[1]);
+      const yb = b < serie.length ? pontos[b][1] : ya;
+      const y = (a >= 0 && b < serie.length) ? ya + (yb - ya) * ((i - a) / (b - a)) : ya;
+      svgHTML += `<circle cx="${p[0]}" cy="${y.toFixed(1)}" r="3.5" style="fill:var(--surface); stroke:#8a94a6; stroke-width:1.5px; stroke-dasharray:2 2;"/>`;
+      return;
+    }
     const ultimo = i === pontos.length - 1;
     svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}" cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
   });
@@ -575,9 +585,13 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   if(eixoX){
     // Um rótulo a cada 2 dias, contando de trás pra frente: o último dia (hoje)
     // sempre aparece. Cada rótulo mostra o valor do dia em cima da data.
+    // Todos os dias aparecem. Para caber, o rótulo é só o dia (DD); a data completa (DD/MM) vai no primeiro
+    // dia e na virada do mês. Os valores do eixo são arredondados (o valor exato está nos pontos marcados).
+    const fmtEixo = v => chaveValor === 'metros' ? String(Math.round(v)) : String(v);
     eixoX.innerHTML = serie.map((d,i)=>{
-      const visivel = (serie.length - 1 - i) % 2 === 0;
-      return `<span class="${visivel ? '' : 'oculto'}${d.folga ? ' folga' : ''}"><b>${vazia(d) ? 'folga' : (d[chaveValor] ? fmtV(d[chaveValor]) : '·')}</b>${d.dia}</span>`;
+      const [dd, mm] = d.dia.split('/');
+      const completo = false;
+      return `<span class="todos${d.folga ? ' folga' : ''}"><b>${vazia(d) ? '–' : (d[chaveValor] ? fmtEixo(d[chaveValor]) : '·')}</b>${completo ? dd + '/' + mm : dd}</span>`;
     }).join('');
   }
 }
