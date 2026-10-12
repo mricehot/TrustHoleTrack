@@ -531,7 +531,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
   const areaPath = pTrab.length ? linhaPath + ` L${pTrab[pTrab.length-1][0]},${h-pad} L${pTrab[0][0]},${h-pad} Z` : '';
   const idHach = 'hach-' + idSvg;
   const faixasFolga = serie.map((d,i)=> !d.folga ? '' :
-    `<rect x="${(pontos[i][0] - passoX/2).toFixed(1)}" y="${topo - 8}" width="${passoX.toFixed(1)}" height="${h - pad - topo + 8}" style="fill:url(#${idHach});"/>`
+    `<rect x="${(pontos[i][0] - passoX/2).toFixed(1)}" y="${topo - 8}" width="${passoX.toFixed(1)}" height="${h - pad - topo + 8}" class="info-folga" style="fill:url(#${idHach});"/>`
     + `<text x="${pontos[i][0].toFixed(1)}" y="${topo + 6}" text-anchor="middle" style="fill:#8a94a6; font-size:11px; font-weight:700; font-family:var(--mono);">folga</text>`).join('');
   const idGrad = 'grad-' + idSvg;
   const fmtV = v => chaveValor === 'metros' ? (Math.round(v*10)/10).toString().replace('.', ',') : String(v);
@@ -545,7 +545,7 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
       <pattern id="${idHach}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" style="stroke:#8a94a6; stroke-opacity:.35; stroke-width:2px;"/></pattern>
     </defs>
     ${faixasFolga}
-    <path d="${areaPath}" style="fill:url(#${idGrad});"/>
+    <path class="info-area" d="${areaPath}" style="fill:url(#${idGrad});"/>
     <path data-exp="linha" d="${linhaPath}" style="fill:none; stroke:${corVar}; stroke-width:2.5px; stroke-linecap:round; stroke-linejoin:round;"/>
   `;
   // Linha de meta tracejada (só quando existe meta)
@@ -576,6 +576,12 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
     const ultimo = i === pontos.length - 1;
     svgHTML += `<circle data-exp="${ultimo?'ponto-ultimo':'ponto'}" cx="${p[0]}" cy="${p[1]}" r="${ultimo?5:3}" style="fill:${ultimo?corVar:'var(--surface)'}; stroke:${corVar}; stroke-width:2px;"/>`;
   });
+  // Efeitos contínuos (só na tela; saem da imagem exportada): cometa correndo pela linha e anel pulsando no último ponto.
+  if(linhaPath){
+    svgHTML += `<path data-pulso class="info-cometa" pathLength="100" d="${linhaPath}" style="fill:none; stroke:#fff; stroke-width:3px; stroke-linecap:round; pointer-events:none;"/>`;
+    const up = pTrab[pTrab.length-1];
+    if(serie[iTrab[iTrab.length-1]][chaveValor] > 0) svgHTML += `<circle data-pulso class="info-pulso" cx="${up[0].toFixed(1)}" cy="${up[1].toFixed(1)}" r="5" style="fill:none; stroke:${corVar}; stroke-width:2px; pointer-events:none;"/>`;
+  }
   // Valores marcados: o maior e o último dia (quando maiores que zero)
   const iMax = serie.reduce((b,d,i)=> d[chaveValor] > serie[b][chaveValor] ? i : b, 0);
   const marcar = new Set([serie.length - 1]); if(serie[iMax][chaveValor] > 0) marcar.add(iMax);

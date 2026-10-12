@@ -947,6 +947,7 @@ async function gerarImagemInfografico(){
         // do SVG; aqui cada parte volta para as cores do tema claro da imagem.
         const cor = s.dataset.corExport || '#ff431d';
         const pinta = (sel, props)=> s.querySelectorAll(sel).forEach(n=> Object.entries(props).forEach(([k,v])=> n.style.setProperty(k, v)));
+        s.querySelectorAll('[data-pulso]').forEach(n=> n.remove()); // efeitos contínuos não vão na imagem
         pinta('[data-exp="stop"]', { 'stop-color': cor });
         pinta('[data-exp="linha"]', { stroke: cor });
         pinta('[data-exp="ponto"]', { fill: '#ffffff', stroke: cor });

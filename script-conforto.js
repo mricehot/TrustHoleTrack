@@ -178,6 +178,8 @@ function injetarBarrasFixas(){
   if(typeof orig === 'function'){
     window.renderInfograficoResumo = function(){
       const r = orig.apply(this, arguments);
+      try{ document.querySelectorAll('#view-infografico .infografico-kpi').forEach(k=>{ const v = k.querySelector('.valor'); k.classList.toggle('fx-ativo', !!v && parseFloat(v.textContent.replace(',', '.')) > 0); });
+        BARRAS.forEach(n=>{ const b = document.getElementById('infografico-pct-' + n + '-barra'); if(b) b.classList.toggle('cheio', parseFloat(b.style.width) >= 100); }); }catch(e){}
       try{ IDS_NUM.forEach(n=> contar('infografico-' + n)); BARRAS.forEach(barra); GRAFS.forEach(grafico); }catch(e){}
       return r;
     };
