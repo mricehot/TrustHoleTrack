@@ -554,6 +554,13 @@ function desenharGraficoAreaInfografico(idSvg, idEixoX, serie, chaveValor, corVa
     svgHTML += `<line data-exp="meta" x1="${pad}" x2="${w-pad}" y1="${ym}" y2="${ym}" style="stroke:var(--muted); stroke-width:1.5px; stroke-dasharray:6 5;"/>`
       + `<text data-exp="meta" x="${pad+2}" y="${ym-5}" style="fill:var(--muted); font-size:12px; font-family:var(--mono);">meta/dia ${fmtV(meta)}</text>`;
   }
+  // Folga no fim da série (ex.: hoje é domingo): traço tracejado do último dia trabalhado até o zero da folga.
+  if(pTrab.length && iTrab[iTrab.length-1] < serie.length - 1){
+    const ult = pTrab[pTrab.length-1];
+    let d = `M${ult[0].toFixed(1)},${ult[1].toFixed(1)}`;
+    for(let i = iTrab[iTrab.length-1] + 1; i < serie.length; i++) d += ` L${pontos[i][0].toFixed(1)},${(h-pad).toFixed(1)}`;
+    svgHTML += `<path data-exp="meta" d="${d}" fill="none" style="stroke:${corVar}; stroke-width:2px; stroke-dasharray:4 4; opacity:.7;"/>`;
+  }
   pontos.forEach((p,i)=>{
     if(vazia(serie[i])){
       // O dia de folga não some do gráfico: um anel tracejado marca o dia em cima da linha que passa por ele.
