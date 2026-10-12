@@ -17,7 +17,7 @@ function calcularRealcesSemana(iniISO, fimISO){
     const leques = checklistLeques.filter(c => c.anelId === a.id).sort((x, y) => (parseInt(x.numero, 10) || 0) - (parseInt(y.numero, 10) || 0));
     if(!leques.length) return;
     const R = { nome: a.nome, leques: { total: leques.length, ok: 0, and: 0, obs: 0, ini: 0 }, furos: 0, perf: 0, topo: 0, obstr: 0, perfSem: 0, topoSem: 0,
-      finalizados: [], andamento: [], naoIniciados: [], obstruidos: [] };
+      finalizados: [], andamento: [], naoIniciados: [], obstruidos: [], problemas: [] };
     leques.forEach(c => {
       const fs = checklistFurosDoLeque(c.id), est = estadoDoLeque(fs), cod = { tipo: c.tipo, numero: c.numero }, rotulo = (PREFIXO[c.tipo] || '') + c.numero;
       R.leques[est]++; R.furos += fs.length;
@@ -29,6 +29,12 @@ function calcularRealcesSemana(iniISO, fimISO){
       const pendPerf = fs.filter(f => !f.obstruido && !f.perfilado).length, pendTopo = fs.filter(f => !f.obstruido && !f.topografado).length;
       const obstrN = fs.filter(f => f.obstruido).length;
       if(obstrN) R.obstruidos.push(`${rotulo} (${obstrN})`);
+      const obsF = fs.filter(f => f.obstruido), notasF = fs.filter(f => f.observacao && !f.obstruido);
+      if(obsF.length || notasF.length || (c.observacao && String(c.observacao).trim())){
+        R.problemas.push({ rotulo, total: fs.length, alto: obstrucaoAlta(obsF.length, fs.length), obsLeque: String(c.observacao || '').trim(),
+          obstruidos: obsF.map(f => ({ n: f.numero, motivo: f.obstruidoMotivo || '', por: f.obstruidoPor || '', eq: (typeof nomeDaEquipeId === 'function' && typeof equipeObsEfetivaId === 'function') ? (nomeDaEquipeId(equipeObsEfetivaId(f)) || '') : '', nota: f.observacao || '', foto: !!f.fotoUrl })),
+          notas: notasF.map(f => ({ n: f.numero, texto: f.observacao, foto: !!f.fotoUrl })) });
+      }
       if(est === 'ok'){
         // finalizado nesta semana = a última marcação que o fechou caiu dentro dela
         const ult = fs.reduce((m, f) => { const t = Math.max(f.perfiladoEm ? +new Date(f.perfiladoEm) : 0, f.topografadoEm ? +new Date(f.topografadoEm) : 0); return t > m ? t : m; }, 0);
@@ -37,7 +43,7 @@ function calcularRealcesSemana(iniISO, fimISO){
       else R.andamento.push({ cod, rotulo, pendPerf, pendTopo, obstr: obstrN, alto: est === 'obs' });
     });
     // só entra o realce que teve movimento na semana ou que ainda tem pendência
-    if(R.perfSem || R.topoSem || R.finalizados.length || R.andamento.length || R.naoIniciados.length) out.push(R);
+    if(R.perfSem || R.topoSem || R.finalizados.length || R.andamento.length || R.naoIniciados.length || R.problemas.length) out.push(R);
   });
   return out;
 }
@@ -125,7 +131,16 @@ function montarResumoSemanalWhatsApp(offset){
       if(x.finalizados.length) t += `\n   Finalizados na semana: ${compactarCodigosEmIntervalos(x.finalizados).join(', ')}`;
       if(x.andamento.length) t += `\n   Em andamento: ` + x.andamento.map(a => `${a.rotulo} (falta ${a.pendPerf} perf. / ${a.pendTopo} topo${a.obstr ? ', ' + a.obstr + ' obstr.' : ''})`).join('; ');
       if(x.naoIniciados.length) t += `\n   Nao iniciados: ${compactarCodigosEmIntervalos(x.naoIniciados).join(', ')}`;
-      if(x.obstruidos.length) t += `\n   Com furo obstruido: ${x.obstruidos.join(', ')}`;
+      if(x.problemas.length){
+        t += '\n   *Obstrucoes e problemas:*';
+        x.problemas.forEach(p => {
+          const ob = p.obstruidos.map(f => `F${f.n}${f.motivo ? ' (' + semAcentoRS(f.motivo).toLowerCase() + ')' : ''}${f.eq ? ' - ' + semAcentoRS(f.eq) : ''}${f.foto ? ' [foto]' : ''}`).join(', ');
+          t += `\n   - ${p.rotulo}${p.alto ? ' ⚠️ ATENCAO: ' + p.obstruidos.length + ' de ' + p.total + ' obstruidos' : ''}${ob ? ': ' + ob : ''}`;
+          p.obstruidos.filter(f => f.nota).forEach(f => { t += `\n     F${f.n}: ${semAcentoRS(f.nota)}`; });
+          p.notas.forEach(f => { t += `\n     F${f.n}: ${semAcentoRS(f.texto)}${f.foto ? ' [foto]' : ''}`; });
+          if(p.obsLeque) t += `\n     Obs do leque: ${semAcentoRS(p.obsLeque)}`;
+        });
+      }
       return t;
     }).join('\n\n');
   }
@@ -184,7 +199,12 @@ function cartaoResumoSemanalHTML(r){
       ${x.finalizados.length ? linha('Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
       ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
       ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
-      ${x.obstruidos.length ? linha('Com furo obstruído:', x.obstruidos.map(c => chip(c, '#d6453d')).join('')) : ''}</div>`;
+      ${x.problemas.length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed ${cor.lin};"><div style="font-weight:700;font-size:12.5px;color:#d6453d;">⚠ Obstruções e problemas</div>` + x.problemas.map(p => `
+        <div style="margin-top:6px;padding:6px 10px;border-left:4px solid ${p.alto ? '#d6453d' : '#e0a25a'};background:${p.alto ? '#fdeeed' : '#fff7ec'};border-radius:4px;font-size:12.5px;">
+          <b>${p.rotulo}</b>${p.alto ? ` <span style="color:#d6453d;font-weight:700;">· ${p.obstruidos.length} de ${p.total} furos obstruídos — verificar a região</span>` : ''}
+          ${p.obstruidos.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> obstruído${f.motivo ? ' (' + e2(f.motivo) + ')' : ''}${f.eq ? ' · ' + e2(f.eq) : ''}${f.por ? ' · ' + e2(f.por) : ''}${f.foto ? ' · 📷 foto' : ''}${f.nota ? '<br><i style="color:' + cor.txt + '">“' + e2(f.nota) + '”</i>' : ''}</div>`).join('')}
+          ${p.notas.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> nota: <i style="color:${cor.txt}">“${e2(f.texto)}”</i>${f.foto ? ' · 📷 foto' : ''}</div>`).join('')}
+          ${p.obsLeque ? `<div style="color:${cor.mut};margin-top:2px;">Obs do leque: <i style="color:${cor.txt}">“${e2(p.obsLeque)}”</i></div>` : ''}</div>`).join('') + '</div>' : ''}</div>`;
   }).join('') : '';
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
