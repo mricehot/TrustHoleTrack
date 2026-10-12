@@ -2222,3 +2222,33 @@ body.modo-leitura .metr-inline{ pointer-events:none; border-color:transparent; b
 .toast{ z-index:2700 !important; }
 .perf-plano{ margin-bottom:8px; }
 .perf-plano .btn-plano-ativo[hidden], .btn-plano-ativo[hidden]{ display:none; }
+
+/* ===== Conforto: contador de metragem, menu do furo, barra fixa do leque ===== */
+.perf-contador{ margin:0 0 10px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--line); border-left:5px solid var(--est-and,#e0a21b); border-radius:8px; }
+.perf-contador[data-completo="1"]{ border-left-color:var(--est-ok,#2e9b57); }
+.perf-contador[hidden]{ display:none; }
+.pc-linha{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; font-size:13px; }
+.pc-linha b{ font-family:var(--mono); font-size:16px; }
+.pc-rot{ font-weight:700; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+.pc-falta{ margin-left:auto; color:var(--muted); font-size:12px; }
+.perf-contador[data-completo="1"] .pc-falta{ color:var(--est-ok,#2e9b57); font-weight:700; }
+.pc-barra{ height:6px; margin-top:6px; background:var(--line); border-radius:3px; overflow:hidden; }
+.pc-barra i{ display:block; height:100%; background:var(--est-and,#e0a21b); transition:width .5s ease; }
+.perf-contador[data-completo="1"] .pc-barra i{ background:var(--est-ok,#2e9b57); }
+
+.ck-furo-num{ -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+.menu-furo .mf-grade{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+.menu-furo .mf-grade button{ min-height:56px; font-size:15px; font-weight:700; }
+
+.ck-barra-fixa{ position:sticky; bottom:8px; z-index:6; display:flex; align-items:stretch; gap:8px; margin-top:12px; padding:8px; background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:blur(6px); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 14px rgba(0,0,0,.22); }
+.ck-barra-fixa .bf-cod{ align-self:center; font:700 12px var(--mono, monospace); color:var(--muted); padding:0 4px; }
+.ck-barra-fixa button{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-height:48px; padding:4px 6px; font-weight:700; font-size:13px; border-radius:10px; border:none; color:#fff; cursor:pointer; }
+.ck-barra-fixa .bf-per{ background:var(--est-ok,#2e9b57); }
+.ck-barra-fixa .bf-top{ background:var(--steel,#2a6fa8); }
+.ck-barra-fixa button small{ font:600 11px var(--mono, monospace); opacity:.9; }
+.ck-barra-fixa button:disabled{ background:var(--line); color:var(--muted); cursor:default; }
+@media (max-width:700px), (min-width:701px) and (max-width:1100px) and (pointer:coarse){
+  .ck-barra-fixa{ bottom:calc(68px + env(safe-area-inset-bottom)); margin-right:56px; }
+}
+body.modo-leitura .ck-barra-fixa{ display:none; }
+@media print{ .ck-barra-fixa{ display:none !important; } }
