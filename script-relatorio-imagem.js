@@ -46,8 +46,16 @@ function riDesenhar(c, d, dry){
   // cabeçalho
   riTexto(c, 'BLASTHOLE MANAGER · RELATÓRIO DO REALCE', RI_M, y + 10, { tam:13, peso:'700', cor:RI.mut, espaco:2 });
   riTexto(c, d.nome, RI_M, y + 54, { tam:40, peso:'700' });
-  let tx = RI_M; const tags = [d.nivel, d.orientacao].filter(Boolean);
-  tags.forEach(t=>{ c.font = `400 15px ${RI_FONTE}`; const w = c.measureText(t).width + 24; if(!dry) riRect(c, tx, y + 68, w, 30, 15, null, RI.line); riTexto(c, t, tx + 12, y + 89, { tam:15 }); tx += w + 8; });
+  let tx = RI_M; const tags = [d.nivel, d.orientacao].concat((d.locais || []).map(l=> 'Local: ' + l)).filter(Boolean);
+  for(let i = 0; i < tags.length; i++){
+    let t = tags[i]; c.font = `400 15px ${RI_FONTE}`; let w = c.measureText(t).width + 24;
+    if(tx + w > RI_W - RI_M){ // não cabe na linha: mostra quantos ficaram de fora
+      t = `+${tags.length - i}`; w = c.measureText(t).width + 24;
+      if(tx + w > RI_W - RI_M) break;
+      if(!dry) riRect(c, tx, y + 68, w, 30, 15, null, RI.line); riTexto(c, t, tx + 12, y + 89, { tam:15 }); break;
+    }
+    if(!dry) riRect(c, tx, y + 68, w, 30, 15, null, RI.line); riTexto(c, t, tx + 12, y + 89, { tam:15 }); tx += w + 8;
+  }
   riTexto(c, d.dataTxt, RI_W - RI_M, y + 12, { tam:15, cor:RI.mut, alinhar:'right' });
   riTexto(c, d.horaTxt, RI_W - RI_M, y + 34, { tam:16, peso:'700', alinhar:'right' });
   if(d.turno) riTexto(c, d.turno, RI_W - RI_M, y + 56, { tam:15, cor:RI.mut, alinhar:'right' });
@@ -171,7 +179,8 @@ async function riMontarDados(anelId, simples){
   const fotos = []; const MAXF = 12;
   if(!simples) for(const it of fotosLista.slice(0, MAXF)) fotos.push({ codigo: it.codigo, nota: it.nota, img: await riCarregarFoto(it.f) });
   const agora = new Date(), tot = todos.length;
-  return { nome: anel.nome, nivel: anel.nivel || '', orientacao: anel.orientacao === 'ascendente' ? '↑ Ascendente' : anel.orientacao === 'descendente' ? '↓ Descendente' : '',
+  const locais = [...new Set(itens.map(c=>(c.localizacao || '').trim()).filter(Boolean))];
+  return { nome: anel.nome, nivel: anel.nivel || '', locais, orientacao: anel.orientacao === 'ascendente' ? '↑ Ascendente' : anel.orientacao === 'descendente' ? '↓ Descendente' : '',
     dataTxt: agora.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }), horaTxt: agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
     turno: (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `Turno ${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`.trim() : '',
     perf, topo, total: tot, pPerf: tot ? Math.round(perf / tot * 100) : 0, pTopo: tot ? Math.round(topo / tot * 100) : 0,
