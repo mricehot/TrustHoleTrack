@@ -2381,3 +2381,9 @@ body.dark-mode .inicio-recado small{ color:var(--muted); }
 .ck-cab:has(.ck-obstr) .ck-prog-linha .num{ width:30px; }
 .ck-cab:has(.ck-obstr) .ck-prog-linha .num{ width:auto; min-width:28px; }
 .ck-cab:has(.ck-obstr) .ck-obstr{ padding:2px 5px; }
+
+/* Seletor do dia do lançamento de produtividade */
+.equipe-dia-lanc{ display:flex; align-items:center; gap:10px; margin:10px 0; flex-wrap:wrap; }
+.equipe-dia-lanc label{ font-size:13px; font-weight:700; color:var(--muted); }
+.equipe-dia-lanc select{ min-height:44px; min-width:160px; font-weight:600; }
+.equipe-dia-lanc select.outro-dia{ border-color:#e0a21b; background:rgba(224,162,27,.12); }

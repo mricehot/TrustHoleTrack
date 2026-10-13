@@ -681,12 +681,36 @@ function somaDaSemanaSelecionada(equipeId){
   const { inicio, fim } = intervaloSemanaInfografico();
   return somaLancamentos(equipeId, dataISOLocal(inicio), dataISOLocal(fim));
 }
-// Data em que um novo lançamento é gravado: hoje, se a semana mostrada é a atual;
-// senão o último dia (domingo) da semana que está na tela.
+// Dia escolhido no seletor "Lançar no dia" ('' = automático: hoje, ou o último dia da semana se ela já passou).
+let infoDiaLancamento = '';
+const NOMES_DIAS_CURTOS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function diasLancaveisSemana(){
+  const { inicio } = intervaloSemanaInfografico();
+  const hoje = dataISOLocal(new Date()), dias = [];
+  for(let i = 0; i < 7; i++){
+    const d = new Date(inicio); d.setDate(d.getDate() + i);
+    const iso = dataISOLocal(d);
+    if(iso <= hoje) dias.push({ iso, rot: `${NOMES_DIAS_CURTOS[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}${iso === hoje ? ' (hoje)' : ''}` });
+  }
+  return dias;
+}
+// Data em que um novo lançamento é gravado: o dia escolhido; sem escolha, hoje (semana atual)
+// ou o último dia (domingo) da semana que está na tela.
 function dataLancamentoAtual(){
   const { inicio, fim } = intervaloSemanaInfografico();
   const hoje = dataISOLocal(new Date());
+  if(infoDiaLancamento && diasLancaveisSemana().some(d=>d.iso === infoDiaLancamento)) return infoDiaLancamento;
   return (hoje >= dataISOLocal(inicio) && hoje <= dataISOLocal(fim)) ? hoje : dataISOLocal(fim);
+}
+function renderSeletorDiaLancamento(){
+  const sel = el('infografico-dia-lanc'); if(!sel) return;
+  const dias = diasLancaveisSemana();
+  if(!dias.length){ sel.innerHTML = ''; return; }
+  const atual = dataLancamentoAtual();
+  const hoje = dataISOLocal(new Date());
+  // semana passada sem escolha: o padrão antigo (último dia) pode ser domingo; garante que exista na lista
+  sel.innerHTML = dias.map(d=>`<option value="${d.iso}" ${d.iso === atual ? 'selected' : ''}>${d.rot}</option>`).join('');
+  sel.classList.toggle('outro-dia', atual !== hoje);
 }
 // Cada lançamento fica com a DATA — é isso que alimenta o gráfico diário do infográfico.
 function registrarLancamento(equipeId, metros, pontos){
@@ -727,7 +751,8 @@ function somarProdutividade(equipeId, campo, valorTexto){
   const eq = equipes.find(e=>e.id===equipeId);
   const unidade = campo === 'metros' ? 'm' : (add === 1 ? 'ponto' : 'pontos');
   const fmtV = v => String(v).replace('.', ',');
-  showToast(`+${fmtV(add)} ${unidade} em ${eq ? eq.nome : 'equipe'} (total da semana ${fmtV(total)})`, {
+  const dd = l.data.split('-'); const diaTxt = l.data === dataISOLocal(new Date()) ? '' : ` no dia ${dd[2]}/${dd[1]}`;
+  showToast(`+${fmtV(add)} ${unidade} em ${eq ? eq.nome : 'equipe'}${diaTxt} (total da semana ${fmtV(total)})`, {
     acaoLabel: 'Desfazer',
     onAcao: ()=>{ desfazerLancamento(l.id); renderProdutividadeEquipes(); }
   });
@@ -738,6 +763,7 @@ function somarDoCampo(botao){
 }
 function mudarSemanaInfografico(delta){
   infoSemanaOffset = Math.min(0, infoSemanaOffset + delta); // não deixa ir pro futuro
+  infoDiaLancamento = ''; // o dia escolhido vale só para a semana em que foi escolhido
   renderInfografico();
 }
 const fmtPontos = n => n + (n === 1 ? ' ponto' : ' pontos');
@@ -818,6 +844,7 @@ function renderProdutividadeEquipes(){
   const f2 = d => String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
   el('infografico-semana-label').textContent = (infoSemanaOffset === 0 ? 'Esta semana' : infoSemanaOffset === -1 ? 'Semana passada' : `${-infoSemanaOffset} semanas atrás`) + ` · ${f2(inicio)} a ${f2(fim)}`;
   el('infografico-semana-prox').disabled = infoSemanaOffset >= 0;
+  renderSeletorDiaLancamento();
   const lista = equipesDoProjeto();
   if(lista.length === 0){ box.innerHTML = htmlSemEquipes(); atualizarBarrasEResumoProdutividade(); return; }
   const valorInput = v => (v == null || v === 0) ? '' : String(v).replace('.', ',');
