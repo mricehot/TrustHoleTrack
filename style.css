@@ -2467,3 +2467,9 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .ck-barra-fixa{ position:static !important; margin:8px 0 6px !important; padding:0 !important; background:none !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; gap:8px; }
 .ck-barra-fixa button{ min-height:44px; flex-direction:row; gap:8px; }
 @media (max-width:480px){ .ck-barra-fixa{ margin-right:0 !important; bottom:auto !important; } }
+
+/* botão "status de todos os realces" */
+.ckp-acoes{ grid-column:1 / -1; display:flex; }
+.btn-status-todos{ min-height:44px; }
+.anel-todos{ margin:0 0 10px; display:flex; }
+.anel-todos .btn-status-todos{ flex:1; }

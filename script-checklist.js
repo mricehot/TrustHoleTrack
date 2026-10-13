@@ -1019,14 +1019,16 @@ el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTur
 
 // Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
 function abrirWhatsApp(url){ const w = window.open(url, '_blank'); if(!w) location.href = url; }
+// Status de todos os realces do projeto (os não ocultos), direto, sem escolher
+function enviarStatusTodosRealces(){
+  const ids = aneisNoEscopoAtual().filter(a=>!a.ocultoWhatsapp && checklistDoAnel(a.id).length).map(a=>a.id);
+  if(!ids.length){ showToast('Nenhum realce com checklist para enviar.', { tipo:'aviso' }); return; }
+  enviarRelatorioWhatsApp(ids);
+}
 async function enviarRelatorioWhatsApp(idsRealces){
-  if(!configApp.whatsapp){
-    showToast('Cadastre um número de WhatsApp em Config antes de enviar.');
-    return;
-  }
   await fotosEmDiaParaRelatorio();
   const mensagem = montarRelatorioChecklistParaWhatsApp(idsRealces);
-  const url = `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}`;
+  const url = configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}` : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
   abrirWhatsApp(url);
 }
 
