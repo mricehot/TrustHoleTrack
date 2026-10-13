@@ -37,7 +37,34 @@ async function lerLinhasPdf(buffer){
 const numPdf = t => parseFloat(String(t).replace(/\./g, m=>'.').replace(',', '.'));
 // Interpreta as linhas. Aceita: uma linha por leque ("LQ01  8  45,5" ou com uma metragem por furo)
 // e uma linha por furo ("LQ01  F3  45,5"). Tudo vai para a conferência, nada é gravado aqui.
+// Layout de projeto real: uma página por leque ("Leque  SL1  RING ...", "N° Furos  15") e uma tabela
+// "Furo  Diam  Comp. (m)  Inclinação ...". A metragem esperada é a coluna Comp. (m).
+function interpretarProjetoPorLeque(linhas){
+  const reCab = /^\s*Leque\s+(LQ|SL|FL|CR|INV|AUX)\s*[-_.]?\s*0*(\d+)\b/i;
+  const reFuro = /^\s*(\d{1,3})\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d+)(?=\s|$)/;
+  const tipoDe = pref => Object.keys(PREFIXO).find(t=> PREFIXO[t].toLowerCase() === pref.toLowerCase());
+  const itens = []; let atual = null, ultimo = 0;
+  linhas.forEach(linha=>{
+    const c = linha.match(reCab);
+    if(c){
+      const tipo = tipoDe(c[1]); atual = null;
+      if(tipo){ atual = { tipo, numero: normalizarNumero(String(parseInt(c[2], 10))), furos: [], aviso: '', esperado: 0, origem: linha.trim() }; itens.push(atual); ultimo = 0; }
+      return;
+    }
+    if(!atual) return;
+    const q = linha.match(/N[°ºo]?\s*Furos\s+(\d+)/i); if(q){ atual.esperado = parseInt(q[1], 10); return; }
+    const f = linha.match(reFuro); if(!f) return;
+    const n = parseInt(f[1], 10), metros = numPdf(f[3]);
+    if(n <= ultimo || !(metros > 0)) return; // ruído (totais, escala, cabeçalhos)
+    ultimo = n; atual.furos.push({ numero: normalizarNumero(String(n)), metros });
+  });
+  const ok = itens.filter(i=>i.furos.length);
+  ok.forEach(i=>{ if(i.esperado && i.esperado !== i.furos.length) i.aviso = `o projeto diz ${i.esperado} furos, li ${i.furos.length}: confira`; });
+  return ok;
+}
 function interpretarLinhasPlano(linhas){
+  const real = interpretarProjetoPorLeque(linhas);
+  if(real.length) return real;
   const mapa = new Map(); // "LQ|01" -> item
   const pega = (tipo, numero, linha)=>{
     const k = tipo + '|' + numero;
