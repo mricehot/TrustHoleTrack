@@ -855,7 +855,7 @@ function montarResumoTurnoWhatsApp(){
     '',
     `*RESUMO DAS ATIVIDADES:*`,
     '',
-    bloco('✅', 'Perfilagem', perfDia, '❌') + (mReal ? `\nMetragem do dia: ${num(mReal)} m${mEsp ? ' de ' + num(mEsp) + ' m esperados' : ''}` : ''),
+    bloco('✅', 'Perfilagem', perfDia, '❌'),
     '',
     bloco('✅', 'Levantamento Topográfico', topoDia, '❌') + (topoDia.length ? '' : ':'),
     '',
@@ -872,6 +872,8 @@ function montarResumoTurnoWhatsApp(){
     `*PERFILADOS.:*${perfilados.length ? ' ' + perfilados.join(' | ') : ''}`,
     linhaSep,
     `*Status:*  ${status}`,
+    linhaSep,
+    `*Metragem perfilada*: ${mReal ? num(mReal) + ' m' + (mEsp ? ' de ' + num(mEsp) + ' m esperados' : '') : '-'}`,
     linhaSep,
     `*OBSERVAÇÕES*: ${obsTxt}`
   ];
