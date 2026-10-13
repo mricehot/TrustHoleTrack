@@ -178,12 +178,13 @@ function htmlCardChecklist(c, agrupado){
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
-                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}${f.obstruido && f.obstruidoMotivo ? `<small class="ck-motivo">${escHtml(f.obstruidoMotivo)}</small>` : ''}${htmlMetragemFuroChecklist(f)}</td>
+                  <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}${f.obstruido && f.obstruidoMotivo ? `<small class="ck-motivo">${escHtml(f.obstruidoMotivo)}</small>` : ''}</td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
                   <td><input type="checkbox" class="chk-obstruido" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="furo obstruído (rocha ou tela)" aria-label="F${f.numero} obstruído"></td>
                   <td class="ck-acoes-furo"><button type="button" class="icon icon-foto ${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'tem' : ''}" onclick="${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'verFotoFuro' : 'tirarFotoFuro'}('${f.id}')" title="${fotosPendentes.has(f.id) ? 'foto guardada no aparelho, aguardando sinal' : f.fotoUrl ? 'ver foto do furo' : 'tirar foto do furo'}" aria-label="foto de F${f.numero}">${fotosPendentes.has(f.id) ? '⏳' : '📷'}</button><button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
+                ${(()=>{ const m = htmlMetragemFuroChecklist(f); return m ? `<tr class="ck-furo-met"><td colspan="5">${m}</td></tr>` : ''; })()}
                 ${(f.id === motivoPendenteId && f.obstruido && !f.obstruidoMotivo) ? `<tr class="ck-furo-motivo"><td colspan="5"><span>Motivo da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : ''}
                 ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
                 ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
@@ -1875,7 +1876,7 @@ function toggleChecklistFuro(id){
 }
 // Ao marcar perfilado: pergunta a metragem real. O furo já ficou marcado; "Pular" não muda nada.
 function pedirMetragemFuro(id){
-  const f = checklistFuros.find(x=>x.id===id); if(!f || !f.perfilado) return;
+  const f = checklistFuros.find(x=>x.id===id); if(!f || !(f.perfilado || f.obstruido)) return;
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0;
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
@@ -2195,11 +2196,11 @@ function htmlMetragemFuroChecklist(f){
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0, real = Number(f.metragem) > 0 ? Number(f.metragem) : 0;
   if(!esp && !real && !(f.perfilado || f.obstruido)) return '';
   const falta = metragemAMenos(real, esp);
-  const dif = esp && real ? real - esp : 0;
-  const campo = (f.perfilado || f.obstruido)
-    ? `<input type="text" inputmode="decimal" enterkeyhint="done" maxlength="6" class="ck-met ${falta ? 'a-menos' : ''}" value="${real ? fmtMetCk(real) : ''}" placeholder="real m" onchange="definirMetragemFuroChecklist('${f.id}', this.value)" aria-label="F${escHtml(String(f.numero))} metragem real em metros">`
+  const espTxt = esp ? `<span class="ck-esp">esp. ${fmtMetCk(esp)} m</span>` : '';
+  const realTxt = (f.perfilado || f.obstruido)
+    ? `<button type="button" class="ck-real ${falta ? 'a-menos' : ''} ${real ? '' : 'vazio'}" onclick="pedirMetragemFuro('${f.id}')" aria-label="F${escHtml(String(f.numero))} metragem real: toque para informar">${real ? 'real ' + fmtMetCk(real) + ' m' : '+ real'}</button>`
     : '';
-  return `<small class="ck-esp">${esp ? 'esp. ' + fmtMetCk(esp) + ' m' : 'sem metragem esperada'}${falta ? ` <b class="ck-menos">${fmtMetCk(dif)} m</b>` : ''}</small>${campo}`;
+  return `<div class="ck-met-linha">${espTxt}${realTxt}</div>`;
 }
 function definirMetragemFuroChecklist(id, texto){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;

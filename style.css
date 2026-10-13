@@ -2441,8 +2441,17 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 /* plano no formulário de novo realce */
 .anel-plano-lbl{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:10px 12px;border:1px solid var(--line,#3a4452);border-radius:10px;font-size:.85rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* profundidade do furo no checklist */
-.ck-esp{display:block;font-family:var(--mono);font-size:.7rem;opacity:.75;margin-top:2px}
-.ck-menos{color:#b3261e}
-.ck-met{display:block;width:5.2em;min-height:36px;margin-top:3px;padding:2px 6px;font-size:.9rem;font-family:var(--mono);border-radius:8px}
-.ck-met.a-menos{border-color:#b3261e}
+/* profundidade do furo no checklist: uma linha curta sob o número do furo */
+.ck-met-linha{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:3px;text-decoration:none}
+.ck-met-linha, .ck-met-linha *{text-decoration:none !important}
+.ck-esp{font-family:var(--mono);font-size:.72rem;opacity:.8;white-space:nowrap}
+.ck-real{font-family:var(--mono);font-size:.78rem;font-weight:700;padding:0 8px;min-height:30px;min-width:44px;border-radius:8px;border:1px solid var(--line,#9aa3ad);background:transparent;color:inherit;white-space:nowrap}
+.ck-real.vazio{border-style:dashed;opacity:.8;font-weight:600}
+.ck-real.a-menos{border-color:#b3261e;color:#b3261e}
+
+.ck-furo-met td{padding:0 6px 6px !important;border-top:0 !important;text-decoration:none}
+.ck-furo-met .ck-met-linha{margin-top:0;gap:8px 12px}
+.ck-furo-met td{padding:0 8px 2px !important;height:auto !important;line-height:1.1}
+.ck-furo-met .ck-real{min-height:26px;padding:0 8px}
+.ck-furo-met .ck-esp{font-size:.7rem}
+.ck-furo-met td{padding:4px 8px 4px !important}
