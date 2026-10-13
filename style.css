@@ -2437,3 +2437,6 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .imp-tab input[type=text]{ width:100%; min-height:44px; }
 .imp-tab .imp-qtd{ width:60px; } .imp-tab .imp-met{ min-width:150px; } .imp-tab tr.ja{ opacity:.55; }
 .imp-ja{ display:block; color:var(--muted); font-size:11px; } .imp-av td{ color:#8a5a00; font-size:12px; border-top:0; padding-bottom:6px; }
+
+/* plano no formulário de novo realce */
+.anel-plano-lbl{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:10px 12px;border:1px solid var(--line,#3a4452);border-radius:10px;font-size:.85rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

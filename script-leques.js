@@ -107,6 +107,7 @@ function renderAneisMenu(){
         <button class="ghost anel-wa" onclick="enviarImagemRealce('${a.id}')" title="relatório deste realce como imagem (para o WhatsApp)">🖼 Imagem</button>
         ${checklistFuros.some(f=> (f.fotoUrl || (typeof fotosPendentes !== 'undefined' && fotosPendentes.has(f.id))) && itensA.some(c=>c.id===f.checklistLequeId)) ? `<button class="ghost anel-wa" onclick="enviarFotosWhatsApp(checklistDoAnel('${a.id}').map(c=>c.id))" title="enviar as fotos dos furos deste realce (como imagens)">📷 Fotos</button>` : ''}
         ${a.planoPath ? `<button class="ghost anel-wa" onclick="abrirPlano('${a.id}')" title="abrir o PDF do plano de perfuração (fica guardado no aparelho para abrir sem internet)">📄 Plano</button>` : ''}
+        ${a.planoPath ? `<button class="ghost anel-wa so-gestor" onclick="criarLequesDoPlano('${a.id}')" title="lê o plano anexado e cria os leques e furos no checklist, com tela de conferência">🧩 Criar leques do plano</button>` : ''}
         <button class="ghost anel-wa so-gestor" onclick="menuPlano('${a.id}')" title="${a.planoPath ? 'trocar ou remover o PDF do plano de perfuração' : 'anexar o PDF do plano de perfuração a este realce'}">${a.planoPath ? '📎 Gerenciar plano' : '📎 Anexar plano'}</button>
         ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
         <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
@@ -318,10 +319,20 @@ function criarAnel(){
   gravarRealceAtivoDoUsuario(novoId);
   campoNome.value = '';
   el('anel-nivel').value = '';
+  const arqPlano = el('anel-plano') && el('anel-plano').files && el('anel-plano').files[0];
+  if(el('anel-plano')){ el('anel-plano').value = ''; if(el('anel-plano-nome')) el('anel-plano-nome').textContent = 'Anexar plano (PDF)'; }
   salvarLocal();
   renderAll();
   showToast('Realce criado e definido como seu realce ativo.');
   mostrarView('perfilagem');
+  // com o PDF do plano escolhido: anexa e já abre a conferência dos leques/furos
+  if(arqPlano){
+    const novo = aneis.find(x=>x.id === novoId);
+    enviarPlano(novo, arqPlano, true).then(ok=>{
+      if(!ok) showToast('Realce criado, mas o plano não foi anexado. Use "Anexar plano" no realce quando tiver sinal.', { tipo:'aviso' });
+      importarPdfArquivo(arqPlano, novoId); // a leitura do PDF é local: funciona mesmo se o envio falhou
+    });
+  }
 }
 el('btn-criar-anel').addEventListener('click', criarAnel);
 el('anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); criarAnel(); } });

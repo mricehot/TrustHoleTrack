@@ -126,19 +126,37 @@ function abrirImportarPdf(){
   inp.onchange = ()=>{ if(inp.files && inp.files[0]) importarPdfArquivo(inp.files[0]); };
   inp.click();
 }
+// Botão "Criar leques do plano" no realce: usa o PDF já anexado (do aparelho ou do servidor).
+async function criarLequesDoPlano(anelId){
+  if(!exigirGestor('criar leques a partir do plano')) return;
+  const a = aneis.find(x=>x.id === anelId);
+  if(!a || !a.planoPath){ showToast('Anexe o plano de perfuração a este realce primeiro.', { tipo:'aviso' }); return; }
+  try{ const blob = await obterPlano(a); await importarPdfArquivo(blob, a.id); }catch(e){ showToast(e.message || 'Não consegui abrir o plano.', { erro:true }); }
+}
+// Logo depois de anexar um plano: pergunta se já quer ler e criar os leques (só abre a conferência).
+function sugerirCriarLeques(anelId, arq){
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;margin:0 0 6px;">Plano anexado</p>
+    <p class="hint" style="margin:0 0 12px;">Quer que eu leia o PDF e monte os leques e furos deste realce? Você confere tudo antes de gravar.</p>
+    <div class="modal-actions"><button type="button" class="steel" id="sg-ler">🧩 Criar leques do plano</button><button type="button" class="ghost" id="sg-x">Agora não</button></div></div></div>`;
+  el('sg-x').onclick = ()=>{ root.innerHTML = ''; };
+  el('sg-ler').onclick = ()=>{ root.innerHTML = ''; importarPdfArquivo(arq, anelId); };
+}
 async function importarPlanoAnexado(){
   const a = aneis.find(x=>x.id === anelAtivoId);
   if(!a || !a.planoPath){ showToast('Este realce não tem plano anexado.', { tipo:'aviso' }); return; }
   try{ const blob = await obterPlano(a); await importarPdfArquivo(blob); }catch(e){ showToast(e.message || 'Não consegui abrir o plano.', { erro:true }); }
 }
-async function importarPdfArquivo(arq){
+async function importarPdfArquivo(arq, anelId){
+  anelId = anelId || anelAtivoId;
   showToast('Lendo o PDF…', { erro:false });
   let linhas;
   try{ linhas = await lerLinhasPdf(await arq.arrayBuffer()); }
   catch(e){ showToast('Não consegui ler o PDF: ' + (e && e.message ? e.message : 'tente de novo') + '. Precisa de internet para abrir o leitor na primeira vez.', { erro:true }); return; }
   const itens = interpretarLinhasPlano(linhas);
   if(!itens.length){ showToast(linhas.length ? 'Não encontrei leques nesse PDF (procurei linhas como "LQ01 … 8 … 45,5"). Se for um PDF escaneado ou só desenho, a leitura automática não funciona.' : 'O PDF não tem texto para ler (parece escaneado).', { erro:true }); return; }
-  importacaoPdf = { itens, anelId: anelAtivoId };
+  importacaoPdf = { itens, anelId };
   mostrarConferenciaPdf();
 }
 const fmtMetrosPdf = n => String(n).replace('.', ',');
@@ -205,5 +223,11 @@ function confirmarImportacaoPdf(){
   inserirLequesEFuros(regsLeques, regsFuros);
   salvarChecklistLocal(); salvarChecklistFurosLocal(); renderChecklist();
   el('modal-root').innerHTML = ''; importacaoPdf = null;
+  if(anelId !== anelAtivoId){ anelAtivoId = anelId; salvarLocal(); }
+  try{ mostrarView('checklist'); renderAll(); }catch(e){}
   showToast(`${nL} leque(s) e ${nF} furo(s) importado(s) do PDF.${pulados ? ' (' + pulados + ' já existiam)' : ''}`, { tipo:'ok' });
 }
+// nome do arquivo escolhido no formulário de novo realce
+document.addEventListener('change', e=>{
+  if(e.target && e.target.id === 'anel-plano'){ const f = e.target.files && e.target.files[0]; const n = el('anel-plano-nome'); if(n) n.textContent = f ? '📎 ' + f.name : 'Anexar plano (PDF)'; }
+});

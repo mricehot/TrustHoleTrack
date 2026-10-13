@@ -66,26 +66,33 @@ async function abrirPlano(anelId){
 }
 
 // ----- anexar / trocar / remover (só gestor) -----
+// Envia o PDF e grava no realce. Devolve true se anexou. A empresa vem do próprio realce ou de qualquer
+// outro já sincronizado (é a mesma empresa), assim dá para anexar logo ao criar o realce.
+async function enviarPlano(a, arq, silencioso){
+  if(!/pdf$/i.test(arq.type) && !/\.pdf$/i.test(arq.name)){ showToast('O arquivo precisa ser um PDF.', { tipo:'aviso' }); return false; }
+  if(arq.size > PLANO_MAX_BYTES){ showToast(`O PDF tem ${(arq.size/1048576).toFixed(1)} MB. O limite é 25 MB.`, { tipo:'aviso' }); return false; }
+  if(!navigator.onLine){ showToast('Sem sinal. Para anexar o PDF é preciso internet.', { tipo:'aviso' }); return false; }
+  const empresaId = a.empresaId || (aneis.find(x=>x.empresaId) || {}).empresaId;
+  if(!empresaId){ showToast('Sincronize o app antes de anexar (o realce ainda não foi enviado).', { tipo:'aviso' }); return false; }
+  if(!silencioso) showToast('Enviando o PDF…');
+  const caminho = `${empresaId}/${a.id}.pdf`;
+  const { error } = await db.storage.from(PLANO_BUCKET).upload(caminho, arq, { upsert:true, contentType:'application/pdf' });
+  if(error){ showToast('Não foi possível enviar o PDF: ' + error.message, { erro:true }); return false; }
+  const agora = new Date().toISOString();
+  a.planoPath = caminho; a.planoNome = arq.name; a.planoEm = agora;
+  await planoCache('put', caminho, { blob: new Blob([arq], { type:'application/pdf' }), em: agora });
+  enfileirar('aneis', 'update', { id: a.id, plano_path: caminho, plano_nome: arq.name, plano_atualizado_em: agora });
+  salvarLocal(); renderAll();
+  if(!silencioso) showToast(`Plano anexado: ${arq.name}`, { tipo:'ok' });
+  return true;
+}
 function anexarPlano(anelId){
   if(!exigirGestor('anexar o plano de perfuração')) return;
   const a = aneis.find(x=>x.id===anelId); if(!a) return;
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/pdf,.pdf';
   inp.onchange = async ()=>{
     const arq = inp.files && inp.files[0]; if(!arq) return;
-    if(!/pdf$/i.test(arq.type) && !/\.pdf$/i.test(arq.name)){ showToast('O arquivo precisa ser um PDF.', { tipo:'aviso' }); return; }
-    if(arq.size > PLANO_MAX_BYTES){ showToast(`O PDF tem ${(arq.size/1048576).toFixed(1)} MB. O limite é 25 MB.`, { tipo:'aviso' }); return; }
-    if(!navigator.onLine){ showToast('Sem sinal. Para anexar o PDF é preciso internet.', { tipo:'aviso' }); return; }
-    if(!a.empresaId){ showToast('Sincronize o app antes de anexar (o realce ainda não foi enviado).', { tipo:'aviso' }); return; }
-    showToast('Enviando o PDF…');
-    const caminho = `${a.empresaId}/${a.id}.pdf`;
-    const { error } = await db.storage.from(PLANO_BUCKET).upload(caminho, arq, { upsert:true, contentType:'application/pdf' });
-    if(error){ showToast('Não foi possível enviar o PDF: ' + error.message, { erro:true }); return; }
-    const agora = new Date().toISOString();
-    a.planoPath = caminho; a.planoNome = arq.name; a.planoEm = agora;
-    await planoCache('put', caminho, { blob: new Blob([arq], { type:'application/pdf' }), em: agora });
-    enfileirar('aneis', 'update', { id: a.id, plano_path: caminho, plano_nome: arq.name, plano_atualizado_em: agora });
-    salvarLocal(); renderAll();
-    showToast(`Plano anexado: ${arq.name}`, { tipo:'ok' });
+    if(await enviarPlano(a, arq) && typeof sugerirCriarLeques === 'function') sugerirCriarLeques(a.id, arq);
   };
   inp.click();
 }
