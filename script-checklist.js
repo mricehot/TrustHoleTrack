@@ -663,7 +663,7 @@ function montarBlocoProdutividadeMensalWhatsApp(){
 // ---------- Resumo de fim de turno (um toque) ----------
 // Junta num só texto: dados do turno, o que foi feito HOJE (por pessoa), metros das
 // equipes, situação do realce ativo (pendentes, obstruídos) e as observações do turno.
-function montarResumoTurnoWhatsApp(){
+function montarResumoTurnoDetalhadoWhatsApp(){
   const A = semAcento;
   const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
   const dia = dataBRParaISO(turnoInfo.data) || chaveDia(new Date());
@@ -763,6 +763,106 @@ function montarResumoTurnoWhatsApp(){
   const nFotos = fotosDoTurnoAtual().length;
   if(nFotos) t += `\n📷 Fotos registradas no turno: ${nFotos}\n`;
   return A(t.trim());
+}
+// ---------- Resumo do turno no padrão "STATUS TURNO PERFILAGEM LAVRA" ----------
+// Segue o modelo que a equipe manda no grupo: saudação, cabeçalho do turno, resumo das atividades
+// (o que foi feito NO DIA), pendências do realce e status. Mantém acentos (o modelo tem).
+function montarResumoTurnoWhatsApp(){
+  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
+  const dia = dataBRParaISO(turnoInfo.data) || chaveDia(new Date());
+  const [ano, mes, dd] = dia.split('-');
+  const h = new Date().getHours();
+  const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
+  const noDia = iso => iso && chaveDia(iso) === dia;
+  const linhaSep = '_______________________________';
+  const escopoAneis = aneisNoEscopoAtual(), escopo = new Set(escopoAneis.map(a=>a.id));
+  const multi = escopo.size > 1;
+  const nomeAnel = id => (aneis.find(a=>a.id === id) || {}).nome || '';
+  const sufixo = c => multi ? ` (${nomeAnel(c.anelId)})` : '';
+  const lequesEsc = checklistLeques.filter(c=>escopo.has(c.anelId));
+  const ordC = (a,b)=> (PREFIXO[a.tipo]||'').localeCompare(PREFIXO[b.tipo]||'') || (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0);
+  lequesEsc.sort(ordC);
+  // F1 a F5, F8  (intervalo só a partir de 3 seguidos)
+  const faixa = nums => {
+    const v = [...new Set(nums.map(n=>parseInt(n,10)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b), out = [];
+    for(let i = 0; i < v.length;){ let j = i; while(j + 1 < v.length && v[j+1] === v[j] + 1) j++;
+      if(j - i >= 2) out.push(`F${v[i]} a F${v[j]}`); else for(let k = i; k <= j; k++) out.push('F' + v[k]); i = j + 1; }
+    return out.join(', ');
+  };
+  // o que foi feito no dia, leque a leque
+  const feitoNoDia = (campoOk, campoEm)=> lequesEsc.map(c=>{
+    const fs = checklistFurosDoLeque(c.id).filter(f=> f[campoOk] && noDia(f[campoEm]));
+    return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ${faixa(fs.map(f=>f.numero))}` : '';
+  }).filter(Boolean);
+  const perfDia = feitoNoDia('perfilado', 'perfiladoEm'), topoDia = feitoNoDia('topografado', 'topografadoEm');
+
+  // pendências a partir dos furos da perfilagem (metragem real x esperada)
+  const lequesPerf = leques.filter(l=>escopo.has(l.anelId)).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
+  const menos = (obstruido)=> lequesPerf.map(l=>{
+    const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0 && Number(f.metragemReal) < Number(f.metragemEsperada) - 0.05);
+    if(!fs.length) return '';
+    fs.sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
+    return `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${parseInt(f.numero,10)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ');
+  }).filter(Boolean);
+  const obstruidos = lequesEsc.map(c=>{
+    const fs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
+    if(!fs.length) return '';
+    fs.sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
+    return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ` + fs.map(f=>`F${parseInt(f.numero,10)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`).join(', ');
+  }).filter(Boolean);
+
+  const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
+  const perfilados = escopoAneis.map(a=>{
+    const cods = compactarCodigosEmIntervalos(checklistDoAnel(a.id).filter(c=>c.perfilado));
+    return cods.length ? (multi ? `${a.nome}: ` : '') + cods.join(', ') : '';
+  }).filter(Boolean);
+
+  // status geral
+  const todosFuros = lequesEsc.flatMap(c=>checklistFurosDoLeque(c.id));
+  const concluido = lequesEsc.length > 0 && todosFuros.length > 0 && todosFuros.every(f=> f.obstruido || (f.perfilado && f.topografado));
+  const status = !lequesEsc.length ? 'Sem checklist' : concluido ? 'Concluído' : 'Em andamento';
+
+  const turnoTxt = (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `${turnoInfo.turnoNumero || ''}°TURNO${turnoInfo.turnoLetra ? ' - ' + turnoInfo.turnoLetra : ''}` : 'TURNO';
+  const obs = observacoesDoTurnoAtual().map(o=>o.texto);
+  if(turnoInfo.dds && !obs.length) obs.push(`DDS: ${turnoInfo.dds}`);
+
+  const t = [
+    `Prezados, ${saud}.`,
+    linhaSep,
+    `*STATUS TURNO PERFILAGEM LAVRA*`,
+    `*${turnoTxt}*`,
+    `*Data* ${dd}/${mes}/${ano}`,
+    `*TÉCNICOS* : ${turnoInfo.tecnicos || '-'}`,
+    `*Supervisor*: ${turnoInfo.supervisor || '-'}`,
+    `*PROJETO: ${turnoInfo.projeto || '-'}*`,
+    `*LOCAL: ${turnoInfo.local || escopoAneis.map(a=>a.nome).join(', ') || '-'}*`,
+    linhaSep,
+    '',
+    `*RESUMO DAS ATIVIDADES:*`,
+    '',
+    bloco('✅', 'Perfilagem', perfDia, '❌'),
+    '',
+    bloco('✅', 'Levantamento Topográfico', topoDia, '❌') + (topoDia.length ? '' : ':'),
+    '',
+    `❌ *Azimute*`,
+    '',
+    `⚠️ *Não Perfurados*`,
+    '',
+    bloco('⚠️', 'Perfuração a menos', menos(false)),
+    '',
+    bloco('⚠️', 'Obstruídos', obstruidos).replace('*Obstruídos*', '*Obstruídos* ( rocha/tela )'),
+    '',
+    bloco('⚠️', 'Obstruídos metragem a menos', menos(true)),
+    '',
+    `*PERFILADOS.:*${perfilados.length ? ' ' + perfilados.join(' | ') : ''}`,
+    linhaSep,
+    `*Status:*  ${status}`,
+    linhaSep,
+    `*OBSERVAÇÕES*: ${obs.length ? obs.join(' ') : ''}`
+  ];
+  const nFotos = fotosDoTurnoAtual().length;
+  if(nFotos) t.push('', `📷 Fotos registradas no turno: ${nFotos}`);
+  return t.join('\n');
 }
 function renderResumoTurno(){
   renderPainelTurno(); atualizarContagensTurno(); aplicarSecoesTurno();
