@@ -283,12 +283,7 @@ function cartaoResumoSemanalHTML(r){
       ${x.finalizados.length ? linha('Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
       ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
       ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
-      ${x.problemas.length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed ${cor.lin};"><div style="font-weight:700;font-size:12.5px;color:#d6453d;">⚠ Obstruções e problemas</div>` + x.problemas.map(p => `
-        <div style="margin-top:6px;padding:6px 10px;border-left:4px solid ${p.alto ? '#d6453d' : '#e0a25a'};background:${p.alto ? '#fdeeed' : '#fff7ec'};border-radius:4px;font-size:12.5px;">
-          <b>${p.rotulo}</b>${p.alto ? ` <span style="color:#d6453d;font-weight:700;">· ${p.obstruidos.length} de ${p.total} furos obstruídos — verificar a região</span>` : ''}
-          ${p.obstruidos.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> obstruído${f.motivo ? ' (' + e2(f.motivo) + ')' : ''}${f.eq ? ' · ' + e2(f.eq) : ''}${f.foto ? ' · 📷 foto' : ''}${f.nota ? '<br><i style="color:' + cor.txt + '">“' + e2(f.nota) + '”</i>' : ''}</div>`).join('')}
-          ${p.notas.map(f => `<div style="color:${cor.mut};margin-top:2px;"><b style="color:${cor.txt}">F${f.n}</b> nota: <i style="color:${cor.txt}">“${e2(f.texto)}”</i>${f.foto ? ' · 📷 foto' : ''}</div>`).join('')}
-          ${p.obsLeque ? `<div style="color:${cor.mut};margin-top:2px;">Obs do leque: <i style="color:${cor.txt}">“${e2(p.obsLeque)}”</i></div>` : ''}</div>`).join('') + '</div>' : ''}</div>`;
+      ${x.problemas.some(p => p.obstruidos.length) ? `<div style="margin-top:8px;font-size:11px;color:${cor.mut};">Obstruídos: ` + x.problemas.filter(p => p.obstruidos.length).map(p => p.alto ? `<b style="color:#d6453d;">${p.rotulo} (${p.obstruidos.length}/${p.total})</b>` : `${p.rotulo} (${p.obstruidos.length})`).join(' · ') + '</div>' : ''}</div>`;
   }).join('') : '';
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
