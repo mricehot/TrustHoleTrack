@@ -1,7 +1,7 @@
 /* ================= Relatório do realce em IMAGEM (para o WhatsApp) ================= */
 // Desenha o relatório num <canvas> (sem bibliotecas externas, funciona sem sinal) e abre o compartilhamento
 // do celular com a imagem. Em navegador sem compartilhamento de arquivos, baixa o PNG.
-const RI = { bg:'#10151c', card:'#18202b', line:'#273241', txt:'#e8edf3', mut:'#8f9db0', ok:'#35b36a', per:'#4caf6d', top:'#4a90d9', obs:'#e5534b', and:'#e0a21b', nada:'#2b3645' };
+const RI = { bg:'#10151c', card:'#18202b', line:'#273241', txt:'#e8edf3', mut:'#8f9db0', ok:'#35b36a', per:'#4caf6d', sp:'#f5a524', top:'#4a90d9', obs:'#e5534b', and:'#e0a21b', nada:'#2b3645' };
 const RI_FONTE = '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const RI_W = 720, RI_M = 28;
 
@@ -89,7 +89,7 @@ function riDesenhar(c, d, dry){
         if(f.estado === 'obs') riRect(c, cx, cy, cel, cel, 6, RI.obs);
         else if(f.estado === 'ok') riRect(c, cx, cy, cel, cel, 6, RI.ok);
         else if(f.estado === 'p' || f.estado === 't'){ riRect(c, cx, cy, cel, cel, 6, RI.nada); c.save(); c.beginPath(); c.roundRect(cx, cy, cel, cel, 6); c.clip();
-          c.fillStyle = f.estado === 'p' ? RI.per : RI.top; c.beginPath();
+          c.fillStyle = f.estado === 'p' ? RI.sp : RI.top; c.beginPath();
           if(f.estado === 'p'){ c.moveTo(cx, cy); c.lineTo(cx + cel, cy); c.lineTo(cx, cy + cel); } else { c.moveTo(cx + cel, cy); c.lineTo(cx + cel, cy + cel); c.lineTo(cx, cy + cel); }
           c.closePath(); c.fill(); c.restore(); }
         else riRect(c, cx, cy, cel, cel, 6, RI.nada);
@@ -100,8 +100,13 @@ function riDesenhar(c, d, dry){
     y += h + 10;
   });
   // legenda
-  if(!dry){ let lx = RI_M; [[RI.ok,'perfilado + topografado'],[RI.per,'só perfilado'],[RI.top,'só topografado'],[RI.obs,'obstruído'],[RI.nada,'pendente']].forEach(([cor, t])=>{
-    riRect(c, lx, y + 2, 14, 14, 4, cor); c.font = `400 14px ${RI_FONTE}`; riTexto(c, t, lx + 20, y + 14, { tam:14, cor:RI.mut }); lx += 20 + c.measureText(t).width + 16; }); }
+  if(!dry){ let lx = RI_M; [['ok','perfilado + topografado'],['p','só perfilado'],['t','só topografado'],['obs','obstruído'],['n','pendente']].forEach(([est, t])=>{
+    const cx = lx, cy = y + 2, w = 14;
+    if(est === 'ok') riRect(c, cx, cy, w, w, 4, RI.ok); else if(est === 'obs') riRect(c, cx, cy, w, w, 4, RI.obs); else riRect(c, cx, cy, w, w, 4, RI.nada);
+    if(est === 'p' || est === 't'){ c.save(); c.beginPath(); c.roundRect(cx, cy, w, w, 4); c.clip(); c.fillStyle = est === 'p' ? RI.sp : RI.top; c.beginPath();
+      if(est === 'p'){ c.moveTo(cx, cy); c.lineTo(cx + w, cy); c.lineTo(cx, cy + w); } else { c.moveTo(cx + w, cy); c.lineTo(cx + w, cy + w); c.lineTo(cx, cy + w); }
+      c.closePath(); c.fill(); c.restore(); }
+    c.font = `400 14px ${RI_FONTE}`; riTexto(c, t, lx + 20, y + 14, { tam:14, cor:RI.mut }); lx += 20 + c.measureText(t).width + 16; }); }
   y += 24;
   // seções de texto
   const caixa = (titulo, linhasTxt, corDestaque)=>{
