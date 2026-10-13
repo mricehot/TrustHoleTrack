@@ -799,13 +799,13 @@ function montarResumoTurnoWhatsApp(){
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
   const txtMet = f => `F${nf(f)} (${num(f.metragem)}/${num(f.metragemEsperada)} m)`;
-  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido || f.perfilado) && Number(f.metragemEsperada) > 0 && Number(f.metragem) > 0 && Number(f.metragem) < Number(f.metragemEsperada) - 0.05).sort((a,b)=>nf(a)-nf(b));
+  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido || f.perfilado) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
     const doCk = lequesEsc.map(c=>{ const fs = aMenosCk(c, obstruido); return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ` + fs.map(txtMet).join(', ') : ''; }).filter(Boolean);
     const daPerf = lequesPerf.map(l=>{
-      const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && Number(f.metragemEsperada) > 0 && Number(f.metragemReal) > 0 && Number(f.metragemReal) < Number(f.metragemEsperada) - 0.05).sort((a,b)=>nf(a)-nf(b));
+      const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && metragemAMenos(f.metragemReal, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
       return fs.length ? `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${nf(f)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ') : '';
     }).filter(Boolean);
     return doCk.concat(daPerf);
@@ -2192,11 +2192,14 @@ function aplicarFaixa(lequeId, tipo, alvo){
 // Motivo da obstrução: um toque (Rocha, Tela, Água, Desvio) logo depois de obstruir o furo.
 let motivoPendenteId = null;
 // ---- profundidade (metragem) do furo no checklist: esperada vem do plano; a real é digitada na hora ----
+// Só conta como "metragem a menos" quando a real fica pelo menos 8% abaixo da esperada.
+const LIMITE_A_MENOS = 0.08;
+const metragemAMenos = (real, esp) => Number(esp) > 0 && Number(real) > 0 && Number(real) < Number(esp) * (1 - LIMITE_A_MENOS);
 const fmtMetCk = n => (Math.round(Number(n)*10)/10).toFixed(1).replace('.', ',');
 function htmlMetragemFuroChecklist(f){
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0, real = Number(f.metragem) > 0 ? Number(f.metragem) : 0;
   if(!esp && !real && !(f.perfilado || f.obstruido)) return '';
-  const falta = esp && real && real < esp - 0.05;
+  const falta = metragemAMenos(real, esp);
   const dif = esp && real ? real - esp : 0;
   const campo = (f.perfilado || f.obstruido)
     ? `<input type="text" inputmode="decimal" enterkeyhint="done" maxlength="6" class="ck-met ${falta ? 'a-menos' : ''}" value="${real ? fmtMetCk(real) : ''}" placeholder="real m" onchange="definirMetragemFuroChecklist('${f.id}', this.value)" aria-label="F${escHtml(String(f.numero))} metragem real em metros">`
@@ -2212,7 +2215,7 @@ function definirMetragemFuroChecklist(id, texto){
   enfileirar('checklist_furos', 'update', { id: f.id, metragem: v });
   salvarChecklistFurosLocal();
   setTimeout(renderChecklist, 0);
-  if(v && Number(f.metragemEsperada) > 0 && v < Number(f.metragemEsperada) - 0.05) showToast(`F${f.numero}: ${fmtMetCk(Number(f.metragemEsperada) - v)} m a menos que o esperado.`, { tipo:'aviso' });
+  if(metragemAMenos(v, f.metragemEsperada)) showToast(`F${f.numero}: ${fmtMetCk(Number(f.metragemEsperada) - v)} m a menos que o esperado.`, { tipo:'aviso' });
 }
 function definirMotivoObstrucao(id, motivo){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
