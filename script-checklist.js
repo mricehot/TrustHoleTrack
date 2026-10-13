@@ -1843,6 +1843,30 @@ function toggleChecklistFuro(id){
   pulsarMarcaFuro(f, 'toggleChecklistFuro', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
   destacarProximoFuro(f, 'perf');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.${divergente ? ' ⚠ Leque da ' + nomeDaEquipeId(divergente) + '.' : ''}`);
+  if(f.perfilado) setTimeout(()=> pedirMetragemFuro(f.id), 0);
+}
+// Ao marcar perfilado: pergunta a metragem real. O furo já ficou marcado; "Pular" não muda nada.
+function pedirMetragemFuro(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f || !f.perfilado) return;
+  const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0;
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;margin:0 0 4px;">F${escHtml(String(f.numero))} · metragem real</p>
+    <p class="hint" style="margin:0 0 10px;">${esp ? 'Esperada: <b>' + fmtMetCk(esp) + ' m</b>' : 'Sem metragem esperada no plano.'}</p>
+    <input id="met-real" type="text" inputmode="decimal" enterkeyhint="done" maxlength="6" placeholder="metros, ex.: 13,5" value="${Number(f.metragem) > 0 ? fmtMetCk(f.metragem) : ''}" style="width:100%;min-height:52px;font-size:1.3rem;text-align:center;" aria-label="metragem real em metros">
+    <div class="modal-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="steel" id="met-ok">Salvar</button>
+      ${esp ? `<button type="button" class="ghost" id="met-esp">Igual à esperada</button>` : ''}
+      <button type="button" class="ghost" id="met-pular">Pular</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  const salvar = v=>{ fechar(); definirMetragemFuroChecklist(id, v); };
+  el('met-ok').onclick = ()=> salvar(el('met-real').value);
+  if(esp) el('met-esp').onclick = ()=> salvar(String(esp));
+  el('met-pular').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('met-real').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el('met-ok').click(); } });
+  setTimeout(()=>{ try{ el('met-real').focus(); el('met-real').select(); }catch(_){} }, 50);
 }
 
 function toggleChecklistFuroTopografado(id){
