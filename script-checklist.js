@@ -800,7 +800,7 @@ function montarResumoTurnoWhatsApp(){
 
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
-  const txtMet = (f, obstruido) => `F${nf(f)}: ${obstruido ? 'obstruiu em' : 'perfurou'} ${num(f.metragem)} m de ${num(f.metragemEsperada)} m previstos (faltaram ${num(Number(f.metragemEsperada) - Number(f.metragem))} m)`;
+  const txtMet = (f, obstruido) => `F${nf(f)}: ${obstruido ? 'obstruiu em' : 'perfurou'} ${num(f.metragem)} m de ${num(f.metragemEsperada)} m previstos`;
   const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? fui(f.obstruidoPor) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
