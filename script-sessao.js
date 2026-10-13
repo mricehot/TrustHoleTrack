@@ -453,7 +453,7 @@ function abrirFilaOffline(){
   const falhas = falhasDeEnvio.size;
   const linhas = itens.map(it=>{
     const d = descreverItemFila(it);
-    return `<li><b>${escHtml(d.nome)}</b> <small>(${escHtml(d.acao)})</small>${d.det ? `<div>${escHtml(d.det)}</div>` : ''}<small>${d.desde ? 'parado ' + tempoRelativo(d.desde) : 'enviando agora'}</small></li>`;
+    return `<li><b>${escHtml(d.nome)}</b> <small>(${escHtml(d.acao)})</small>${d.det ? `<div>${escHtml(d.det)}</div>` : ''}${it.motivo && !ehErroDeRede(it.motivo) && !/guardado no aparelho/i.test(it.motivo) ? `<div class="fila-motivo">⚠ ${escHtml(motivoLegivel(it.motivo))}</div>` : ''}<small>${d.desde ? 'parado ' + tempoRelativo(d.desde) : 'enviando agora'}</small>${it.motivo && !ehErroDeRede(it.motivo) && !/guardado no aparelho/i.test(it.motivo) ? ` <button type="button" class="ghost fila-descartar" data-chave="${escHtml(it.chave)}">Descartar</button>` : ''}</li>`;
   }).join('');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
     <h3 style="margin:0 0 6px">${itens.length ? `${itens.length} alteração(ões) ainda não enviadas` : 'Tudo salvo ✓'}</h3>
@@ -461,6 +461,11 @@ function abrirFilaOffline(){
     ${itens.length ? `<ul class="fila-lista">${linhas}</ul>` : ''}
     <div class="modal-actions"><button class="ghost" id="fila-fechar">Fechar</button>${falhas ? '<button id="fila-tentar">Tentar agora</button>' : ''}</div></div></div>`;
   el('fila-fechar').onclick = ()=>{ root.innerHTML = ''; };
+  root.querySelectorAll('.fila-descartar').forEach(b=> b.onclick = async ()=>{
+    if(!(await confirmDialog('Descartar esta alteração? Ela não será enviada ao servidor.', 'Descartar'))) return;
+    falhasDeEnvio.delete(b.dataset.chave); persistirFila(); atualizarIndicadorSalvamento(); abrirFilaOffline();
+    try{ atualizarDoServidor(); }catch(e){}
+  });
   const t = el('fila-tentar');
   if(t) t.onclick = async ()=>{ t.disabled = true; t.textContent = 'Enviando...'; await reenviarFalhas(); abrirFilaOffline(); };
 }

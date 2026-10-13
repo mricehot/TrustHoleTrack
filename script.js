@@ -550,7 +550,7 @@ function itensDaFila(){
     const [tabela, acao] = k.split(':');
     mapa.set(k, { chave:k, tabela, acao, registro:reg });
   });
-  falhasDeEnvio.forEach((v,k)=> mapa.set(k, { chave:v.chave, tabela:v.tabela, acao:v.acao, registro:v.registro, desde:v.desde }));
+  falhasDeEnvio.forEach((v,k)=> mapa.set(k, { chave:v.chave, tabela:v.tabela, acao:v.acao, registro:v.registro, desde:v.desde, motivo:v.motivo }));
   return Array.from(mapa.values());
 }
 let filaRestauradaPara = null; // só grava a fila depois de ler a que já estava guardada (senão apagaria)
@@ -583,6 +583,16 @@ function restaurarFilaPersistida(){
   atualizarIndicadorSalvamento();
   persistirFila();
   return n;
+}
+// Texto curto e claro para o motivo de uma falha (mostrado na lista de pendências)
+function motivoLegivel(m){
+  const t = String(m || '');
+  if(!t || /guardado no aparelho/i.test(t)) return 'guardado no aparelho, aguardando envio';
+  if(ehErroDeRede(t)) return 'sem sinal';
+  if(/row-level security|permission denied/i.test(t)) return 'sem permissão para gravar isto';
+  if(/foreign key/i.test(t)) return 'o leque/realce ligado a este item ainda não existe no servidor';
+  if(/duplicate key|unique/i.test(t)) return 'já existe no servidor';
+  return t;
 }
 function ehErroDeRede(msg){ return /failed to fetch|networkerror|load failed|network request failed|sem conex|timeout|fetch/i.test(String(msg||'')); }
 function registrarFalhaNaFila(chave, tabela, acao, registro, motivo){
@@ -714,6 +724,14 @@ async function executarEnvio(tabela, acao, registro, silencioso){
     if(semPermissao && acao === 'insert' && ['aneis','leques','checklist_leques','checklist_furos'].includes(tabela)){
       falhasDeEnvio.delete(chave);
       if(!silencioso) showToast('Só o gestor pode criar isso. O item foi descartado.', { tipo:'aviso' });
+      setTimeout(()=>{ try{ atualizarDoServidor(); }catch(e){} }, 300);
+      return;
+    }
+    // Já existe no servidor (chave duplicada): o que se queria gravar já está lá. Sai da fila e atualiza a tela.
+    const duplicado = err && (err.code === '23505' || /duplicate key|unique constraint/i.test(motivo));
+    if(duplicado && acao === 'insert'){
+      falhasDeEnvio.delete(chave);
+      if(!silencioso) showToast('Esse item já existe no servidor, então não foi enviado de novo.', { tipo:'aviso' });
       setTimeout(()=>{ try{ atualizarDoServidor(); }catch(e){} }, 300);
       return;
     }
