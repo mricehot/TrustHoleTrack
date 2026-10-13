@@ -822,12 +822,6 @@ function montarResumoTurnoWhatsApp(){
   }).filter(Boolean);
 
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
-  // leques em que houve perfilagem neste turno
-  const perfilados = (()=>{
-    const cods = compactarCodigosEmIntervalos(lequesEsc.filter(c=> checklistFurosDoLeque(c.id).some(f=> f.perfilado && noDia(f.perfiladoEm))));
-    return cods.length ? [cods.join(', ')] : [];
-  })();
-
   // status geral
   const todosFuros = lequesEsc.flatMap(c=>checklistFurosDoLeque(c.id));
   const concluido = lequesEsc.length > 0 && todosFuros.length > 0 && todosFuros.every(f=> f.obstruido || (f.perfilado && f.topografado));
@@ -869,7 +863,6 @@ function montarResumoTurnoWhatsApp(){
     '',
     bloco('⚠️', 'Obstruídos metragem a menos', menos(true)),
     '',
-    `*PERFILADOS.:*${perfilados.length ? ' ' + perfilados.join(' | ') : ''}`,
     linhaSep,
     `*Status:*  ${status}`,
     linhaSep,
