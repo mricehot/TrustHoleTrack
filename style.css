@@ -2462,3 +2462,8 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .turno-sessao .ts-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .turno-sessao small{opacity:.75;font-size:.78rem}
 .turno-sessao button{min-height:44px;white-space:nowrap}
+
+/* barra "próximo furo": agora fica acima da lista de furos, sem flutuar */
+.ck-barra-fixa{ position:static !important; margin:8px 0 6px !important; padding:0 !important; background:none !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; gap:8px; }
+.ck-barra-fixa button{ min-height:44px; flex-direction:row; gap:8px; }
+@media (max-width:480px){ .ck-barra-fixa{ margin-right:0 !important; bottom:auto !important; } }

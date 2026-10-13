@@ -101,10 +101,10 @@ function injetarBarrasFixas(){
     const nP = uteis.filter(f=>f.perfilado).length, nT = uteis.filter(f=>f.topografado).length;
     const c = checklistLeques.find(x=>x.id===id);
     const barra = document.createElement('div'); barra.className = 'ck-barra-fixa';
-    barra.innerHTML = `<span class="bf-cod">${escHtml(c ? (PREFIXO[c.tipo] || '') + c.numero : '')}</span>
-      <button type="button" class="bf-per" ${nP >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','perfilado')"><span>✓ Próx. perfilado</span><small>${nP}/${uteis.length}</small></button>
+    barra.innerHTML = `<button type="button" class="bf-per" ${nP >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','perfilado')"><span>✓ Próx. perfilado</span><small>${nP}/${uteis.length}</small></button>
       <button type="button" class="bf-top" ${nT >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','topografado')"><span>✓ Próx. topografado</span><small>${nT}/${uteis.length}</small></button>`;
-    corpo.appendChild(barra);
+    const tabela = corpo.querySelector('.checklist-furos-tabela');
+    if(tabela) tabela.parentNode.insertBefore(barra, tabela); else corpo.appendChild(barra); // junto das colunas Per./Top., acima da lista de furos
   });
 }
 
