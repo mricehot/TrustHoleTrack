@@ -2455,3 +2455,10 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .ck-furo-met .ck-real{min-height:26px;padding:0 8px}
 .ck-furo-met .ck-esp{font-size:.7rem}
 .ck-furo-met td{padding:4px 8px 4px !important}
+
+/* iniciar turno */
+.turno-sessao{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;margin:0 0 10px;border:1px dashed var(--line,#9aa3ad);border-radius:12px}
+.turno-sessao.ativo{border-style:solid;border-color:var(--est-ok,#2e9b57);background:color-mix(in srgb,var(--est-ok,#2e9b57) 9%,transparent)}
+.turno-sessao .ts-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.turno-sessao small{opacity:.75;font-size:.78rem}
+.turno-sessao button{min-height:44px;white-space:nowrap}

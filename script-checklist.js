@@ -774,7 +774,9 @@ function montarResumoTurnoWhatsApp(){
   const [ano, mes, dd] = dia.split('-');
   const h = new Date().getHours();
   const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
-  const noDia = iso => iso && chaveDia(iso) === dia;
+  // com turno iniciado: só marcas feitas depois do início; sem turno iniciado: o dia da data do turno
+  const inicioTurnoMs = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
+  const noDia = iso => iso && (inicioTurnoMs ? new Date(iso).getTime() >= inicioTurnoMs : chaveDia(iso) === dia);
   // só o que ESTE usuário marcou (marcas de outros no mesmo dia ficam de fora)
   const euNome = String(nomeDoUsuario() || '').trim().toLowerCase();
   const euEmail = usuarioAtual && usuarioAtual.email ? String(usuarioAtual.email).split('@')[0].toLowerCase() : '';

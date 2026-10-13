@@ -47,7 +47,34 @@ function resumoInicioTurno(){
   return { total: itens.length, feitos: itens.filter(i=>itemFeitoHoje(i.id)).length, eq };
 }
 
+// ---- Iniciar turno: só o que a pessoa marca DEPOIS de iniciar entra no resumo do WhatsApp ----
+const TURNO_SESSAO_KEY = 'perfilagem-turno-sessao-v1';
+function turnoIniciadoEm(){
+  try{ const v = JSON.parse(localStorage.getItem(TURNO_SESSAO_KEY) || 'null'); const t = v && new Date(v.inicio).getTime(); return t && !isNaN(t) ? t : 0; }catch(e){ return 0; }
+}
+function renderTurnoSessao(){
+  const box = document.getElementById('turno-sessao'); if(!box) return;
+  const t = turnoIniciadoEm();
+  if(!t){
+    box.className = 'turno-sessao';
+    box.innerHTML = `<div class="ts-txt"><b>Turno não iniciado</b><small>Inicie para o resumo do WhatsApp trazer só o que você marcar a partir de agora.</small></div><button type="button" class="steel" onclick="iniciarTurno()">▶ Iniciar turno</button>`;
+    return;
+  }
+  const d = new Date(t), hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  const hoje = new Date().toDateString() === d.toDateString();
+  box.className = 'turno-sessao ativo';
+  box.innerHTML = `<div class="ts-txt"><b>Turno em andamento</b><small>desde ${hoje ? '' : d.toLocaleDateString('pt-BR') + ' '}${hh}</small></div><button type="button" class="ghost" onclick="iniciarTurno()">↻ Novo turno</button>`;
+}
+async function iniciarTurno(){
+  if(turnoIniciadoEm() && !(await confirmDialog('Já existe um turno em andamento. Começar um novo? O resumo passa a contar só a partir de agora.', 'Começar novo'))) return;
+  try{ localStorage.setItem(TURNO_SESSAO_KEY, JSON.stringify({ inicio: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '' })); }catch(e){}
+  renderTurnoSessao();
+  try{ renderResumoTurno(); }catch(e){}
+  showToast('Turno iniciado. O resumo vai contar só o que você marcar daqui para frente.', { tipo:'ok' });
+}
+
 function renderInicioTurno(){
+  renderTurnoSessao();
   const corpo = document.getElementById('inicio-turno-corpo'); if(!corpo) return;
   const eq = equipeDoInicio();
   const itens = eq ? itensDoInicio(eq) : [];
