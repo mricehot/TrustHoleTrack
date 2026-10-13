@@ -115,7 +115,7 @@
   body{
     margin:0;
     background:
-      radial-gradient(circle at 85% 0%, rgba(255,67,29,0.05), transparent 45%),
+      radial-gradient(circle at 85% 0%, rgba(255,67,29,0.05), transparent 28px),
       var(--bg);
     color:var(--text);
     font-family:var(--sans);
@@ -223,7 +223,7 @@
   position:fixed; inset:0; z-index:3000; display:flex; align-items:center; justify-content:center;
   padding:20px;
   background:
-    radial-gradient(circle at 85% 0%, rgba(255,67,29,0.05), transparent 45%),
+    radial-gradient(circle at 85% 0%, rgba(255,67,29,0.05), transparent 28px),
     var(--bg);
 }
 .login-box{
@@ -1383,9 +1383,9 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
 /* Cor por estado do leque (faixa lateral + degradê suave; sempre acompanhada de texto/ícone) */
 :root{ --est-ok:#2e9b57; --est-and:#3f7cac; --est-obs:#d6453d; --est-ini:#8a94a6; }
 .checklist-leque-card[data-est]{ border-left:8px solid var(--est,var(--est-ini)); }
-.checklist-leque-card[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.14),transparent 16%); }
-.checklist-leque-card[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 16%); }
-.checklist-leque-card[data-est=obs]{ --est:var(--est-obs); background-image:linear-gradient(90deg,rgba(214,69,61,.16),transparent 16%); }
+.checklist-leque-card[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.14),transparent 28px); }
+.checklist-leque-card[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 28px); }
+.checklist-leque-card[data-est=obs]{ --est:var(--est-obs); background-image:linear-gradient(90deg,rgba(214,69,61,.16),transparent 28px); }
 .checklist-leque-card[data-est=ini]{ --est:var(--est-ini); }
 .ck-legenda{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--muted); margin:8px 0; }
 .ck-legenda span{ display:inline-flex; align-items:center; gap:5px; }
@@ -1525,8 +1525,8 @@ table.checklist-furos-tabela .icon-remover{ width:44px; height:44px; min-width:4
 
 /* Tema escuro: menos brilho, estados legíveis, superfícies com mais camadas */
 body.dark-mode{ --bg:#0f0e15; --surface:#1a1924; --surface-2:#232231; --est-ok:#4cc27a; --est-and:#6aa6d8; --est-obs:#ff6b5f; --est-ini:#8d97ab; }
-body.dark-mode .checklist-leque-card[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
-body.dark-mode .checklist-leque-card[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+body.dark-mode .checklist-leque-card[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 28px); }
+body.dark-mode .checklist-leque-card[data-est=and]{ background-image:linear-gradient(90deg,rgba(106,166,216,.18),transparent 28px); }
 body.dark-mode .checklist-leque-card[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
 body.dark-mode .ck-check input[type="checkbox"], body.dark-mode table.checklist-furos-tabela input[type="checkbox"]{ color-scheme:dark; }
 body.dark-mode .tabbar{ background:#15141d; box-shadow:0 -2px 14px rgba(0,0,0,.5); }
@@ -1599,7 +1599,7 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 
 /* Correção: o ::after anterior ficava fora da caixa do card (cortado). Agora fica por dentro e é bem visível. */
 .checklist-leque-card[data-est=and]::after, .checklist-leque-card[data-est=obs]::after{
-  left:0; top:0; bottom:0; width:60%; border-radius:inherit; z-index:1;
+  left:0; top:0; bottom:0; width:28px; border-radius:inherit; z-index:1; pointer-events:none;
   background:linear-gradient(90deg, color-mix(in srgb, var(--est) 55%, transparent), transparent);
   opacity:0; animation:ckRespira 3s ease-in-out infinite;
 }
@@ -1650,12 +1650,12 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 
 /* ===== Aba Perfilagem com a mesma linguagem visual do checklist ===== */
 .leque-group[data-est]{ border-left:8px solid var(--est,var(--est-ini)); position:relative; }
-.leque-group[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 16%); }
-.leque-group[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 16%); }
+.leque-group[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 28px); }
+.leque-group[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 28px); }
 .leque-group[data-est=obs]{ --est:var(--est-obs); background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.12) 0 8px,transparent 8px 16px); }
 .leque-group[data-est=ini]{ --est:var(--est-ini); }
-body.dark-mode .leque-group[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
-body.dark-mode .leque-group[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+body.dark-mode .leque-group[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 28px); }
+body.dark-mode .leque-group[data-est=and]{ background-image:linear-gradient(90deg,rgba(106,166,216,.18),transparent 28px); }
 body.dark-mode .leque-group[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
 .lq-ico{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; margin-right:5px; border-radius:50%; font-style:normal; font-size:10px; font-weight:800; line-height:1; color:#fff; background:var(--est-ini); vertical-align:middle; }
 .lq-ico[data-est=ok]{ background:var(--est-ok); } .lq-ico[data-est=obs]{ background:var(--est-obs); }
@@ -1670,7 +1670,7 @@ body.dark-mode .leque-group[data-est=obs]{ background-image:repeating-linear-gra
 .sit-chip.sit-varado{ color:#fff; background:var(--steel); border-color:var(--steel); }
 /* efeitos contínuos (mesmos do checklist) */
 .leque-group[data-est=and]::after, .leque-group[data-est=obs]::after{
-  content:''; position:absolute; left:0; top:0; bottom:0; width:45%; pointer-events:none; z-index:0;
+  content:''; position:absolute; left:0; top:0; bottom:0; width:28px; pointer-events:none; z-index:0;
   background:linear-gradient(90deg, color-mix(in srgb, var(--est) 45%, transparent), transparent); opacity:0; animation:ckRespira 3s ease-in-out infinite; }
 .leque-group[data-est=obs]::after{ animation-duration:1.8s; }
 .leque-group[data-est=ok]:not(.fx-borda)::before{
@@ -1726,10 +1726,10 @@ body{ overscroll-behavior-y:contain; }
 
 /* ================= UI: realce, infográfico, cabeçalho, padronização, login ================= */
 .anel-row[data-est]{ border-left:8px solid var(--est-ini); position:relative; }
-.anel-row[data-est=ok]{ border-left-color:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 16%); }
-.anel-row[data-est=and]{ border-left-color:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 16%); }
-body.dark-mode .anel-row[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
-body.dark-mode .anel-row[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
+.anel-row[data-est=ok]{ border-left-color:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 28px); }
+.anel-row[data-est=and]{ border-left-color:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 28px); }
+body.dark-mode .anel-row[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 28px); }
+body.dark-mode .anel-row[data-est=and]{ background-image:linear-gradient(90deg,rgba(106,166,216,.18),transparent 28px); }
 .anel-row.ativo{ box-shadow:0 0 0 2px var(--amber) inset; }
 .anel-row .nome{ display:inline-flex; align-items:center; }
 .anel-barra{ flex:1 1 100%; position:relative; height:16px; margin:4px 0 0; }
