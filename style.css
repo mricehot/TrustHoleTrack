@@ -2426,3 +2426,14 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 
 #tab-mais[data-pend="1"] .tab-icon{ position:relative; }
 #tab-mais[data-pend="1"] .tab-icon::after{ content:""; position:absolute; top:-2px; right:-4px; width:10px; height:10px; border-radius:50%; background:#d6453d; border:2px solid var(--surface); }
+
+/* Importar do PDF */
+.imp-box{ max-width:560px; }
+.imp-tab{ max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+.imp-tab table{ width:100%; border-collapse:collapse; font-size:14px; }
+.imp-tab th{ position:sticky; top:0; background:var(--surface-2,#f1f1f5); text-align:left; padding:6px 8px; font-size:12px; }
+.imp-tab td{ padding:2px 6px; border-top:1px solid var(--line); vertical-align:middle; }
+.imp-tab input[type=checkbox]{ width:26px; height:26px; }
+.imp-tab input[type=text]{ width:100%; min-height:44px; }
+.imp-tab .imp-qtd{ width:60px; } .imp-tab .imp-met{ min-width:150px; } .imp-tab tr.ja{ opacity:.55; }
+.imp-ja{ display:block; color:var(--muted); font-size:11px; } .imp-av td{ color:#8a5a00; font-size:12px; border-top:0; padding-bottom:6px; }

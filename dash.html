@@ -687,7 +687,7 @@
                     <datalist id="checklist-locais-sugeridos"></datalist>
                   </div>
                 </div>
-                <div class="ck-form-acao"><button type="button" id="btn-add-checklist" class="steel">+ Adicionar ao checklist</button></div>
+                <div class="ck-form-acao"><button type="button" id="btn-add-checklist" class="steel">+ Adicionar ao checklist</button><button type="button" class="ghost" id="btn-importar-pdf" onclick="abrirImportarPdf()" title="lê a tabela de leques e furos de um PDF e mostra para conferir antes de criar">📥 Importar do PDF</button><button type="button" class="ghost btn-plano-ativo" hidden onclick="importarPlanoAnexado()" title="importa a partir do plano de perfuração anexado a este realce">📥 Do plano anexado</button></div>
               </div>
             </details>
 
@@ -867,6 +867,7 @@
 <script src="script-semanal.js?v="></script>
 <script src="script-inicio-turno.js?v="></script>
 <script src="script-gestao.js?v="></script>
+<script src="script-importar-pdf.js?v="></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');
