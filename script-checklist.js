@@ -800,12 +800,12 @@ function montarResumoTurnoWhatsApp(){
 
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
-  const txtMet = f => `F${nf(f)} (${num(f.metragem)}/${num(f.metragemEsperada)} m)`;
+  const txtMet = (f, obstruido) => `F${nf(f)}: ${obstruido ? 'obstruiu em' : 'perfurou'} ${num(f.metragem)} m de ${num(f.metragemEsperada)} m previstos (faltaram ${num(Number(f.metragemEsperada) - Number(f.metragem))} m)`;
   const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? fui(f.obstruidoPor) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
-    const doCk = lequesEsc.flatMap(c=> aMenosCk(c, obstruido).map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} ${txtMet(f)}`));
+    const doCk = lequesEsc.flatMap(c=> aMenosCk(c, obstruido).map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} ${txtMet(f, obstruido)}`));
     const daPerf = lequesPerf.map(l=>{
       const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && metragemAMenos(f.metragemReal, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
       return fs.length ? `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${nf(f)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ') : '';
