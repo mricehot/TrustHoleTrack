@@ -18,7 +18,7 @@ function calcularRealcesSemana(iniISO, fimISO){
   const naSemana = iso => { if(!iso) return false; const c = chaveDia(iso); return c >= iniISO && c <= fimISO; };
   const out = [];
   aneisNoEscopoAtual().forEach(a => {
-    const leques = checklistLeques.filter(c => c.anelId === a.id).sort((x, y) => (parseInt(x.numero, 10) || 0) - (parseInt(y.numero, 10) || 0));
+    const leques = checklistLeques.filter(c => c.anelId === a.id).sort((x, y) => cmpNumero(x.numero, y.numero));
     if(!leques.length) return;
     const R = { nome: a.nome, nivel: a.nivel || '', orient: a.orientacao || '', leques: { total: leques.length, ok: 0, and: 0, obs: 0, ini: 0 }, furos: 0, perf: 0, topo: 0, obstr: 0, perfSem: 0, topoSem: 0,
       finalizados: [], andamento: [], naoIniciados: [], obstruidos: [], problemas: [] };

@@ -3,7 +3,8 @@
 // tela de conferência. Nada vai para o checklist antes de a pessoa confirmar.
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const RE_LEQUE_PDF = /\b(LQ|SL|FL|CR|INV|AUX)\s*[-_.]?\s*0*(\d+)\b/i;
+const RE_LEQUE_PDF = /\b(LQ|SL|FL|CR|INV|AUX)\s*[-_.]?\s*0*(\d+[A-Za-z]?)\b/i;
+const numLequePdf = t => normalizarNumero(String(t).replace(/^0+(?=\d)/, ''));
 let importacaoPdf = null; // { itens, anelId, origem }
 
 function carregarPdfJs(){
@@ -40,7 +41,7 @@ const numPdf = t => parseFloat(String(t).replace(/\./g, m=>'.').replace(',', '.'
 // Layout de projeto real: uma página por leque ("Leque  SL1  RING ...", "N° Furos  15") e uma tabela
 // "Furo  Diam  Comp. (m)  Inclinação ...". A metragem esperada é a coluna Comp. (m).
 function interpretarProjetoPorLeque(linhas){
-  const reCab = /^\s*Leque\s+(LQ|SL|FL|CR|INV|AUX)\s*[-_.]?\s*0*(\d+)\b/i;
+  const reCab = /^\s*Leque\s+(LQ|SL|FL|CR|INV|AUX)\s*[-_.]?\s*0*(\d+[A-Za-z]?)\b/i;
   const reFuro = /^\s*(\d{1,3})\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d+)(?=\s|$)/;
   const tipoDe = pref => Object.keys(PREFIXO).find(t=> PREFIXO[t].toLowerCase() === pref.toLowerCase());
   const itens = []; let atual = null, ultimo = 0;
@@ -48,7 +49,7 @@ function interpretarProjetoPorLeque(linhas){
     const c = linha.match(reCab);
     if(c){
       const tipo = tipoDe(c[1]); atual = null;
-      if(tipo){ atual = { tipo, numero: normalizarNumero(String(parseInt(c[2], 10))), furos: [], aviso: '', esperado: 0, origem: linha.trim() }; itens.push(atual); ultimo = 0; }
+      if(tipo){ atual = { tipo, numero: numLequePdf(c[2]), furos: [], aviso: '', esperado: 0, origem: linha.trim() }; itens.push(atual); ultimo = 0; }
       return;
     }
     if(!atual) return;
@@ -75,7 +76,7 @@ function interpretarLinhasPlano(linhas){
   linhas.forEach(linha=>{
     const m = linha.match(RE_LEQUE_PDF); if(!m) return;
     const tipo = tipoDe(m[1]); if(!tipo) return;
-    const numero = normalizarNumero(String(parseInt(m[2], 10)));
+    const numero = numLequePdf(m[2]);
     const resto = linha.slice(m.index + m[0].length);
     const fm = resto.match(/\b(?:F|furo)\s*0*(\d+)\b/i);
     const nums = (resto.replace(fm ? fm[0] : '', ' ').match(/\d+(?:[.,]\d+)?/g) || []).map(numPdf).filter(n=>!isNaN(n));
@@ -101,7 +102,7 @@ function interpretarLinhasPlano(linhas){
   mapa.forEach(it=>{
     let furos = []; // [{numero, metros}]
     if(it.furos.size){
-      furos = [...it.furos.entries()].map(([numero, metros])=>({ numero, metros })).sort((a,b)=> parseInt(a.numero,10) - parseInt(b.numero,10));
+      furos = [...it.furos.entries()].map(([numero, metros])=>({ numero, metros })).sort((a,b)=> cmpNumero(a.numero, b.numero));
     }else{
       let qtd = it.qtd || (it.metros.length > 1 ? it.metros.length : 0);
       if(!qtd && it.metros.length === 1){ qtd = 1; it.aviso = 'quantidade de furos não encontrada: confira'; }
@@ -114,7 +115,7 @@ function interpretarLinhasPlano(linhas){
     if(!furos.length) return;
     itens.push({ tipo: it.tipo, numero: it.numero, furos, aviso: it.aviso, origem: it.origem.join(' ⏎ ') });
   });
-  return itens.sort((a,b)=> a.tipo.localeCompare(b.tipo) || parseInt(a.numero, 10) - parseInt(b.numero, 10));
+  return itens.sort((a,b)=> a.tipo.localeCompare(b.tipo) || cmpNumero(a.numero, b.numero));
 }
 
 // ---- fluxo de tela ----

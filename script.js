@@ -50,7 +50,16 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 function normalizarNumero(str){
   const trimmed = String(str).trim();
   if(/^\d$/.test(trimmed)) return '0' + trimmed;
+  // número com letra (ex.: 8a -> 08A): zero à esquerda e letra maiúscula
+  const m = trimmed.match(/^(\d{1,2})([A-Za-z]{1,2})$/);
+  if(m) return (m[1].length === 1 ? '0' + m[1] : m[1]) + m[2].toUpperCase();
   return trimmed;
+}
+// Ordem natural de números de leque/furo: pela parte numérica e depois pela letra (8, 8A, 8B, 9...)
+function cmpNumero(a, b){
+  const pa = String(a).match(/^(\d+)(.*)$/), pb = String(b).match(/^(\d+)(.*)$/);
+  const na = pa ? parseInt(pa[1], 10) : 0, nb = pb ? parseInt(pb[1], 10) : 0;
+  return na - nb || String(pa ? pa[2] : a).localeCompare(String(pb ? pb[2] : b));
 }
 
 function situacaoLabel(s){ return { livre:'Livre', obstruido:'Obstruído', varado:'Varado' }[s] || s; }

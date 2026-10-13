@@ -17,15 +17,15 @@ function lequeTemObstruido(c){ return checklistFurosDoLeque(c.id).some(f=>f.obst
 
 // "LQ05 F03", "5 f3", "05" -> { tipo, numero, furo }
 function lerBuscaFuro(txt){
-  const m = String(txt||'').trim().match(/^(lq|sl|fl|cr|inv|aux)?\s*0*(\d+)\s*(?:[-,. ]*f?\s*0*(\d+))?$/i);
+  const m = String(txt||'').trim().match(/^(lq|sl|fl|cr|inv|aux)?\s*0*(\d+(?:[a-z](?!\d))?)\s*(?:[-,. ]*f?\s*0*(\d+))?$/i);
   if(!m) return null;
   const tipo = m[1] ? Object.keys(PREFIXO).find(t=>PREFIXO[t].toLowerCase() === m[1].toLowerCase()) : null;
-  return { tipo, numero: m[2], furo: m[3] || null };
+  return { tipo, numero: m[2].toUpperCase(), furo: m[3] || null };
 }
 function filtrarItensChecklist(itens){
   const f = checklistFiltro;
   const lida = lerBuscaFuro(f.busca);
-  const busca = (lida ? lida.numero : f.busca.trim()).replace(/^0+/, '');
+  const busca = (lida ? lida.numero : f.busca.trim().toUpperCase()).replace(/^0+/, '');
   return itens.filter(c=>{
     if(f.status === 'pend-perf' && !lequePendentePerfilagem(c)) return false;
     if(f.status === 'pend-topo' && !lequePendenteTopografia(c)) return false;
@@ -33,7 +33,7 @@ function filtrarItensChecklist(itens){
     const loc = (c.localizacao||'').trim();
     if(f.local === '__sem__' && loc) return false;
     if(f.local && f.local !== '__sem__' && loc !== f.local) return false;
-    if(busca && !String(c.numero).replace(/^0+/, '').includes(busca)) return false;
+    if(busca && !String(c.numero).toUpperCase().replace(/^0+/, '').includes(busca)) return false;
     return true;
   });
 }
@@ -395,7 +395,9 @@ function compactarCodigosEmIntervalos(itens){
     const prefixo = PREFIXO[tipo] || tipo;
     // Ordena numericamente mas guarda o texto original (com zero à esquerda,
     // tipo "01") pra exibir igual foi digitado.
-    const numeros = porTipo[tipo]
+    const comLetra = porTipo[tipo].filter(n=> !/^\d+$/.test(n)).sort(cmpNumero); // 08A, 08B: nunca viram intervalo
+    comLetra.forEach(n=> blocos.push(`${prefixo}${n}`));
+    const numeros = porTipo[tipo].filter(n=> /^\d+$/.test(n))
       .map(n=> ({ texto: n, valor: parseInt(n, 10) }))
       .sort((a,b)=> a.valor - b.valor);
 
@@ -714,7 +716,7 @@ function montarResumoTurnoDetalhadoWhatsApp(){
       if(f.topografado && noDia(f.topografadoEm)) reg(f, c, 'topo', equipeTopoEfetivaId(f));
     });
   });
-  const ordF = (x,y)=> (parseInt(x.numero,10)||0) - (parseInt(y.numero,10)||0);
+  const ordF = (x,y)=> cmpNumero(x.numero, y.numero);
   const blocosEq = [];
   porEquipe.forEach(g=>{
     const linhas = [...g.itens.values()].map(({c, perf, topo})=>{
@@ -787,7 +789,7 @@ function montarResumoTurnoWhatsApp(){
   const nomeAnel = id => (aneis.find(a=>a.id === id) || {}).nome || '';
   const sufixo = c => multi ? ` (${nomeAnel(c.anelId)})` : '';
   const lequesEsc = checklistLeques.filter(c=>escopo.has(c.anelId));
-  const ordC = (a,b)=> (PREFIXO[a.tipo]||'').localeCompare(PREFIXO[b.tipo]||'') || (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0);
+  const ordC = (a,b)=> (PREFIXO[a.tipo]||'').localeCompare(PREFIXO[b.tipo]||'') || cmpNumero(a.numero, b.numero);
   lequesEsc.sort(ordC);
   // todos os furos, um por um: F1, F2, F3, F4, F5
   const faixa = nums => [...new Set(nums.map(n=>parseInt(n,10)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b).map(n=>'F'+n).join(', ');
@@ -1380,11 +1382,15 @@ function adicionarAoChecklist(){
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
   const tipo = el('checklist-tipo').value;
-  const de = parseInt(el('checklist-numero-de').value, 10);
+  // Aceita número com letra: "8A" (um leque) ou faixa "1" até "5" / "1A" até "5A" (a letra vale para a faixa toda)
+  const lerNum = t => { const m = String(t||'').trim().match(/^0*(\d+)([A-Za-z]{0,2})$/); return m ? { n: parseInt(m[1], 10), suf: m[2].toUpperCase() } : null; };
+  const pDe = lerNum(el('checklist-numero-de').value);
   const ateTexto = el('checklist-numero-ate').value.trim();
-  const ate = ateTexto ? parseInt(ateTexto, 10) : de;
-  if(isNaN(de)){ showToast('Preencha o número (ou a faixa) pra adicionar.'); return; }
-  if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
+  const pAte = ateTexto ? lerNum(ateTexto) : pDe;
+  if(!pDe){ showToast('Preencha o número (ou a faixa) pra adicionar. Pode ter letra, ex.: 08A.'); return; }
+  if(!pAte){ showToast('Confira o número do "até".'); return; }
+  const de = pDe.n, ate = pAte.n, sufixo = pDe.suf || pAte.suf;
+  if(ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
   if(ate - de > 200){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 200).'); return; }
 
   const localizacao = (el('checklist-localizacao').value || '').trim();
@@ -1405,7 +1411,7 @@ function adicionarAoChecklist(){
   let ultimoCriado = null;
   let adicionados = 0, duplicados = 0;
   for(let n = de; n <= ate; n++){
-    const numero = normalizarNumero(String(n));
+    const numero = normalizarNumero(String(n) + sufixo);
     // O mesmo leque pode existir em áreas diferentes do realce: só é duplicado
     // se tipo, número E localização forem iguais.
     const jaExiste = checklistLeques.some(c=>c.anelId===anelAtivo.id && c.tipo===tipo && c.numero===numero && (c.localizacao||'').trim().toLowerCase()===chaveLocal);
@@ -1981,7 +1987,7 @@ function destacarLinhaFuro(furoId){
 function irParaFuroBuscado(txt){
   const l = lerBuscaFuro(txt);
   if(!l){ showToast('Digite assim: LQ05 F03 (leque e furo).'); return; }
-  const itens = checklistDoAnelAtivo().filter(c=> String(c.numero).replace(/^0+/,'') === l.numero.replace(/^0+/,'') && (!l.tipo || c.tipo === l.tipo));
+  const itens = checklistDoAnelAtivo().filter(c=> String(c.numero).toUpperCase().replace(/^0+/,'') === l.numero.replace(/^0+/,'') && (!l.tipo || c.tipo === l.tipo));
   if(!itens.length){ showToast(`Leque ${l.numero} não encontrado neste realce.`); return; }
   const c = itens[0];
   checklistExpandido.add(c.id);

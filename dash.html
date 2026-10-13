@@ -195,7 +195,7 @@
                 </div>
                 <div class="field">
                   <label for="leque-numero">Número</label>
-                  <input id="leque-numero" type="text" inputmode="numeric" placeholder="ex: 01 ou 05" required>
+                  <input id="leque-numero" type="text" inputmode="text" autocapitalize="characters" placeholder="ex: 01, 05 ou 08A" required>
                 </div>
                 <div class="field">
                   <label for="leque-nome">Observação (opcional)</label>
@@ -641,7 +641,7 @@
             <div class="ck-filtros" id="checklist-filtros">
               <div class="ck-chips" id="checklist-chips" role="group" aria-label="Filtrar leques"></div>
               <div class="ck-filtros-linha">
-                <input id="checklist-busca" type="search" inputmode="numeric" enterkeyhint="search" autocomplete="off" autocorrect="off" placeholder="Leque (12) ou leque.furo (12.5)" aria-label="Buscar número do leque">
+                <input id="checklist-busca" type="search" inputmode="text" enterkeyhint="search" autocomplete="off" autocorrect="off" placeholder="Leque (12) ou leque.furo (12.5)" aria-label="Buscar número do leque">
                 <select id="checklist-filtro-local" aria-label="Filtrar por localização"></select>
                 <button type="button" id="btn-checklist-selecionar" class="ghost so-gestor">Selecionar</button>
               </div>
@@ -667,7 +667,7 @@
                   </div>
                   <div class="field">
                     <label for="checklist-numero-de">Nº (de)</label>
-                    <input id="checklist-numero-de" type="text" inputmode="numeric" placeholder="01">
+                    <input id="checklist-numero-de" type="text" inputmode="text" autocapitalize="characters" placeholder="01 ou 08A">
                   </div>
                   <div class="field">
                     <label for="checklist-numero-ate">até</label>
