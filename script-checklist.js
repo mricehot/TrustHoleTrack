@@ -776,7 +776,7 @@ function montarResumoTurnoWhatsApp(){
   const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
   const noDia = iso => iso && chaveDia(iso) === dia;
   const linhaSep = '_______________________________';
-  const escopoAneis = aneisNoEscopoAtual(), escopo = new Set(escopoAneis.map(a=>a.id));
+  const escopoAneis = aneis.filter(x=>x.id === anelAtivoId), escopo = new Set(escopoAneis.map(a=>a.id));
   const multi = escopo.size > 1;
   const nomeAnel = id => (aneis.find(a=>a.id === id) || {}).nome || '';
   const sufixo = c => multi ? ` (${nomeAnel(c.anelId)})` : '';
@@ -800,7 +800,7 @@ function montarResumoTurnoWhatsApp(){
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
   const txtMet = f => `F${nf(f)} (${num(f.metragem)}/${num(f.metragemEsperada)} m)`;
-  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido || f.perfilado) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
+  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido || (f.perfilado && noDia(f.perfiladoEm))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
@@ -822,10 +822,11 @@ function montarResumoTurnoWhatsApp(){
   }).filter(Boolean);
 
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
-  const perfilados = escopoAneis.map(a=>{
-    const cods = compactarCodigosEmIntervalos(checklistDoAnel(a.id).filter(c=>c.perfilado));
-    return cods.length ? (multi ? `${a.nome}: ` : '') + cods.join(', ') : '';
-  }).filter(Boolean);
+  // leques em que houve perfilagem neste turno
+  const perfilados = (()=>{
+    const cods = compactarCodigosEmIntervalos(lequesEsc.filter(c=> checklistFurosDoLeque(c.id).some(f=> f.perfilado && noDia(f.perfiladoEm))));
+    return cods.length ? [cods.join(', ')] : [];
+  })();
 
   // status geral
   const todosFuros = lequesEsc.flatMap(c=>checklistFurosDoLeque(c.id));
@@ -873,8 +874,6 @@ function montarResumoTurnoWhatsApp(){
     linhaSep,
     `*OBSERVAÇÕES*: ${obsTxt}`
   ];
-  const nFotos = fotosDoTurnoAtual().length;
-  if(nFotos) t.push('', `📷 Fotos registradas no turno: ${nFotos}`);
   return t.join('\n');
 }
 function renderResumoTurno(){
