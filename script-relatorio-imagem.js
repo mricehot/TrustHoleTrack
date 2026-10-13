@@ -54,7 +54,7 @@ function riDesenhar(c, d, dry){
   if(!dry){ c.fillStyle = RI.bg; c.fillRect(0, 0, RI_W, d.altura || 100); }
   // cabeçalho
   const tx0 = RI_M;
-  riTexto(c, 'BLASTHOLE MANAGER · RELATÓRIO DO REALCE', tx0, y + 10, { tam:13, peso:'700', cor:RI.mut, espaco:2 });
+  riTexto(c, 'RELATÓRIO DO REALCE', tx0, y + 10, { tam:13, peso:'700', cor:RI.mut, espaco:2 });
   // nome: diminui a fonte se não couber ao lado da data
   let tamNome = 40; c.font = `700 ${tamNome}px ${RI_FONTE}`;
   while(tamNome > 22 && c.measureText(d.nome).width > RI_W - RI_M - 150 - tx0){ tamNome -= 2; c.font = `700 ${tamNome}px ${RI_FONTE}`; }
