@@ -1939,15 +1939,10 @@ function definirObstrucaoChecklistFuro(id, motivo){
   avisoDesfazerFuro(f, antes, valor ? `F${f.numero} marcado como obstruído.` : `F${f.numero} liberado.`);
 }
 
-// Produtividade: lançamentos manuais das equipes + metros informados nos furos perfilados.
+// Produtividade: só os lançamentos feitos à mão pelas equipes. A metragem real digitada nos furos
+// do checklist serve para o relatório do turno e NÃO entra nesta soma.
 function lancamentosEfetivos(){
-  const extra = [];
-  checklistFuros.forEach(f=>{
-    if(!f.perfilado || !f.perfiladoEm || !(f.metragem > 0)) return;
-    const eq = equipePerfEfetivaId(f); if(!eq) return;
-    extra.push({ id: 'furo:' + f.id, equipeId: eq, data: chaveDia(f.perfiladoEm), metros: Number(f.metragem), pontos: 0, doFuro: true });
-  });
-  return extra.length ? lancamentosProd.concat(extra) : lancamentosProd;
+  return lancamentosProd;
 }
 async function removerChecklistFuro(id){
   if(!exigirGestor('remover furo')) return;
