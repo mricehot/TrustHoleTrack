@@ -1614,9 +1614,17 @@ function htmlSeletoresEquipeLeque(c){
 function definirEquipeLeque(id, campo, valor){
   const c = checklistLeques.find(x=>x.id===id); if(!c) return;
   const v = valor || null;
-  if(campo === 'perf'){ c.equipePerfId = v; enfileirar('checklist_leques', 'update', { id, equipe_perfilagem_id: v }); }
-  else { c.equipeTopoId = v; enfileirar('checklist_leques', 'update', { id, equipe_topografia_id: v }); }
+  // Os furos já marcados acompanham a equipe escolhida no leque (a letra de cada furo muda junto).
+  const doLeque = checklistFurosDoLeque(id);
+  if(campo === 'perf'){
+    c.equipePerfId = v; enfileirar('checklist_leques', 'update', { id, equipe_perfilagem_id: v });
+    doLeque.filter(f=>f.perfilado && (f.equipePerfId || null) !== v).forEach(f=>{ f.equipePerfId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_perfilagem_id: v }); });
+  }else{
+    c.equipeTopoId = v; enfileirar('checklist_leques', 'update', { id, equipe_topografia_id: v });
+    doLeque.filter(f=>f.topografado && (f.equipeTopoId || null) !== v).forEach(f=>{ f.equipeTopoId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_topografia_id: v }); });
+  }
   salvarChecklistLocal();
+  salvarChecklistFurosLocal();
   renderChecklist();
 }
 function definirEquipeFuro(id, campo, valor){
