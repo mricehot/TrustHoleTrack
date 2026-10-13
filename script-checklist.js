@@ -850,6 +850,7 @@ function montarResumoTurnoWhatsApp(){
     `*Supervisor*: ${turnoInfo.supervisor || '-'}`,
     `*PROJETO: ${turnoInfo.projeto || '-'}*`,
     `*LOCAL: ${turnoInfo.local || escopoAneis.map(a=>a.nome).join(', ') || '-'}*`,
+    `*DDS*: ${ddsTxt || '-'}`,
     linhaSep,
     '',
     `*RESUMO DAS ATIVIDADES:*`,
