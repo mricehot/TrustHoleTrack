@@ -651,7 +651,9 @@ async function reenviarFalhas(){
   reenviandoFalhas = true;
   const btn = document.getElementById('btn-reenviar-falhas');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
-  const itens = Array.from(falhasDeEnvio.values()).sort((a,b)=> ORDEM_ACAO[a.acao] - ORDEM_ACAO[b.acao]);
+  // Pais antes dos filhos (realce → leque → furo), senão o furo bate na chave estrangeira e fica parado.
+  const ORDEM_TABELA = { aneis:0, leques:1, checklist_leques:1, furos:2, checklist_furos:2 };
+  const itens = Array.from(falhasDeEnvio.values()).sort((a,b)=> (ORDEM_ACAO[a.acao] - ORDEM_ACAO[b.acao]) || ((ORDEM_TABELA[a.tabela] ?? 3) - (ORDEM_TABELA[b.tabela] ?? 3)));
   const totalReenvio = itens.length;
   for(const f of itens){
     falhasDeEnvio.delete(f.chave);
@@ -734,6 +736,21 @@ async function executarEnvio(tabela, acao, registro, silencioso){
       if(!silencioso) showToast('Esse item já existe no servidor, então não foi enviado de novo.', { tipo:'aviso' });
       setTimeout(()=>{ try{ atualizarDoServidor(); }catch(e){} }, 300);
       return;
+    }
+    // Furo novo cujo leque não existe no servidor (foi apagado) e não está na fila: nunca vai passar. Descarta.
+    if(fkQuebrada && acao === 'insert' && tabela === 'furos' && registro.leque_id && navigator.onLine){
+      const paiNaFila = falhasDeEnvio.has('leques:insert:' + registro.leque_id) || enviosEmVoo.has('leques:insert:' + registro.leque_id);
+      if(!paiNaFila){
+        try{
+          const { data: pai, error: ePai } = await db.from('leques').select('id').eq('id', registro.leque_id).maybeSingle();
+          if(!ePai && !pai){
+            falhasDeEnvio.delete(chave);
+            try{ const i = furos.findIndex(f=>f.id === registro.id); if(i >= 0) furos.splice(i, 1); salvarLocal(); if(typeof renderAll === 'function') renderAll(); }catch(e){}
+            if(!silencioso) showToast('O leque deste furo não existe mais no servidor. O furo foi descartado.', { tipo:'aviso' });
+            return;
+          }
+        }catch(e){}
+      }
     }
     registrarFalhaNaFila(chave, tabela, acao, registro, motivo);
     // Falha de rede repetida não enche a tela de avisos: um aviso a cada 30 s no máximo.
