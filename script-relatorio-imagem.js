@@ -39,14 +39,30 @@ async function riCarregarFoto(f){
   }catch(e){ return null; }
 }
 
+// Logo da Trust (a mesma do relatório em PDF), carregada uma vez.
+let riLogoImg = null;
+async function riCarregarLogo(){
+  if(riLogoImg) return riLogoImg;
+  try{
+    riLogoImg = await new Promise((ok, falha)=>{ const i = new Image(); i.onload = ()=> ok(i); i.onerror = falha; i.src = 'data:image/jpeg;base64,' + LOGO_B64; });
+  }catch(e){ riLogoImg = null; }
+  return riLogoImg;
+}
+
 // Monta o conteúdo (dados) e desenha; com dry=true só mede a altura.
 function riDesenhar(c, d, dry){
   let y = RI_M;
   if(!dry){ c.fillStyle = RI.bg; c.fillRect(0, 0, RI_W, d.altura || 100); }
   // cabeçalho
-  riTexto(c, 'BLASTHOLE MANAGER · RELATÓRIO DO REALCE', RI_M, y + 10, { tam:13, peso:'700', cor:RI.mut, espaco:2 });
-  riTexto(c, d.nome, RI_M, y + 54, { tam:40, peso:'700' });
-  let tx = RI_M; const tags = [d.nivel, d.orientacao].concat((d.locais || []).map(l=> 'Local: ' + l)).filter(Boolean);
+  // logo (círculo) à esquerda; o texto do cabeçalho começa depois dela
+  const LOGO = d.logo ? 96 : 0, tx0 = RI_M + (LOGO ? LOGO + 16 : 0);
+  if(!dry && d.logo){ c.save(); c.beginPath(); c.arc(RI_M + LOGO/2, y + LOGO/2, LOGO/2, 0, Math.PI * 2); c.clip(); c.drawImage(d.logo, RI_M, y, LOGO, LOGO); c.restore(); }
+  riTexto(c, 'BLASTHOLE MANAGER · RELATÓRIO DO REALCE', tx0, y + 10, { tam:13, peso:'700', cor:RI.mut, espaco:2 });
+  // nome: diminui a fonte se não couber ao lado da data
+  let tamNome = 40; c.font = `700 ${tamNome}px ${RI_FONTE}`;
+  while(tamNome > 22 && c.measureText(d.nome).width > RI_W - RI_M - 150 - tx0){ tamNome -= 2; c.font = `700 ${tamNome}px ${RI_FONTE}`; }
+  riTexto(c, d.nome, tx0, y + 54, { tam:tamNome, peso:'700' });
+  let tx = tx0; const tags = [d.nivel, d.orientacao].concat((d.locais || []).map(l=> 'Local: ' + l)).filter(Boolean);
   for(let i = 0; i < tags.length; i++){
     let t = tags[i]; c.font = `400 15px ${RI_FONTE}`; let w = c.measureText(t).width + 24;
     if(tx + w > RI_W - RI_M){ // não cabe na linha: mostra quantos ficaram de fora
@@ -190,6 +206,7 @@ async function riMontarDados(anelId, simples){
 
 async function gerarImagemRealce(anelId, simples, escalaFixa){
   const d = await riMontarDados(anelId, simples); if(!d) return null;
+  d.logo = await riCarregarLogo();
   const medir = document.createElement('canvas').getContext('2d');
   const alt = Math.ceil(riDesenhar(medir, d, true));
   const escala = escalaFixa || (alt * 2 > 14000 ? 1.5 : 2);
