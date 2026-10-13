@@ -1186,8 +1186,8 @@ function idsRealcesParaMapaImagem(){
 }
 // Mesmo estilo e cores do "Relatório em imagem" do realce, sem metragens e sem fotos; um realce abaixo do outro.
 async function gerarImagemMapaRealces(ids){
-  // 1 realce: normal. 2: lado a lado. 3 ou mais: uma coluna, um embaixo do outro (texto maior no celular).
-  const colunas = ids.length === 2 ? 2 : 1, gap = 24;
+  // 1 realce: normal. 2 ou mais: duas colunas (cada fileira com a altura do realce mais comprido dela).
+  const colunas = ids.length > 1 ? 2 : 1, gap = 24;
   const montar = async escala=>{
     const partes = [];
     for(const id of ids){ const r = await gerarImagemRealce(id, true, escala); if(r && r.cv) partes.push(r.cv); }
@@ -1197,8 +1197,8 @@ async function gerarImagemMapaRealces(ids){
     const cw = partes[0].width, g2 = Math.round(gap * escala);
     return { filas, alts, cw, g2, w: cw * colunas + g2 * (colunas - 1), h: alts.reduce((a,b)=>a+b, 0) + g2 * (filas.length - 1) };
   };
-  let m = null;
-  for(const esc of (colunas > 1 ? [1.5, 1] : [2, 1.5, 1])){ m = await montar(esc); if(m.h <= 14000) break; }
+  let m = await montar(colunas > 1 ? 1.5 : 2);
+  if(m.h > 14000) m = await montar(1);
   const cv = document.createElement('canvas'); cv.width = m.w; cv.height = m.h;
   const g = cv.getContext('2d'); g.fillStyle = RI.bg; g.fillRect(0, 0, m.w, m.h);
   let y = 0;
