@@ -1381,10 +1381,10 @@ input.pulso, .ck-prog-linha .num.pulso{ animation:pulsoMarca .28s ease-out; }
 .ck-pe-num small{opacity:.7}
 
 /* Cor por estado do leque (faixa lateral + degradê suave; sempre acompanhada de texto/ícone) */
-:root{ --est-ok:#2e9b57; --est-and:#e0a21b; --est-obs:#d6453d; --est-ini:#8a94a6; }
+:root{ --est-ok:#2e9b57; --est-and:#3f7cac; --est-obs:#d6453d; --est-ini:#8a94a6; }
 .checklist-leque-card[data-est]{ border-left:8px solid var(--est,var(--est-ini)); }
 .checklist-leque-card[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.14),transparent 40%); }
-.checklist-leque-card[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+.checklist-leque-card[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 40%); }
 .checklist-leque-card[data-est=obs]{ --est:var(--est-obs); background-image:linear-gradient(90deg,rgba(214,69,61,.16),transparent 40%); }
 .checklist-leque-card[data-est=ini]{ --est:var(--est-ini); }
 .ck-legenda{ display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--muted); margin:8px 0; }
@@ -1464,7 +1464,7 @@ tr.obstr-entra td.bloq::after{ transform-origin:left center; animation:riscoDese
 .pt-kpi{ background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; border-left:5px solid var(--est-ini); }
 .pt-kpi .valor{ font-family:var(--mono); font-size:26px; font-weight:700; line-height:1.1; }
 .pt-kpi .rot{ font-size:12px; color:var(--muted); }
-.pt-kpi.ok{ border-left-color:var(--est-ok); } .pt-kpi.aviso{ border-left-color:var(--est-and); } .pt-kpi.perigo{ border-left-color:var(--est-obs); }
+.pt-kpi.ok{ border-left-color:var(--est-ok); } .pt-kpi.aviso{ border-left-color:#e0a21b; } .pt-kpi.perigo{ border-left-color:var(--est-obs); }
 .pt-kpi:nth-child(1){ border-left-color:var(--moss); } .pt-kpi:nth-child(2){ border-left-color:var(--steel); }
 #pt-equipes:empty{ display:none; }
 .sec-cab{ cursor:pointer; user-select:none; }
@@ -1508,13 +1508,13 @@ table.checklist-furos-tabela .icon-remover{ width:44px; height:44px; min-width:4
 /* Estado do leque: ícone + cor (não depende só da cor) */
 .ck-est-ico{ display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-left:6px; border-radius:50%;
   font-size:12px; font-weight:800; line-height:1; color:#fff; background:var(--est-ini); vertical-align:middle; }
-.ck-est-ico[data-est=and]{ background:var(--est-and); color:#2b1d00; }
+.ck-est-ico[data-est=and]{ background:var(--est-and); color:#fff; }
 .ck-est-ico[data-est=obs]{ background:var(--est-obs); }
 .ck-est-ico[data-est=ok]{ display:none; } /* o selo ✓ no canto já diz "completo" */
 .checklist-leque-card[data-est=obs]{ border-left-style:solid; background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.13) 0 8px,transparent 8px 16px); }
 .checklist-leque-card[data-est=ini]{ border-left-style:dashed; }
 .ck-legenda i{ width:18px; height:18px; border-radius:50%; font-style:normal; font-size:11px; font-weight:800; line-height:18px; text-align:center; color:#fff; }
-.ck-legenda .and{ color:#2b1d00; }
+.ck-legenda .and{ color:#fff; }
 
 /* Cabeçalho fixo do checklist: nome do realce + números maiores */
 .ckp-titulo{ grid-column:1 / -1; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
@@ -1524,7 +1524,7 @@ table.checklist-furos-tabela .icon-remover{ width:44px; height:44px; min-width:4
 .checklist-progresso-furos-topo span:last-child{ font-size:14px; font-weight:800; }
 
 /* Tema escuro: menos brilho, estados legíveis, superfícies com mais camadas */
-body.dark-mode{ --bg:#0f0e15; --surface:#1a1924; --surface-2:#232231; --est-ok:#4cc27a; --est-and:#f0b93a; --est-obs:#ff6b5f; --est-ini:#8d97ab; }
+body.dark-mode{ --bg:#0f0e15; --surface:#1a1924; --surface-2:#232231; --est-ok:#4cc27a; --est-and:#6aa6d8; --est-obs:#ff6b5f; --est-ini:#8d97ab; }
 body.dark-mode .checklist-leque-card[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
 body.dark-mode .checklist-leque-card[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
 body.dark-mode .checklist-leque-card[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
@@ -1636,7 +1636,7 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 .furo-diferenca[hidden]{ display:none; }
 .furo-diferenca .dif-ico{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:13px; flex-shrink:0; }
 .furo-diferenca[data-nivel=ok] .dif-ico{ background:var(--est-ok,#2e9b57); }
-.furo-diferenca[data-nivel=atencao] .dif-ico{ background:var(--est-and,#e0a21b); color:#2b1d00; }
+.furo-diferenca[data-nivel=atencao] .dif-ico{ background:#e0a21b; color:#2b1d00; }
 .furo-diferenca[data-nivel=fora] .dif-ico{ background:var(--est-obs,#d6453d); }
 .furo-diferenca[data-nivel=fora]{ border-color:var(--est-obs,#d6453d); }
 .leque-faixa{ position:sticky; top:0; z-index:45; display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; padding:8px 12px; margin-bottom:10px;
@@ -1651,7 +1651,7 @@ body.dark-mode img, body.dark-mode canvas{ filter:brightness(.92); }
 /* ===== Aba Perfilagem com a mesma linguagem visual do checklist ===== */
 .leque-group[data-est]{ border-left:8px solid var(--est,var(--est-ini)); position:relative; }
 .leque-group[data-est=ok]{ --est:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 40%); }
-.leque-group[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+.leque-group[data-est=and]{ --est:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 40%); }
 .leque-group[data-est=obs]{ --est:var(--est-obs); background-image:repeating-linear-gradient(-45deg,rgba(214,69,61,.12) 0 8px,transparent 8px 16px); }
 .leque-group[data-est=ini]{ --est:var(--est-ini); }
 body.dark-mode .leque-group[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
@@ -1659,7 +1659,7 @@ body.dark-mode .leque-group[data-est=and]{ background-image:linear-gradient(90de
 body.dark-mode .leque-group[data-est=obs]{ background-image:repeating-linear-gradient(-45deg,rgba(255,107,95,.16) 0 8px,transparent 8px 16px); }
 .lq-ico{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; margin-right:5px; border-radius:50%; font-style:normal; font-size:10px; font-weight:800; line-height:1; color:#fff; background:var(--est-ini); vertical-align:middle; }
 .lq-ico[data-est=ok]{ background:var(--est-ok); } .lq-ico[data-est=obs]{ background:var(--est-obs); }
-.lq-ico[data-est=and]{ background:var(--est-and); color:#2b1d00; }
+.lq-ico[data-est=and]{ background:var(--est-and); color:#fff; }
 .lq-barra{ height:7px; margin:8px 12px 2px; border-radius:4px; background:var(--line); overflow:hidden; }
 .lq-barra i{ display:block; height:100%; border-radius:4px; background:var(--est,var(--steel)); transform-origin:left; animation:lqBarra .6s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes lqBarra{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
@@ -1727,7 +1727,7 @@ body{ overscroll-behavior-y:contain; }
 /* ================= UI: realce, infográfico, cabeçalho, padronização, login ================= */
 .anel-row[data-est]{ border-left:8px solid var(--est-ini); position:relative; }
 .anel-row[data-est=ok]{ border-left-color:var(--est-ok); background-image:linear-gradient(90deg,rgba(46,155,87,.13),transparent 40%); }
-.anel-row[data-est=and]{ border-left-color:var(--est-and); background-image:linear-gradient(90deg,rgba(224,162,27,.14),transparent 40%); }
+.anel-row[data-est=and]{ border-left-color:var(--est-and); background-image:linear-gradient(90deg,rgba(63,124,172,.15),transparent 40%); }
 body.dark-mode .anel-row[data-est=ok]{ background-image:linear-gradient(90deg,rgba(76,194,122,.16),transparent 45%); }
 body.dark-mode .anel-row[data-est=and]{ background-image:linear-gradient(90deg,rgba(240,185,58,.15),transparent 45%); }
 .anel-row.ativo{ box-shadow:0 0 0 2px var(--amber) inset; }
@@ -1791,7 +1791,7 @@ button:active:not(:disabled){ transform:scale(.97); }
 .toast.show{ transform:translate(-50%,0); }
 .toast > span::before{ content:'ℹ'; display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-right:8px; border-radius:50%; background:var(--steel); color:#fff; font-size:13px; font-weight:800; vertical-align:middle; }
 .toast[data-tipo=ok]{ border-left-color:var(--est-ok); } .toast[data-tipo=ok] > span::before{ content:'✓'; background:var(--est-ok); }
-.toast[data-tipo=aviso]{ border-left-color:var(--est-and); } .toast[data-tipo=aviso] > span::before{ content:'!'; background:var(--est-and); color:#2b1d00; }
+.toast[data-tipo=aviso]{ border-left-color:#e0a21b; } .toast[data-tipo=aviso] > span::before{ content:'!'; background:#e0a21b; color:#2b1d00; }
 .toast[data-tipo=erro]{ border-left-color:var(--est-obs); border-width:1px; border-left-width:6px; } .toast[data-tipo=erro] > span::before{ content:'⚠'; background:var(--est-obs); }
 .toast .toast-acao{ min-height:36px; padding:0 14px; border-radius:8px; }
 body.dark-mode .toast{ background:#2c2b3b; }
