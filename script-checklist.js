@@ -512,8 +512,6 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   if(obstruidos) bloco += `\n\n${obstruidos}`;
   const notasF = blocoNotasFurosWhatsApp(itens);
   if(notasF) bloco += `\n\n${notasF}`;
-  const porEquipe = blocoEquipesWhatsApp(itens);
-  if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
   if(comObs.length){
     bloco += `\n\n📝 *OBSERVACOES DOS LEQUES*\n`;
