@@ -789,13 +789,8 @@ function montarResumoTurnoWhatsApp(){
   const lequesEsc = checklistLeques.filter(c=>escopo.has(c.anelId));
   const ordC = (a,b)=> (PREFIXO[a.tipo]||'').localeCompare(PREFIXO[b.tipo]||'') || (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0);
   lequesEsc.sort(ordC);
-  // F1 a F5, F8  (intervalo só a partir de 3 seguidos)
-  const faixa = nums => {
-    const v = [...new Set(nums.map(n=>parseInt(n,10)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b), out = [];
-    for(let i = 0; i < v.length;){ let j = i; while(j + 1 < v.length && v[j+1] === v[j] + 1) j++;
-      if(j - i >= 2) out.push(`F${v[i]} a F${v[j]}`); else for(let k = i; k <= j; k++) out.push('F' + v[k]); i = j + 1; }
-    return out.join(', ');
-  };
+  // todos os furos, um por um: F1, F2, F3, F4, F5
+  const faixa = nums => [...new Set(nums.map(n=>parseInt(n,10)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b).map(n=>'F'+n).join(', ');
   // o que foi feito no dia, leque a leque
   const feitoNoDia = (campoOk, campoEm)=> lequesEsc.map(c=>{
     const fs = checklistFurosDoLeque(c.id).filter(f=> f[campoOk] && noDia(f[campoEm]) && fui(campoOk === 'perfilado' ? f.perfiladoPor : f.topografadoPor));
@@ -810,7 +805,7 @@ function montarResumoTurnoWhatsApp(){
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
-    const doCk = lequesEsc.map(c=>{ const fs = aMenosCk(c, obstruido); return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ` + fs.map(txtMet).join(', ') : ''; }).filter(Boolean);
+    const doCk = lequesEsc.flatMap(c=> aMenosCk(c, obstruido).map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} ${txtMet(f)}`));
     const daPerf = lequesPerf.map(l=>{
       const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && metragemAMenos(f.metragemReal, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
       return fs.length ? `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${nf(f)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ') : '';
@@ -820,12 +815,8 @@ function montarResumoTurnoWhatsApp(){
   // metros do dia: soma das metragens reais digitadas nos furos perfilados hoje x esperada desses mesmos furos
   let mReal = 0, mEsp = 0;
   lequesEsc.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{ if(f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor) && Number(f.metragem) > 0){ mReal += Number(f.metragem); mEsp += Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0; } }));
-  const obstruidos = lequesEsc.map(c=>{
-    const fs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor));
-    if(!fs.length) return '';
-    fs.sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
-    return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ` + fs.map(f=>`F${parseInt(f.numero,10)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`).join(', ');
-  }).filter(Boolean);
+  const obstruidos = lequesEsc.flatMap(c=> checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor)).sort((a,b)=>nf(a)-nf(b))
+    .map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`));
 
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
   // status geral
