@@ -775,6 +775,10 @@ function montarResumoTurnoWhatsApp(){
   const h = new Date().getHours();
   const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
   const noDia = iso => iso && chaveDia(iso) === dia;
+  // só o que ESTE usuário marcou (marcas de outros no mesmo dia ficam de fora)
+  const euNome = String(nomeDoUsuario() || '').trim().toLowerCase();
+  const euEmail = usuarioAtual && usuarioAtual.email ? String(usuarioAtual.email).split('@')[0].toLowerCase() : '';
+  const fui = por => { const v = String(por || '').trim().toLowerCase(); return !!v && (v === euNome || v === euEmail); };
   const linhaSep = '_______________________________';
   const escopoAneis = aneis.filter(x=>x.id === anelAtivoId), escopo = new Set(escopoAneis.map(a=>a.id));
   const multi = escopo.size > 1;
@@ -792,7 +796,7 @@ function montarResumoTurnoWhatsApp(){
   };
   // o que foi feito no dia, leque a leque
   const feitoNoDia = (campoOk, campoEm)=> lequesEsc.map(c=>{
-    const fs = checklistFurosDoLeque(c.id).filter(f=> f[campoOk] && noDia(f[campoEm]));
+    const fs = checklistFurosDoLeque(c.id).filter(f=> f[campoOk] && noDia(f[campoEm]) && fui(campoOk === 'perfilado' ? f.perfiladoPor : f.topografadoPor));
     return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ${faixa(fs.map(f=>f.numero))}` : '';
   }).filter(Boolean);
   const perfDia = feitoNoDia('perfilado', 'perfiladoEm'), topoDia = feitoNoDia('topografado', 'topografadoEm');
@@ -800,7 +804,7 @@ function montarResumoTurnoWhatsApp(){
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
   const txtMet = f => `F${nf(f)} (${num(f.metragem)}/${num(f.metragemEsperada)} m)`;
-  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido || (f.perfilado && noDia(f.perfiladoEm))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
+  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? fui(f.obstruidoPor) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
@@ -809,13 +813,13 @@ function montarResumoTurnoWhatsApp(){
       const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && metragemAMenos(f.metragemReal, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
       return fs.length ? `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${nf(f)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ') : '';
     }).filter(Boolean);
-    return doCk.concat(daPerf);
+    return doCk; // furos só da aba Perfilagem não têm autor: ficam fora do resumo pessoal
   };
   // metros do dia: soma das metragens reais digitadas nos furos perfilados hoje x esperada desses mesmos furos
   let mReal = 0, mEsp = 0;
-  lequesEsc.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{ if(f.perfilado && noDia(f.perfiladoEm) && Number(f.metragem) > 0){ mReal += Number(f.metragem); mEsp += Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0; } }));
+  lequesEsc.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{ if(f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor) && Number(f.metragem) > 0){ mReal += Number(f.metragem); mEsp += Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0; } }));
   const obstruidos = lequesEsc.map(c=>{
-    const fs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
+    const fs = checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor));
     if(!fs.length) return '';
     fs.sort((a,b)=> (parseInt(a.numero,10)||0) - (parseInt(b.numero,10)||0));
     return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ` + fs.map(f=>`F${parseInt(f.numero,10)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`).join(', ');
