@@ -118,7 +118,7 @@ function riDesenhar(c, d, dry){
   };
   const falta = []; d.faltam.forEach(f=>{
     falta.push({ txt:`${f.codigo}`, peso:'700' });
-    riQuebrar(c, ['perfilar: ' + (f.perf.join(' · ') || 'completo'), 'topografar: ' + (f.topo.join(' · ') || 'completo')], larg - 32, 17).forEach(t=> falta.push({ txt:'    ' + t, cor:RI.and }));
+    riQuebrar(c, ['perfilar: ' + (f.perf.join(', ') || 'completo'), 'topografar: ' + (f.topo.join(', ') || 'completo')], larg - 32, 17).forEach(t=> falta.push({ txt:'    ' + t, cor:RI.and }));
   });
   caixa('O QUE FALTA (LEQUES EM ANDAMENTO)', falta);
   // metragens
@@ -193,7 +193,7 @@ async function riMontarDados(anelId, simples){
     turno: (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `Turno ${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`.trim() : '',
     perf, topo, total: tot, pPerf: tot ? Math.round(perf / tot * 100) : 0, pTopo: tot ? Math.round(topo / tot * 100) : 0,
     leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: simples ? 0 : Math.max(0, fotosLista.length - MAXF),
-    rodapeEsq: 'Gerado em ' + agora.toLocaleString('pt-BR') };
+    rodapeEsq: '' };
 }
 
 async function gerarImagemRealce(anelId, simples, escalaFixa){
