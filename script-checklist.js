@@ -440,6 +440,11 @@ function blocoNotasFurosWhatsApp(itens){
   return linhas.length ? `📝 *NOTAS DOS FUROS*\n${linhas.join('\n')}` : '';
 }
 
+// Leque que já tem furo feito mas ainda falta algum (obstruídos não contam): não é "pendente", está em andamento.
+function lequeEmAndamentoEtapa(c, campo){
+  const uteis = checklistFurosDoLeque(c.id).filter(f=>!f.obstruido);
+  return uteis.some(f=>f[campo]) && uteis.some(f=>!f[campo]);
+}
 // Leques que já começaram (algum furo perfilado ou topografado) mas ainda não terminaram:
 // mostra, furo a furo, o que falta perfilar e o que falta topografar (obstruídos não contam).
 function blocoEmAndamentoWhatsApp(itens){
@@ -456,7 +461,7 @@ function blocoEmAndamentoWhatsApp(itens){
       : `  ▸ ${rot}: completa ✅`;
     linhas.push(`*${PREFIXO[c.tipo]}${c.numero}*${localSeAmbiguo(c, itens)}\n${linha('Perfilagem', faltaPerf)}\n${linha('Topografia', faltaTopo)}`);
   });
-  return linhas.length ? `🔶 *EM ANDAMENTO (INCOMPLETOS)*\n${linhas.join('\n')}` : '';
+  return linhas.length ? `🔶 *EM ANDAMENTO (JA INICIADOS, FALTA TERMINAR)*\n${linhas.join('\n')}` : '';
 }
 // O local do leque não vai no relatório; só aparece (entre parênteses) quando há dois leques
 // com o mesmo código no mesmo envio e o local é o que os distingue.
@@ -483,10 +488,10 @@ function resumoChecklistItens(itens){
   let t = `Leques: ${feitos}/${itens.length} perfilados\n`;
   t += `Furos perfilados: ${fp}/${total} (${pf}%)\n${barraWa(pf)}\nFuros topografados: ${ft}/${total} (${pt}%)\n${barraWa(pt)}\n`;
   t += lista('✅ PERFILADOS', compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado)));
-  t += lista('🟡 PENDENTES', compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado)));
+  t += lista('🟡 PENDENTES (NAO INICIADOS)', compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado && !lequeEmAndamentoEtapa(c,'perfilado'))));
   t += `\n`;
   t += lista('✅ TOPOGRAFADOS', compactarCodigosEmIntervalos(itens.filter(topo)));
-  t += lista('🟡 PENDENTES TOPOGRAFIA', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c))));
+  t += lista('🟡 PENDENTES TOPOGRAFIA (NAO INICIADOS)', compactarCodigosEmIntervalos(itens.filter(c=>!topo(c) && !lequeEmAndamentoEtapa(c,'topografado'))));
   const andamento = blocoEmAndamentoWhatsApp(itens);
   if(andamento) t += `\n${andamento}\n`;
   return t.trim();
@@ -541,7 +546,7 @@ function montarBlocoRealceParaWhatsApp(anelId){
   const pctTopo = totalFuros > 0 ? Math.round((furosTopografados / totalFuros) * 100) : 0;
 
   const codigosPerfilados = compactarCodigosEmIntervalos(itens.filter(c=>c.perfilado));
-  const codigosPendentes = compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado));
+  const codigosPendentes = compactarCodigosEmIntervalos(itens.filter(c=>!c.perfilado && !lequeEmAndamentoEtapa(c,'perfilado')));
 
   // Topografia por leque — usa os furos já marcados no checklist (não é um
   // campo novo): um leque conta como topografado quando tem furo lançado e
@@ -552,7 +557,7 @@ function montarBlocoRealceParaWhatsApp(anelId){
   }));
   const codigosPendentesTopografia = compactarCodigosEmIntervalos(itens.filter(c=>{
     const furosDoLeque = checklistFurosDoLeque(c.id);
-    return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado));
+    return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado)) && !lequeEmAndamentoEtapa(c,'topografado');
   }));
 
   if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
@@ -566,10 +571,10 @@ function montarBlocoRealceParaWhatsApp(anelId){
     // Cada intervalo (ou leque avulso) vai numa linha própria, pra ler de relance.
     const lista = (rotulo, codigos)=> codigos.length ? `*${rotulo}*\n${codigos.join('\n')}\n` : '';
     bloco += lista('✅ PERFILADOS', codigosPerfilados);
-    bloco += lista('🟡 PENDENTES', codigosPendentes);
+    bloco += lista('🟡 PENDENTES (NAO INICIADOS)', codigosPendentes);
     bloco += `\n`;
     bloco += lista('✅ TOPOGRAFADOS', codigosTopografados);
-    bloco += lista('🟡 PENDENTES TOPOGRAFIA', codigosPendentesTopografia);
+    bloco += lista('🟡 PENDENTES TOPOGRAFIA (NAO INICIADOS)', codigosPendentesTopografia);
     const andamento = blocoEmAndamentoWhatsApp(itens);
     if(andamento) bloco += `\n${andamento}\n`;
     bloco = bloco.trim();
