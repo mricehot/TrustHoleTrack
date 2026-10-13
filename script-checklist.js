@@ -512,8 +512,6 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
   if(obstruidos) bloco += `\n\n${obstruidos}`;
   const notasF = blocoNotasFurosWhatsApp(itens);
   if(notasF) bloco += `\n\n${notasF}`;
-  const fotosF = blocoFotosFurosWhatsApp(itens);
-  if(fotosF) bloco += `\n\n${fotosF}`;
   const porEquipe = blocoEquipesWhatsApp(itens);
   if(porEquipe) bloco += `\n\n${porEquipe}`;
   const comObs = itens.filter(c=>c.observacao);
@@ -585,8 +583,6 @@ function montarBlocoRealceParaWhatsApp(anelId){
   if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
   const notasFTxt = blocoNotasFurosWhatsApp(itens);
   if(notasFTxt) bloco += `\n\n${notasFTxt}`;
-  const fotosFTxt = blocoFotosFurosWhatsApp(itens);
-  if(fotosFTxt) bloco += `\n\n${fotosFTxt}`;
   const porEquipeTxt = blocoEquipesWhatsApp(itens);
   if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
@@ -1019,14 +1015,13 @@ el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTur
 
 // Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
 function abrirWhatsApp(url){ const w = window.open(url, '_blank'); if(!w) location.href = url; }
-// Status de todos os realces do projeto (os não ocultos), direto, sem escolher
+// Status só dos realces FAVORITOS (⭐ na aba Realce), direto, sem escolher e sem fotos
 function enviarStatusTodosRealces(){
-  const ids = aneisNoEscopoAtual().filter(a=>!a.ocultoWhatsapp && checklistDoAnel(a.id).length).map(a=>a.id);
-  if(!ids.length){ showToast('Nenhum realce com checklist para enviar.', { tipo:'aviso' }); return; }
+  const ids = aneisNoEscopoAtual().filter(a=> ehFavoritoRealce(a.id) && checklistDoAnel(a.id).length).map(a=>a.id);
+  if(!ids.length){ showToast('Nenhum realce favorito com checklist. Toque na ⭐ do realce, na aba Realce, para favoritar.', { tipo:'aviso' }); return; }
   enviarRelatorioWhatsApp(ids);
 }
 async function enviarRelatorioWhatsApp(idsRealces){
-  await fotosEmDiaParaRelatorio();
   const mensagem = montarRelatorioChecklistParaWhatsApp(idsRealces);
   const url = configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}` : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
   abrirWhatsApp(url);
