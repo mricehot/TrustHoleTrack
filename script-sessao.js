@@ -1186,14 +1186,29 @@ function idsRealcesParaMapaImagem(){
 }
 // Mesmo estilo e cores do "Relatório em imagem" do realce, sem metragens e sem fotos; um realce abaixo do outro.
 async function gerarImagemMapaRealces(ids){
-  const escala = ids.length > 3 ? 1 : (ids.length > 1 ? 1.5 : 2);
-  const partes = [];
-  for(const id of ids){ const r = await gerarImagemRealce(id, true, escala); if(r && r.cv) partes.push(r.cv); }
-  if(!partes.length) throw new Error('nenhum realce com checklist');
-  const w = partes[0].width, h = partes.reduce((t, c)=> t + c.height, 0);
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const g = cv.getContext('2d'); g.fillStyle = RI.bg; g.fillRect(0, 0, w, h);
-  let y = 0; partes.forEach(c=>{ g.drawImage(c, 0, y); y += c.height; });
+  // 1 realce: normal. 2 ou mais: duas colunas (cada fileira com a altura do realce mais comprido dela).
+  const colunas = ids.length > 1 ? 2 : 1, gap = 24;
+  const montar = async escala=>{
+    const partes = [];
+    for(const id of ids){ const r = await gerarImagemRealce(id, true, escala); if(r && r.cv) partes.push(r.cv); }
+    if(!partes.length) throw new Error('nenhum realce com checklist');
+    const filas = []; for(let k = 0; k < partes.length; k += colunas) filas.push(partes.slice(k, k + colunas));
+    const alts = filas.map(f=> Math.max(...f.map(c=>c.height)));
+    const cw = partes[0].width, g2 = Math.round(gap * escala);
+    return { filas, alts, cw, g2, w: cw * colunas + g2 * (colunas - 1), h: alts.reduce((a,b)=>a+b, 0) + g2 * (filas.length - 1) };
+  };
+  let m = await montar(colunas > 1 ? 1.5 : 2);
+  if(m.h > 14000) m = await montar(1);
+  const cv = document.createElement('canvas'); cv.width = m.w; cv.height = m.h;
+  const g = cv.getContext('2d'); g.fillStyle = RI.bg; g.fillRect(0, 0, m.w, m.h);
+  let y = 0;
+  m.filas.forEach((fila, r)=>{
+    fila.forEach((c, k)=> g.drawImage(c, k * (m.cw + m.g2), y));
+    g.fillStyle = RI.line;
+    if(colunas > 1 && fila.length > 1) g.fillRect(m.cw + m.g2/2 - 1, y + 30, 2, m.alts[r] - 60);
+    if(r < m.filas.length - 1) g.fillRect(30, y + m.alts[r] + m.g2/2 - 1, m.w - 60, 2);
+    y += m.alts[r] + m.g2;
+  });
   const blob = await new Promise(res=> cv.toBlob(res, 'image/png'));
   if(!blob) throw new Error('imagem grande demais para este aparelho');
   const a = new Date(), p = n=> String(n).padStart(2, '0');
