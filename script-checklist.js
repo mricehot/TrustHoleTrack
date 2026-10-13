@@ -873,7 +873,7 @@ function montarResumoTurnoWhatsApp(){
     linhaSep,
     `*Status:*  ${status}`,
     linhaSep,
-    `*Metragem perfilada*: ${mReal ? num(mReal) + ' m' + (mEsp ? ' de ' + num(mEsp) + ' m esperados' : '') : '-'}`,
+    `*Metragem perfilada*: ${mReal ? num(mReal) + ' m' : '-'}`,
     linhaSep,
     `*OBSERVAÇÕES*: ${obsTxt}`
   ];
