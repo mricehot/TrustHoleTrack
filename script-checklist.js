@@ -583,8 +583,6 @@ function montarBlocoRealceParaWhatsApp(anelId){
   if(obstruidosTxt) bloco += `\n\n${obstruidosTxt}`;
   const notasFTxt = blocoNotasFurosWhatsApp(itens);
   if(notasFTxt) bloco += `\n\n${notasFTxt}`;
-  const porEquipeTxt = blocoEquipesWhatsApp(itens);
-  if(porEquipeTxt) bloco += `\n\n${porEquipeTxt}`;
   const lequesComObs = itens.filter(c=>c.observacao);
   if(lequesComObs.length){
     bloco += `\n\n📝 *OBSERVACOES DOS LEQUES*\n`;
@@ -609,8 +607,6 @@ function montarRelatorioChecklistParaWhatsApp(idsRealces){
   msg += `${new Date().toLocaleString('pt-BR')}\n`;
   msg += `${idsRealces.length} realce${idsRealces.length>1?'s':''}\n\n`;
   msg += idsRealces.map(id=> montarBlocoRealceParaWhatsApp(id)).join('\n\n----------\n\n');
-  msg += '\n\n==========\n\n' + montarBlocoProdutividadeSemanalWhatsApp();
-  msg += '\n\n----------\n\n' + montarBlocoProdutividadeMensalWhatsApp();
   return msg.trim();
 }
 
