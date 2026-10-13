@@ -39,21 +39,6 @@ async function riCarregarFoto(f){
   }catch(e){ return null; }
 }
 
-// Marca d'água da Trust (a mesma do relatório em PDF): carregada uma vez e desenhada grande no canto inferior direito.
-let riMarcaImg = null;
-async function riCarregarMarca(){
-  if(riMarcaImg) return riMarcaImg;
-  try{
-    riMarcaImg = await new Promise((ok, falha)=>{ const i = new Image(); i.onload = ()=> ok(i); i.onerror = falha; i.src = 'data:image/png;base64,' + LOGO_MARCA_DAGUA_B64; });
-  }catch(e){ riMarcaImg = null; }
-  return riMarcaImg;
-}
-function riMarcaDagua(c, img, altura){
-  if(!img) return;
-  const tam = RI_W * 0.62, x = RI_W - tam * 0.72, y = altura - tam * 0.72; // puxada para dentro, como no PDF
-  c.save(); c.globalAlpha = 0.10; c.drawImage(img, x, y, tam, tam); c.restore();
-}
-
 // Monta o conteúdo (dados) e desenha; com dry=true só mede a altura.
 function riDesenhar(c, d, dry){
   let y = RI_M;
@@ -209,14 +194,12 @@ async function riMontarDados(anelId, simples){
 
 async function gerarImagemRealce(anelId, simples, escalaFixa){
   const d = await riMontarDados(anelId, simples); if(!d) return null;
-  const marca = await riCarregarMarca();
   const medir = document.createElement('canvas').getContext('2d');
   const alt = Math.ceil(riDesenhar(medir, d, true));
   const escala = escalaFixa || (alt * 2 > 14000 ? 1.5 : 2);
   const cv = document.createElement('canvas'); cv.width = RI_W * escala; cv.height = Math.round(alt * escala);
   const c = cv.getContext('2d'); c.scale(escala, escala); d.altura = alt;
   riDesenhar(c, d, false);
-  riMarcaDagua(c, marca, alt);
   const blob = await new Promise(r=> cv.toBlob(r, 'image/png'));
   return { blob, nome: d.nome, cv };
 }
