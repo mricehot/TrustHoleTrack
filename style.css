@@ -2440,3 +2440,9 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 
 /* plano no formulário de novo realce */
 .anel-plano-lbl{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:10px 12px;border:1px solid var(--line,#3a4452);border-radius:10px;font-size:.85rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* profundidade do furo no checklist */
+.ck-esp{display:block;font-family:var(--mono);font-size:.7rem;opacity:.75;margin-top:2px}
+.ck-menos{color:#b3261e}
+.ck-met{display:block;width:5.2em;min-height:36px;margin-top:3px;padding:2px 6px;font-size:.9rem;font-family:var(--mono);border-radius:8px}
+.ck-met.a-menos{border-color:#b3261e}
