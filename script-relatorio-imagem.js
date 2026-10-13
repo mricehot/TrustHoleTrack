@@ -116,7 +116,6 @@ function riDesenhar(c, d, dry){
     riQuebrar(c, ['perfilar: ' + (f.perf.join(' · ') || 'completo'), 'topografar: ' + (f.topo.join(' · ') || 'completo')], larg - 32, 17).forEach(t=> falta.push({ txt:'    ' + t, cor:RI.and }));
   });
   caixa('O QUE FALTA (LEQUES EM ANDAMENTO)', falta);
-  caixa('OBSTRUÍDOS', d.obstruidos.map(t=>({ txt:t, cor:RI.obs })));
   // metragens
   if(d.metragens.length){
     riTexto(c, 'METRAGENS (ESPERADA × REAL)', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
