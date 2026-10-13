@@ -1614,14 +1614,15 @@ function htmlSeletoresEquipeLeque(c){
 function definirEquipeLeque(id, campo, valor){
   const c = checklistLeques.find(x=>x.id===id); if(!c) return;
   const v = valor || null;
-  // Os furos já marcados acompanham a equipe escolhida no leque (a letra de cada furo muda junto).
+  // Os furos já marcados acompanham a equipe escolhida no leque (a letra de cada furo muda junto),
+  // menos os que tiveram a equipe definida à mão (equipePerfManual / equipeTopoManual).
   const doLeque = checklistFurosDoLeque(id);
   if(campo === 'perf'){
     c.equipePerfId = v; enfileirar('checklist_leques', 'update', { id, equipe_perfilagem_id: v });
-    doLeque.filter(f=>f.perfilado && (f.equipePerfId || null) !== v).forEach(f=>{ f.equipePerfId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_perfilagem_id: v }); });
+    doLeque.filter(f=>f.perfilado && !f.equipePerfManual && (f.equipePerfId || null) !== v).forEach(f=>{ f.equipePerfId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_perfilagem_id: v }); });
   }else{
     c.equipeTopoId = v; enfileirar('checklist_leques', 'update', { id, equipe_topografia_id: v });
-    doLeque.filter(f=>f.topografado && (f.equipeTopoId || null) !== v).forEach(f=>{ f.equipeTopoId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_topografia_id: v }); });
+    doLeque.filter(f=>f.topografado && !f.equipeTopoManual && (f.equipeTopoId || null) !== v).forEach(f=>{ f.equipeTopoId = v; enfileirar('checklist_furos', 'update', { id: f.id, equipe_topografia_id: v }); });
   }
   salvarChecklistLocal();
   salvarChecklistFurosLocal();
@@ -1630,8 +1631,8 @@ function definirEquipeLeque(id, campo, valor){
 function definirEquipeFuro(id, campo, valor){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
   const v = valor || null;
-  if(campo === 'perf'){ f.equipePerfId = v; enfileirar('checklist_furos', 'update', { id, equipe_perfilagem_id: v }); }
-  else { f.equipeTopoId = v; enfileirar('checklist_furos', 'update', { id, equipe_topografia_id: v }); }
+  if(campo === 'perf'){ f.equipePerfId = v; f.equipePerfManual = !!v; enfileirar('checklist_furos', 'update', { id, equipe_perfilagem_id: v, equipe_perfilagem_manual: !!v }); }
+  else { f.equipeTopoId = v; f.equipeTopoManual = !!v; enfileirar('checklist_furos', 'update', { id, equipe_topografia_id: v, equipe_topografia_manual: !!v }); }
   salvarChecklistFurosLocal();
   renderChecklist();
 }
