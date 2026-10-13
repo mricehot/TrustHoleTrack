@@ -140,7 +140,7 @@ function riDesenhar(c, d, dry){
   return y + 28 + RI_M;
 }
 
-async function riMontarDados(anelId){
+async function riMontarDados(anelId, simples){
   const anel = aneis.find(a=>a.id === anelId); if(!anel) return null;
   const itens = checklistDoAnel(anelId).slice().sort((a,b)=> (PREFIXO[a.tipo]+a.numero).localeCompare(PREFIXO[b.tipo]+b.numero, undefined, { numeric:true }));
   const todos = []; let perf = 0, topo = 0;
@@ -162,33 +162,33 @@ async function riMontarDados(anelId){
   });
   // metragens (Perfilagem)
   const metragens = []; let tE = 0, tR = 0;
-  leques.filter(l=>l.anelId === anelId).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true })).forEach(l=>{
+  if(!simples) leques.filter(l=>l.anelId === anelId).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true })).forEach(l=>{
     const fl = furos.filter(f=>f.lequeId === l.id); if(!fl.length) return;
     const e = fl.reduce((s,f)=>s + Number(f.metragemEsperada || 0), 0), r = fl.reduce((s,f)=>s + Number(f.metragemReal || 0), 0);
     const sem = fl.filter(f=> f.situacao !== 'obstruido' && !(Number(f.metragemReal) > 0)).length; tE += e; tR += r;
     metragens.push({ codigo: lequeCode(l), esp: riVir(e), real: riVir(r), var: sem ? `${sem} sem metragem` : (r - e > 0 ? '+' : '') + riVir(r - e), cor: sem ? RI.mut : (r - e) < 0 ? RI.obs : RI.ok });
   });
   const fotos = []; const MAXF = 12;
-  for(const it of fotosLista.slice(0, MAXF)) fotos.push({ codigo: it.codigo, nota: it.nota, img: await riCarregarFoto(it.f) });
+  if(!simples) for(const it of fotosLista.slice(0, MAXF)) fotos.push({ codigo: it.codigo, nota: it.nota, img: await riCarregarFoto(it.f) });
   const agora = new Date(), tot = todos.length;
   return { nome: anel.nome, nivel: anel.nivel || '', orientacao: anel.orientacao === 'ascendente' ? '↑ Ascendente' : anel.orientacao === 'descendente' ? '↓ Descendente' : '',
     dataTxt: agora.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }), horaTxt: agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
     turno: (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `Turno ${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`.trim() : '',
     perf, topo, total: tot, pPerf: tot ? Math.round(perf / tot * 100) : 0, pTopo: tot ? Math.round(topo / tot * 100) : 0,
-    leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: Math.max(0, fotosLista.length - MAXF),
+    leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: simples ? 0 : Math.max(0, fotosLista.length - MAXF),
     rodapeEsq: 'Gerado em ' + agora.toLocaleString('pt-BR') };
 }
 
-async function gerarImagemRealce(anelId){
-  const d = await riMontarDados(anelId); if(!d) return null;
+async function gerarImagemRealce(anelId, simples, escalaFixa){
+  const d = await riMontarDados(anelId, simples); if(!d) return null;
   const medir = document.createElement('canvas').getContext('2d');
   const alt = Math.ceil(riDesenhar(medir, d, true));
-  const escala = alt * 2 > 14000 ? 1.5 : 2;
+  const escala = escalaFixa || (alt * 2 > 14000 ? 1.5 : 2);
   const cv = document.createElement('canvas'); cv.width = RI_W * escala; cv.height = Math.round(alt * escala);
   const c = cv.getContext('2d'); c.scale(escala, escala); d.altura = alt;
   riDesenhar(c, d, false);
   const blob = await new Promise(r=> cv.toBlob(r, 'image/png'));
-  return { blob, nome: d.nome };
+  return { blob, nome: d.nome, cv };
 }
 
 // Abre uma janela com a prévia da imagem do relatório e os botões Baixar / Enviar (igual ao resumo semanal).

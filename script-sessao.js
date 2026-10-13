@@ -1184,78 +1184,50 @@ function idsRealcesParaMapaImagem(){
   const fav = aneisNoEscopoAtual().filter(a=> ehFavoritoRealce(a.id) && checklistDoAnel(a.id).length).map(a=>a.id);
   return fav.length ? fav : (anelAtivoId && checklistDoAnel(anelAtivoId).length ? [anelAtivoId] : []);
 }
+// Mesmo estilo e cores do "Relatório em imagem" do realce, sem metragens e sem fotos; um realce abaixo do outro.
 async function gerarImagemMapaRealces(ids){
-  const COR = { ok:'#16a34a', perf:'#f59e0b', topo:'#2f6690', obs:'#dc2626', nada:'#d4d4dc' };
-  const celula = 22, gap = 4, margem = 24, rotuloW = 78, linhaH = celula + 10, larguraMax = 1000;
-  const porLinha = Math.floor((larguraMax - margem*2 - rotuloW) / (celula + gap));
-  const blocos = ids.map(id=>{
-    const a = aneis.find(x=>x.id === id);
-    const itens = [...checklistDoAnel(id)].sort((x,y)=> (PREFIXO[x.tipo]+x.numero).localeCompare(PREFIXO[y.tipo]+y.numero, undefined, {numeric:true}));
-    let tot = 0, ok = 0;
-    const linhas = itens.map(c=>{
-      const fl = checklistFurosDoLeque(c.id).slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, {numeric:true}));
-      const cels = fl.map(f=>{ tot++; if(!f.obstruido && f.perfilado && f.topografado) ok++; return f.obstruido ? 'obs' : (f.perfilado && f.topografado) ? 'ok' : f.perfilado ? 'perf' : f.topografado ? 'topo' : 'nada'; });
-      return { cod: PREFIXO[c.tipo] + c.numero, cels, nLin: Math.max(1, Math.ceil(cels.length / porLinha)) };
-    });
-    return { nome: a ? a.nome : '-', linhas, tot, ok };
-  });
-  const tituloH = 70, blocoCabH = 40, legH = 50;
-  let altura = tituloH + legH + margem;
-  blocos.forEach(b=>{ altura += blocoCabH + b.linhas.reduce((s,l)=> s + l.nLin * linhaH, 0) + 20; });
-  const esc = 2, cv = document.createElement('canvas');
-  cv.width = larguraMax * esc; cv.height = altura * esc;
-  const g = cv.getContext('2d'); g.scale(esc, esc);
-  g.fillStyle = '#ffffff'; g.fillRect(0, 0, larguraMax, altura);
-  const rr = (x, y, w, h, r)=>{ g.beginPath(); g.moveTo(x+r, y); g.arcTo(x+w, y, x+w, y+h, r); g.arcTo(x+w, y+h, x, y+h, r); g.arcTo(x, y+h, x, y, r); g.arcTo(x, y, x+w, y, r); g.closePath(); };
-  const fonte = (px, peso)=> `${peso||'400'} ${px}px "Segoe UI", system-ui, sans-serif`;
-  const agora = new Date();
-  const dataTxt = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-  g.fillStyle = '#191231'; g.font = fonte(24, '800'); g.textBaseline = 'alphabetic';
-  g.fillText('Mapa dos realces', margem, 36);
-  g.fillStyle = '#565668'; g.font = fonte(14);
-  g.fillText(dataTxt + (nomeDoUsuario() ? ' · por ' + nomeDoUsuario() : ''), margem, 58);
-  g.fillStyle = '#ff431d'; g.fillRect(margem, 64, larguraMax - margem*2, 2);
-  let y = tituloH + 4;
-  // legenda
-  const leg = [['ok','perfilado e topografado'],['perf','só perfilado'],['topo','só topografado'],['obs','obstruído'],['nada','pendente']];
-  let lx = margem; g.font = fonte(13);
-  leg.forEach(([k, t])=>{ g.fillStyle = COR[k]; rr(lx, y, 16, 16, 4); g.fill(); g.fillStyle = '#191231'; g.fillText(t, lx + 22, y + 13); lx += 22 + g.measureText(t).width + 18; });
-  y += legH - 14;
-  blocos.forEach(b=>{
-    g.fillStyle = '#191231'; g.font = fonte(18, '700'); g.fillText('Realce ' + b.nome, margem, y + 22);
-    g.fillStyle = '#565668'; g.font = fonte(14);
-    const resumo = b.tot ? `${b.ok}/${b.tot} furos completos` : 'sem furos';
-    g.textAlign = 'right'; g.fillText(resumo, larguraMax - margem, y + 22); g.textAlign = 'left';
-    y += blocoCabH;
-    b.linhas.forEach(l=>{
-      g.fillStyle = '#191231'; g.font = fonte(14, '700'); g.fillText(l.cod, margem, y + celula - 5);
-      if(!l.cels.length){ g.fillStyle = '#9a9aab'; g.font = fonte(13); g.fillText('sem furos', margem + rotuloW, y + celula - 5); }
-      l.cels.forEach((k, i)=>{
-        const col = i % porLinha, lin = Math.floor(i / porLinha);
-        g.fillStyle = COR[k]; rr(margem + rotuloW + col * (celula + gap), y + lin * linhaH, celula, celula, 4); g.fill();
-      });
-      y += l.nLin * linhaH;
-    });
-    y += 20;
-  });
+  const escala = ids.length > 3 ? 1 : (ids.length > 1 ? 1.5 : 2);
+  const partes = [];
+  for(const id of ids){ const r = await gerarImagemRealce(id, true, escala); if(r && r.cv) partes.push(r.cv); }
+  if(!partes.length) throw new Error('nenhum realce com checklist');
+  const w = partes[0].width, h = partes.reduce((t, c)=> t + c.height, 0);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const g = cv.getContext('2d'); g.fillStyle = RI.bg; g.fillRect(0, 0, w, h);
+  let y = 0; partes.forEach(c=>{ g.drawImage(c, 0, y); y += c.height; });
   const blob = await new Promise(res=> cv.toBlob(res, 'image/png'));
-  if(!blob) throw new Error('não foi possível gerar a imagem');
-  const p = n=> String(n).padStart(2, '0');
-  return { blob, nomeArquivo: `mapa-realces-${agora.getFullYear()}-${p(agora.getMonth()+1)}-${p(agora.getDate())}.png` };
+  if(!blob) throw new Error('imagem grande demais para este aparelho');
+  const a = new Date(), p = n=> String(n).padStart(2, '0');
+  return { blob, nomeArquivo: `mapa-realces-${a.getFullYear()}-${p(a.getMonth()+1)}-${p(a.getDate())}.png` };
 }
 async function enviarImagemMapaFavoritos(){
   const ids = idsRealcesParaMapaImagem();
   if(!ids.length){ showToast('Nenhum realce favorito com checklist. Toque na ⭐ do realce, na aba Realce, para favoritar.', { tipo:'aviso' }); return; }
   showToast('Gerando a imagem do mapa…');
-  try{
-    const { blob, nomeArquivo } = await gerarImagemMapaRealces(ids);
-    const arq = new File([blob], nomeArquivo, { type:'image/png' });
+  let img;
+  try{ img = await gerarImagemMapaRealces(ids); }catch(err){ showToast('Erro ao gerar a imagem: ' + (err && err.message || err), { erro:true }); return; }
+  const { blob, nomeArquivo } = img;
+  const arq = new File([blob], nomeArquivo, { type:'image/png' });
+  const url = URL.createObjectURL(blob), root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga resumo-sem-box">
+    <p style="font-weight:700;margin:0 0 10px;">Mapa dos realces favoritos</p>
+    <div class="resumo-sem-previa"><img src="${url}" alt="mapa dos realces favoritos" style="display:block;width:100%;height:auto;"></div>
+    <div class="modal-actions resumo-sem-acoes" style="margin-top:12px;">
+      <button type="button" class="steel" id="mp-baixar">Baixar imagem</button>
+      <button type="button" class="steel" id="mp-enviar">Enviar imagem</button>
+      <button type="button" class="ghost" id="mp-fechar">Fechar</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; setTimeout(()=> URL.revokeObjectURL(url), 4000); };
+  el('modal-overlay').addEventListener('click', ev=>{ if(ev.target.id === 'modal-overlay') fechar(); });
+  el('mp-fechar').onclick = fechar;
+  const baixar = ()=>{ const a = document.createElement('a'); a.href = url; a.download = nomeArquivo; document.body.appendChild(a); a.click(); a.remove(); };
+  el('mp-baixar').onclick = ()=>{ baixar(); showToast('Imagem baixada: ' + nomeArquivo, { tipo:'ok' }); };
+  el('mp-enviar').onclick = async ()=>{
     if(navigator.canShare && navigator.canShare({ files:[arq] })){
       try{ await navigator.share({ files:[arq], title:'Mapa dos realces' }); }
-      catch(err){ if(err && err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.', { erro:true }); }
-    }else{
-      baixarBlob(blob, nomeArquivo);
-      showToast('Imagem baixada: ' + nomeArquivo + '. Anexe no WhatsApp.', { tipo:'ok' });
+      catch(e){ if(e && e.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento.', { tipo:'aviso' }); }
+      return;
     }
-  }catch(err){ showToast('Erro ao gerar a imagem: ' + (err && err.message || err), { erro:true }); }
+    baixar(); abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+    showToast('Imagem baixada. Anexe no WhatsApp que abriu.', { tipo:'ok' });
+  };
 }
