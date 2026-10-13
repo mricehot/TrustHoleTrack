@@ -1865,7 +1865,6 @@ function toggleChecklistFuro(id){
   salvarChecklistFurosLocal();
   renderChecklist();
   pulsarMarcaFuro(f, 'toggleChecklistFuro', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
-  destacarProximoFuro(f, 'perf');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.perfilado ? 'perfilado' : 'perfilado desmarcado'}.${divergente ? ' ⚠ Leque da ' + nomeDaEquipeId(divergente) + '.' : ''}`);
 }
 // Modal da metragem real: abre ao tocar no botão "+ REAL" / "REAL x m" da linha do furo.
@@ -1908,7 +1907,6 @@ function toggleChecklistFuroTopografado(id){
   salvarChecklistFurosLocal();
   renderChecklist();
   pulsarMarcaFuro(f, 'toggleChecklistFuroTopografado', ESTADO_ANTERIOR_LEQUE.get(f.checklistLequeId));
-  destacarProximoFuro(f, 'topo');
   avisoDesfazerFuro(f, antes, `F${f.numero} ${f.topografado ? 'topografado' : 'topografado desmarcado'}.${divergente ? ' ⚠ Leque da ' + nomeDaEquipeId(divergente) + '.' : ''}`);
 }
 
