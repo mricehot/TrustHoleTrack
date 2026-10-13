@@ -75,47 +75,60 @@ function riDesenhar(c, d, dry){
       riRect(c, x + 18, y + 62, kw - 36, 14, 7, RI.nada); if(k[0] > 0) riRect(c, x + 18, y + 62, Math.max(14, (kw - 36) * k[0] / 100), 14, 7, k[4]); }
   });
   y += 92 + 8;
-  // leques
-  riTexto(c, 'LEQUES', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
-  const larg = RI_W - 2*RI_M, areaCelulas = larg - 74 - 170 - 40, cel = 26, gap = 5, porLinha = Math.max(1, Math.floor((areaCelulas + gap) / (cel + gap)));
-  d.leques.forEach(l=>{
-    const linhas = Math.max(1, Math.ceil(l.furos.length / porLinha)), h = Math.max(62, linhas * (cel + gap) + 24);
+  // resumo rápido: quantos leques em cada situação
+  const ativos = d.leques.filter(l=> l.est === 'and' || l.est === 'obs');
+  const completos = d.leques.filter(l=> l.est === 'ok'), naoIni = d.leques.filter(l=> l.est === 'ini');
+  const larg = RI_W - 2*RI_M;
+  { let cx = RI_M; [[ativos.length, 'em andamento', RI.and], [naoIni.length, naoIni.length === 1 ? 'não iniciado' : 'não iniciados', RI.nada], [completos.length, completos.length === 1 ? 'completo' : 'completos', RI.ok]].forEach(([n, t, cor])=>{
+    const txt = `${n} ${t}`; c.font = `700 17px ${RI_FONTE}`; const w = c.measureText(txt).width + 44;
+    if(!dry){ riRect(c, cx, y, w, 38, 19, RI.card, RI.line); riRect(c, cx + 14, y + 12, 14, 14, 7, cor); riTexto(c, txt, cx + 36, y + 25, { tam:17, peso:'700' }); }
+    cx += w + 10; }); }
+  y += 38 + 22;
+  // leques em andamento (cartões grandes, primeiro)
+  const cel = 32, gap = 6, areaCelulas = larg - 74 - 170 - 40, porLinha = Math.max(1, Math.floor((areaCelulas + gap) / (cel + gap)));
+  if(ativos.length){ riTexto(c, 'EM ANDAMENTO', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36; }
+  ativos.forEach(l=>{
+    const linhas = Math.max(1, Math.ceil(l.furos.length / porLinha)), h = Math.max(70, linhas * (cel + gap) + 24);
     if(!dry){
       riRect(c, RI_M, y, larg, h, 12, RI.card, RI.line);
       c.save(); c.beginPath(); c.roundRect(RI_M, y, larg, h, 12); c.clip(); c.fillStyle = l.cor; c.fillRect(RI_M, y, 8, h); c.restore();
       riTexto(c, l.codigo, RI_M + 24, y + h/2 + 8, { tam:22, peso:'700' });
       l.furos.forEach((f, i)=>{
         const cx = RI_M + 24 + 74 + (i % porLinha) * (cel + gap), cy = y + 12 + Math.floor(i / porLinha) * (cel + gap);
-        if(f.estado === 'obs') riRect(c, cx, cy, cel, cel, 6, RI.obs);
-        else if(f.estado === 'ok') riRect(c, cx, cy, cel, cel, 6, RI.ok);
-        else if(f.estado === 'p' || f.estado === 't'){ riRect(c, cx, cy, cel, cel, 6, RI.nada); c.save(); c.beginPath(); c.roundRect(cx, cy, cel, cel, 6); c.clip();
+        if(f.estado === 'obs') riRect(c, cx, cy, cel, cel, 7, RI.obs);
+        else if(f.estado === 'ok') riRect(c, cx, cy, cel, cel, 7, RI.ok);
+        else if(f.estado === 'p' || f.estado === 't'){ riRect(c, cx, cy, cel, cel, 7, RI.nada); c.save(); c.beginPath(); c.roundRect(cx, cy, cel, cel, 7); c.clip();
           c.fillStyle = f.estado === 'p' ? RI.per : RI.top; c.beginPath();
           if(f.estado === 'p'){ c.moveTo(cx, cy); c.lineTo(cx + cel, cy); c.lineTo(cx, cy + cel); } else { c.moveTo(cx + cel, cy); c.lineTo(cx + cel, cy + cel); c.lineTo(cx, cy + cel); }
           c.closePath(); c.fill(); c.restore(); }
-        else riRect(c, cx, cy, cel, cel, 6, RI.nada);
+        else riRect(c, cx, cy, cel, cel, 7, RI.nada);
       });
-      riTexto(c, l.rotulo, RI_M + larg - 18, y + h/2 - 2, { tam:17, peso:'700', alinhar:'right' });
-      riTexto(c, l.sub, RI_M + larg - 18, y + h/2 + 20, { tam:15, cor:RI.mut, alinhar:'right' });
+      riTexto(c, l.rotulo, RI_M + larg - 18, y + h/2 - 2, { tam:18, peso:'700', alinhar:'right' });
+      riTexto(c, l.sub, RI_M + larg - 18, y + h/2 + 22, { tam:16, cor:RI.mut, alinhar:'right' });
     }
     y += h + 10;
   });
   // legenda
-  if(!dry){ let lx = RI_M; [[RI.ok,'perfilado + topografado'],[RI.per,'só perfilado'],[RI.top,'só topografado'],[RI.obs,'obstruído'],[RI.nada,'pendente']].forEach(([cor, t])=>{
+  if(ativos.length && !dry){ let lx = RI_M; [[RI.ok,'perfilado + topografado'],[RI.per,'só perfilado'],[RI.top,'só topografado'],[RI.obs,'obstruído'],[RI.nada,'pendente']].forEach(([cor, t])=>{
     riRect(c, lx, y + 2, 14, 14, 4, cor); c.font = `400 14px ${RI_FONTE}`; riTexto(c, t, lx + 20, y + 14, { tam:14, cor:RI.mut }); lx += 20 + c.measureText(t).width + 16; }); }
-  y += 24;
+  y += ativos.length ? 24 : 0;
   // seções de texto
   const caixa = (titulo, linhasTxt, corDestaque)=>{
     if(!linhasTxt.length) return;
     riTexto(c, titulo, RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
-    const alt = linhasTxt.length * 28 + 20;
-    if(!dry){ riRect(c, RI_M, y, larg, alt, 12, RI.card, RI.line); linhasTxt.forEach((t, i)=> riTexto(c, t.txt, RI_M + 16, y + 30 + i * 28, { tam:17, peso:t.peso || '400', cor:t.cor || RI.txt })); }
+    const alt = linhasTxt.length * 32 + 22;
+    if(!dry){ riRect(c, RI_M, y, larg, alt, 12, RI.card, RI.line); linhasTxt.forEach((t, i)=> riTexto(c, t.txt, RI_M + 16, y + 32 + i * 32, { tam:20, peso:t.peso || '400', cor:t.cor || RI.txt })); }
     y += alt + 14;
   };
+  const agrupar = (arr)=> typeof compactarCodigosEmIntervalos === 'function' ? compactarCodigosEmIntervalos(arr) : arr.map(l=>l.codigo);
+  const lista = arr=> riQuebrar(c, agrupar(arr), larg - 32, 20, '700').map(t=>({ txt:t, peso:'700' }));
+  if(completos.length) caixa('COMPLETOS', lista(completos).map(t=> Object.assign(t, { cor:RI.ok })));
   const falta = []; d.faltam.forEach(f=>{
     falta.push({ txt:`${f.codigo}`, peso:'700' });
-    riQuebrar(c, ['perfilar: ' + (f.perf.join(' · ') || 'completo'), 'topografar: ' + (f.topo.join(' · ') || 'completo')], larg - 32, 17).forEach(t=> falta.push({ txt:'    ' + t, cor:RI.and }));
+    riQuebrar(c, ['perfilar: ' + (f.perf.join(', ') || 'completo'), 'topografar: ' + (f.topo.join(', ') || 'completo')], larg - 32, 20).forEach(t=> falta.push({ txt:'    ' + t, cor:RI.and }));
   });
   caixa('O QUE FALTA (LEQUES EM ANDAMENTO)', falta);
+  if(naoIni.length) caixa('NÃO INICIADOS', lista(naoIni).map(t=> Object.assign(t, { cor:RI.mut })));
   // metragens
   if(d.metragens.length){
     riTexto(c, 'METRAGENS (ESPERADA × REAL)', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
@@ -162,7 +175,7 @@ async function riMontarDados(anelId, simples){
     const p = fl.filter(f=>f.perfilado).length, t = fl.filter(f=>f.topografado).length, ob = fl.filter(f=>f.obstruido).length, est = estadoDoLeque(fl);
     perf += p; topo += t; todos.push(...fl);
     const codigo = PREFIXO[c.tipo] + c.numero;
-    cartoes.push({ codigo, cor:COR[est], rotulo:ROT[est], sub: fl.length ? `${p}/${fl.length} · ${t}/${fl.length}` + (ob ? `  ⛔ ${ob}` : '') : 'sem furos',
+    cartoes.push({ codigo, tipo:c.tipo, numero:c.numero, est, cor:COR[est], rotulo:ROT[est], sub: fl.length ? `${p}/${fl.length} · ${t}/${fl.length}` + (ob ? `  ⛔ ${ob}` : '') : 'sem furos',
       furos: fl.map(f=> ({ estado: f.obstruido ? 'obs' : (f.perfilado && f.topografado) ? 'ok' : f.perfilado ? 'p' : f.topografado ? 't' : 'n' })) });
     if(fl.length && est !== 'ok' && fl.some(f=>f.perfilado || f.topografado)){
       const ut = fl.filter(f=>!f.obstruido);
