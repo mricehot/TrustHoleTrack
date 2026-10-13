@@ -722,8 +722,8 @@ function abrirEncerrarTurno(){
     if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
   };
   el('fim-fechar').onclick = fechar;
-  el('fim-copiar').onclick = async ()=>{ registrar(); const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); fechar(); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); };
-  el('fim-enviar').onclick = ()=>{ registrar(); const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); fechar(); };
+  el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); }); };
+  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); }); };
 }
 (function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();
 

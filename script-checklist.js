@@ -832,8 +832,11 @@ function montarResumoTurnoWhatsApp(){
   const status = !lequesEsc.length ? 'Sem checklist' : concluido ? 'Concluído' : 'Em andamento';
 
   const turnoTxt = (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `${turnoInfo.turnoNumero || ''}°TURNO${turnoInfo.turnoLetra ? ' - ' + turnoInfo.turnoLetra : ''}` : 'TURNO';
+  const eqUser = (typeof equipes !== 'undefined' ? equipes : []).find(e=> e.id === minhaEquipeId());
+  const tecnicosTxt = String((eqUser && eqUser.integrantes) || turnoInfo.tecnicos || '').split(/\s*(?:[,;\/]| e )\s*/).filter(Boolean).join('/');
+  const ddsTxt = String(turnoInfo.dds || '').trim();
   const obs = observacoesDoTurnoAtual().map(o=>o.texto);
-  if(turnoInfo.dds && !obs.length) obs.push(`DDS: ${turnoInfo.dds}`);
+  const obsTxt = `Iniciamos as atividades participando do DDS${ddsTxt ? ' (' + ddsTxt + ')' : ''}.` + (obs.length ? '\n' + obs.map(o=>'- ' + o).join('\n') : '');
 
   const t = [
     `Prezados, ${saud}.`,
@@ -841,7 +844,7 @@ function montarResumoTurnoWhatsApp(){
     `*STATUS TURNO PERFILAGEM LAVRA*`,
     `*${turnoTxt}*`,
     `*Data* ${dd}/${mes}/${ano}`,
-    `*TÉCNICOS* : ${turnoInfo.tecnicos || '-'}`,
+    `*TÉCNICOS* : ${tecnicosTxt || '-'}`,
     `*Supervisor*: ${turnoInfo.supervisor || '-'}`,
     `*PROJETO: ${turnoInfo.projeto || '-'}*`,
     `*LOCAL: ${turnoInfo.local || escopoAneis.map(a=>a.nome).join(', ') || '-'}*`,
@@ -853,7 +856,7 @@ function montarResumoTurnoWhatsApp(){
     '',
     bloco('✅', 'Levantamento Topográfico', topoDia, '❌') + (topoDia.length ? '' : ':'),
     '',
-    `❌ *Azimute*`,
+    bloco('✅', 'Azimute', topoDia, '❌'),
     '',
     `⚠️ *Não Perfurados*`,
     '',
@@ -867,7 +870,7 @@ function montarResumoTurnoWhatsApp(){
     linhaSep,
     `*Status:*  ${status}`,
     linhaSep,
-    `*OBSERVAÇÕES*: ${obs.length ? obs.join(' ') : ''}`
+    `*OBSERVAÇÕES*: ${obsTxt}`
   ];
   const nFotos = fotosDoTurnoAtual().length;
   if(nFotos) t.push('', `📷 Fotos registradas no turno: ${nFotos}`);
@@ -983,15 +986,40 @@ async function copiarTextoResumo(texto){
     document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
   }catch(e){ return false; }
 }
-el('btn-resumo-turno-copiar').addEventListener('click', async ()=>{
+// Antes de compartilhar o resumo, pergunta o tema do DDS do dia (vira a observação "Iniciamos as atividades participando do DDS").
+function pedirDDS(aoConfirmar){
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;margin:0 0 4px;">DDS do turno</p>
+    <p class="hint" style="margin:0 0 10px;">Qual foi o tema do DDS? Vai nas observações do resumo.</p>
+    <input id="dds-tema" type="text" maxlength="120" placeholder="tema do DDS" value="${escHtml(turnoInfo.dds || '')}" style="width:100%;min-height:48px;font-size:1.05rem;" aria-label="tema do DDS">
+    <div class="modal-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="steel" id="dds-ok">Continuar</button>
+      <button type="button" class="ghost" id="dds-x">Cancelar</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  const seguir = ()=>{
+    turnoInfo.dds = el('dds-tema').value.trim();
+    const campo = el('turno-dds'); if(campo) campo.value = turnoInfo.dds;
+    try{ saveTurnoInfo(); }catch(e){}
+    fechar(); aoConfirmar();
+  };
+  el('dds-ok').onclick = seguir; el('dds-x').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('dds-tema').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); seguir(); } });
+  setTimeout(()=>{ try{ el('dds-tema').focus(); }catch(_){} }, 50);
+}
+el('btn-resumo-turno-copiar').addEventListener('click', ()=> pedirDDS(async ()=>{
   const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp());
   showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar. Use "Enviar no WhatsApp".', { erro:false });
-});
-el('btn-resumo-turno-whatsapp').addEventListener('click', ()=>{
+  renderResumoTurno();
+}));
+el('btn-resumo-turno-whatsapp').addEventListener('click', ()=> pedirDDS(()=>{
   const texto = montarResumoTurnoWhatsApp();
   const numero = configApp.whatsapp;
   window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
-});
+  renderResumoTurno();
+}));
 el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTurno(); showToast('Resumo atualizado.', { erro:false }); });
 
 // Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
