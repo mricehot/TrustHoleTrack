@@ -470,6 +470,11 @@ function localSeAmbiguo(c, itens){
   const repetido = itens.some(o=> o.id !== c.id && o.tipo === c.tipo && o.numero === c.numero);
   return repetido ? ' (' + semAcento(local) + ')' : '';
 }
+// Linha com a área do realce (nível, ex: N-125 TR6733) logo abaixo do nome, quando cadastrada.
+function linhaAreaRealceWa(anelId){
+  const a = aneis.find(x=>x.id === anelId);
+  return a && (a.nivel || '').trim() ? `Area: ${semAcento(a.nivel.trim())}\n` : '';
+}
 function barraWa(pct){ const n = Math.round(Math.max(0,Math.min(100,pct))/10); return '▓'.repeat(n) + '░'.repeat(10-n); }
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
@@ -507,7 +512,7 @@ function montarBlocoRealceComLocais(anelId, itens, nomeRealce){
     grupos.get(chave).push(c);
   });
   const chaves = [...grupos.keys()]; // ordem em que cada localização apareceu pela primeira vez
-  let bloco = `📍 *Realce ${semAcento(nomeRealce)}*\n`;
+  let bloco = `📍 *Realce ${semAcento(nomeRealce)}*\n` + linhaAreaRealceWa(anelId);
   const partes = chaves.map(k=>{
     const titulo = k ? `*Local: ${semAcento(k)}*` : `*Local nao informado*`;
     return `${titulo}\n${resumoChecklistItens(grupos.get(k))}`;
@@ -564,7 +569,7 @@ function montarBlocoRealceParaWhatsApp(anelId){
     return `📍 *Realce ${nomeRealce}*\nNada no checklist ainda.`;
   }
 
-  let bloco = `📍 *Realce ${nomeRealce}*\n`;
+  let bloco = `📍 *Realce ${nomeRealce}*\n` + linhaAreaRealceWa(anelId);
   if(itens.length > 0){
     bloco += `Leques: ${feitos}/${itens.length} perfilados\n`;
     bloco += `Furos perfilados: ${furosPerfilados}/${totalFuros} (${pctFuros}%)\n${barraWa(pctFuros)}\nFuros topografados: ${furosTopografados}/${totalFuros} (${pctTopo}%)\n${barraWa(pctTopo)}\n`;
@@ -741,6 +746,7 @@ function montarResumoTurnoDetalhadoWhatsApp(){
       const temLocal = itens.some(c=>(c.localizacao||'').trim());
       if(temLocal) t += montarBlocoRealceComLocais(anel.id, itens, anel.nome).replace(/^📍 \*Realce [^\n]*\*\n/, '') + '\n';
       else{
+        t += linhaAreaRealceWa(anel.id);
         t += resumoChecklistItens(itens) + '\n';
         const obstr = blocoObstruidosWhatsApp(itens);
         if(obstr) t += `\n${obstr}\n`;
