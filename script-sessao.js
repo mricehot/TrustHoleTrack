@@ -1132,15 +1132,37 @@ const FUNCOES_BLOQUEADAS_LEITURA = [
     };
   });
 })();
-function definirModoLeitura(on){
+function definirModoLeitura(on, silencioso){
   modoLeitura = !!on;
+  // Tocar em "Editar" destrava o checklist até o app ser fechado; ligar a conferência de novo trava.
+  if(!silencioso) checklistTravado = !!on;
+  const txt = document.querySelector('#banner-leitura span'); if(txt) txt.textContent = '👁 Visualização: nada pode ser marcado. Toque em Editar para alterar.';
+  const bs = document.querySelector('#banner-leitura button'); if(bs) bs.textContent = '✏️ Editar';
   document.body.classList.toggle('modo-leitura', modoLeitura);
   const b = document.getElementById('banner-leitura'); if(b) b.hidden = !modoLeitura;
   const btn = document.getElementById('btn-modo-leitura'); if(btn) btn.setAttribute('aria-pressed', String(modoLeitura));
   try{ document.querySelector('.modal-overlay') && (document.getElementById('modal-root').innerHTML = ''); }catch(e){}
   try{ renderAll(); }catch(e){}
-  if(modoLeitura) showToast('Modo conferência ligado: nada pode ser marcado.', { tipo:'ok' });
+  if(modoLeitura && !silencioso) showToast('Modo visualização ligado: nada pode ser marcado.', { tipo:'ok' });
+  else if(!modoLeitura && !silencioso) showToast('Edição liberada.', { tipo:'ok' });
 }
+
+// O checklist abre sempre em visualização (evita marcar sem querer ao rolar com a luva/mão suja);
+// "Editar" libera. Vale só enquanto a aba Checklist está na tela.
+let checklistTravado = true;
+let leituraAutomatica = false;
+(function(){
+  const orig = window.mostrarView; if(typeof orig !== 'function') return;
+  window.mostrarView = function(viewId){
+    const r = orig.apply(this, arguments);
+    try{
+      if(viewId === 'checklist' && checklistTravado && !modoLeitura){ leituraAutomatica = true; definirModoLeitura(true, true); }
+      else if(viewId !== 'checklist' && leituraAutomatica && modoLeitura){ leituraAutomatica = false; definirModoLeitura(false, true); }
+    }catch(e){}
+    return r;
+  };
+  if(document.body.dataset.view === 'checklist' && checklistTravado){ leituraAutomatica = true; definirModoLeitura(true, true); }
+})();
 
 // ---------- Números que contam ao mudar ----------
 // Quando um contador (faixa "Hoje · você", quadros do Painel do turno) muda por causa de uma marcação,
