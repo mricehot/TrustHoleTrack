@@ -151,8 +151,11 @@ function montarResumoSemanalWhatsApp(offset){
   if(r.mes && (r.mes.acum || r.mes.meta)){
     const m = r.mes;
     o += `\n\n*MES DE ${semAcentoRS(m.nome).toUpperCase()}* (ate ${ddmmRS(m.corte)})\nAcumulado: *${numRS(m.acum)} m*${m.meta ? ' (' + m.pctAcum + '% da meta de ' + numRS(m.meta) + ' m)' : ''} | ${plural(m.pontos, 'ponto', 'pontos')}`;
-    o += `\nProjecao de fechamento: *${numRS(m.proj)} m*${m.meta ? ' (' + m.pctProj + '% da meta)' : ' (no ritmo atual)'}`;
-    o += '\n(detalhes no Relatorio mensal)';
+    o += `\nRitmo: ${numRS(m.ritmo)} m/dia util (${m.passados} de ${m.diasMes} dias uteis)`;
+    o += `\nProjecao de fechamento: *${numRS(m.proj)} m*${m.meta ? ' (' + m.pctProj + '% da meta)' + (m.faltaProj ? ' - faltam ' + numRS(m.faltaProj) + ' m' : ' - meta batida no ritmo atual') : ' (no ritmo atual, sem meta cadastrada)'}`;
+    if(m.meta && m.restantes && m.necessario !== null) o += `\nPara bater a meta: ${numRS(m.necessario)} m/dia nos ${m.restantes} dias uteis restantes`;
+    o += `\nUltimas 4 semanas: ` + m.semanas.map(w => numRS(w.metros)).join(' | ') + ` (media ${numRS(m.mediaSem)} m${m.varMedia ? '; esta semana ' + (m.varMedia > 0 ? '+' : '') + m.varMedia + '%' : ''})`;
+    o += '\n(detalhes por equipe e dia a dia no Relatorio mensal)';
   }
   o += '\n\n*DIA A DIA*\n' + r.dias.map(d => {
     if(!d.metros && !d.pontos) return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${d.folga ? 'folga' : 'sem producao'}`;
@@ -273,12 +276,33 @@ function cartaoResumoSemanalHTML(r){
         <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
   }).join('');
   const mes = r.mes, mesTem = mes && (mes.acum || mes.meta);
-  // Mês em uma linha só: o detalhe do mês fica no Relatório mensal.
-  const mesHTML = mesTem ? `<div style="margin-top:14px;padding:9px 14px;border:1px solid ${cor.lin};border-radius:10px;background:${cor.fundo};display:flex;justify-content:space-between;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:12.5px;color:${cor.mut};">
-      <span><b style="color:${cor.txt}">Mês de ${e2(mes.nome)}</b> · até ${ddmmRS(mes.corte)}</span>
-      <span>Acumulado <b style="color:${cor.txt}">${numRS(mes.acum)} m</b>${mes.meta ? ' (' + mes.pctAcum + '% da meta)' : ''}</span>
-      <span>Projeção <b style="color:${cor.txt}">${numRS(mes.proj)} m</b></span>
-      <span><b style="color:${cor.aco}">${Math.round(mes.pontos)}</b> pontos</span></div>` : '';
+  // Parte do mês no resumo da semana: situação, projeção e tendência das semanas. O detalhe completo (equipes, dia a dia) fica no Relatório mensal.
+  let mesHTML = '';
+  if(mesTem){
+    const corProj = mes.pctProj === null ? cor.txt : mes.pctProj >= 100 ? cor.ver : mes.pctProj >= 80 ? '#a56a00' : '#d6453d';
+    const fundoProj = mes.pctProj === null ? cor.fundo : mes.pctProj >= 100 ? '#eef8f1' : mes.pctProj >= 80 ? '#fff7ec' : '#fdeeed';
+    const baseBarra = Math.max(1, mes.meta || 0, mes.proj), pa = Math.min(100, mes.acum / baseBarra * 100), pp = Math.max(0, Math.min(100, mes.proj / baseBarra * 100) - pa);
+    const qd = (rot, val, sub, c, fundo) => `<div style="min-width:0;background:${fundo || cor.fundo};border:1px solid ${cor.lin};border-radius:10px;padding:10px 12px;"><div style="font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:${c || cor.mut};font-weight:700;">${rot}</div><div style="font:700 22px 'JetBrains Mono',monospace;margin-top:3px;color:${c || cor.txt};">${val}</div><div style="font-size:11.5px;color:${c || cor.mut};margin-top:2px;">${sub}</div></div>`;
+    const un = t => `<span style="font-size:13px;color:${cor.mut}"> ${t}</span>`;
+    const maxS = Math.max(1, mes.semanaMeta || 0, ...mes.semanas.map(w => w.metros));
+    const barrasS = mes.semanas.map(w => `<div style="flex:1;text-align:center;"><div style="font:700 11px monospace;">${numRS(w.metros)}</div><div style="height:${Math.max(2, Math.round(w.metros / maxS * 78))}px;background:${w.atual ? cor.amb : '#ffb4a2'};border-radius:6px 6px 2px 2px;"></div></div>`).join('');
+    mesHTML = `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Mês de ${e2(mes.nome)} <span style="font-weight:500;color:${cor.mut};font-size:12px;">· acumulado até ${ddmmRS(mes.corte)}${mes.meta ? ' e projeção de fechamento' : ''}</span></div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="flex:1;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          ${qd('Acumulado', numRS(mes.acum) + un('m'), mes.meta ? mes.pctAcum + '% da meta de ' + numRS(mes.meta) + ' m' : Math.round(mes.pontos) + ' pontos topografados')}
+          ${qd('Ritmo atual', numRS(mes.ritmo) + un('m/dia'), mes.passados + ' de ' + mes.diasMes + ' dias úteis')}
+          ${mes.meta ? qd('Projeção', numRS(mes.proj) + un('m'), mes.pctProj + '% da meta · ' + (mes.faltaProj ? 'faltam ' + numRS(mes.faltaProj) + ' m' : 'meta batida'), corProj, fundoProj) : qd('Projeção', numRS(mes.proj) + un('m'), 'no ritmo atual · sem meta')}
+          ${mes.meta && mes.restantes ? qd('Necessário p/ meta', numRS(mes.necessario) + un('m/dia'), 'nos ' + mes.restantes + ' dias úteis que restam') : qd('Pontos no mês', Math.round(mes.pontos), 'topografados')}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px;">Tendência · últimas 4 semanas${mes.semanaMeta ? ` <span style="font-weight:500;color:${cor.mut};font-size:11px;">(meta ${numRS(mes.semanaMeta)} m)</span>` : ''}</div>
+          <div style="position:relative;height:104px;display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid ${cor.lin};padding:0 4px;">
+            ${mes.semanaMeta ? `<div style="position:absolute;left:0;right:0;bottom:${Math.round(mes.semanaMeta / maxS * 78)}px;border-top:2px dashed #8a94a6;"></div>` : ''}${barrasS}</div>
+          <div style="display:flex;gap:12px;padding:0 4px;font-size:11px;color:${cor.mut};text-align:center;margin-top:4px;">${mes.semanas.map(w => `<span style="flex:1;${w.atual ? 'color:' + cor.txt + ';font-weight:700;' : ''}">${w.rotulo}${w.atual ? ' (esta)' : ''}</span>`).join('')}</div>
+          <div style="font-size:11.5px;color:${cor.mut};margin-top:6px;">Média: <b style="color:${cor.txt}">${numRS(mes.mediaSem)} m</b>${mes.varMedia ? ` · esta semana ${seta(mes.varMedia)} da média` : ''}</div></div></div>
+      <div style="margin-top:12px;position:relative;"><div style="height:14px;background:#ece9f2;border-radius:8px;position:relative;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:${pa}%;background:${cor.amb};"></div><div style="position:absolute;left:${pa}%;top:0;height:100%;width:${pp}%;overflow:hidden;">${hachuraSvgRS(0,14,'display:block;width:100%;height:100%;')}</div></div>
+        ${mes.meta ? `<div style="position:absolute;left:${(mes.meta / baseBarra * 100).toFixed(1)}%;top:-4px;height:22px;margin-left:-3px;border-right:3px solid ${cor.txt};"></div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${cor.mut};margin-top:5px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span>projeção até ${ddmmRS(mes.fimMes)} (+${numRS(Math.max(0, mes.proj - mes.acum))} m no ritmo atual)</span><span>${mes.meta ? '<b style="color:' + cor.txt + '">|</b> meta ' + numRS(mes.meta) + ' m' : 'projeção ' + numRS(mes.proj) + ' m'}</span></div></div>`;
+  }
   const realcesHTML = realcesHTMLRS(r.realces, 'semana');
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
