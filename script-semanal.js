@@ -151,14 +151,8 @@ function montarResumoSemanalWhatsApp(offset){
   if(r.mes && (r.mes.acum || r.mes.meta)){
     const m = r.mes;
     o += `\n\n*MES DE ${semAcentoRS(m.nome).toUpperCase()}* (ate ${ddmmRS(m.corte)})\nAcumulado: *${numRS(m.acum)} m*${m.meta ? ' (' + m.pctAcum + '% da meta de ' + numRS(m.meta) + ' m)' : ''} | ${plural(m.pontos, 'ponto', 'pontos')}`;
-    o += `\nRitmo: ${numRS(m.ritmo)} m/dia util (${m.passados} de ${m.diasMes} dias uteis)`;
-    if(!m.meta) o += `\nProjecao de fechamento: *${numRS(m.proj)} m* (no ritmo atual, sem meta cadastrada)`;
-    if(m.meta){
-      o += `\nProjecao de fechamento: *${numRS(m.proj)} m* (${m.pctProj}% da meta)${m.faltaProj ? ' - faltam ' + numRS(m.faltaProj) + ' m' : ' - meta batida no ritmo atual'}`;
-      if(m.restantes && m.necessario !== null) o += `\nPara bater a meta: ${numRS(m.necessario)} m/dia nos ${m.restantes} dias uteis restantes`;
-    }
-    o += `\nUltimas 4 semanas: ` + m.semanas.map(w => numRS(w.metros)).join(' | ') + ` (media ${numRS(m.mediaSem)} m${m.varMedia ? '; esta semana ' + (m.varMedia > 0 ? '+' : '') + m.varMedia + '%' : ''})`;
-    if(m.porEq.length > 1) o += '\nPor equipe no mes: ' + m.porEq.map(e => `${semAcentoRS(e.nome)} ${numRS(e.metros)} m`).join(' | ');
+    o += `\nProjecao de fechamento: *${numRS(m.proj)} m*${m.meta ? ' (' + m.pctProj + '% da meta)' : ' (no ritmo atual)'}`;
+    o += '\n(detalhes no Relatorio mensal)';
   }
   o += '\n\n*DIA A DIA*\n' + r.dias.map(d => {
     if(!d.metros && !d.pontos) return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${d.folga ? 'folga' : 'sem producao'}`;
@@ -201,18 +195,41 @@ function montarResumoSemanalWhatsApp(offset){
 
 
 // Gráfico de área + linha de 7 dias (mesmo estilo do infográfico), em SVG para sair certo na imagem.
-function graficoDiasSemanaRS(dias, valorDe, subDe, corLinha, fmt){
+function graficoDiasSemanaRS(dias, valorDe, subDe, corLinha, fmt, opts){
+  opts = opts || {};
+  const n = dias.length, denso = n > 10;
   const W = 400, H = 150, pad = 18, topo = 24, base = H - 38;
   const vals = dias.map(valorDe), max = Math.max(1, ...vals);
-  const xs = i => pad + i * (W - 2 * pad) / 6, ys = v => topo + (1 - v / max) * (base - topo);
+  const xs = i => pad + i * (W - 2 * pad) / Math.max(1, n - 1), ys = v => topo + (1 - v / max) * (base - topo);
   const pts = vals.map((v, i) => [xs(i), ys(v)]);
   const linha = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  const area = linha + ` L${xs(6).toFixed(1)},${base} L${xs(0).toFixed(1)},${base} Z`;
+  const area = linha + ` L${xs(n - 1).toFixed(1)},${base} L${xs(0).toFixed(1)},${base} Z`;
   const pontos = pts.map((p, i) => vals[i] > 0
-    ? `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#fff" stroke="${corLinha}" stroke-width="2.4"/><text x="${p[0].toFixed(1)}" y="${(p[1] - 9).toFixed(1)}" text-anchor="middle" font-family="monospace" font-weight="700" font-size="12" fill="#191231">${fmt(vals[i])}</text>`
-    : `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="#c9c6d3"/>`).join('');
-  const rot = dias.map((d, i) => `<text x="${xs(i).toFixed(1)}" y="${base + 15}" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="11.5" fill="${d.folga ? '#9a98aa' : '#191231'}">${d.nome}</text><text x="${xs(i).toFixed(1)}" y="${base + 29}" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#6b6b80">${subDe(d)}</text>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;"><path d="${area}" fill="${corLinha}" fill-opacity=".14"/><line x1="${pad}" x2="${W - pad}" y1="${base}" y2="${base}" stroke="#e3e1ea"/><path d="${linha}" fill="none" stroke="${corLinha}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>${pontos}${rot}</svg>`;
+    ? `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${denso ? 2.6 : 4}" fill="#fff" stroke="${corLinha}" stroke-width="${denso ? 1.8 : 2.4}"/>` + (!denso || vals[i] >= max * 0.55 ? `<text x="${p[0].toFixed(1)}" y="${(p[1] - 8).toFixed(1)}" text-anchor="middle" font-family="monospace" font-weight="700" font-size="${denso ? 10 : 12}" fill="#191231">${fmt(vals[i])}</text>` : '')
+    : (denso ? '' : `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="#c9c6d3"/>`)).join('');
+  const passo = denso ? 2 : 1;
+  const rot = dias.map((d, i) => (i % passo) ? '' : `<text x="${xs(i).toFixed(1)}" y="${base + 15}" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="${denso ? 9.5 : 11.5}" fill="${d.folga ? '#9a98aa' : '#191231'}">${opts.rotulo ? opts.rotulo(d) : d.nome}</text>${denso ? '' : `<text x="${xs(i).toFixed(1)}" y="${base + 29}" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#6b6b80">${subDe(d)}</text>`}`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;"><path d="${area}" fill="${corLinha}" fill-opacity=".14"/><line x1="${pad}" x2="${W - pad}" y1="${base}" y2="${base}" stroke="#e3e1ea"/><path d="${linha}" fill="none" stroke="${corLinha}" stroke-width="${denso ? 2 : 2.6}" stroke-linejoin="round" stroke-linecap="round"/>${pontos}${rot}</svg>`;
+}
+
+function realcesHTMLRS(realces, per){
+  const e2 = escHtml, cor = { amb: '#ff431d', aco: '#2f6690', ver: '#2e9b57', txt: '#191231', mut: '#6b6b80', lin: '#e3e1ea', fundo: '#f6f5f9' };
+  return realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou ${per === 'mês' ? 'no mês' : 'na semana'}</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">` + realces.map(x => {
+    const p = n => x.furos ? Math.round(n / x.furos * 100) : 0;
+    const barra = (n, c) => `<div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${p(n)}%;height:100%;background:${c};"></div></div>`;
+    const chip = (txt, c) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:${c}1f;color:${c};border:1px solid ${c}55;font-size:12px;font-weight:600;">${txt}</span>`;
+    const linha = (rot, conteudo) => conteudo ? `<div style="margin-top:6px;font-size:12.5px;color:${cor.mut};"><b style="color:${cor.txt}">${rot}</b> ${conteudo}</div>` : '';
+    return `<div style="border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;background:#fff;min-width:0;">
+      <div style="display:flex;flex-direction:column;gap:2px;"><b style="font-size:15px;">${e2(x.nome)}</b>
+        <span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
+      ${linha(per === 'mês' ? 'No mês:' : 'Na semana:', `+${x.perfSem} perfilados · +${x.topoSem} topografados`)}
+      ${x.finalizados.length ? linha(per === 'mês' ? 'Finalizados no mês:' : 'Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
+      ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
+      ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
+      ${x.problemas.some(p => p.obstruidos.length) ? `<div style="margin-top:8px;font-size:11px;color:${cor.mut};">Obstruídos: ` + x.problemas.filter(p => p.obstruidos.length).map(p => p.alto ? `<b style="color:#d6453d;">${p.rotulo} (${p.obstruidos.length}/${p.total})</b>` : `${p.rotulo} (${p.obstruidos.length})`).join(' · ') + '</div>' : ''}</div>`;
+  }).join('') + '</div>' : '';
 }
 
 // ---- Imagem (cartão claro, largura fixa, igual em qualquer aparelho) ----
@@ -256,51 +273,13 @@ function cartaoResumoSemanalHTML(r){
         <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
   }).join('');
   const mes = r.mes, mesTem = mes && (mes.acum || mes.meta);
-  let mesHTML = '';
-  if(mesTem){
-    const corProj = mes.pctProj === null ? cor.txt : mes.pctProj >= 100 ? cor.ver : mes.pctProj >= 80 ? '#a56a00' : '#d6453d';
-    const fundoProj = mes.pctProj === null ? cor.fundo : mes.pctProj >= 100 ? '#eef8f1' : mes.pctProj >= 80 ? '#fff7ec' : '#fdeeed';
-    const baseBarra = Math.max(1, mes.meta || 0, mes.proj), pa = Math.min(100, mes.acum / baseBarra * 100), pp = Math.max(0, Math.min(100, mes.proj / baseBarra * 100) - pa);
-    const qd = (rot, val, sub, c, fundo) => `<div style="flex:1;min-width:0;background:${fundo || cor.fundo};border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;"><div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${c || cor.mut};font-weight:700;">${rot}</div><div style="font:700 26px 'JetBrains Mono',monospace;margin-top:4px;color:${c || cor.txt};">${val}</div><div style="font-size:12px;color:${c || cor.mut};margin-top:3px;">${sub}</div></div>`;
-    const maxS = Math.max(1, mes.semanaMeta || 0, ...mes.semanas.map(w => w.metros));
-    const barrasS = mes.semanas.map(w => `<div style="flex:1;text-align:center;"><div style="font:700 12px monospace;">${numRS(w.metros)}</div><div style="height:${Math.max(2, Math.round(w.metros / maxS * 96))}px;background:${w.atual ? cor.amb : '#ffb4a2'};border-radius:6px 6px 2px 2px;"></div></div>`).join('');
-    mesHTML = `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Mês de ${e2(mes.nome)} <span style="font-weight:500;color:${cor.mut};font-size:12px;">· acumulado até ${ddmmRS(mes.corte)}${mes.meta ? ' e projeção de fechamento' : ''}</span></div>
-      <div style="display:flex;gap:10px;">
-        ${qd('Acumulado do mês', numRS(mes.acum) + '<span style="font-size:14px;color:' + cor.mut + '"> m</span>', mes.meta ? mes.pctAcum + '% da meta de ' + numRS(mes.meta) + ' m' : Math.round(mes.pontos) + ' pontos topografados')}
-        ${qd('Ritmo atual', numRS(mes.ritmo) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', mes.passados + ' de ' + mes.diasMes + ' dias úteis')}
-        ${mes.meta ? qd('Projeção de fechamento', numRS(mes.proj) + '<span style="font-size:14px;"> m</span>', mes.pctProj + '% da meta · ' + (mes.faltaProj ? 'faltam ' + numRS(mes.faltaProj) + ' m' : 'meta batida'), corProj, fundoProj) : qd('Projeção de fechamento', numRS(mes.proj) + '<span style="font-size:14px;color:' + cor.mut + '"> m</span>', 'no ritmo atual até o fim do mês · sem meta cadastrada')}
-        ${mes.meta && mes.restantes ? qd('Necessário p/ meta', numRS(mes.necessario) + '<span style="font-size:14px;color:' + cor.mut + '"> m/dia</span>', 'nos ' + mes.restantes + ' dias úteis que restam') : ''}</div>
-      <div style="margin-top:14px;position:relative;"><div style="height:16px;background:#ece9f2;border-radius:8px;position:relative;overflow:hidden;"><div style="position:absolute;left:0;top:0;height:100%;width:${pa}%;background:${cor.amb};"></div><div style="position:absolute;left:${pa}%;top:0;height:100%;width:${pp}%;overflow:hidden;">${hachuraSvgRS(0,16,'display:block;width:100%;height:100%;')}</div></div>
-        ${mes.meta ? `<div style="position:absolute;left:${(mes.meta / baseBarra * 100).toFixed(1)}%;top:-4px;height:24px;margin-left:-3px;border-right:3px solid ${cor.txt};"></div>` : ''}
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:${cor.mut};margin-top:6px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span><span style="display:inline-block;width:11px;height:11px;vertical-align:-1px;margin-right:4px;">${hachuraSvgRS(11,11,'border-radius:2px;')}</span>projeção até ${ddmmRS(mes.fimMes)} (+${numRS(Math.max(0, mes.proj - mes.acum))} m no ritmo atual)</span><span>${mes.meta ? '<b style="color:' + cor.txt + '">|</b> meta ' + numRS(mes.meta) + ' m' : 'projeção ' + numRS(mes.proj) + ' m'}</span></div></div>
-      <div style="display:flex;gap:18px;margin-top:16px;">
-        <div style="flex:1.2;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">Tendência · últimas 4 semanas${mes.semanaMeta ? ` <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">(meta semanal ${numRS(mes.semanaMeta)} m)</span>` : ''}</div>
-          <div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:14px;border-bottom:1px solid ${cor.lin};padding:0 6px;">
-            ${mes.semanaMeta ? `<div style="position:absolute;left:0;right:0;bottom:${Math.round(mes.semanaMeta / maxS * 96)}px;border-top:2px dashed #8a94a6;"></div>` : ''}${barrasS}</div>
-          <div style="display:flex;gap:14px;padding:0 6px;font-size:11.5px;color:${cor.mut};text-align:center;margin-top:4px;">${mes.semanas.map(w => `<span style="flex:1;${w.atual ? 'color:' + cor.txt + ';font-weight:700;' : ''}">${w.rotulo}${w.atual ? ' (esta)' : ''}</span>`).join('')}</div>
-          <div style="font-size:12px;color:${cor.mut};margin-top:8px;">Média das 4 semanas: <b style="color:${cor.txt}">${numRS(mes.mediaSem)} m</b>${mes.varMedia ? ` · esta semana ${seta(mes.varMedia)} da média` : ''}</div></div>
-        <div style="flex:1;"><div style="font-weight:700;font-size:13px;margin-bottom:6px;">Acumulado do mês por equipe</div>
-          <div style="border:1px solid ${cor.lin};border-radius:10px;overflow:hidden;font-size:12.5px;">
-            ${mes.porEq.map((e, i) => `<div style="display:flex;justify-content:space-between;padding:8px 12px;background:${i % 2 ? cor.fundo : '#fff'};"><span><b>${e2(e.nome)}</b></span><span style="font:700 13px monospace;">${numRS(e.metros)} m${mes.acum ? ' · ' + Math.round(e.metros / mes.acum * 100) + '%' : ''}</span></div>`).join('')}
-            <div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid ${cor.lin};"><span style="color:${cor.mut}">Pontos topografados no mês</span><span style="font:700 13px monospace;color:${cor.aco};">${Math.round(mes.pontos)}</span></div></div>
-          ${mes.meta && mes.restantes && mes.necessario !== null && mes.ritmo && mes.necessario > mes.ritmo ? `<div style="margin-top:10px;padding:8px 12px;border-left:4px solid #e0a25a;background:#fff7ec;border-radius:4px;font-size:12px;">Para fechar em ${numRS(mes.meta)} m, o ritmo precisa subir de <b>${numRS(mes.ritmo)}</b> para <b>${numRS(mes.necessario)} m/dia</b> (+${Math.round((mes.necessario / mes.ritmo - 1) * 100)}%).</div>` : ''}</div></div>`;
-  }
-  const realcesHTML = r.realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou na semana</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">` + r.realces.map(x => {
-    const p = n => x.furos ? Math.round(n / x.furos * 100) : 0;
-    const barra = (n, c) => `<div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${p(n)}%;height:100%;background:${c};"></div></div>`;
-    const chip = (txt, c) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:${c}1f;color:${c};border:1px solid ${c}55;font-size:12px;font-weight:600;">${txt}</span>`;
-    const linha = (rot, conteudo) => conteudo ? `<div style="margin-top:6px;font-size:12.5px;color:${cor.mut};"><b style="color:${cor.txt}">${rot}</b> ${conteudo}</div>` : '';
-    return `<div style="border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;background:#fff;min-width:0;">
-      <div style="display:flex;flex-direction:column;gap:2px;"><b style="font-size:15px;">${e2(x.nome)}</b>
-        <span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
-      ${linha('Na semana:', `+${x.perfSem} perfilados · +${x.topoSem} topografados`)}
-      ${x.finalizados.length ? linha('Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
-      ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
-      ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
-      ${x.problemas.some(p => p.obstruidos.length) ? `<div style="margin-top:8px;font-size:11px;color:${cor.mut};">Obstruídos: ` + x.problemas.filter(p => p.obstruidos.length).map(p => p.alto ? `<b style="color:#d6453d;">${p.rotulo} (${p.obstruidos.length}/${p.total})</b>` : `${p.rotulo} (${p.obstruidos.length})`).join(' · ') + '</div>' : ''}</div>`;
-  }).join('') + '</div>' : '';
+  // Mês em uma linha só: o detalhe do mês fica no Relatório mensal.
+  const mesHTML = mesTem ? `<div style="margin-top:14px;padding:9px 14px;border:1px solid ${cor.lin};border-radius:10px;background:${cor.fundo};display:flex;justify-content:space-between;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:12.5px;color:${cor.mut};">
+      <span><b style="color:${cor.txt}">Mês de ${e2(mes.nome)}</b> · até ${ddmmRS(mes.corte)}</span>
+      <span>Acumulado <b style="color:${cor.txt}">${numRS(mes.acum)} m</b>${mes.meta ? ' (' + mes.pctAcum + '% da meta)' : ''}</span>
+      <span>Projeção <b style="color:${cor.txt}">${numRS(mes.proj)} m</b></span>
+      <span><b style="color:${cor.aco}">${Math.round(mes.pontos)}</b> pontos</span></div>` : '';
+  const realcesHTML = realcesHTMLRS(r.realces, 'semana');
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
       <div><div style="font-size:12px;letter-spacing:2px;font-weight:700;color:${cor.amb};">RESUMO SEMANAL</div>
