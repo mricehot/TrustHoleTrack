@@ -99,7 +99,7 @@ function calcularResumoSemanal(offset){
   const dias = [];
   for(let i = 0; i < 7; i++){
     const d = new Date(ini); d.setDate(d.getDate() + i);
-    dias.push({ data: d, iso: dataISOLocal(d), nome: DIAS_CURTOS[d.getDay()], folga: d.getDay() === 0, metros: 0, pontos: 0, porEq: {} });
+    dias.push({ data: d, iso: dataISOLocal(d), nome: DIAS_CURTOS[d.getDay()], folga: d.getDay() === 0, metros: 0, pontos: 0, furosPerf: 0, furosTopo: 0, porEq: {} });
   }
   const equipesR = lista.map(e => {
     const meus = efet.filter(l => l.equipeId === e.id);
@@ -126,8 +126,8 @@ function calcularResumoSemanal(offset){
   // Furos marcados no checklist dentro da semana (mesma base do infográfico).
   let furosPerf = 0, furosTopo = 0;
   checklistFurosNoEscopoAtual().forEach(f => {
-    if(f.perfilado && f.perfiladoEm){ const c = chaveDia(f.perfiladoEm); if(c >= iniISO && c <= fimISO) furosPerf++; }
-    if(f.topografado && f.topografadoEm){ const c = chaveDia(f.topografadoEm); if(c >= iniISO && c <= fimISO) furosTopo++; }
+    if(f.perfilado && f.perfiladoEm){ const c = chaveDia(f.perfiladoEm); if(c >= iniISO && c <= fimISO){ furosPerf++; const d = dias.find(x => x.iso === c); if(d) d.furosPerf++; } }
+    if(f.topografado && f.topografadoEm){ const c = chaveDia(f.topografadoEm); if(c >= iniISO && c <= fimISO){ furosTopo++; const d = dias.find(x => x.iso === c); if(d) d.furosTopo++; } }
   });
   return { offset, ini, fim, iniISO, fimISO, equipes: equipesR, dias, tot, diasTrab: diasTrabTotal, melhorDia,
     mediaDia: diasTrabTotal ? arred2(tot.m / diasTrabTotal) : 0, varM: varRS(tot.m, tot.am), varP: varRS(Math.round(tot.p), Math.round(tot.ap)),
@@ -197,6 +197,22 @@ function montarResumoSemanalWhatsApp(offset){
   }
   if(quem) o += `\n\n_Resumo gerado por ${semAcentoRS(quem)}_`;
   return o;
+}
+
+
+// Gráfico de área + linha de 7 dias (mesmo estilo do infográfico), em SVG para sair certo na imagem.
+function graficoDiasSemanaRS(dias, valorDe, subDe, corLinha, fmt){
+  const W = 400, H = 150, pad = 18, topo = 24, base = H - 38;
+  const vals = dias.map(valorDe), max = Math.max(1, ...vals);
+  const xs = i => pad + i * (W - 2 * pad) / 6, ys = v => topo + (1 - v / max) * (base - topo);
+  const pts = vals.map((v, i) => [xs(i), ys(v)]);
+  const linha = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = linha + ` L${xs(6).toFixed(1)},${base} L${xs(0).toFixed(1)},${base} Z`;
+  const pontos = pts.map((p, i) => vals[i] > 0
+    ? `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#fff" stroke="${corLinha}" stroke-width="2.4"/><text x="${p[0].toFixed(1)}" y="${(p[1] - 9).toFixed(1)}" text-anchor="middle" font-family="monospace" font-weight="700" font-size="12" fill="#191231">${fmt(vals[i])}</text>`
+    : `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5" fill="#c9c6d3"/>`).join('');
+  const rot = dias.map((d, i) => `<text x="${xs(i).toFixed(1)}" y="${base + 15}" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="11.5" fill="${d.folga ? '#9a98aa' : '#191231'}">${d.nome}</text><text x="${xs(i).toFixed(1)}" y="${base + 29}" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" fill="#6b6b80">${subDe(d)}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;"><path d="${area}" fill="${corLinha}" fill-opacity=".14"/><line x1="${pad}" x2="${W - pad}" y1="${base}" y2="${base}" stroke="#e3e1ea"/><path d="${linha}" fill="none" stroke="${corLinha}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>${pontos}${rot}</svg>`;
 }
 
 // ---- Imagem (cartão claro, largura fixa, igual em qualquer aparelho) ----
@@ -297,6 +313,15 @@ function cartaoResumoSemanalHTML(r){
       ${kpi('Furos no checklist', r.furosPerf + ' / ' + r.furosTopo, 'perfilados / topografados')}
       ${kpi('Dias de produção', r.diasTrab, r.diasTrab ? 'média ' + numRS(r.mediaDia) + ' m/dia' : 'sem produção')}</div>
     ${r.melhorDia ? `<div style="margin-top:10px;font-size:13px;color:${cor.mut};">Melhor dia da semana: <b style="color:${cor.txt}">${r.melhorDia.nome} ${ddmmRS(r.melhorDia.data)}</b> com <b style="color:${cor.txt}">${numRS(r.melhorDia.metros)} m</b></div>` : ''}
+    <div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Perfilagem e topografia por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}</span></div>
+    <div style="display:flex;gap:12px;">
+      <div style="flex:1;min-width:0;border:1px solid ${cor.lin};border-radius:10px;padding:10px 12px 6px;background:#fff;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:13px;color:${cor.amb};">Perfilagem · metros</b><span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.txt}">${numRS(r.tot.m)} m</b> na semana</span></div>
+        ${graficoDiasSemanaRS(r.dias, d => d.metros, d => d.furosPerf ? d.furosPerf + (d.furosPerf === 1 ? ' furo' : ' furos') : '', cor.amb, numRS)}</div>
+      <div style="flex:1;min-width:0;border:1px solid ${cor.lin};border-radius:10px;padding:10px 12px 6px;background:#fff;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:13px;color:${cor.aco};">Topografia · furos</b><span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.txt}">${r.furosTopo} furos</b> na semana</span></div>
+        ${graficoDiasSemanaRS(r.dias, d => d.furosTopo, d => '', cor.aco, v => String(Math.round(v)))}</div></div>
+    <div style="font-size:11px;color:${cor.mut};margin-top:5px;">Perfilagem: metros lançados pelas equipes (o número pequeno sob o dia é a quantidade de furos perfilados no checklist). Topografia: furos marcados no checklist.</div>
     ${mesHTML}
     <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· total no topo, equipes por cor · pontos topografados em azul</span></div>
     <div style="font-size:12px;color:${cor.mut};margin-bottom:6px;">${legendaEq}</div>
