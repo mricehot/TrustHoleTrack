@@ -2484,4 +2484,4 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 
 /* "sincronizando…" é um selo pequeno por cima da tela (fixo). Antes ficava no cabeçalho, no fluxo da página:
    a cada marcação ele aparecia e sumia e a tela inteira descia e subia. */
-.sync-badge{ position:fixed !important; top:calc(6px + env(safe-area-inset-top)); right:8px; z-index:2400; grid-column:auto !important; justify-self:auto !important; box-shadow:0 2px 8px rgba(0,0,0,.18); pointer-events:none; }
+.sync-badge{ position:fixed !important; top:auto; right:auto; left:10px; bottom:calc(70px + env(safe-area-inset-bottom)); z-index:2400; opacity:.92; grid-column:auto !important; justify-self:auto !important; box-shadow:0 2px 8px rgba(0,0,0,.18); pointer-events:none; }
