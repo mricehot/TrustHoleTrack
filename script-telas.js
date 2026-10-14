@@ -466,15 +466,14 @@ function calcularEstatisticasInfografico(){
   // — antes só o checklist contava, e o gráfico ficava parado quando a equipe lançava só o total do dia.
   // Topografia: a equipe lança "pontos do dia" e o checklist tem os furos marcados — são o MESMO trabalho
   // visto de dois lados. Somar os dois contava cada furo duas vezes. Por dia vale o MAIOR dos dois.
-  const topoLancado = {}, topoChecklist = {};
-  lancamentosProd.forEach(l=>{ if(idsEquipesEscopo.has(l.equipeId) && l.pontos) topoLancado[l.data] = (topoLancado[l.data] || 0) + Number(l.pontos); });
+  const topoChecklist = {}; // pontos topografados: só as marcações do checklist
   furos.forEach(f=>{
     if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1; }
     // Só conta o furo que continua topografado (marcação desfeita não entra).
     if(f.topografado && f.topografadoEm){ const ct = chaveDia(f.topografadoEm); topoChecklist[ct] = (topoChecklist[ct] || 0) + 1; }
   });
-  new Set([...Object.keys(topoLancado), ...Object.keys(topoChecklist)]).forEach(chave=>{
-    const n = Math.max(topoLancado[chave] || 0, topoChecklist[chave] || 0);
+  Object.keys(topoChecklist).forEach(chave=>{
+    const n = topoChecklist[chave];
     porDiaTopo[chave] = n;
     if(chave === hojeChave) furosTopoHoje += n;
     if(chave >= iniSemanaISO) furosTopoSemana += n;
@@ -871,9 +870,8 @@ function renderProdutividadeEquipes(){
           <div class="equipe-bloco-topo"><span class="equipe-rotulo">Topografado</span></div>
           <div class="equipe-trilho"><div class="equipe-barra equipe-barra-steel" id="barra-pontos-${e.id}"></div></div>
           <div class="equipe-soma" data-equipe="${e.id}" data-campo="pontos">
-            <span class="equipe-campo"><input type="text" inputmode="numeric" placeholder="0" value="${valorInput(r.pontos)}" aria-label="Total de pontos topografados de ${escHtml(e.nome)} na semana" onchange="lancarProdutividade('${e.id}','pontos',this.value)"><small>pts</small></span>
-            <input type="text" class="inp-somar" inputmode="numeric" placeholder="+ pts" aria-label="Somar pontos em ${escHtml(e.nome)}" onkeydown="if(event.key==='Enter'){event.preventDefault();somarDoCampo(this)}">
-            <button type="button" class="steel btn-somar" onclick="somarDoCampo(this)" aria-label="Somar pontos em ${escHtml(e.nome)}">＋</button>
+            <span class="equipe-campo"><input type="text" inputmode="numeric" value="${valorInput(r.pontos)}" readonly title="vem das marcações de topografia do checklist" aria-label="Pontos topografados de ${escHtml(e.nome)} na semana (do checklist)"><small>pts</small></span>
+            <span class="hint" style="margin-left:6px;">do checklist</span>
           </div>
         </div>
         ${linhaCk}

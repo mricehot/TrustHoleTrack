@@ -1948,8 +1948,19 @@ function definirObstrucaoChecklistFuro(id, motivo){
 
 // Produtividade: só os lançamentos feitos à mão pelas equipes. A metragem real digitada nos furos
 // do checklist serve para o relatório do turno e NÃO entra nesta soma.
+// Pontos topografados vêm SÓ das marcações do checklist (equipe do furo, dia da marcação); a metragem vem SÓ dos
+// lançamentos manuais. Os "pontos" digitados à mão são ignorados, para o mesmo furo nunca contar duas vezes.
 function lancamentosEfetivos(){
-  return lancamentosProd;
+  const manuais = lancamentosProd.map(l=> Object.assign({}, l, { pontos: 0 }));
+  const mapa = new Map();
+  checklistFuros.forEach(f=>{
+    if(!f.topografado || !f.topografadoEm) return;
+    const eq = equipeTopoEfetivaId(f); if(!eq) return;
+    const d = chaveDia(f.topografadoEm), k = eq + '|' + d;
+    if(!mapa.has(k)) mapa.set(k, { id: 'ck:' + k, equipeId: eq, data: d, metros: 0, pontos: 0 });
+    mapa.get(k).pontos++;
+  });
+  return manuais.concat([...mapa.values()]);
 }
 async function removerChecklistFuro(id){
   if(!exigirGestor('remover furo')) return;
