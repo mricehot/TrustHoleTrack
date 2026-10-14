@@ -2481,3 +2481,7 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
    antes ele aparecia no fluxo da página e, a cada marcação, a tela dava um pulo para baixo e para cima. */
 .alerta-falhas{ position:fixed; top:0; left:0; right:0; z-index:2600; padding:6px 12px; font-size:12.5px; gap:8px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
 .alerta-falhas button{ min-height:34px; padding:5px 12px; }
+
+/* "sincronizando…" é um selo pequeno por cima da tela (fixo). Antes ficava no cabeçalho, no fluxo da página:
+   a cada marcação ele aparecia e sumia e a tela inteira descia e subia. */
+.sync-badge{ position:fixed !important; top:calc(6px + env(safe-area-inset-top)); right:8px; z-index:2400; grid-column:auto !important; justify-self:auto !important; box-shadow:0 2px 8px rgba(0,0,0,.18); pointer-events:none; }
