@@ -234,10 +234,10 @@ function cartaoResumoSemanalHTML(r){
       ? `<div style="height:110px;width:100%;border-radius:6px;background:#eeecf3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${cor.mut};">folga</div>`
       : `<div style="height:110px;width:100%;display:flex;align-items:flex-end;"><div style="width:100%;height:${Math.max(h, d.metros ? 3 : 0)}px;display:flex;flex-direction:column-reverse;border-radius:6px 6px 2px 2px;overflow:hidden;">${ordemEq.map(e => { const v = d.porEq[e.id] || 0; if(!v) return ''; const hs = v / d.metros * Math.max(h, 3); const curto = nomeCurtoEq(e.nome), conteudo = hs >= 30 ? `<div style="font:700 10.5px 'Inter',sans-serif;line-height:1.1;max-width:100%;overflow:hidden;white-space:nowrap;">${e2(curto)}</div><div style="font:700 12px monospace;line-height:1.2;">${numRS(v)}</div>` : hs >= 15 ? `<div style="font:700 10px 'Inter',sans-serif;white-space:nowrap;overflow:hidden;">${e2(curto.slice(0, 7))} ${numRS(v)}</div>` : ''; return `<div style="height:${hs.toFixed(1)}px;background:${e.cor};border-top:1px solid #fff;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;overflow:hidden;padding:0 3px;box-sizing:border-box;">${conteudo}</div>`; }).join('')}</div></div>`;
     return `<div style="flex:1;min-width:0;text-align:center;">
-      <div style="font:700 13px 'JetBrains Mono',monospace;height:18px;color:${cor.txt};">${d.metros ? numRS(d.metros) : (d.folga ? '' : '–')}</div>${corpo}
-      <div style="font-size:12px;font-weight:700;margin-top:6px;color:${cor.txt};">${d.nome}</div>
-      <div style="font-size:11px;color:${cor.mut};">${ddmmRS(d.data)}</div>
-      <div style="font-size:11px;color:${cor.aco};font-weight:700;height:14px;">${d.pontos ? Math.round(d.pontos) + (Math.round(d.pontos) === 1 ? ' pt' : ' pts') : ''}</div></div>`;
+      <div style="font:700 11px 'JetBrains Mono',monospace;height:18px;color:${cor.txt};">${d.metros ? numRS(d.metros) : (d.folga ? '' : '–')}</div>${corpo}
+      <div style="font-size:11.5px;font-weight:700;margin-top:6px;color:${cor.txt};">${d.nome}</div>
+      <div style="font-size:10px;color:${cor.mut};">${ddmmRS(d.data)}</div>
+      <div style="font-size:10px;color:${cor.aco};font-weight:700;height:14px;white-space:nowrap;">${d.pontos ? Math.round(d.pontos) + (Math.round(d.pontos) === 1 ? ' pt' : ' pts') : ''}</div></div>`;
   }).join('');
   const legendaEq = ordemEq.map(e => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${e.cor};"></i>${e2(e.nome)}</span>`).join('');
   const cards = r.equipes.map((e, i) => {
@@ -245,8 +245,8 @@ function cartaoResumoSemanalHTML(r){
     const melhor = e.melhor ? `${DIAS_CURTOS[new Date(e.melhor.iso + 'T12:00:00').getDay()]} ${ddmmRS(new Date(e.melhor.iso + 'T12:00:00'))} (${numRS(e.melhor.metros)} m)` : '–';
     return `<div style="border:1px solid ${cor.lin};border-left:6px solid ${e.pct !== null && e.pct >= 100 ? cor.ver : cor.amb};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-        <div style="font-weight:700;font-size:16px;color:${cor.txt};">${i + 1}º · <i style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${e.cor};margin-right:6px;"></i>${e2(e.nome)}<span style="font-weight:500;font-size:12px;color:${cor.mut};margin-left:8px;">${e2(e.integrantes || '')}</span></div>
-        <div style="font:700 20px 'JetBrains Mono',monospace;color:${cor.txt};white-space:nowrap;">${numRS(e.metros)} m</div></div>
+        <div style="font-weight:700;font-size:15px;color:${cor.txt};">${i + 1}º · <i style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${e.cor};margin-right:6px;"></i>${e2(e.nome)}<span style="font-weight:500;font-size:12px;color:${cor.mut};margin-left:8px;">${e2(e.integrantes || '')}</span></div>
+        <div style="font:700 18px 'JetBrains Mono',monospace;color:${cor.txt};white-space:nowrap;">${numRS(e.metros)} m</div></div>
       ${e.pct !== null ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${largura}%;height:100%;background:${e.pct >= 100 ? cor.ver : cor.amb};"></div></div><span style="font:700 12px 'JetBrains Mono',monospace;color:${cor.txt};">${e.pct}% de ${numRS(e.meta)} m</span></div>` : ''}
       ${e.diasTrab ? `<div style="display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:8px;font-size:12.5px;color:${cor.mut};">
         <span><b style="color:${cor.aco}">${Math.round(e.pontos)}</b> ${Math.round(e.pontos) === 1 ? 'ponto' : 'pontos'}</span>
@@ -285,22 +285,22 @@ function cartaoResumoSemanalHTML(r){
             <div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid ${cor.lin};"><span style="color:${cor.mut}">Pontos topografados no mês</span><span style="font:700 13px monospace;color:${cor.aco};">${Math.round(mes.pontos)}</span></div></div>
           ${mes.meta && mes.restantes && mes.necessario !== null && mes.ritmo && mes.necessario > mes.ritmo ? `<div style="margin-top:10px;padding:8px 12px;border-left:4px solid #e0a25a;background:#fff7ec;border-radius:4px;font-size:12px;">Para fechar em ${numRS(mes.meta)} m, o ritmo precisa subir de <b>${numRS(mes.ritmo)}</b> para <b>${numRS(mes.necessario)} m/dia</b> (+${Math.round((mes.necessario / mes.ritmo - 1) * 100)}%).</div>` : ''}</div></div>`;
   }
-  const realcesHTML = r.realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou na semana</span></div>` + r.realces.map(x => {
+  const realcesHTML = r.realces.length ? `<div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Realces e leques <span style="font-weight:500;color:${cor.mut};font-size:12px;">· andamento e o que mudou na semana</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;">` + r.realces.map(x => {
     const p = n => x.furos ? Math.round(n / x.furos * 100) : 0;
     const barra = (n, c) => `<div style="flex:1;height:8px;background:#ece9f2;border-radius:6px;overflow:hidden;"><div style="width:${p(n)}%;height:100%;background:${c};"></div></div>`;
     const chip = (txt, c) => `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:999px;background:${c}1f;color:${c};border:1px solid ${c}55;font-size:12px;font-weight:600;">${txt}</span>`;
     const linha = (rot, conteudo) => conteudo ? `<div style="margin-top:6px;font-size:12.5px;color:${cor.mut};"><b style="color:${cor.txt}">${rot}</b> ${conteudo}</div>` : '';
-    return `<div style="border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;"><b style="font-size:15px;">${e2(x.nome)}</b>
-        <span style="font-size:12.5px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:84px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:84px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
+    return `<div style="border:1px solid ${cor.lin};border-radius:10px;padding:12px 14px;background:#fff;min-width:0;">
+      <div style="display:flex;flex-direction:column;gap:2px;"><b style="font-size:15px;">${e2(x.nome)}</b>
+        <span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
       ${linha('Na semana:', `+${x.perfSem} perfilados · +${x.topoSem} topografados`)}
       ${x.finalizados.length ? linha('Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
       ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
       ${x.naoIniciados.length ? linha('Não iniciados:', compactarCodigosEmIntervalos(x.naoIniciados).map(c => chip(c, cor.mut)).join('')) : ''}
       ${x.problemas.some(p => p.obstruidos.length) ? `<div style="margin-top:8px;font-size:11px;color:${cor.mut};">Obstruídos: ` + x.problemas.filter(p => p.obstruidos.length).map(p => p.alto ? `<b style="color:#d6453d;">${p.rotulo} (${p.obstruidos.length}/${p.total})</b>` : `${p.rotulo} (${p.obstruidos.length})`).join(' · ') + '</div>' : ''}</div>`;
-  }).join('') : '';
+  }).join('') + '</div>' : '';
   return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
       <div><div style="font-size:12px;letter-spacing:2px;font-weight:700;color:${cor.amb};">RESUMO SEMANAL</div>
@@ -323,11 +323,14 @@ function cartaoResumoSemanalHTML(r){
         ${graficoDiasSemanaRS(r.dias, d => d.furosTopo, d => '', cor.aco, v => String(Math.round(v)))}</div></div>
     <div style="font-size:11px;color:${cor.mut};margin-top:5px;">Perfilagem: metros lançados pelas equipes (o número pequeno sob o dia é a quantidade de furos perfilados no checklist). Topografia: furos marcados no checklist.</div>
     ${mesHTML}
-    <div style="font-weight:700;font-size:14px;margin:18px 0 8px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:12px;">· total no topo, equipes por cor · pontos topografados em azul</span></div>
-    <div style="font-size:12px;color:${cor.mut};margin-bottom:6px;">${legendaEq}</div>
-    <div style="display:flex;gap:8px;">${barras}</div>
-    <div style="font-weight:700;font-size:14px;margin:20px 0 8px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:12px;">· ordenadas por metros</span></div>
-    ${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}
+    <div style="display:flex;gap:14px;margin-top:18px;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">· equipes por cor</span></div>
+        <div style="font-size:11.5px;color:${cor.mut};margin-bottom:6px;">${legendaEq}</div>
+        <div style="display:flex;gap:4px;">${barras}</div></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">· ordenadas por metros</span></div>
+        ${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}</div></div>
     ${realcesHTML}
     <div style="margin-top:14px;font-size:11px;color:${cor.mut};display:flex;justify-content:space-between;"><span>BlastHole Manager${quem ? ' · ' + e2(quem) : ''}</span><span>gerado em ${ddmmRS(agora)} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}</span></div></div>`;
 }
