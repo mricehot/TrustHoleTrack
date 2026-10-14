@@ -950,8 +950,9 @@ function producaoPorEquipePainel(projeto){
   lancamentosEfetivos().forEach(l=>{
     if(!daqui(l.equipeId)) return;
     const d = String(l.data).slice(0,10), o = pega(l.equipeId);
-    if(d >= semana){ o.semM += Number(l.metros)||0; o.semP += Number(l.pontos)||0; }
-    if(d === hoje){ o.hojeM += Number(l.metros)||0; o.hojeP += Number(l.pontos)||0; }
+    // Metragem vem só dos lançamentos manuais; os pontos vêm só das marcações do checklist (abaixo), para não contar duas vezes.
+    if(d >= semana) o.semM += Number(l.metros)||0;
+    if(d === hoje) o.hojeM += Number(l.metros)||0;
   });
   checklistFuros.forEach(f=>{
     if(!f.topografado || !f.topografadoEm) return;
