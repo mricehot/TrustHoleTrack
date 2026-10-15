@@ -90,39 +90,61 @@ function renderAneisMenu(){
   if(!visiveis.length){ lista.innerHTML = '<div class="hint">Nenhum realce com esse filtro. Toque em "Todos" para ver a lista completa.</div>'; return; }
   const fixados = visiveis.filter(a=>realcesFavoritos.has(a.id));
   if(fixados.length) visiveis = visiveis.filter(a=>!realcesFavoritos.has(a.id));
-  const htmlLinha = a=>{
-    const ativo = a.id === anelAtivoId;
-    const { itensA, furosA, pctA, est: estA } = infos.get(a.id);
-    const icoA = { ok:'✓', and:'◐', ini:'○' }[estA];
-    return `
-      <div class="anel-row ${ativo?'ativo':''} ${a.foraEstatisticas ? 'fora-estat' : ''}" data-anel-id="${a.id}" data-est="${estA}">
-        <button type="button" class="fav-estrela ${ehFavoritoRealce(a.id) ? 'on' : ''}" aria-pressed="${ehFavoritoRealce(a.id)}" aria-label="${ehFavoritoRealce(a.id) ? 'tirar ' + escHtml(a.nome) + ' dos fixados' : 'fixar ' + escHtml(a.nome) + ' no topo'}" title="${ehFavoritoRealce(a.id) ? 'fixado no topo' : 'fixar no topo'}" onclick="alternarFavoritoRealce('${a.id}')">${ehFavoritoRealce(a.id) ? '★' : '☆'}</button>
-        <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${escHtml(a.nome)}</span>
-        ${a.nivel ? `<span class="hint">${escHtml(a.nivel)}</span>` : ''}
-        <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>
-        ${a.foraEstatisticas ? '<span class="badge-fora" title="este realce não entra em estatísticas, painel nem relatórios">📦 fora das estatísticas</span>' : ''}
-        ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
-        ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
-        <span class="spacer"></span>
-        <button class="ghost anel-wa" onclick="enviarRealceWhatsApp('${a.id}')" title="enviar as informações deste realce pelo WhatsApp (sem PDF)" aria-label="enviar ${escHtml(a.nome)} pelo WhatsApp">💬 WhatsApp</button>
-        <button class="ghost anel-wa" onclick="enviarImagemRealce('${a.id}')" title="relatório deste realce como imagem (para o WhatsApp)">🖼 Imagem</button>
-        ${checklistFuros.some(f=> (f.fotoUrl || (typeof fotosPendentes !== 'undefined' && fotosPendentes.has(f.id))) && itensA.some(c=>c.id===f.checklistLequeId)) ? `<button class="ghost anel-wa" onclick="enviarFotosWhatsApp(checklistDoAnel('${a.id}').map(c=>c.id))" title="enviar as fotos dos furos deste realce (como imagens)">📷 Fotos</button>` : ''}
-        ${a.planoPath ? `<button class="ghost anel-wa" onclick="abrirPlano('${a.id}')" title="abrir o PDF do plano de perfuração (fica guardado no aparelho para abrir sem internet)">📄 Plano</button>` : ''}
-        ${a.planoPath ? `<button class="ghost anel-wa so-gestor" onclick="criarLequesDoPlano('${a.id}')" title="lê o plano anexado e cria os leques e furos no checklist, com tela de conferência">🧩 Criar leques do plano</button>` : ''}
-        <button class="ghost anel-wa so-gestor" onclick="menuPlano('${a.id}')" title="${a.planoPath ? 'trocar ou remover o PDF do plano de perfuração' : 'anexar o PDF do plano de perfuração a este realce'}">${a.planoPath ? '📎 Gerenciar plano' : '📎 Anexar plano'}</button>
-        ${!ativo ? `<button class="ghost" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
-        <button class="icon" onclick="toggleOcultoWhatsapp('${a.id}')" title="${a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — clique pra mostrar' : 'visível na lista de WhatsApp — clique pra ocultar'}">${a.ocultoWhatsapp
-          ? '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-          : '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
-        }</button>
-        <button class="icon so-gestor" onclick="alternarForaEstatisticas('${a.id}')" aria-pressed="${!!a.foraEstatisticas}" title="${a.foraEstatisticas ? 'fora das estatísticas — toque para voltar a contar' : 'tirar das estatísticas (ex.: realce já detonado). Não apaga nada.'}">${a.foraEstatisticas ? '📦' : '📊'}</button>
-        <button class="icon icon-editar so-gestor" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
-        <button class="icon icon-remover so-gestor" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
-        ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
-      </div>
-    `;
-  };
+  const htmlLinha = a=> htmlLinhaAnel(a, infos.get(a.id));
   lista.innerHTML = (fixados.length ? `<div class="anel-fixados"><div class="anel-fixados-cab"><span aria-hidden="true">⭐</span><span>Fixados</span><span class="resumo">${fixados.length} realce${fixados.length===1?'':'s'}</span></div>${fixados.map(htmlLinha).join('')}</div>` : '') + visiveis.map(htmlLinha).join('');
+}
+
+// Realces cujo bloco "Gerenciar" está aberto (sobrevive ao redesenho da lista).
+const realcesMaisAbertos = new Set();
+function alternarMaisRealce(id, aberto){ if(aberto) realcesMaisAbertos.add(id); else realcesMaisAbertos.delete(id); }
+// Cartão de um realce na aba Realce: título e selos em cima, progresso, ações de envio em grade e o resto
+// (plano, editar, remover…) recolhido em "Gerenciar", com texto em cada botão.
+function htmlLinhaAnel(a, info){
+  const ativo = a.id === anelAtivoId;
+  const { itensA, pctA, est: estA } = info;
+  const icoA = { ok:'✓', and:'◐', ini:'○' }[estA];
+  const fav = ehFavoritoRealce(a.id), nome = escHtml(a.nome);
+  const temFotos = checklistFuros.some(f=> (f.fotoUrl || (typeof fotosPendentes !== 'undefined' && fotosPendentes.has(f.id))) && itensA.some(c=>c.id===f.checklistLequeId));
+  const sel = [
+    a.nivel ? `<span class="ar-nivel">${escHtml(a.nivel)}</span>` : '',
+    `<span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>`,
+    ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : '',
+    realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : '',
+    a.foraEstatisticas ? '<span class="badge-fora" title="este realce não entra em estatísticas, painel nem relatórios">📦 fora das estatísticas</span>' : ''
+  ].filter(Boolean).join('');
+  const b = (icone, rotulo, onclick, extra, titulo)=> `<button type="button" class="ar-btn ${extra || ''}" onclick="${onclick}"${titulo ? ` title="${escHtml(titulo)}"` : ''}><span class="ar-ico" aria-hidden="true">${icone}</span><span>${rotulo}</span></button>`;
+  const envio = [
+    b('💬', 'WhatsApp', `enviarRealceWhatsApp('${a.id}')`, '', 'enviar as informações deste realce pelo WhatsApp (sem PDF)'),
+    b('🖼', 'Imagem', `enviarImagemRealce('${a.id}')`, '', 'relatório deste realce como imagem (para o WhatsApp)'),
+    temFotos ? b('📷', 'Fotos', `enviarFotosWhatsApp(checklistDoAnel('${a.id}').map(c=>c.id))`, '', 'enviar as fotos dos furos deste realce (como imagens)') : '',
+    a.planoPath ? b('📄', 'Plano', `abrirPlano('${a.id}')`, '', 'abrir o PDF do plano de perfuração (fica guardado no aparelho)') : ''
+  ].join('');
+  const gerenciar = [
+    a.planoPath ? b('🧩', 'Criar leques do plano', `criarLequesDoPlano('${a.id}')`, 'so-gestor', 'lê o plano anexado e cria os leques e furos no checklist, com tela de conferência') : '',
+    b('📎', a.planoPath ? 'Trocar / remover plano' : 'Anexar plano', `menuPlano('${a.id}')`, 'so-gestor', 'PDF do plano de perfuração deste realce'),
+    b(a.ocultoWhatsapp ? '🙈' : '👁', a.ocultoWhatsapp ? 'Mostrar no WhatsApp' : 'Ocultar do WhatsApp', `toggleOcultoWhatsapp('${a.id}')`, a.ocultoWhatsapp ? 'on' : '', a.ocultoWhatsapp ? 'oculto na lista de WhatsApp — toque para mostrar' : 'visível na lista de WhatsApp — toque para ocultar'),
+    b(a.foraEstatisticas ? '📦' : '📊', a.foraEstatisticas ? 'Voltar às estatísticas' : 'Tirar das estatísticas', `alternarForaEstatisticas('${a.id}')`, 'so-gestor' + (a.foraEstatisticas ? ' on' : ''), a.foraEstatisticas ? 'fora das estatísticas — toque para voltar a contar' : 'tirar das estatísticas (ex.: realce já detonado). Não apaga nada.'),
+    b('✎', 'Editar', `editarAnel('${a.id}')`, 'so-gestor', 'editar nome, nível, projeto e orientação'),
+    b('✕', 'Remover', `removerAnel('${a.id}')`, 'so-gestor perigo', 'remover realce')
+  ].join('');
+  return `
+    <div class="anel-row ar ${ativo ? 'ativo' : ''} ${a.foraEstatisticas ? 'fora-estat' : ''}" data-anel-id="${a.id}" data-est="${estA}">
+      <div class="ar-topo">
+        <button type="button" class="fav-estrela ${fav ? 'on' : ''}" aria-pressed="${fav}" aria-label="${fav ? 'tirar ' + nome + ' dos fixados' : 'fixar ' + nome + ' no topo'}" title="${fav ? 'fixado no topo' : 'fixar no topo'}" onclick="alternarFavoritoRealce('${a.id}')">${fav ? '★' : '☆'}</button>
+        <div class="ar-titulo">
+          <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${nome}</span>
+          <div class="ar-selos">${sel}</div>
+        </div>
+      </div>
+      ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
+      ${!ativo ? `<button type="button" class="ar-usar" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
+      <div class="ar-envio">${envio}</div>
+      <details class="ar-mais" ${realcesMaisAbertos.has(a.id) ? 'open' : ''} ontoggle="alternarMaisRealce('${a.id}', this.open)">
+        <summary>⚙ Gerenciar realce</summary>
+        <div class="ar-grade">${gerenciar}</div>
+      </details>
+    </div>
+  `;
 }
 
 function usarAnel(id){

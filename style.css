@@ -2495,3 +2495,25 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 /* Realce fora das estatísticas (detonado/arquivado) */
 .anel-row.fora-estat{ opacity:.72; }
 .badge-fora{ font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:999px; background:#ece9f2; color:#4a4a62; border:1px solid #cfcbdb; white-space:nowrap; }
+
+/* ===== Cartão de realce reorganizado (aba Realce) ===== */
+.anel-row.ar{ display:block; padding:10px 12px 12px; }
+.ar-topo{ display:flex; align-items:flex-start; gap:6px; }
+.ar-titulo{ flex:1; min-width:0; padding-top:6px; }
+.ar-titulo .nome{ font-size:15.5px; font-weight:700; line-height:1.25; word-break:break-word; }
+.ar-selos{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
+.ar-nivel{ font-size:12px; color:var(--muted); font-family:var(--mono); }
+.anel-row.ar .anel-barra{ margin:10px 0 0; height:18px; }
+.ar-usar{ display:block; width:100%; margin-top:10px; min-height:44px; border-radius:10px; font-weight:700; background:transparent; border:2px solid var(--steel); color:var(--steel); }
+.ar-envio{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+.ar-btn{ display:flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:6px 10px; border-radius:10px; border:1px solid var(--line); background:var(--card,#fff); color:var(--text); font-weight:600; font-size:13.5px; line-height:1.15; text-align:center; }
+.ar-btn, .ar-usar, .ar-mais > summary{ text-transform:none; letter-spacing:0; }
+.ar-btn .ar-ico{ font-size:17px; line-height:1; flex:none; }
+.ar-btn.on{ border-color:var(--steel); color:var(--steel); }
+.ar-btn.perigo{ color:#c0392b; border-color:rgba(192,57,43,.4); }
+.ar-mais{ margin-top:10px; border-top:1px dashed var(--line); padding-top:8px; }
+.ar-mais > summary{ cursor:pointer; list-style:none; min-height:40px; display:flex; align-items:center; font-weight:700; font-size:13.5px; color:var(--muted); }
+.ar-mais > summary::-webkit-details-marker{ display:none; }
+.ar-mais[open] > summary{ color:var(--text); }
+.ar-grade{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+@media (min-width:640px){ .ar-envio{ grid-template-columns:repeat(4,1fr); } .ar-grade{ grid-template-columns:repeat(3,1fr); } }
