@@ -1953,8 +1953,9 @@ function definirObstrucaoChecklistFuro(id, motivo){
 function lancamentosEfetivos(){
   const manuais = lancamentosProd.map(l=> Object.assign({}, l, { pontos: 0 }));
   const mapa = new Map();
+  const lequesForaEstat = new Set(checklistLeques.filter(c=>{ const an = aneis.find(a=>a.id===c.anelId); return an && an.foraEstatisticas; }).map(c=>c.id));
   checklistFuros.forEach(f=>{
-    if(!f.topografado || !f.topografadoEm) return;
+    if(!f.topografado || !f.topografadoEm || lequesForaEstat.has(f.checklistLequeId)) return;
     const eq = equipeTopoEfetivaId(f); if(!eq) return;
     const d = chaveDia(f.topografadoEm), k = eq + '|' + d;
     if(!mapa.has(k)) mapa.set(k, { id: 'ck:' + k, equipeId: eq, data: d, metros: 0, pontos: 0 });

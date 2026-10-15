@@ -95,11 +95,12 @@ function renderAneisMenu(){
     const { itensA, furosA, pctA, est: estA } = infos.get(a.id);
     const icoA = { ok:'✓', and:'◐', ini:'○' }[estA];
     return `
-      <div class="anel-row ${ativo?'ativo':''}" data-anel-id="${a.id}" data-est="${estA}">
+      <div class="anel-row ${ativo?'ativo':''} ${a.foraEstatisticas ? 'fora-estat' : ''}" data-anel-id="${a.id}" data-est="${estA}">
         <button type="button" class="fav-estrela ${ehFavoritoRealce(a.id) ? 'on' : ''}" aria-pressed="${ehFavoritoRealce(a.id)}" aria-label="${ehFavoritoRealce(a.id) ? 'tirar ' + escHtml(a.nome) + ' dos fixados' : 'fixar ' + escHtml(a.nome) + ' no topo'}" title="${ehFavoritoRealce(a.id) ? 'fixado no topo' : 'fixar no topo'}" onclick="alternarFavoritoRealce('${a.id}')">${ehFavoritoRealce(a.id) ? '★' : '☆'}</button>
         <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${escHtml(a.nome)}</span>
         ${a.nivel ? `<span class="hint">${escHtml(a.nivel)}</span>` : ''}
         <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>
+        ${a.foraEstatisticas ? '<span class="badge-fora" title="este realce não entra em estatísticas, painel nem relatórios">📦 fora das estatísticas</span>' : ''}
         ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : ''}
         ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
         <span class="spacer"></span>
@@ -114,6 +115,7 @@ function renderAneisMenu(){
           ? '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
           : '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
         }</button>
+        <button class="icon so-gestor" onclick="alternarForaEstatisticas('${a.id}')" aria-pressed="${!!a.foraEstatisticas}" title="${a.foraEstatisticas ? 'fora das estatísticas — toque para voltar a contar' : 'tirar das estatísticas (ex.: realce já detonado). Não apaga nada.'}">${a.foraEstatisticas ? '📦' : '📊'}</button>
         <button class="icon icon-editar so-gestor" onclick="editarAnel('${a.id}')" title="editar realce">✎</button>
         <button class="icon icon-remover so-gestor" onclick="removerAnel('${a.id}')" title="remover realce">✕</button>
         ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
@@ -129,6 +131,16 @@ function usarAnel(id){
   renderAll();
   showToast('Realce ativo alterado.');
   mostrarView('perfilagem');
+}
+
+function alternarForaEstatisticas(id){
+  if(!exigirGestor('tirar o realce das estatísticas')) return;
+  const a = aneis.find(x=>x.id===id); if(!a) return;
+  a.foraEstatisticas = !a.foraEstatisticas;
+  enfileirar('aneis', 'update', { id: a.id, fora_estatisticas: a.foraEstatisticas });
+  salvarLocal();
+  renderAll();
+  showToast(a.foraEstatisticas ? `"${a.nome}" saiu das estatísticas. Nada foi apagado; toque em 📦 para voltar.` : `"${a.nome}" voltou a entrar nas estatísticas.`, { tipo:'ok' });
 }
 
 function toggleOcultoWhatsapp(id){
@@ -238,6 +250,10 @@ function editAnelModal(anel){
             <input id="edit-anel-oculto-whatsapp" type="checkbox" ${anel.ocultoWhatsapp ? 'checked' : ''}>
             <span>Ocultar da lista de envio por WhatsApp (ex: realce já finalizado)</span>
           </label>
+          <label class="field pref-linha" style="margin-bottom:16px;">
+            <input id="edit-anel-fora-estatisticas" type="checkbox" ${anel.foraEstatisticas ? 'checked' : ''}>
+            <span>Tirar das estatísticas, painel e relatórios (ex: realce já detonado). Não apaga nada.</span>
+          </label>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -253,8 +269,9 @@ function editAnelModal(anel){
       const nivel = el('edit-anel-nivel').value.trim();
       const projeto = el('edit-anel-projeto').value;
       const ocultoWhatsapp = el('edit-anel-oculto-whatsapp').checked;
+      const foraEstatisticas = el('edit-anel-fora-estatisticas').checked;
       if(!nome){ showToast('Preencha o nome do realce.'); return; }
-      fechar({ nome, nivel, projeto, ocultoWhatsapp, orientacao: el('edit-anel-orientacao').value });
+      fechar({ nome, nivel, projeto, ocultoWhatsapp, foraEstatisticas, orientacao: el('edit-anel-orientacao').value });
     };
     el('modal-salvar').addEventListener('click', salvar);
     el('edit-anel-nome').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
@@ -275,9 +292,10 @@ function editarAnel(id){
     a.nivel = resultado.nivel;
     a.projeto = resultado.projeto;
     a.ocultoWhatsapp = resultado.ocultoWhatsapp;
+    a.foraEstatisticas = resultado.foraEstatisticas;
     const mudouOrientacao = (a.orientacao || 'descendente') !== resultado.orientacao;
     a.orientacao = resultado.orientacao;
-    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, projeto: a.projeto, oculto_whatsapp: a.ocultoWhatsapp, orientacao: a.orientacao });
+    enfileirar('aneis', 'update', { id: a.id, nome: a.nome, nivel: a.nivel, projeto: a.projeto, oculto_whatsapp: a.ocultoWhatsapp, fora_estatisticas: a.foraEstatisticas, orientacao: a.orientacao });
     const lequesDoRealce = leques.filter(l=>l.anelId===a.id && l.orientacao !== a.orientacao);
     if(mudouOrientacao && lequesDoRealce.length && await confirmDialog(`Aplicar "${a.orientacao}" também aos ${lequesDoRealce.length} leque(s) já criados deste realce?`, 'Aplicar a todos')){
       lequesDoRealce.forEach(l=>{ l.orientacao = a.orientacao; enfileirar('leques', 'update', { id: l.id, orientacao: a.orientacao }); });
@@ -785,7 +803,7 @@ function desfazerRemocaoProjeto(projetoRemovido){
   showToast('Projeto restaurado.');
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp, planoPath: row.plano_path || '', planoNome: row.plano_nome || '', planoEm: row.plano_atualizado_em || '' }; }
+function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp, foraEstatisticas: !!row.fora_estatisticas, planoPath: row.plano_path || '', planoNome: row.plano_nome || '', planoEm: row.plano_atualizado_em || '' }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipePerfManual: !!row.equipe_perfilagem_manual, equipeTopoManual: !!row.equipe_topografia_manual, observacao: row.observacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipeObsId: row.equipe_obstrucao_id || null, metragemEsperada: row.metragem_esperada != null ? Number(row.metragem_esperada) : null, obstruidoMotivo: row.obstruido_motivo || '', observacao: row.observacao || '', fotoUrl: row.foto_url || '', ts: row.criado_em }; }
@@ -1034,8 +1052,10 @@ function checklistDoAnelAtivo(){
 
 // Realces dentro do escopo atual — respeita o "Projeto ativo" já usado na
 // aba Realce. Sem projeto escolhido, o escopo é todos os realces.
+// Realce marcado como "fora das estatísticas" (ex.: já detonado) continua guardado, mas não entra em nenhuma conta.
 function aneisNoEscopoAtual(){
-  return configApp.projetoAtivo ? aneis.filter(a=>a.projeto===configApp.projetoAtivo) : aneis;
+  const lista = aneis.filter(a=>!a.foraEstatisticas);
+  return configApp.projetoAtivo ? lista.filter(a=>a.projeto===configApp.projetoAtivo) : lista;
 }
 
 // Todos os furos do checklist dentro do escopo atual (realces do projeto

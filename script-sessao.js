@@ -958,7 +958,7 @@ function producaoPorEquipePainel(projeto){
 }
 function montarPainelWhatsApp(){
   const proj = projetoSelecionadoPainel();
-  const dados = aneis.filter(a=> proj === '*' || (a.projeto || '') === proj).map(dadosPainelRealce).filter(d=>d.total > 0)
+  const dados = aneis.filter(a=> !a.foraEstatisticas && (proj === '*' || (a.projeto || '') === proj)).map(dadosPainelRealce).filter(d=>d.total > 0)
     .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
   const nums = l=> l.map(f=>'F'+f.numero).join(', ');
   const agora = new Date();
@@ -996,7 +996,7 @@ function renderPainelGestor(){
   const body = document.getElementById('painel-body'); if(!body) return;
   const nums = l=> l.map(f=>'F'+f.numero).join(', ');
   const proj = projetoSelecionadoPainel();
-  const dados = aneis.filter(a=> proj === '*' || (a.projeto || '') === proj).map(dadosPainelRealce).filter(d=>d.total > 0)
+  const dados = aneis.filter(a=> !a.foraEstatisticas && (proj === '*' || (a.projeto || '') === proj)).map(dadosPainelRealce).filter(d=>d.total > 0)
     .sort((a,b)=> (a.completos === a.total) - (b.completos === b.total) || b.parados.length - a.parados.length);
   let h = `<label class="painel-proj">Projeto<select onchange="escolherProjetoPainel(this.value)" aria-label="Projeto do painel"><option value="*"${proj==='*'?' selected':''}>Todos os projetos</option>${projetosDoPainel().map(n=>`<option value="${escHtml(n)}"${n===proj?' selected':''}>${escHtml(n || 'Geral (sem projeto)')}</option>`).join('')}</select></label><button type="button" class="steel painel-wa" onclick="enviarPainelWhatsApp()">Enviar painel no WhatsApp</button>`;
   const totParados = dados.reduce((n,d)=> n + d.parados.length, 0);

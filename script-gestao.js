@@ -183,7 +183,7 @@ function htmlHojeNaMina(){
   const pend = pendencias.filter(p=>pendNoEscopo(p) && pendAberta(p));
   const pendVelhas = pend.filter(p=>diasDesde(p.ts) >= 2).length;
   // furos obstruídos e onde se concentram
-  const anelsEscopo = aneis.filter(a=> !configApp.projetoAtivo || a.projeto === configApp.projetoAtivo);
+  const anelsEscopo = aneis.filter(a=> !a.foraEstatisticas && (!configApp.projetoAtivo || a.projeto === configApp.projetoAtivo));
   let obstTotal = 0, topo = { n: 0, rot: '' };
   anelsEscopo.forEach(a=>{
     const lq = checklistDoAnel(a.id);

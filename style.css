@@ -2491,3 +2491,7 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .seg-periodo button{ min-height:40px; padding:0 16px; border:0; border-radius:0; background:transparent; color:var(--muted,#6b6b80); font-weight:700; font-size:.9rem; }
 .seg-periodo button + button{ border-left:1px solid var(--line,#d7d4de); }
 .seg-periodo button.on{ background:var(--steel,#2f6690); color:#fff; }
+
+/* Realce fora das estatísticas (detonado/arquivado) */
+.anel-row.fora-estat{ opacity:.72; }
+.badge-fora{ font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:999px; background:#ece9f2; color:#4a4a62; border:1px solid #cfcbdb; white-space:nowrap; }
