@@ -2485,3 +2485,9 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 /* "sincronizando…" é um selo pequeno por cima da tela (fixo). Antes ficava no cabeçalho, no fluxo da página:
    a cada marcação ele aparecia e sumia e a tela inteira descia e subia. */
 .sync-badge{ position:fixed !important; top:auto; right:auto; left:10px; bottom:calc(70px + env(safe-area-inset-bottom)); z-index:2400; opacity:.92; grid-column:auto !important; justify-self:auto !important; box-shadow:0 2px 8px rgba(0,0,0,.18); pointer-events:none; }
+
+/* Seletor de período (1 semana / 2 semanas) do gráfico de metros */
+.seg-periodo{ display:inline-flex; gap:0; margin:2px 0 10px; border:1px solid var(--line,#d7d4de); border-radius:10px; overflow:hidden; }
+.seg-periodo button{ min-height:40px; padding:0 16px; border:0; border-radius:0; background:transparent; color:var(--muted,#6b6b80); font-weight:700; font-size:.9rem; }
+.seg-periodo button + button{ border-left:1px solid var(--line,#d7d4de); }
+.seg-periodo button.on{ background:var(--steel,#2f6690); color:#fff; }

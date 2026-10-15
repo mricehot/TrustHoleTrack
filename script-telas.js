@@ -1085,6 +1085,14 @@ function renderInfografico(){
   renderProdutividadeEquipes(); // já atualiza o resumo (KPIs e gráficos) no fim
 }
 
+function periodoMetrosInfografico(){
+  let n = 7; try{ n = Number(localStorage.getItem('info-metros-dias')) === 14 ? 14 : 7; }catch(e){}
+  return n;
+}
+function definirPeriodoMetrosInfografico(n){
+  try{ localStorage.setItem('info-metros-dias', String(n === 14 ? 14 : 7)); }catch(e){}
+  renderInfograficoResumo();
+}
 function renderInfograficoResumo(){
   if(!el('infografico-chart-dia')) return;
   const stats = calcularEstatisticasInfografico();
@@ -1125,8 +1133,11 @@ function renderInfograficoResumo(){
   // Dois gráficos separados — metros e contagem de furos não dividem o
   // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
   const metaSemanalTotal = equipesDoProjeto().reduce((t,e)=> t + (e.metaSemanal > 0 ? e.metaSemanal : 0), 0);
-  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', stats.serieDiaria, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
-  desenharBarrasEquipesInfografico(stats.serieDiaria, metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
+  // Metros por dia: 1 semana (7 dias) ou 2 semanas (14 dias), escolha guardada neste aparelho.
+  const serieMetros = stats.serieDiaria.slice(-periodoMetrosInfografico());
+  document.querySelectorAll('#infografico-periodo-metros button').forEach(b=>{ const on = Number(b.dataset.dias) === serieMetros.length; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', serieMetros, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
+  desenharBarrasEquipesInfografico(serieMetros, metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
   desenharGraficoAreaInfografico('infografico-chart-perf-dia', 'infografico-eixo-x-perf', stats.serieDiaria, 'furosPerf', 'var(--est-ok)');
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
 }

@@ -806,7 +806,8 @@
             <div class="equipe-lista" id="infografico-equipes-mes"></div>
             <div class="equipe-total" id="infografico-equipes-mes-total"></div>
 
-            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Metros perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — soma dos metros lançados pelas equipes. Cada lançamento entra no dia em que foi feito.</div></details></div>
+            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Metros perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 7 dias (1 semana) ou 14 dias (2 semanas), à sua escolha — soma dos metros lançados pelas equipes. Cada lançamento entra no dia em que foi feito.</div></details></div>
+            <div class="seg-periodo" id="infografico-periodo-metros" role="group" aria-label="período do gráfico de metros"><button type="button" data-dias="7" onclick="definirPeriodoMetrosInfografico(7)">1 semana</button><button type="button" data-dias="14" onclick="definirPeriodoMetrosInfografico(14)">2 semanas</button></div>
             <div class="info-grafico">
             
             <div id="infografico-barras-eq" class="infografico-barras-eq" style="display:none;"></div>
@@ -865,7 +866,7 @@
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=20261013143500"></script>
 <script src="script-turno-pdf.js?v="></script>
-<script src="script-telas.js?v=pt1"></script>
+<script src="script-telas.js?v=per1"></script>
 <script src="script-sessao.js?v=pt1"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v="></script>
