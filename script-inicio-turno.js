@@ -57,7 +57,7 @@ function renderTurnoSessao(){
   const t = turnoIniciadoEm();
   if(!t){
     box.className = 'turno-sessao';
-    box.innerHTML = `<div class="ts-txt"><b>Turno não iniciado</b><small>Inicie para o resumo do WhatsApp trazer só o que você marcar a partir de agora.</small></div><div class="ts-botoes"><button type="button" class="steel" onclick="iniciarTurno()">▶ Iniciar turno</button><button type="button" class="ghost" onclick="abrirHistoricoTurnos()">🕘 Histórico</button></div>`;
+    box.innerHTML = `<div class="ts-txt"><b>Turno não iniciado</b><small>Inicie para o resumo do WhatsApp trazer só o que você marcar a partir de agora.</small></div><div class="ts-botoes"><button type="button" class="steel" onclick="iniciarTurno()">▶ Iniciar turno</button><button type="button" class="ghost" onclick="abrirEncerrarTurno()" title="encerra e envia o relatório mesmo sem ter iniciado o turno">🏁 Encerrar turno</button><button type="button" class="ghost" onclick="abrirHistoricoTurnos()">🕘 Histórico</button></div>`;
     return;
   }
   const d = new Date(t), hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -70,12 +70,12 @@ const TURNO_HIST_KEY = 'perfilagem-turno-historico-v1';
 function lerHistoricoTurnos(){ try{ const v = JSON.parse(localStorage.getItem(TURNO_HIST_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
 function gravarHistoricoTurnos(lista){ try{ localStorage.setItem(TURNO_HIST_KEY, JSON.stringify(lista.slice(0, 40))); }catch(e){} }
 function guardarTurnoNoHistorico(){
-  const ini = turnoIniciadoEm(); if(!ini) return;
+  const ini = turnoIniciadoEm();
   let texto = ''; try{ texto = montarResumoTurnoWhatsApp(); }catch(e){}
   let d = {}; try{ d = dadosFimDeTurno(); }catch(e){}
   const turno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `${turnoInfo.turnoNumero || ''}° turno${turnoInfo.turnoLetra ? ' ' + turnoInfo.turnoLetra : ''}` : 'Turno';
   const lista = lerHistoricoTurnos();
-  lista.unshift({ id: uuidv4(), inicio: new Date(ini).toISOString(), fim: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '', turno, data: turnoInfo.data || '', perf: d.perf || 0, topo: d.topo || 0, texto });
+  lista.unshift({ id: uuidv4(), inicio: ini ? new Date(ini).toISOString() : null, fim: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '', turno, data: turnoInfo.data || '', perf: d.perf || 0, topo: d.topo || 0, texto });
   gravarHistoricoTurnos(lista);
 }
 function abrirHistoricoTurnos(){
@@ -84,7 +84,7 @@ function abrirHistoricoTurnos(){
   const hh = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
   const dia = iso => new Date(iso).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' });
   const itens = lista.map(h=> `<div class="hist-turno" data-id="${h.id}">
-      <div class="ht-cab"><b>${escHtml(h.turno)}</b><span>${dia(h.inicio)} · ${hh(h.inicio)} às ${hh(h.fim)}</span></div>
+      <div class="ht-cab"><b>${escHtml(h.turno)}</b><span>${h.inicio ? dia(h.inicio) + ' · ' + hh(h.inicio) + ' às ' + hh(h.fim) : dia(h.fim) + ' · encerrado ' + hh(h.fim)}</span></div>
       <div class="ht-sub">${escHtml(h.usuario || '')}${h.usuario ? ' · ' : ''}<b>${h.perf}</b> perfilados · <b>${h.topo}</b> topografados</div>
       <details class="ht-det"><summary>Ver relatório</summary><pre>${escHtml(h.texto || '(sem texto guardado)')}</pre></details>
       <div class="ht-acoes"><button type="button" class="steel" data-a="enviar">Enviar no WhatsApp</button><button type="button" class="ghost" data-a="copiar">Copiar</button><button type="button" class="ghost perigo" data-a="apagar">Apagar</button></div></div>`).join('');

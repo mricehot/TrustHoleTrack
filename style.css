@@ -2529,3 +2529,13 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .ht-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 .ht-acoes button{ min-height:42px; } .ht-acoes .perigo{ color:#c0392b; }
 .turno-sessao{flex-wrap:wrap}
+
+/* Turno: status, iniciar/encerrar e histórico dentro do card Resumo do Turno */
+#card-resumo-turno .turno-sessao{ flex-direction:column; align-items:stretch; margin:0 0 12px; }
+#card-resumo-turno .ts-botoes{ width:100%; }
+#card-resumo-turno .ts-botoes .steel{ flex:1 1 100%; min-height:52px; font-size:16px; font-weight:700; }
+#card-resumo-turno .ts-botoes .ghost{ flex:1 1 calc(50% - 4px); min-height:44px; }
+.resumo-parcial{ align-items:center; margin:12px 0 8px; }
+.resumo-parcial .rp-rot{ flex:1 1 100%; font-size:12.5px; color:var(--muted); }
+.resumo-parcial button{ min-height:40px; font-size:13.5px; }
+.resumo-parcial button{ flex:1 1 auto; }
