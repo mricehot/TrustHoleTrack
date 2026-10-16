@@ -719,6 +719,7 @@ function abrirEncerrarTurno(){
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="ghost" id="fim-fechar">Fechar</button>
       <button class="ghost" id="fim-copiar">Copiar</button>
+      <button class="ghost" id="fim-so-encerrar" title="encerra o turno sem copiar nem enviar o resumo">Só encerrar</button>
       <button id="fim-enviar">Enviar no WhatsApp</button>
     </div></div></div>`;
   const fechar = ()=>{ root.innerHTML = ''; };
@@ -727,8 +728,9 @@ function abrirEncerrarTurno(){
     if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
   };
   el('fim-fechar').onclick = fechar;
-  el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); }); };
-  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); }); };
+  el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); if(ok) finalizarSessaoTurno(); }); };
+  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); finalizarSessaoTurno(); }); };
+  const so = el('fim-so-encerrar'); if(so) so.onclick = ()=>{ registrar(); fechar(); finalizarSessaoTurno(); };
 }
 (function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();
 

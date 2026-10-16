@@ -63,7 +63,14 @@ function renderTurnoSessao(){
   const d = new Date(t), hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   const hoje = new Date().toDateString() === d.toDateString();
   box.className = 'turno-sessao ativo';
-  box.innerHTML = `<div class="ts-txt"><b>Turno em andamento</b><small>desde ${hoje ? '' : d.toLocaleDateString('pt-BR') + ' '}${hh}</small></div><button type="button" class="ghost" onclick="iniciarTurno()">↻ Novo turno</button>`;
+  box.innerHTML = `<div class="ts-txt"><b>Turno em andamento</b><small>desde ${hoje ? '' : d.toLocaleDateString('pt-BR') + ' '}${hh}</small></div><button type="button" class="steel btn-encerrar-turno" onclick="abrirEncerrarTurno()">🏁 Encerrar turno</button>`;
+}
+// Encerrar o turno (depois de copiar/enviar o resumo ou em "Só encerrar") fecha a sessão: o quadro volta a oferecer "Iniciar turno".
+function finalizarSessaoTurno(){
+  try{ localStorage.removeItem(TURNO_SESSAO_KEY); }catch(e){}
+  renderTurnoSessao();
+  try{ renderResumoTurno(); }catch(e){}
+  showToast('Turno encerrado. Para o próximo, toque em Iniciar turno.', { tipo:'ok' });
 }
 async function iniciarTurno(){
   if(turnoIniciadoEm() && !(await confirmDialog('Já existe um turno em andamento. Começar um novo? O resumo passa a contar só a partir de agora.', 'Começar novo'))) return;
