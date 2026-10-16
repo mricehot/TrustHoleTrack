@@ -614,6 +614,7 @@
             <span class="view-card-label">Checklist de Leques</span>
             <span class="tag" id="checklist-progresso">0/0 perfilados</span>
             <span class="spacer"></span>
+            <button type="button" id="btn-encerrar-turno-ck" class="steel" title="conferência de fim de turno: o que foi feito, o que fica pendente e envio pelo WhatsApp" onclick="abrirEncerrarTurno()">🏁 Encerrar turno</button>
             <button type="button" id="btn-modo-leitura" class="ghost" aria-pressed="false" title="só leitura: confere o estado sem risco de marcar algo" onclick="definirModoLeitura(true)">👁 Visualização</button>
             <button type="button" class="ghost btn-plano-ativo" hidden title="abre o PDF do plano de perfuração deste realce" onclick="abrirPlano()">📄 Plano de perfuração</button>
             <button type="button" id="btn-imagem-realce" class="ghost" title="gera o relatório do realce ativo como imagem para mandar no WhatsApp" onclick="if(anelAtivoId) enviarImagemRealce(anelAtivoId); else showToast('Nenhum realce ativo.')">🖼 Relatório em imagem</button>
