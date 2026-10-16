@@ -301,6 +301,7 @@ async function aplicarLoteChecklist(acao, idsExplicitos){
   if(!leques.length) return;
   if(acao === 'limpar' && !(await confirmDialog(`Limpar as marcas de perfilagem e topografia de ${leques.length} leque(s)?`, 'Limpar'))) return;
 
+  if(acao !== 'limpar') iniciarTurnoSeNecessario();
   const agora = new Date().toISOString();
   const snapLeques = [], snapFuros = [];
   let furosAlterados = 0, puladosObstruidos = 0, bloqueadosLimpar = 0;
@@ -1773,6 +1774,7 @@ function toggleChecklistFuro(id){
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.perfilado && !podeDesmarcarFuro(f,'perf')){ avisarSoQuemMarcou(f.perfiladoPor, equipePerfEfetivaId(f)); return; }
   const divergente = !f.perfilado ? equipeDivergente(f,'perf') : null;
+  if(!f.perfilado) iniciarTurnoSeNecessario();
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
@@ -1819,6 +1821,7 @@ function toggleChecklistFuroTopografado(id){
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.topografado && !podeDesmarcarFuro(f,'topo')){ avisarSoQuemMarcou(f.topografadoPor, equipeTopoEfetivaId(f)); return; }
   const divergente = !f.topografado ? equipeDivergente(f,'topo') : null;
+  if(!f.topografado) iniciarTurnoSeNecessario();
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
@@ -1840,6 +1843,7 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const valor = motivo ? OBSTRUIDO_VALOR : '';
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, equipeObsEfetivaId(f)); return; }
+  if(valor) iniciarTurnoSeNecessario();
   vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
   f.obstruido = valor;
@@ -2094,6 +2098,7 @@ function abrirMarcarFaixa(lequeId){
 }
 function aplicarFaixa(lequeId, tipo, alvo){
   if(!alvo.length){ showToast('Nenhum furo para marcar nessa faixa.'); return; }
+  iniciarTurnoSeNecessario();
   const agora = new Date().toISOString();
   const snap = [];
   alvo.forEach(f=>{

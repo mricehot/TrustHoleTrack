@@ -112,6 +112,15 @@ function finalizarSessaoTurno(){
   try{ renderResumoTurno(); }catch(e){}
   showToast('Turno encerrado. Para o próximo, toque em Iniciar turno.', { tipo:'ok' });
 }
+// Marcou algo no checklist e o turno não está iniciado: inicia sozinho, sem perguntar. Deve ser chamado ANTES de
+// gravar a hora da marcação, para ela entrar no relatório do turno.
+function iniciarTurnoSeNecessario(){
+  if(turnoIniciadoEm()) return;
+  try{ localStorage.setItem(TURNO_SESSAO_KEY, JSON.stringify({ inicio: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '', auto: true })); }catch(e){ return; }
+  renderTurnoSessao();
+  try{ renderResumoTurno(); }catch(e){}
+  showToast('Turno iniciado automaticamente. Para encerrar, use Encerrar turno.', { tipo:'ok' });
+}
 async function iniciarTurno(){
   if(turnoIniciadoEm() && !(await confirmDialog('Já existe um turno em andamento. Começar um novo? O resumo passa a contar só a partir de agora.', 'Começar novo'))) return;
   try{ localStorage.setItem(TURNO_SESSAO_KEY, JSON.stringify({ inicio: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '' })); }catch(e){}
