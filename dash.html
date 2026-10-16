@@ -309,7 +309,7 @@
             <div class="hint" id="anel-projeto-ativo-aviso" style="margin-bottom:8px;"></div>
             <div class="hint" id="anel-erro" style="color:var(--rust); margin-bottom:8px;"></div>
             <div class="hint" id="anel-filtro-projeto-aviso" style="display:none; margin-bottom:10px;"></div>
-            <div class="anel-todos"><button type="button" class="ghost btn-status-todos" onclick="enviarStatusTodosRealces()" title="manda pelo WhatsApp o status só dos realces favoritos (⭐), sem fotos">💬 Status dos realces favoritos</button><button type="button" class="ghost btn-status-todos" onclick="enviarImagemMapaFavoritos()" title="gera uma imagem do mapa de todos os realces favoritos (⭐) para compartilhar">🗺️ Imagem do mapa (favoritos)</button></div>
+            <div class="anel-todos"><span data-botoes-favoritos style="display:contents"></span></div>
             <div class="anel-list" id="anel-list"></div>
           </div>
         </div>
@@ -623,7 +623,7 @@
           <div class="config-body checklist-corpo">
             <div class="checklist-progresso-resumo">
               <div class="ckp-titulo"><b id="checklist-realce-nome">—</b><span id="checklist-realce-leques"></span></div>
-              <div class="ckp-acoes"><button type="button" class="ghost btn-status-todos" onclick="enviarStatusTodosRealces()" title="manda pelo WhatsApp o status só dos realces favoritos (⭐), sem fotos">💬 Status dos realces favoritos</button><button type="button" class="ghost btn-status-todos" onclick="enviarImagemMapaFavoritos()" title="gera uma imagem do mapa de todos os realces favoritos (⭐) para compartilhar">🗺️ Imagem do mapa (favoritos)</button></div>
+              <div class="ckp-acoes"><span data-botoes-favoritos style="display:contents"></span></div>
               <div class="checklist-progresso-furos">
                 <div class="checklist-progresso-furos-topo">
                   <span>Perfilados</span>
@@ -714,7 +714,7 @@
               <div class="ck-detalhes-corpo"><div id="ck-mapa" class="ck-mapa"></div>
                 <div class="ck-mapa-leg"><span><i class="m-ok"></i>perfilado e topografado</span><span><i class="m-perf"></i>só perfilado</span><span><i class="m-topo"></i>só topografado</span><span><i class="m-obs"></i>obstruído</span><span><i class="m-nada"></i>pendente</span></div>
                 <div class="hint">Cada linha é um leque; cada quadradinho, um furo. Toque no leque para abri-lo.</div>
-                <button type="button" class="ghost" onclick="enviarImagemMapaFavoritos()" style="margin-top:8px;">🗺️ Imagem do mapa (favoritos)</button></div>
+</div>
             </details>
             <details class="ck-detalhes" id="ck-ativ-det" style="margin-top:8px;">
               <summary>Atividade recente <span class="tag" id="ck-ativ-resumo"></span></summary>
@@ -861,22 +861,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=ht1"></script>
-<script src="script-leques.js?v=ht1"></script>
-<script src="script-checklist.js?v=ht1"></script>
+<script src="script.js?v=l81"></script>
+<script src="script-leques.js?v=l81"></script>
+<script src="script-checklist.js?v=l81"></script>
 <script src="script-fotos.js?v="></script>
-<script src="script-relatorio-imagem.js?v=20261013143500"></script>
+<script src="script-relatorio-imagem.js?v=l81"></script>
 <script src="script-turno-pdf.js?v="></script>
-<script src="script-telas.js?v=per1"></script>
-<script src="script-sessao.js?v=ht1"></script>
+<script src="script-telas.js?v=l81"></script>
+<script src="script-sessao.js?v=l81"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v="></script>
-<script src="script-conforto.js?v="></script>
-<script src="script-semanal.js?v=mes2"></script>
-<script src="script-mensal.js?v=1"></script>
-<script src="script-inicio-turno.js?v=un1"></script>
+<script src="script-conforto.js?v=l81"></script>
+<script src="script-semanal.js?v=l81"></script>
+<script src="script-mensal.js?v=l81"></script>
+<script src="script-inicio-turno.js?v=l81"></script>
 <script src="script-gestao.js?v=fe1"></script>
-<script src="script-importar-pdf.js?v=20261014154800"></script>
+<script src="script-importar-pdf.js?v=l81"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){
     window.__diagMostrar('script.js não carregou por completo — provavelmente uma versão antiga ou incompleta em cache. Recarregue sem cache.');

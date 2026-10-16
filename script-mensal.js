@@ -30,18 +30,10 @@ function calcularRelatorioMensal(offset){
   const diaDe = iso => dias.find(x => x.iso === iso);
 
   const equipesR = lista.map(e => {
-    let metros = 0, pontos = 0, antM = 0, antP = 0; const porDia = {};
-    efet.forEach(l => {
-      if(l.equipeId !== e.id) return;
-      if(l.data >= iniISO && l.data <= corteISO){
-        metros += l.metros; pontos += l.pontos;
-        const d = diaDe(l.data); if(d){ d.metros += l.metros; d.pontos += l.pontos; }
-        porDia[l.data] = porDia[l.data] || { metros: 0, pontos: 0 }; porDia[l.data].metros += l.metros; porDia[l.data].pontos += l.pontos;
-      }else if(l.data >= antIni && l.data <= antFim){ antM += l.metros; antP += l.pontos; }
-    });
-    const diasTrab = Object.keys(porDia).filter(k => porDia[k].metros > 0 || porDia[k].pontos > 0);
-    let melhor = null; diasTrab.forEach(k => { if(!melhor || porDia[k].metros > melhor.metros) melhor = { iso: k, metros: porDia[k].metros }; });
-    metros = arred2(metros); antM = arred2(antM);
+    const cur = producaoEquipe(e.id, iniISO, corteISO, efet), ant = producaoEquipe(e.id, antIni, antFim, efet);
+    Object.keys(cur.porDia).forEach(iso => { const d = diaDe(iso); if(d){ d.metros += cur.porDia[iso].metros; d.pontos += cur.porDia[iso].pontos; } });
+    const metros = cur.metros, pontos = cur.pontosExatos, antM = ant.metros, antP = ant.pontosExatos;
+    const diasTrab = cur.diasTrab, melhor = cur.melhor && { iso: cur.melhor.iso, metros: cur.melhor.metros };
     const meta = e.metaMensal > 0 ? e.metaMensal : (e.metaSemanal > 0 ? arred2(e.metaSemanal * diasUteis / 6) : 0);
     return { id: e.id, cor: COR_EQUIPES_RS[Math.max(0, lista.findIndex(x => x.id === e.id)) % 6], nome: e.nome, integrantes: e.integrantes, metros, pontos: Math.round(pontos), antM, antP: Math.round(antP),
       diasTrab: diasTrab.length, media: diasTrab.length ? arred2(metros / diasTrab.length) : 0, melhor, meta, pct: meta ? Math.round(metros / meta * 100) : null,
@@ -259,13 +251,12 @@ function abrirRelatorioMensal(offset){
       try{ await navigator.share({ files: [arq], title: 'Relatório mensal' }); }catch(err){ if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.'); }
     }else{
       baixarBlob(blob, nomeArquivo);
-      abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+      enviarWhatsApp();
       showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.', { erro: false });
     }
   }));
   el('rm-enviar-txt').addEventListener('click', () => {
-    const t = encodeURIComponent(montarRelatorioMensalWhatsApp(relMesOffset));
-    abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}?text=${t}` : `https://wa.me/?text=${t}`);
+    enviarWhatsApp(montarRelatorioMensalWhatsApp(relMesOffset));
   });
   el('rm-copiar').addEventListener('click', async () => { const ok = await copiarTextoResumo(montarRelatorioMensalWhatsApp(relMesOffset)); showToast(ok ? 'Mensagem copiada. É só colar no WhatsApp.' : 'Não foi possível copiar.', { erro: false }); });
 }

@@ -663,125 +663,26 @@ function montarBlocoProdutividadeMensalWhatsApp(){
   return out;
 }
 
-// ---------- Resumo de fim de turno (um toque) ----------
-// Junta num só texto: dados do turno, o que foi feito HOJE (por pessoa), metros das
-// equipes, situação do realce ativo (pendentes, obstruídos) e as observações do turno.
-function montarResumoTurnoDetalhadoWhatsApp(){
-  const A = semAcento;
-  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
-  const dia = dataBRParaISO(turnoInfo.data) || chaveDia(new Date());
-  const [ano, mes, dd] = dia.split('-');
-  const noDia = iso => iso && chaveDia(iso) === dia;
-  const turnoTxt = turnoInfo.turnoNumero ? `Turno ${turnoInfo.turnoNumero}${turnoInfo.turnoLetra ? ' ' + turnoInfo.turnoLetra : ''}` : 'Turno nao informado';
-  let t = `📋 *RESUMO DO TURNO*\n${dd}/${mes}/${ano} - ${turnoTxt}\n`;
-  if(turnoInfo.projeto) t += `Projeto: ${A(turnoInfo.projeto)}\n`;
-  if(turnoInfo.local) t += `Local: ${A(turnoInfo.local)}\n`;
-  if(turnoInfo.tecnicos) t += `Tecnicos: ${A(turnoInfo.tecnicos)}\n`;
-  if(turnoInfo.supervisor) t += `Supervisor: ${A(turnoInfo.supervisor)}\n`;
-  if(turnoInfo.dds) t += `DDS: ${A(turnoInfo.dds)}\n`;
-
-  // O que foi marcado no dia, por pessoa
-  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
-  const lequesEscopo = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
-  const furosEscopo = checklistFuros.filter(f=>lequesEscopo.has(f.checklistLequeId));
-  const porPessoa = new Map();
-  const pessoa = nome => { const k = nome || '(sem nome)'; if(!porPessoa.has(k)) porPessoa.set(k, { perf:0, topo:0 }); return porPessoa.get(k); };
-  let perfDia = 0, topoDia = 0;
-  furosEscopo.forEach(f=>{
-    if(f.perfilado && noDia(f.perfiladoEm)){ perfDia++; pessoa(f.perfiladoPor).perf++; }
-    if(f.topografado && noDia(f.topografadoEm)){ topoDia++; pessoa(f.topografadoPor).topo++; }
-  });
-  t += `\n🔧 *FEITO NO DIA*\nFuros perfilados: ${perfDia}\nFuros topografados: ${topoDia}\n`;
-  if(porPessoa.size > 1 || (porPessoa.size === 1 && !porPessoa.has('(sem nome)'))){
-    t += [...porPessoa.entries()].map(([n, v])=> `- ${A(n)}: ${v.perf} perf. / ${v.topo} topo.`).join('\n') + '\n';
-  }
-
-  // Detalhe: o que cada equipe (dupla) fez no dia, leque a leque
-  const multiAneis = escopo.size > 1;
-  const porEquipe = new Map(); // chave -> { nome, integ, itens: Map(leque -> {perf:[], topo:[]}) }
-  const reg = (f, c, tipo, eqId)=>{
-    const nome = nomeDaEquipeId(eqId) || '';
-    const chave = eqId || '_sem';
-    if(!porEquipe.has(chave)){
-      const eq = (typeof equipes !== 'undefined' ? equipes : []).find(e=>e.id === eqId);
-      porEquipe.set(chave, { nome: nome || 'Sem equipe', integ: eq && eq.integrantes ? eq.integrantes : '', itens: new Map() });
-    }
-    const g = porEquipe.get(chave);
-    if(!g.itens.has(c.id)) g.itens.set(c.id, { c, perf: [], topo: [] });
-    g.itens.get(c.id)[tipo].push(f);
-  };
-  checklistLeques.filter(c=>lequesEscopo.has(c.id)).forEach(c=>{
-    furosEscopo.filter(f=>f.checklistLequeId === c.id).forEach(f=>{
-      if(f.perfilado && noDia(f.perfiladoEm)) reg(f, c, 'perf', equipePerfEfetivaId(f));
-      if(f.topografado && noDia(f.topografadoEm)) reg(f, c, 'topo', equipeTopoEfetivaId(f));
-    });
-  });
-  const ordF = (x,y)=> cmpNumero(x.numero, y.numero);
-  const blocosEq = [];
-  porEquipe.forEach(g=>{
-    const linhas = [...g.itens.values()].map(({c, perf, topo})=>{
-      const an = multiAneis ? (aneis.find(a=>a.id===c.anelId) || {}).nome : '';
-      const lst = arr => arr.sort(ordF).map(f=>'F'+f.numero).join(', ');
-      return `  ${PREFIXO[c.tipo]}${c.numero}${an ? ' (' + A(an) + ')' : ''}:` + (perf.length ? ` perf. ${lst(perf)}` : '') + (perf.length && topo.length ? ' |' : '') + (topo.length ? ` topo. ${lst(topo)}` : '');
-    });
-    blocosEq.push(`*${A(g.nome)}*${g.integ ? ' (' + A(g.integ) + ')' : ''}\n${linhas.join('\n')}`);
-  });
-  if(blocosEq.length) t += `\n✅ *O QUE FOI FEITO NO TURNO*\n${blocosEq.join('\n')}\n`;
-
-  // Metros lançados pelas equipes no dia
-  const eqs = equipesDoProjeto();
-  const linhasEq = eqs.map(e=>{
-    let m = 0, p = 0;
-    lancamentosEfetivos().forEach(l=>{ if(l.equipeId === e.id && l.data === dia){ m += l.metros; p += l.pontos; } });
-    return (m || p) ? `- ${A(e.nome)}: ${num(m)} m perfilados | ${Math.round(p)} pontos topografados` : '';
-  }).filter(Boolean);
-  if(linhasEq.length) t += `\n👷 *PRODUCAO DAS EQUIPES*\n${linhasEq.join('\n')}\n`;
-
-  // Situação do realce ativo (pendências e obstruídos)
-  const anel = aneis.find(a=>a.id===anelAtivoId);
-  if(anel){
-    const itens = checklistDoAnel(anel.id);
-    if(itens.length){
-      t += `\n📍 *SITUACAO DO REALCE ${A(anel.nome)}*\n`;
-      const temLocal = itens.some(c=>(c.localizacao||'').trim());
-      if(temLocal) t += montarBlocoRealceComLocais(anel.id, itens, anel.nome).replace(/^📍 \*Realce [^\n]*\*\n/, '') + '\n';
-      else{
-        t += linhaAreaRealceWa(anel.id);
-        t += resumoChecklistItens(itens) + '\n';
-        const obstr = blocoObstruidosWhatsApp(itens);
-        if(obstr) t += `\n${obstr}\n`;
-        const porEq = blocoEquipesWhatsApp(itens);
-        if(porEq) t += `\n${porEq}\n`;
-        const notasF = blocoNotasFurosWhatsApp(itens);
-        if(notasF) t += `\n${notasF}\n`;
-        const fotosT = blocoFotosFurosWhatsApp(itens);
-        if(fotosT) t += `\n${fotosT}\n`;
-        const obsG = checklistObsGeraisDoAnel(anel.id);
-        if(obsG.length) t += `\n📝 *OBSERVACOES GERAIS*\n${obsG.map(o=>'- '+A(o.texto)).join('\n')}\n`;
-      }
-    }
-  }
-
-  const obs = observacoesDoTurnoAtual();
-  if(obs.length) t += `\n📝 *OBSERVACOES DO TURNO*\n${obs.map(o=>'- '+A(o.texto)).join('\n')}\n`;
-  const nFotos = fotosDoTurnoAtual().length;
-  if(nFotos) t += `\n📷 Fotos registradas no turno: ${nFotos}\n`;
-  return A(t.trim());
+// ---------- Janela do turno (única definição) ----------
+// O que conta como "deste turno": com turno iniciado, só marcas feitas depois do início; sem turno iniciado,
+// o dia da data do turno. Usada pelo resumo do turno, pela conferência de Encerrar turno e pelo contador "Meu turno".
+function janelaDoTurno(){
+  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
+  const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
+  const noDia = iso => !!iso && (ini ? new Date(iso).getTime() >= ini : chaveDia(iso) === dia);
+  // obstrução: com turno aberto, só vale a marcada depois do início (obstruídos antigos, sem hora, ficam de fora)
+  const obsNoTurno = f => ini ? !!f.obstruidoEm && new Date(f.obstruidoEm).getTime() >= ini : (!f.obstruidoEm || chaveDia(f.obstruidoEm) === dia);
+  return { dia, ini, noDia, obsNoTurno };
 }
 // ---------- Resumo do turno no padrão "STATUS TURNO PERFILAGEM LAVRA" ----------
 // Segue o modelo que a equipe manda no grupo: saudação, cabeçalho do turno, resumo das atividades
 // (o que foi feito NO DIA), pendências do realce e status. Mantém acentos (o modelo tem).
 function montarResumoTurnoWhatsApp(){
   const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
-  const dia = dataBRParaISO(turnoInfo.data) || chaveDia(new Date());
+  const { dia, ini: inicioTurnoMs, noDia, obsNoTurno } = janelaDoTurno();
   const [ano, mes, dd] = dia.split('-');
   const h = new Date().getHours();
   const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
-  // com turno iniciado: só marcas feitas depois do início; sem turno iniciado: o dia da data do turno
-  const inicioTurnoMs = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
-  const noDia = iso => iso && (inicioTurnoMs ? new Date(iso).getTime() >= inicioTurnoMs : chaveDia(iso) === dia);
-  // obstrução: com turno aberto, só vale a marcada depois do início (obstruídos antigos, sem hora, ficam de fora)
-  const obsNoTurno = f => inicioTurnoMs ? !!f.obstruidoEm && new Date(f.obstruidoEm).getTime() >= inicioTurnoMs : (!f.obstruidoEm || chaveDia(f.obstruidoEm) === dia);
   // só o que ESTE usuário marcou (marcas de outros no mesmo dia ficam de fora)
   const euNome = String(nomeDoUsuario() || '').trim().toLowerCase();
   const euEmail = usuarioAtual && usuarioAtual.email ? String(usuarioAtual.email).split('@')[0].toLowerCase() : '';
@@ -1014,14 +915,19 @@ el('btn-resumo-turno-copiar').addEventListener('click', ()=> pedirDDS(async ()=>
 }));
 el('btn-resumo-turno-whatsapp').addEventListener('click', ()=> pedirDDS(()=>{
   const texto = montarResumoTurnoWhatsApp();
-  const numero = configApp.whatsapp;
-  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  enviarWhatsApp(texto);
   renderResumoTurno();
 }));
 el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTurno(); showToast('Resumo atualizado.', { erro:false }); });
 
 // Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
 function abrirWhatsApp(url){ const w = window.open(url, '_blank'); if(!w) location.href = url; }
+// Único jeito de montar o link do WhatsApp (com o número configurado, se houver) e de enviar texto.
+function urlWhatsApp(texto){
+  const base = configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/';
+  return texto ? `${base}?text=${encodeURIComponent(texto)}` : base;
+}
+function enviarWhatsApp(texto){ abrirWhatsApp(urlWhatsApp(texto)); }
 // Status só dos realces FAVORITOS (⭐ na aba Realce), direto, sem escolher e sem fotos
 function enviarStatusTodosRealces(){
   const ids = aneisNoEscopoAtual().filter(a=> ehFavoritoRealce(a.id) && checklistDoAnel(a.id).length).map(a=>a.id);
@@ -1030,8 +936,7 @@ function enviarStatusTodosRealces(){
 }
 async function enviarRelatorioWhatsApp(idsRealces){
   const mensagem = montarRelatorioChecklistParaWhatsApp(idsRealces);
-  const url = configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}?text=${encodeURIComponent(mensagem)}` : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
-  abrirWhatsApp(url);
+  enviarWhatsApp(mensagem);
 }
 
 // Antes de enviar, deixa escolher quais realces entram no relatório — útil
@@ -1155,7 +1060,7 @@ async function enviarFotoInfograficoWhatsApp(){
       }
     }else{
       baixarBlob(blob, nomeArquivo);
-      window.open(`https://wa.me/${configApp.whatsapp}`, '_blank');
+      enviarWhatsApp();
       showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.', { erro:false });
     }
   }catch(err){
@@ -2105,15 +2010,13 @@ function montarRealceWhatsApp(anelId){
 async function enviarRealceWhatsApp(anelId){
   await fotosEmDiaParaRelatorio();
   const texto = montarRealceWhatsApp(anelId); if(!texto) return;
-  const numero = configApp.whatsapp;
-  abrirWhatsApp(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`);
+  enviarWhatsApp(texto);
 }
 async function enviarLequeWhatsApp(id){
   const c = checklistLeques.find(x=>x.id===id); if(!c) return;
   await fotosEmDiaParaRelatorio();
   const texto = montarResumoLequeWhatsApp(c);
-  const numero = configApp.whatsapp;
-  abrirWhatsApp(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`);
+  enviarWhatsApp(texto);
 }
 
 // Feito e desfeito se anulam: se um campo mudou de A para B e depois voltou para A, os dois

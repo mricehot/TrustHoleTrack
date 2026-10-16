@@ -64,7 +64,7 @@ function calcularMesSemana(ini, lista, efet){
   const restantes = Math.max(0, diasMes - passados);
   const a = dataISOLocal(iniMes), b = dataISOLocal(corte);
   const porEq = lista.map(e => {
-    let m = 0, p = 0; efet.forEach(l => { if(l.equipeId === e.id && l.data >= a && l.data <= b){ m += l.metros; p += l.pontos; } });
+    const pr = producaoEquipe(e.id, a, b, efet), m = pr.metros, p = pr.pontosExatos;
     const meta = e.metaMensal > 0 ? e.metaMensal : (e.metaSemanal > 0 ? arred2(e.metaSemanal * diasMes / 6) : 0);
     return { nome: e.nome, metros: arred2(m), pontos: Math.round(p), meta };
   }).sort((x, y) => y.metros - x.metros);
@@ -76,9 +76,7 @@ function calcularMesSemana(ini, lista, efet){
   const semanas = [];
   for(let k = 3; k >= 0; k--){
     const i0 = new Date(ini); i0.setDate(i0.getDate() - 7 * k); const i1 = new Date(i0); i1.setDate(i1.getDate() + 6);
-    const x = dataISOLocal(i0), y = dataISOLocal(i1); let m = 0;
-    efet.forEach(l => { if(l.data >= x && l.data <= y) m += l.metros; });
-    semanas.push({ rotulo: ddmmRS(i0), metros: arred2(m), atual: k === 0 });
+    semanas.push({ rotulo: ddmmRS(i0), metros: metrosNoIntervalo(efet, dataISOLocal(i0), dataISOLocal(i1)), atual: k === 0 });
   }
   const mediaSem = semanas.reduce((t, w) => t + w.metros, 0) / 4;
   return { nome: iniMes.toLocaleDateString('pt-BR', { month: 'long' }), fimMes, corte, diasMes, passados, restantes, acum, pontos, meta, ritmo, proj,
@@ -102,18 +100,12 @@ function calcularResumoSemanal(offset){
     dias.push({ data: d, iso: dataISOLocal(d), nome: DIAS_CURTOS[d.getDay()], folga: d.getDay() === 0, metros: 0, pontos: 0, furosPerf: 0, furosTopo: 0, porEq: {} });
   }
   const equipesR = lista.map(e => {
-    const meus = efet.filter(l => l.equipeId === e.id);
-    let metros = 0, pontos = 0, antM = 0, antP = 0; const porDia = {};
-    meus.forEach(l => {
-      if(l.data >= iniISO && l.data <= fimISO){
-        metros += l.metros; pontos += l.pontos;
-        const d = dias.find(x => x.iso === l.data); if(d){ d.metros += l.metros; d.pontos += l.pontos; d.porEq[e.id] = (d.porEq[e.id] || 0) + l.metros; }
-        porDia[l.data] = porDia[l.data] || { metros: 0, pontos: 0 }; porDia[l.data].metros += l.metros; porDia[l.data].pontos += l.pontos;
-      }else if(l.data >= iniAntISO && l.data <= fimAntISO){ antM += l.metros; antP += l.pontos; }
+    const cur = producaoEquipe(e.id, iniISO, fimISO, efet), ant = producaoEquipe(e.id, iniAntISO, fimAntISO, efet);
+    Object.keys(cur.porDia).forEach(iso => {
+      const d = dias.find(x => x.iso === iso); if(d){ d.metros += cur.porDia[iso].metros; d.pontos += cur.porDia[iso].pontos; d.porEq[e.id] = (d.porEq[e.id] || 0) + cur.porDia[iso].metros; }
     });
-    const diasTrab = Object.keys(porDia).filter(k => porDia[k].metros > 0 || porDia[k].pontos > 0);
-    let melhor = null; diasTrab.forEach(k => { if(!melhor || porDia[k].metros > melhor.metros) melhor = { iso: k, metros: porDia[k].metros, pontos: porDia[k].pontos }; });
-    metros = arred2(metros); antM = arred2(antM);
+    const metros = cur.metros, pontos = cur.pontosExatos, antM = ant.metros, antP = ant.pontosExatos;
+    const diasTrab = cur.diasTrab, melhor = cur.melhor;
     const meta = e.metaSemanal > 0 ? e.metaSemanal : 0;
     return { id: e.id, cor: COR_EQUIPES_RS[Math.max(0, lista.findIndex(x => x.id === e.id)) % 6], nome: e.nome, integrantes: e.integrantes, metros, pontos: Math.round(pontos), antM, antP: Math.round(antP),
       diasTrab: diasTrab.length, media: diasTrab.length ? arred2(metros / diasTrab.length) : 0, melhor, meta, pct: meta ? Math.round(metros / meta * 100) : null,
@@ -395,13 +387,12 @@ function abrirResumoSemanal(offset){
       try{ await navigator.share({ files: [arq], title: 'Resumo semanal' }); }catch(err){ if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.'); }
     }else{
       baixarBlob(blob, nomeArquivo);
-      abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+      enviarWhatsApp();
       showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.', { erro: false });
     }
   }));
   el('rs-enviar-txt').addEventListener('click', () => {
-    const t = encodeURIComponent(montarResumoSemanalWhatsApp(resumoSemOffset));
-    abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}?text=${t}` : `https://wa.me/?text=${t}`);
+    enviarWhatsApp(montarResumoSemanalWhatsApp(resumoSemOffset));
   });
   el('rs-copiar').addEventListener('click', async () => { const ok = await copiarTextoResumo(montarResumoSemanalWhatsApp(resumoSemOffset)); showToast(ok ? 'Mensagem copiada. É só colar no WhatsApp.' : 'Não foi possível copiar.', { erro: false }); });
 }
@@ -424,7 +415,6 @@ function atualizarAvisoSabado(){
 }
 (function(){
   const b = el('btn-resumo-semanal'); if(b) b.addEventListener('click', () => abrirResumoSemanal(0));
-  const o = window.renderAll;
-  if(typeof o === 'function') window.renderAll = function(){ const r = o.apply(this, arguments); try{ atualizarAvisoSabado(); }catch(e){} return r; };
+  aoRenderizarTudo(()=> atualizarAvisoSabado());
   try{ atualizarAvisoSabado(); }catch(e){}
 })();

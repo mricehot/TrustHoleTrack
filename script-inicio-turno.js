@@ -98,7 +98,7 @@ function abrirHistoricoTurnos(){
   document.getElementById('modal-overlay').addEventListener('click', ev=>{ if(ev.target.id === 'modal-overlay') fechar(); });
   root.querySelectorAll('.hist-turno').forEach(box=>{
     const h = lista.find(x=>x.id === box.dataset.id); if(!h) return;
-    box.querySelector('[data-a=enviar]').onclick = ()=>{ const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(h.texto)}` : `https://wa.me/?text=${encodeURIComponent(h.texto)}`, '_blank'); };
+    box.querySelector('[data-a=enviar]').onclick = ()=>enviarWhatsApp(h.texto);;
     box.querySelector('[data-a=copiar]').onclick = async ()=>{ const ok = await copiarTextoResumo(h.texto); showToast(ok ? 'Relatório copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); };
     box.querySelector('[data-a=apagar]').onclick = async ()=>{ if(!(await confirmDialog('Apagar este turno do histórico?', 'Apagar'))) return; gravarHistoricoTurnos(lerHistoricoTurnos().filter(x=>x.id !== h.id)); abrirHistoricoTurnos(); };
   });
@@ -260,6 +260,5 @@ async function carregarInicioTurnoServidor(){
 })();
 // Redesenha junto com o checklist e ao abrir a página Turno.
 (function(){
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderInicioTurno(); }catch(e){} return r; };
+  aoRenderizarChecklist(()=> renderInicioTurno());
 })();

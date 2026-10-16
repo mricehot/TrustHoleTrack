@@ -264,7 +264,7 @@ async function enviarImagemRealce(anelId){
       return;
     }
     const a = document.createElement('a'); a.href = url; a.download = nomeArq; document.body.appendChild(a); a.click(); a.remove();
-    abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+    enviarWhatsApp();
     showToast('Imagem baixada. Anexe no WhatsApp que abriu.', { tipo:'ok' });
   });
 }

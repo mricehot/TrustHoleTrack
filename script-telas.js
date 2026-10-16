@@ -167,6 +167,11 @@ function render(){
 }
 
 function renderAll(){
+  const r = renderAllBase();
+  rodarGanchosRender(ganchosRender.tudo);
+  return r;
+}
+function renderAllBase(){
   renderAneisMenu();
   renderBreadcrumb();
   renderPainelTrabalho();
@@ -669,12 +674,29 @@ function intervaloSemanaInfografico(){
   return { inicio, fim, semana: dataISOLocal(inicio) };
 }
 const arred2 = n => Math.round(n * 100) / 100;
-function somaLancamentos(equipeId, iniISO, fimISO){
-  let m = 0, p = 0, q = 0;
-  lancamentosEfetivos().forEach(l=>{
-    if(l.equipeId === equipeId && l.data >= iniISO && l.data <= fimISO){ m += l.metros; p += l.pontos; q++; }
+// BASE ÚNICA da produção: soma de uma equipe num intervalo de datas (ISO, inclusivo), a partir da lista
+// de lancamentosEfetivos() (metros manuais + pontos das marcações do checklist). Painel, infográfico, resumo
+// semanal e relatório mensal usam esta mesma conta, então os números nunca divergem entre telas.
+// 'efet' pode ser passado para não recalcular a lista a cada equipe.
+function producaoEquipe(equipeId, iniISO, fimISO, efet){
+  let m = 0, p = 0, q = 0; const porDia = {};
+  (efet || lancamentosEfetivos()).forEach(l=>{
+    if(l.equipeId !== equipeId || l.data < iniISO || l.data > fimISO) return;
+    m += l.metros; p += l.pontos; q++;
+    const d = porDia[l.data] = porDia[l.data] || { metros: 0, pontos: 0 }; d.metros += l.metros; d.pontos += l.pontos;
   });
-  return { metros: arred2(m), pontos: Math.round(p), qtd: q };
+  const diasTrab = Object.keys(porDia).filter(k=> porDia[k].metros > 0 || porDia[k].pontos > 0);
+  let melhor = null; diasTrab.forEach(k=>{ if(!melhor || porDia[k].metros > melhor.metros) melhor = { iso: k, metros: porDia[k].metros, pontos: porDia[k].pontos }; });
+  return { metros: arred2(m), pontos: Math.round(p), pontosExatos: p, qtd: q, porDia, diasTrab, melhor };
+}
+// Metros de todas as equipes da lista 'efet' num intervalo.
+function metrosNoIntervalo(efet, iniISO, fimISO){
+  let m = 0; efet.forEach(l=>{ if(l.data >= iniISO && l.data <= fimISO) m += l.metros; });
+  return arred2(m);
+}
+function somaLancamentos(equipeId, iniISO, fimISO){
+  const r = producaoEquipe(equipeId, iniISO, fimISO);
+  return { metros: r.metros, pontos: r.pontos, qtd: r.qtd };
 }
 function somaDaSemanaSelecionada(equipeId){
   const { inicio, fim } = intervaloSemanaInfografico();

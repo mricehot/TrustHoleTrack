@@ -649,8 +649,7 @@ function renderAtividadeRecente(){
   box.innerHTML = rec.length ? rec.map(e=>`<div class="ativ-linha ${e.k}"><span class="ativ-hora">${tempoRelativo(new Date(e.t).getTime())}</span><span class="ativ-txt">${escHtml(e.txt)}</span>${e.por ? `<span class="ativ-por">${escHtml(e.por)}</span>` : ''}</div>`).join('') : '<div class="hint">Nenhuma marcação ainda neste realce.</div>';
 }
 (function(){
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMapaRealce(); renderAtividadeRecente(); }catch(e){} return r; };
+  aoRenderizarChecklist(()=>{ renderMapaRealce(); renderAtividadeRecente(); });
 })();
 
 
@@ -693,9 +692,7 @@ function renderPassagemTurno(){
 
 /* ================= Encerrar turno (conferência antes de sair da mina) ================= */
 function dadosFimDeTurno(){
-  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
-  const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
-  const noDia = iso => iso && (ini ? new Date(iso).getTime() >= ini : chaveDia(iso) === dia);
+  const { noDia } = janelaDoTurno();
   const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
   const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
   const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));
@@ -730,7 +727,7 @@ function abrirEncerrarTurno(){
   };
   el('fim-fechar').onclick = fechar;
   el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); if(ok) finalizarSessaoTurno(); }); };
-  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ const t = montarResumoTurnoWhatsApp(); const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(t)}` : `https://wa.me/?text=${encodeURIComponent(t)}`, '_blank'); finalizarSessaoTurno(); }); };
+  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ enviarWhatsApp(montarResumoTurnoWhatsApp()); finalizarSessaoTurno(); }); };
   const so = el('fim-so-encerrar'); if(so) so.onclick = ()=>{ registrar(); fechar(); finalizarSessaoTurno(); };
 }
 (function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();
@@ -819,8 +816,7 @@ function completarEquipeDoLeque(lequeId){
 
 /* ================= Contador do meu turno ================= */
 function contagemMeuTurno(){
-  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
-  const noDia = iso => iso && chaveDia(iso) === dia;
+  const { noDia } = janelaDoTurno(); // mesma janela do relatório: depois do início do turno, se houver
   const minha = minhaEquipeId();
   const eu = (nomeDoUsuario() || '').toLowerCase();
   const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
@@ -849,8 +845,7 @@ function renderMeuTurno(){
   ultimoContadorTurno = chave;
 }
 (function(){
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderMeuTurno(); }catch(e){} return r; };
+  aoRenderizarChecklist(()=> renderMeuTurno());
   window.addEventListener('load', ()=> setTimeout(renderMeuTurno, 800));
 })();
 
@@ -948,14 +943,13 @@ function producaoPorEquipePainel(projeto){
   const hoje = chaveDia(new Date().toISOString());
   const semana = chaveDia(inicioDaSemana(new Date()).toISOString());
   const mapa = new Map();
-  const pega = id=>{ if(!mapa.has(id)) mapa.set(id, { hojeM:0, hojeP:0, semM:0, semP:0 }); return mapa.get(id); };
   const daqui = id=>{ if(projeto === '*') return true; const e = equipes.find(x=>x.id===id); return !!e && (e.projeto || '') === projeto; };
-  lancamentosEfetivos().forEach(l=>{
-    if(!daqui(l.equipeId)) return;
-    const d = String(l.data).slice(0,10), o = pega(l.equipeId);
-    // Metragem: lançamentos manuais. Pontos: marcações do checklist (já vêm em lancamentosEfetivos).
-    if(d >= semana){ o.semM += Number(l.metros)||0; o.semP += Number(l.pontos)||0; }
-    if(d === hoje){ o.hojeM += Number(l.metros)||0; o.hojeP += Number(l.pontos)||0; }
+  // Mesma conta do infográfico/semanal/mensal (producaoEquipe): metragem dos lançamentos manuais, pontos das marcações do checklist.
+  const efet = lancamentosEfetivos();
+  new Set(efet.map(l=> l.equipeId)).forEach(id=>{
+    if(!daqui(id)) return;
+    const sem = producaoEquipe(id, semana, '9999-12-31', efet), dia = producaoEquipe(id, hoje, hoje, efet);
+    mapa.set(id, { hojeM: dia.metros, hojeP: dia.pontosExatos, semM: sem.metros, semP: sem.pontosExatos });
   });
   return mapa;
 }
@@ -992,8 +986,7 @@ function montarPainelWhatsApp(){
 function enviarPainelWhatsApp(){
   if(!exigirGestor('enviar o painel')) return;
   const texto = montarPainelWhatsApp();
-  const numero = configApp.whatsapp;
-  window.open(numero ? `https://wa.me/${numero}?text=${encodeURIComponent(texto)}` : `https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  enviarWhatsApp(texto);
 }
 function renderPainelGestor(){
   const body = document.getElementById('painel-body'); if(!body) return;
@@ -1057,8 +1050,7 @@ function dispensarDica(id){
   renderDicaDoDia();
 }
 (function(){
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ renderDicaDoDia(); }catch(e){} return r; };
+  aoRenderizarChecklist(()=> renderDicaDoDia());
 })();
 
 
@@ -1106,8 +1098,7 @@ function sugerirLocalChecklist(){
 (function(){
   const inp = document.getElementById('checklist-localizacao');
   if(inp) inp.addEventListener('input', ()=>{ inp.dataset.editado = '1'; delete inp.dataset.auto; });
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ sugerirLocalChecklist(); }catch(e){} return r; };
+  aoRenderizarChecklist(()=> sugerirLocalChecklist());
 })();
 
 /* ================= Modo conferência (só leitura) ================= */
@@ -1261,7 +1252,15 @@ async function enviarImagemMapaFavoritos(){
       catch(e){ if(e && e.name !== 'AbortError') showToast('Não foi possível abrir o compartilhamento.', { tipo:'aviso' }); }
       return;
     }
-    baixar(); abrirWhatsApp(configApp.whatsapp ? `https://wa.me/${configApp.whatsapp}` : 'https://wa.me/');
+    baixar(); enviarWhatsApp();
     showToast('Imagem baixada. Anexe no WhatsApp que abriu.', { tipo:'ok' });
   };
 }
+
+// Botões de favoritos (status por WhatsApp + imagem do mapa): definidos num lugar só e
+// espalhados em todo <span data-botoes-favoritos> do HTML, para nunca ficarem diferentes.
+(function(){
+  const html = '<button type="button" class="ghost btn-status-todos" onclick="enviarStatusTodosRealces()" title="manda pelo WhatsApp o status só dos realces favoritos (⭐), sem fotos">💬 Status dos realces favoritos</button>'
+    + '<button type="button" class="ghost btn-status-todos" onclick="enviarImagemMapaFavoritos()" title="gera uma imagem do mapa de todos os realces favoritos (⭐) para compartilhar">🗺️ Imagem do mapa (favoritos)</button>';
+  document.querySelectorAll('[data-botoes-favoritos]').forEach(n=>{ n.innerHTML = html; });
+})();

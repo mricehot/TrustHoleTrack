@@ -233,15 +233,3 @@ document.addEventListener('change', e=>{
   if(e.target && e.target.id === 'anel-plano'){ const f = e.target.files && e.target.files[0]; const n = el('anel-plano-nome'); if(n) n.textContent = f ? '📎 ' + f.name : 'Anexar plano (PDF)'; }
 });
 
-
-// Marcar um furo redesenha o checklist inteiro; o navegador pode mexer na rolagem enquanto a lista
-// é refeita (tremida). Guarda a posição antes e devolve logo depois, antes de a tela ser pintada.
-(function(){
-  const orig = window.renderChecklist; if(typeof orig !== 'function') return;
-  window.renderChecklist = renderChecklist = function(){
-    const y = window.scrollY;
-    const r = orig.apply(this, arguments);
-    try{ if(Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }catch(e){}
-    return r;
-  };
-})();

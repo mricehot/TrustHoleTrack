@@ -1126,7 +1126,16 @@ function renderChecklistPorEquipe(furosDoRealce){
     return `<div class="ck-pe-linha" style="--eq-cor:${corDaEquipe(e)}"><span class="ck-pe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)}</span><span class="ck-pe-num">Perf. <b>${l.p}</b>${l.ph ? ` <small>(+${l.ph} hoje)</small>` : ''}</span><span class="ck-pe-num">Topo <b>${l.t}</b>${l.th ? ` <small>(+${l.th} hoje)</small>` : ''}</span></div>`;
   }).join('');
 }
+// Redesenhar o checklist refaz a lista inteira; o navegador pode mexer na rolagem durante isso (tremida).
+// Guarda a posição antes e devolve logo depois, depois de rodar os ganchos registrados.
 function renderChecklist(){
+  const y = window.scrollY;
+  const r = renderChecklistBase();
+  rodarGanchosRender(ganchosRender.checklist);
+  try{ if(Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }catch(e){}
+  return r;
+}
+function renderChecklistBase(){
   atualizarContadorAbaChecklist();
   const grid = el('checklist-grid');
   const vazio = el('checklist-vazio');

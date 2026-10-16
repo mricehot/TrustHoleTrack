@@ -5,6 +5,16 @@
 // usando os "Secrets" configurados no repositório. Rodando local sem passar
 // pelo Actions, troque só pra testar (nunca comite os valores reais aqui).
 // ======================================================
+
+// ===== Ganchos de renderização =====
+// Em vez de cada arquivo "embrulhar" renderChecklist/renderAll (a ordem de carregamento decidia o que rodava),
+// cada parte registra aqui o que quer rodar DEPOIS de a tela ser desenhada. Roda na ordem de registro;
+// um gancho com erro não derruba os outros.
+const ganchosRender = { checklist: [], tudo: [] };
+function aoRenderizarChecklist(fn){ ganchosRender.checklist.push(fn); }
+function aoRenderizarTudo(fn){ ganchosRender.tudo.push(fn); }
+function rodarGanchosRender(lista){ lista.forEach(fn=>{ try{ fn(); }catch(e){} }); }
+
 const SUPABASE_URL = '__SUPABASE_URL__';
 const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -1441,4 +1451,5 @@ function fanSVG(furosDoLeque, orientacao){
 function lequeAbertoDoAnel(anelId){
   return leques.find(l=>l.anelId===anelId && l.status==='aberto');
 }
+
 

@@ -109,10 +109,8 @@ function injetarBarrasFixas(){
 }
 
 (function(){
-  const orig = renderChecklist;
-  renderChecklist = function(){ const r = orig.apply(this, arguments); try{ injetarBarrasFixas(); }catch(e){} return r; };
-  const origAll = renderAll;
-  renderAll = function(){ const r = origAll.apply(this, arguments); try{ atualizarContadorMetragem(); }catch(e){} return r; };
+  aoRenderizarChecklist(injetarBarrasFixas);
+  aoRenderizarTudo(atualizarContadorMetragem);
   const origSalvar = salvarMetragemInline;
   salvarMetragemInline = function(){ const r = origSalvar.apply(this, arguments); try{ atualizarContadorMetragem(); }catch(e){} return r; };
 })();
