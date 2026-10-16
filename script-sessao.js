@@ -730,7 +730,6 @@ function abrirEncerrarTurno(){
   el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ enviarWhatsApp(montarResumoTurnoWhatsApp()); finalizarSessaoTurno(); }); };
   const so = el('fim-so-encerrar'); if(so) so.onclick = ()=>{ registrar(); fechar(); finalizarSessaoTurno(); };
 }
-(function(){ const b = el('btn-encerrar-turno'); if(b) b.addEventListener('click', abrirEncerrarTurno); })();
 
 /* ================= Usuários travados em equipes ================= */
 const USUARIOS_KEY = 'perfilagem-usuarios-v1';

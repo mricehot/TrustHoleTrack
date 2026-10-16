@@ -1893,7 +1893,6 @@ tr.ck-furo-nota td{ padding:0 10px 8px 10px; border-top:0; }
 tr.ck-furo-nota span{ display:block; padding:6px 10px; background:var(--surface-2); border-left:4px solid var(--steel); border-radius:6px; font-size:13px; font-style:italic; }
 
 /* Encerrar turno */
-.btn-encerrar-turno{ width:100%; margin-bottom:10px; min-height:48px; font-size:16px; font-weight:700; }
 .fim-kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
 .fim-kpi{ background:var(--surface-2); border-radius:10px; padding:8px 6px; text-align:center; }
 .fim-kpi b{ display:block; font-size:22px; line-height:1.1; }
