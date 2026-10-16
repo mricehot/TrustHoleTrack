@@ -694,7 +694,8 @@ function renderPassagemTurno(){
 /* ================= Encerrar turno (conferência antes de sair da mina) ================= */
 function dadosFimDeTurno(){
   const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
-  const noDia = iso => iso && chaveDia(iso) === dia;
+  const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
+  const noDia = iso => iso && (ini ? new Date(iso).getTime() >= ini : chaveDia(iso) === dia);
   const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
   const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
   const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));

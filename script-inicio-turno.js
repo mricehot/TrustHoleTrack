@@ -57,16 +57,56 @@ function renderTurnoSessao(){
   const t = turnoIniciadoEm();
   if(!t){
     box.className = 'turno-sessao';
-    box.innerHTML = `<div class="ts-txt"><b>Turno não iniciado</b><small>Inicie para o resumo do WhatsApp trazer só o que você marcar a partir de agora.</small></div><button type="button" class="steel" onclick="iniciarTurno()">▶ Iniciar turno</button>`;
+    box.innerHTML = `<div class="ts-txt"><b>Turno não iniciado</b><small>Inicie para o resumo do WhatsApp trazer só o que você marcar a partir de agora.</small></div><div class="ts-botoes"><button type="button" class="steel" onclick="iniciarTurno()">▶ Iniciar turno</button><button type="button" class="ghost" onclick="abrirHistoricoTurnos()">🕘 Histórico</button></div>`;
     return;
   }
   const d = new Date(t), hh = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
   const hoje = new Date().toDateString() === d.toDateString();
   box.className = 'turno-sessao ativo';
-  box.innerHTML = `<div class="ts-txt"><b>Turno em andamento</b><small>desde ${hoje ? '' : d.toLocaleDateString('pt-BR') + ' '}${hh}</small></div><button type="button" class="steel btn-encerrar-turno" onclick="abrirEncerrarTurno()">🏁 Encerrar turno</button>`;
+  box.innerHTML = `<div class="ts-txt"><b>Turno em andamento</b><small>desde ${hoje ? '' : d.toLocaleDateString('pt-BR') + ' '}${hh}</small></div><div class="ts-botoes"><button type="button" class="steel btn-encerrar-turno" onclick="abrirEncerrarTurno()">🏁 Encerrar turno</button><button type="button" class="ghost" onclick="abrirHistoricoTurnos()">🕘 Histórico</button></div>`;
 }
+// ---- Histórico de turnos: cada turno encerrado guarda o relatório pronto, para reenviar depois ----
+const TURNO_HIST_KEY = 'perfilagem-turno-historico-v1';
+function lerHistoricoTurnos(){ try{ const v = JSON.parse(localStorage.getItem(TURNO_HIST_KEY) || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } }
+function gravarHistoricoTurnos(lista){ try{ localStorage.setItem(TURNO_HIST_KEY, JSON.stringify(lista.slice(0, 40))); }catch(e){} }
+function guardarTurnoNoHistorico(){
+  const ini = turnoIniciadoEm(); if(!ini) return;
+  let texto = ''; try{ texto = montarResumoTurnoWhatsApp(); }catch(e){}
+  let d = {}; try{ d = dadosFimDeTurno(); }catch(e){}
+  const turno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `${turnoInfo.turnoNumero || ''}° turno${turnoInfo.turnoLetra ? ' ' + turnoInfo.turnoLetra : ''}` : 'Turno';
+  const lista = lerHistoricoTurnos();
+  lista.unshift({ id: uuidv4(), inicio: new Date(ini).toISOString(), fim: new Date().toISOString(), usuario: typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '', turno, data: turnoInfo.data || '', perf: d.perf || 0, topo: d.topo || 0, texto });
+  gravarHistoricoTurnos(lista);
+}
+function abrirHistoricoTurnos(){
+  const root = document.getElementById('modal-root'); if(!root) return;
+  const lista = lerHistoricoTurnos();
+  const hh = iso => { const d = new Date(iso); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); };
+  const dia = iso => new Date(iso).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' });
+  const itens = lista.map(h=> `<div class="hist-turno" data-id="${h.id}">
+      <div class="ht-cab"><b>${escHtml(h.turno)}</b><span>${dia(h.inicio)} · ${hh(h.inicio)} às ${hh(h.fim)}</span></div>
+      <div class="ht-sub">${escHtml(h.usuario || '')}${h.usuario ? ' · ' : ''}<b>${h.perf}</b> perfilados · <b>${h.topo}</b> topografados</div>
+      <details class="ht-det"><summary>Ver relatório</summary><pre>${escHtml(h.texto || '(sem texto guardado)')}</pre></details>
+      <div class="ht-acoes"><button type="button" class="steel" data-a="enviar">Enviar no WhatsApp</button><button type="button" class="ghost" data-a="copiar">Copiar</button><button type="button" class="ghost perigo" data-a="apagar">Apagar</button></div></div>`).join('');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
+    <h3 style="margin:0 0 10px">🕘 Histórico de turnos</h3>
+    ${itens || '<div class="hint">Nenhum turno encerrado ainda. Quando você encerrar um turno (🏁), o relatório fica guardado aqui para reenviar.</div>'}
+    <div class="hint" style="margin-top:8px;">Guardado neste aparelho (os 40 últimos turnos).</div>
+    <div class="modal-actions"><button class="ghost" id="ht-fechar">Fechar</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  document.getElementById('ht-fechar').onclick = fechar;
+  document.getElementById('modal-overlay').addEventListener('click', ev=>{ if(ev.target.id === 'modal-overlay') fechar(); });
+  root.querySelectorAll('.hist-turno').forEach(box=>{
+    const h = lista.find(x=>x.id === box.dataset.id); if(!h) return;
+    box.querySelector('[data-a=enviar]').onclick = ()=>{ const n = configApp.whatsapp; window.open(n ? `https://wa.me/${n}?text=${encodeURIComponent(h.texto)}` : `https://wa.me/?text=${encodeURIComponent(h.texto)}`, '_blank'); };
+    box.querySelector('[data-a=copiar]').onclick = async ()=>{ const ok = await copiarTextoResumo(h.texto); showToast(ok ? 'Relatório copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); };
+    box.querySelector('[data-a=apagar]').onclick = async ()=>{ if(!(await confirmDialog('Apagar este turno do histórico?', 'Apagar'))) return; gravarHistoricoTurnos(lerHistoricoTurnos().filter(x=>x.id !== h.id)); abrirHistoricoTurnos(); };
+  });
+}
+
 // Encerrar o turno (depois de copiar/enviar o resumo ou em "Só encerrar") fecha a sessão: o quadro volta a oferecer "Iniciar turno".
 function finalizarSessaoTurno(){
+  guardarTurnoNoHistorico();
   try{ localStorage.removeItem(TURNO_SESSAO_KEY); }catch(e){}
   renderTurnoSessao();
   try{ renderResumoTurno(); }catch(e){}

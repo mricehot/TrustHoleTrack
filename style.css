@@ -2517,3 +2517,15 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .ar-mais[open] > summary{ color:var(--text); }
 .ar-grade{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
 @media (min-width:640px){ .ar-envio{ grid-template-columns:repeat(4,1fr); } .ar-grade{ grid-template-columns:repeat(3,1fr); } }
+
+/* Histórico de turnos */
+.ts-botoes{ display:flex; gap:8px; flex-wrap:wrap; }
+.hist-turno{ border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; background:var(--card,#fff); }
+.ht-cab{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap; }
+.ht-cab span{ font-size:12.5px; color:var(--muted); font-family:var(--mono); }
+.ht-sub{ font-size:13px; color:var(--muted); margin-top:3px; }
+.ht-det{ margin-top:6px; } .ht-det summary{ cursor:pointer; min-height:36px; display:flex; align-items:center; font-weight:600; font-size:13px; }
+.ht-det pre{ white-space:pre-wrap; word-break:break-word; font-size:12px; max-height:240px; overflow:auto; background:var(--surface,#f4f3f8); padding:8px; border-radius:8px; }
+.ht-acoes{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.ht-acoes button{ min-height:42px; } .ht-acoes .perigo{ color:#c0392b; }
+.turno-sessao{flex-wrap:wrap}

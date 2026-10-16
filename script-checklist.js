@@ -780,6 +780,8 @@ function montarResumoTurnoWhatsApp(){
   // com turno iniciado: só marcas feitas depois do início; sem turno iniciado: o dia da data do turno
   const inicioTurnoMs = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
   const noDia = iso => iso && (inicioTurnoMs ? new Date(iso).getTime() >= inicioTurnoMs : chaveDia(iso) === dia);
+  // obstrução: com turno aberto, só vale a marcada depois do início (obstruídos antigos, sem hora, ficam de fora)
+  const obsNoTurno = f => inicioTurnoMs ? !!f.obstruidoEm && new Date(f.obstruidoEm).getTime() >= inicioTurnoMs : (!f.obstruidoEm || chaveDia(f.obstruidoEm) === dia);
   // só o que ESTE usuário marcou (marcas de outros no mesmo dia ficam de fora)
   const euNome = String(nomeDoUsuario() || '').trim().toLowerCase();
   const euEmail = usuarioAtual && usuarioAtual.email ? String(usuarioAtual.email).split('@')[0].toLowerCase() : '';
@@ -804,7 +806,7 @@ function montarResumoTurnoWhatsApp(){
   // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
   const nf = f => parseInt(f.numero,10) || 0;
   const txtMet = (f, obstruido) => `F${nf(f)}: ${obstruido ? 'obstruiu em' : 'perfurou'} ${num(f.metragem)} m de ${num(f.metragemEsperada)} m previstos`;
-  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? fui(f.obstruidoPor) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
+  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? (fui(f.obstruidoPor) && obsNoTurno(f)) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
   const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
   const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
   const menos = (obstruido)=> {
@@ -818,7 +820,7 @@ function montarResumoTurnoWhatsApp(){
   // metros do dia: soma das metragens reais digitadas nos furos perfilados hoje x esperada desses mesmos furos
   let mReal = 0, mEsp = 0;
   lequesEsc.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{ if(f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor) && Number(f.metragem) > 0){ mReal += Number(f.metragem); mEsp += Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0; } }));
-  const obstruidos = lequesEsc.flatMap(c=> checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor)).sort((a,b)=>nf(a)-nf(b))
+  const obstruidos = lequesEsc.flatMap(c=> checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor) && obsNoTurno(f)).sort((a,b)=>nf(a)-nf(b))
     .map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`));
 
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
@@ -831,7 +833,7 @@ function montarResumoTurnoWhatsApp(){
   const eqUser = (typeof equipes !== 'undefined' ? equipes : []).find(e=> e.id === minhaEquipeId());
   const tecnicosTxt = String((eqUser && eqUser.integrantes) || turnoInfo.tecnicos || '').split(/\s*(?:[,;\/]| e )\s*/).filter(Boolean).join('/');
   const ddsTxt = String(turnoInfo.dds || '').trim();
-  const obs = observacoesDoTurnoAtual().map(o=>o.texto);
+  const obs = observacoesDoTurnoAtual().filter(o=> !inicioTurnoMs || !o.ts || new Date(o.ts).getTime() >= inicioTurnoMs).map(o=>o.texto);
   const obsTxt = `Iniciamos as atividades participando do DDS${ddsTxt ? ' (' + ddsTxt + ')' : ''}.` + (obs.length ? '\n' + obs.map(o=>'- ' + o).join('\n') : '');
 
   const t = [
