@@ -711,8 +711,17 @@ function abrirEncerrarTurno(){
   const kpi = (n, r)=> `<div class="fim-kpi"><b>${n}</b><span>${r}</span></div>`;
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
     <h3 style="margin:0 0 10px">🏁 Encerrar turno</h3>
-    <div class="fim-kpis">${kpi(d.perf,'perfilados hoje')}${kpi(d.topo,'topografados hoje')}${kpi(d.pend.nPerf,'a perfilar')}${kpi(d.pend.nTopo,'a topografar')}${kpi(d.pend.nObs,'obstruídos')}${kpi(d.notas + d.obs,'notas e obs.')}</div>
+    <div class="fim-kpis">${kpi(d.perf,'perfilados hoje')}${kpi(d.topo,'topografados hoje')}${kpi(d.pend.nPerf,'a perfilar')}${kpi(d.pend.nTopo,'a topografar')}${kpi(d.pend.nObs,'obstruídos')}<div class="fim-kpi" id="fim-kpi-notas"><b>${d.notas + d.obs}</b><span>notas e obs.</span></div></div>
     ${sinc}
+    <div class="fim-obs">
+      <div class="fim-obs-titulo">📝 Observações que vão no relatório</div>
+      <div id="fim-obs-lista" class="fim-obs-lista"></div>
+      <button type="button" class="ghost" id="fim-obs-btn">＋ Adicionar observação</button>
+      <div id="fim-obs-form" hidden>
+        <textarea id="fim-obs-texto" rows="3" maxlength="500" placeholder="Ex.: rocha solta no SL06, avisar o próximo turno"></textarea>
+        <div class="fim-obs-acoes"><button type="button" id="fim-obs-salvar">Adicionar</button><button type="button" class="ghost" id="fim-obs-cancelar">Cancelar</button></div>
+      </div>
+    </div>
     ${d.pend.linhas.length ? '<label class="fim-check"><input type="checkbox" id="fim-registrar" checked> Registrar a passagem nas observações do turno</label>' : ''}
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="ghost" id="fim-fechar">Fechar</button>
@@ -726,6 +735,31 @@ function abrirEncerrarTurno(){
     if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
   };
   el('fim-fechar').onclick = fechar;
+  // Observações do turno: aparecem no relatório (só as feitas depois do início do turno).
+  const pintarObs = ()=>{
+    const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
+    const lista = observacoesDoTurnoAtual().filter(o=> !ini || !o.ts || new Date(o.ts).getTime() >= ini);
+    el('fim-obs-lista').innerHTML = lista.length
+      ? lista.map(o=> `<div class="fim-obs-item"><span>${escHtml(o.texto)}</span><button type="button" class="icon icon-remover" data-id="${o.id}" aria-label="remover observação" title="remover">✕</button></div>`).join('')
+      : '<div class="hint">Nenhuma observação ainda.</div>';
+    const k = el('fim-kpi-notas'); if(k){ const x = dadosFimDeTurno(); k.querySelector('b').textContent = x.notas + x.obs; }
+    el('fim-obs-lista').querySelectorAll('button[data-id]').forEach(b=> b.onclick = ()=>{
+      const id = b.dataset.id;
+      turnoObservacoes = turnoObservacoes.filter(o=>o.id!==id);
+      enfileirar('turno_observacoes', 'delete', { id });
+      salvarObsLocal(); renderObservacoesTurno(); try{ renderResumoTurno(); }catch(e){}
+      pintarObs();
+    });
+  };
+  pintarObs();
+  const abrirForm = aberto=>{ el('fim-obs-form').hidden = !aberto; el('fim-obs-btn').hidden = aberto; if(aberto) setTimeout(()=> el('fim-obs-texto').focus(), 50); };
+  el('fim-obs-btn').onclick = ()=> abrirForm(true);
+  el('fim-obs-cancelar').onclick = ()=>{ el('fim-obs-texto').value = ''; abrirForm(false); };
+  el('fim-obs-salvar').onclick = ()=>{
+    const t = el('fim-obs-texto').value.trim(); if(!t){ el('fim-obs-texto').focus(); return; }
+    adicionarObservacaoTurno(t, true, true);
+    el('fim-obs-texto').value = ''; abrirForm(false); pintarObs();
+  };
   el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); if(ok) finalizarSessaoTurno(); }); };
   el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ enviarWhatsApp(montarResumoTurnoWhatsApp()); finalizarSessaoTurno(); }); };
   const so = el('fim-so-encerrar'); if(so) so.onclick = ()=>{ registrar(); fechar(); finalizarSessaoTurno(); };

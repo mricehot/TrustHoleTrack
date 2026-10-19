@@ -237,7 +237,7 @@ function renderObservacoesTurno(){
   }).join('');
 }
 
-function adicionarObservacaoTurno(textoPronto, rapida){
+function adicionarObservacaoTurno(textoPronto, rapida, silencioso){
   const campo = el('turno-obs-input');
   const texto = (typeof textoPronto === 'string' ? textoPronto : campo.value).trim();
   if(!texto) return;
@@ -253,7 +253,8 @@ function adicionarObservacaoTurno(textoPronto, rapida){
   renderObservacoesTurno();
   renderResumoTurno();
   try{ const it = document.querySelector('#obs-list .obs-item:last-child'); if(it && !semMovimento()) it.animate([{ opacity:0, transform:'translateY(-8px)' }, { opacity:1, transform:'none' }], { duration:260, easing:'cubic-bezier(.2,.8,.3,1.1)' }); const ct = el('sec-obs-cont'); if(ct && !semMovimento()) ct.animate([{ transform:'scale(1.5)' }, { transform:'none' }], { duration:260 }); }catch(e){}
-  if(rapida){
+  if(silencioso){ /* quem chamou já mostra o resultado (ex.: tela Encerrar turno) */ }
+  else if(rapida){
     showToast(`Observação: ${texto}`, { acaoLabel:'Desfazer', onAcao: ()=>{
       turnoObservacoes = turnoObservacoes.filter(o=>o.id!==novoId);
       enfileirar('turno_observacoes', 'delete', { id: novoId });

@@ -2604,3 +2604,13 @@ body.modo-leitura .checklist-leque-card[data-est=det]{ animation:none; }
 .checklist-progresso-furos-topo small{ font-size:10px; font-weight:500; opacity:.75; }
 .infografico-percentuais .info-geral{ grid-column:1 / -1; }
 .ckp-acoes .btn-status-todos{ flex:1; }
+
+/* Observações dentro do Encerrar turno */
+.fim-obs{ border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px; background:var(--surface-2); }
+.fim-obs-titulo{ font-size:12px; font-weight:700; letter-spacing:.03em; margin-bottom:6px; color:var(--muted); }
+.fim-obs-lista{ display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.fim-obs-item{ display:flex; gap:8px; align-items:flex-start; justify-content:space-between; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:14px; }
+.fim-obs-item .icon{ min-width:32px; min-height:32px; }
+#fim-obs-btn{ width:100%; min-height:44px; }
+#fim-obs-texto{ width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:16px; resize:vertical; }
+.fim-obs-acoes{ display:flex; gap:8px; margin-top:8px; } .fim-obs-acoes button{ flex:1; min-height:44px; }
