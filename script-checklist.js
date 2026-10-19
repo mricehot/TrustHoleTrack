@@ -2150,9 +2150,9 @@ function aplicarFaixa(lequeId, tipo, alvo){
 // Motivo da obstrução: um toque (Rocha, Tela, Água, Desvio) logo depois de obstruir o furo.
 let motivoPendenteId = null;
 // ---- profundidade (metragem) do furo no checklist: esperada vem do plano; a real é digitada na hora ----
-// Só conta como "metragem a menos" quando a real fica pelo menos 3% abaixo da esperada.
-const LIMITE_A_MENOS = 0.03;
-const metragemAMenos = (real, esp) => Number(esp) > 0 && Number(real) > 0 && Number(real) < Number(esp) * (1 - LIMITE_A_MENOS);
+// Só conta como "metragem a menos" quando a real fica 1,5 m ou mais abaixo da esperada (valor fixo em metros).
+const LIMITE_A_MENOS_M = 1.5;
+const metragemAMenos = (real, esp) => Number(esp) > 0 && Number(real) > 0 && (Number(esp) - Number(real)) >= LIMITE_A_MENOS_M - 1e-9;
 const fmtMetCk = n => (Math.round(Number(n)*10)/10).toFixed(1).replace('.', ',');
 function htmlMetragemFuroChecklist(f){
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0, real = Number(f.metragem) > 0 ? Number(f.metragem) : 0;
