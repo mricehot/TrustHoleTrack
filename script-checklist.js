@@ -1198,6 +1198,24 @@ function animarObstrucao(furoId){
     setTimeout(()=> tr.classList.remove('obstr-entra'), 800);
   }catch(e){}
 }
+// Furo detonado: onda de choque que sai da caixa preta + a linha treme. Acontece uma vez, quando a causa vira "Detonado".
+function animarDetonado(furoId){
+  try{
+    if(semMovimento()) return;
+    const inp = document.querySelector(`input[onchange*="definirObstrucaoChecklistFuro('${furoId}'"]`); if(!inp) return;
+    const tr = inp.closest('tr'), r = inp.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    [0, 140].forEach(atraso=>{
+      const o = document.createElement('div');
+      o.style.cssText = `position:fixed;left:${cx - 14}px;top:${cy - 14}px;width:28px;height:28px;border-radius:50%;border:3px solid #ff6a2b;pointer-events:none;z-index:9999;opacity:0;`;
+      document.body.appendChild(o);
+      const a = o.animate([{ transform:'scale(.6)', opacity:.9, borderColor:'#ffb347' }, { transform:'scale(4.2)', opacity:0, borderColor:'#ff3d00' }], { duration:650, delay:atraso, easing:'cubic-bezier(.2,.7,.3,1)', fill:'both' });
+      a.onfinish = ()=> o.remove();
+    });
+    if(tr) tr.animate([{ transform:'translateX(0)' }, { transform:'translateX(-5px)' }, { transform:'translateX(5px)' }, { transform:'translateX(-3px)' }, { transform:'translateX(2px)' }, { transform:'translateX(0)' }], { duration:380, easing:'ease-out' });
+    try{ if(navigator.vibrate) navigator.vibrate([30, 40, 60]); }catch(e){}
+  }catch(e){}
+}
 // Abrir/fechar com movimento curto: o conteúdo desliza e a seta gira. Respeita "reduzir movimento".
 function semMovimento(){ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || !document.body.animate; }
 function animarAbrir(corpo, seta){
@@ -2151,5 +2169,6 @@ function definirMotivoObstrucao(id, motivo){
   if(motivo && mudou) enfileirar('checklist_furos', 'update', { id: f.id, obstruido_motivo: motivo });
   salvarChecklistFurosLocal();
   setTimeout(renderChecklist, 0);
+  if(motivo === 'Detonado' && mudou) setTimeout(()=> animarDetonado(id), 90);
   if(motivo && mudou) showToast(motivo === 'Detonado' ? `F${f.numero}: furo detonado.` : `F${f.numero}: obstruído por ${motivo.toLowerCase()}.`, { tipo:'ok' });
 }
