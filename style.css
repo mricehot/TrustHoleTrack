@@ -2539,13 +2539,6 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 .resumo-parcial button{ min-height:40px; font-size:13.5px; }
 .resumo-parcial button{ flex:1 1 auto; }
 
-/* Causa da obstrução: Rocha/Tela em vermelho, Detonado em preto */
-.checklist-furos-tabela tr.obstruido td{ background:rgba(214,69,61,.2); }
-.checklist-furos-tabela tr.obstruido.detonado td{ background:#0b0b0e; color:#e8e8ee; box-shadow:inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(255,255,255,.12); }
-.checklist-furos-tabela tr.obstruido.detonado td:first-child{ box-shadow:inset 3px 0 0 #8f9db0, inset 0 1px 0 rgba(255,255,255,.12), inset 0 -1px 0 rgba(255,255,255,.12); }
-.ck-furo-causa td{ padding:0 8px 6px; background:rgba(214,69,61,.2); }
-.ck-furo-causa.detonado td{ background:#0b0b0e; }
-.ck-causa{ min-height:40px; padding:6px 12px; border-radius:999px; border:1px solid var(--est-obs,#d6453d); background:transparent; color:var(--est-obs,#d6453d); font-weight:700; font-size:.82rem; text-transform:none; }
-.ck-furo-causa.detonado .ck-causa{ border-color:#8f9db0; color:#e8e8ee; }
-.m-det{ background:#000; box-shadow:inset 0 0 0 1px #8f9db0; }
-body.modo-leitura .ck-causa{ pointer-events:none; }
+/* Causa da obstrução — só na caixa de check: Rocha/Tela vermelha, Detonado preta */
+.checklist-furos-tabela .chk-obstruido:checked{ accent-color:#d6453d; }
+.checklist-furos-tabela .chk-obstruido.det:checked{ accent-color:#000; outline:1.5px solid #8f9db0; outline-offset:0; border-radius:3px; }

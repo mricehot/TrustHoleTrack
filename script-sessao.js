@@ -625,8 +625,8 @@ function renderMapaRealce(){
     const fl = checklistFurosDoLeque(c.id).slice().sort((a,b)=> String(a.numero).localeCompare(String(b.numero), undefined, {numeric:true}));
     const cel = fl.map(f=>{
       tot++;
-      const cl = furoDetonado(f) ? 'm-det' : f.obstruido ? 'm-obs' : (f.perfilado && f.topografado) ? (ok++, 'm-ok') : f.perfilado ? 'm-perf' : f.topografado ? 'm-topo' : 'm-nada';
-      const rot = furoDetonado(f) ? 'detonado' : f.obstruido ? 'obstruído' : f.perfilado && f.topografado ? 'perfilado e topografado' : f.perfilado ? 'só perfilado' : f.topografado ? 'só topografado' : 'pendente';
+      const cl = f.obstruido ? 'm-obs' : (f.perfilado && f.topografado) ? (ok++, 'm-ok') : f.perfilado ? 'm-perf' : f.topografado ? 'm-topo' : 'm-nada';
+      const rot = f.obstruido ? 'obstruído' : f.perfilado && f.topografado ? 'perfilado e topografado' : f.perfilado ? 'só perfilado' : f.topografado ? 'só topografado' : 'pendente';
       return `<i class="${cl}" title="F${escHtml(f.numero)} — ${rot}"></i>`;
     }).join('');
     return `<button type="button" class="mapa-linha" onclick="irParaFuroBuscado('${PREFIXO[c.tipo]}${c.numero}')"><b>${PREFIXO[c.tipo]}${escHtml(c.numero)}</b><span class="mapa-cels">${cel || '<em>sem furos</em>'}</span></button>`;
@@ -1105,7 +1105,7 @@ function sugerirLocalChecklist(){
 // Não é gravado: ao reabrir o app volta ao normal.
 let modoLeitura = false;
 const FUNCOES_BLOQUEADAS_LEITURA = [
-  'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'trocarCausaObstrucao', 'toggleChecklistLeque',
+  'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'toggleChecklistLeque',
   'aplicarFaixa', 'abrirMarcarFaixa', 'aplicarLoteChecklist', 'alternarModoSelecaoChecklist', 'editarObservacaoFuro', 'editarObservacaoChecklistLeque', 'removerObservacaoChecklistLeque',
   'editarLocalizacaoChecklistLeque', 'tirarFotoFuro', 'adicionarFurosAoChecklist', 'adicionarAoChecklist', 'removerChecklistFuro', 'removerChecklistLeque',
   'definirEquipeFuro', 'definirEquipeLeque', 'editarFuro', 'abrirPreencherMetragens', 'toggleRefazerFuro', 'ciclarSituacaoFuro', 'removerFuro', 'editarLeque', 'puxarDoChecklist', 'salvarMetragemInline', 'marcarProximoPendente', 'abrirMenuFuro'
