@@ -95,7 +95,8 @@ function riDesenhar(c, d, dry){
       riTexto(c, l.codigo, RI_M + 28, y + h/2 + 8, { tam:22, peso:'700' });
       l.furos.forEach((f, i)=>{
         const cx = RI_M + 28 + 74 + (i % porLinha) * (cel + gap), cy = y + (h - (linhas * (cel + gap) - gap)) / 2 + Math.floor(i / porLinha) * (cel + gap);
-        if(f.estado === 'obs') riRect(c, cx, cy, cel, cel, 6, RI.obs);
+        if(f.estado === 'det') riRect(c, cx, cy, cel, cel, 6, '#000', '#8f9db0');
+        else if(f.estado === 'obs') riRect(c, cx, cy, cel, cel, 6, RI.obs);
         else if(f.estado === 'ok') riRect(c, cx, cy, cel, cel, 6, RI.ok);
         else if(f.estado === 'p' || f.estado === 't'){ riRect(c, cx, cy, cel, cel, 6, RI.nada); c.save(); c.beginPath(); c.roundRect(cx, cy, cel, cel, 6); c.clip();
           c.fillStyle = f.estado === 'p' ? RI.sp : RI.top; c.beginPath();
@@ -120,9 +121,9 @@ function riDesenhar(c, d, dry){
     y += h + 12;
   });
   // legenda
-  if(!dry){ let lx = RI_M; [['ok','perfilado + topografado'],['p','só perfilado'],['t','só topografado'],['obs','obstruído'],['n','pendente']].forEach(([est, t])=>{
+  if(!dry){ let lx = RI_M; [['ok','completo'],['p','só perfilado'],['t','só topografado'],['obs','obstruído'],['det','detonado'],['n','pendente']].forEach(([est, t])=>{
     const cx = lx, cy = y + 2, w = 14;
-    if(est === 'ok') riRect(c, cx, cy, w, w, 4, RI.ok); else if(est === 'obs') riRect(c, cx, cy, w, w, 4, RI.obs); else riRect(c, cx, cy, w, w, 4, RI.nada);
+    if(est === 'ok') riRect(c, cx, cy, w, w, 4, RI.ok); else if(est === 'det') riRect(c, cx, cy, w, w, 4, '#000', '#8f9db0'); else if(est === 'obs') riRect(c, cx, cy, w, w, 4, RI.obs); else riRect(c, cx, cy, w, w, 4, RI.nada);
     if(est === 'p' || est === 't'){ c.save(); c.beginPath(); c.roundRect(cx, cy, w, w, 4); c.clip(); c.fillStyle = est === 'p' ? RI.sp : RI.top; c.beginPath();
       if(est === 'p'){ c.moveTo(cx, cy); c.lineTo(cx + w, cy); c.lineTo(cx, cy + w); } else { c.moveTo(cx + w, cy); c.lineTo(cx + w, cy + w); c.lineTo(cx, cy + w); }
       c.closePath(); c.fill(); c.restore(); }
@@ -188,7 +189,7 @@ async function riMontarDados(anelId, simples){
     perf += p; topo += t; todos.push(...fl);
     const codigo = PREFIXO[c.tipo] + c.numero;
     cartoes.push({ codigo, n:fl.length, p, t, cor:COR[est], rotulo:ROT[est], sub: fl.length ? `${p}/${fl.length} · ${t}/${fl.length}` + (ob ? `  ⛔ ${ob}` : '') : 'sem furos',
-      furos: fl.map(f=> ({ estado: f.obstruido ? 'obs' : (f.perfilado && f.topografado) ? 'ok' : f.perfilado ? 'p' : f.topografado ? 't' : 'n' })) });
+      furos: fl.map(f=> ({ estado: furoDetonado(f) ? 'det' : f.obstruido ? 'obs' : (f.perfilado && f.topografado) ? 'ok' : f.perfilado ? 'p' : f.topografado ? 't' : 'n' })) });
     if(fl.length && est !== 'ok' && fl.some(f=>f.perfilado || f.topografado)){
       const ut = fl.filter(f=>!f.obstruido);
       faltam.push({ codigo, perf: riCompactar(ut.filter(f=>!f.perfilado).map(f=>f.numero)), topo: riCompactar(ut.filter(f=>!f.topografado).map(f=>f.numero)) });
