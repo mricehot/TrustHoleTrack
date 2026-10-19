@@ -2597,3 +2597,9 @@ body.dark-mode .checklist-leque-card[data-est=det]{ border-left-color:#000; box-
   .ck-brasas i{ opacity:.6; bottom:8px; }
 }
 body.modo-leitura .checklist-leque-card[data-est=det]{ animation:none; }
+
+/* Barra "Geral": obstruído/detonado = 1, perfilado + topografado = 1, só um dos dois = 0,5 */
+.progress-fill.fill-geral{ background:linear-gradient(90deg, var(--moss) 0%, var(--steel) 100%); }
+.checklist-progresso-furos.progresso-geral{ grid-column:1 / -1; margin-top:2px; }
+.checklist-progresso-furos-topo small{ font-size:10px; font-weight:500; opacity:.75; }
+.infografico-percentuais .info-geral{ grid-column:1 / -1; }

@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l88">
+<link rel="stylesheet" href="style.css?v=l89">
 
 </head>
 <body>
@@ -637,6 +637,13 @@
                 </div>
                 <div class="progress-track"><div class="progress-fill fill-steel" id="checklist-progresso-topo-barra" style="width:0%;"></div></div>
               </div>
+              <div class="checklist-progresso-furos progresso-geral" title="obstruído ou detonado = 1 · perfilado + topografado = 1 · só um dos dois = 0,5">
+                <div class="checklist-progresso-furos-topo">
+                  <span>Geral <small>(obstruídos e detonados contam)</small></span>
+                  <span id="checklist-progresso-geral-texto">0/0</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill fill-geral" id="checklist-progresso-geral-barra" style="width:0%;"></div></div>
+              </div>
             </div>
             <div id="checklist-por-equipe" class="ck-por-equipe" hidden></div>
 
@@ -834,6 +841,10 @@
                 <div class="progresso-item-topo"><span>Furos topografados (checklist)</span><b id="infografico-pct-topografado-texto">0/0</b></div>
                 <div class="progress-track"><div class="progress-fill fill-steel" id="infografico-pct-topografado-barra" style="width:0%;"></div></div>
               </div>
+              <div class="info-geral" title="obstruído ou detonado = 1 · perfilado + topografado = 1 · só um dos dois = 0,5">
+                <div class="progresso-item-topo"><span>Progresso geral (obstruídos e detonados contam)</span><b id="infografico-pct-geral-texto">0/0</b></div>
+                <div class="progress-track"><div class="progress-fill fill-geral" id="infografico-pct-geral-barra" style="width:0%;"></div></div>
+              </div>
             </div>
 
             <div class="hint" id="infografico-vazio" style="display:none; margin-top:16px;">Nada marcado no checklist ainda — os números aparecem aqui assim que você começar a marcar furos como perfilados ou topografados.</div>
@@ -861,12 +872,12 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js?v=l81"></script>
-<script src="script-leques.js?v=l81"></script>
-<script src="script-checklist.js?v=l88"></script>
+<script src="script-leques.js?v=l89"></script>
+<script src="script-checklist.js?v=l89"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l86"></script>
 <script src="script-turno-pdf.js?v="></script>
-<script src="script-telas.js?v=l81"></script>
+<script src="script-telas.js?v=l89"></script>
 <script src="script-sessao.js?v=l85"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v="></script>

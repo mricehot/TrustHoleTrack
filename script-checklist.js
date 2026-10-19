@@ -145,6 +145,14 @@ function estadoDoLeque(furos){
 }
 // Leque detonado: todos os furos dele detonados. É um visual próprio do card (preto, com brasas); para
 // contagens e "concluído" o leque continua valendo como completo.
+// Progresso GERAL dos furos: cada furo vale de 0 a 1 ponto.
+//   obstruído ou detonado = 1 (não há mais o que fazer nele) · perfilado + topografado = 1 · só um dos dois = 0,5 · nenhum = 0
+const pontosFuro = f => f.obstruido ? 1 : (f.perfilado && f.topografado) ? 1 : (f.perfilado || f.topografado) ? 0.5 : 0;
+function progressoGeralFuros(furos){
+  const total = furos.length, pontos = furos.reduce((t, f)=> t + pontosFuro(f), 0);
+  const fmt = n => String(Math.round(n * 10) / 10).replace('.', ',');
+  return { pontos, total, completo: total > 0 && pontos >= total, pct: total ? Math.round(pontos / total * 100) : 0, texto: `${fmt(pontos)}/${total}` };
+}
 const lequeTodoDetonado = furos => furos.length > 0 && furos.every(furoDetonado);
 const ICONE_ESTADO = { ok:'✓', and:'◐', obs:'⚠', ini:'○', det:'💥' };
 const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado', det:'detonado' };

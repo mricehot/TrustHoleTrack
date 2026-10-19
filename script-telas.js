@@ -508,7 +508,7 @@ function calcularEstatisticasInfografico(){
   return {
     metrosHoje, metrosSemana, metrosMes, metrosSemanaAnt,
     furosTopoHoje, furosTopoSemana, furosTopoMes, furosTopoSemanaAnt,
-    serieDiaria, totalFuros, totalPerfilados, totalTopografados
+    serieDiaria, totalFuros, totalPerfilados, totalTopografados, geral: progressoGeralFuros(furos)
   };
 }
 
@@ -1148,6 +1148,8 @@ function renderInfograficoResumo(){
   el('infografico-pct-perfilado-barra').style.width = pctPerfilado + '%';
   el('infografico-pct-topografado-texto').textContent = `${stats.totalTopografados}/${stats.totalFuros}`;
   el('infografico-pct-topografado-barra').style.width = pctTopografado + '%';
+  el('infografico-pct-geral-texto').textContent = `${stats.geral.texto} · ${stats.geral.pct}%`;
+  el('infografico-pct-geral-barra').style.width = stats.geral.pct + '%';
 
   const vazio = el('infografico-vazio');
   if(vazio) vazio.style.display = (stats.totalFuros === 0 && !stats.serieDiaria.some(d=>d.metros > 0)) ? 'block' : 'none';

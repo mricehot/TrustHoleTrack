@@ -24,8 +24,8 @@ function estadoRealce(a){
   const itensA = checklistDoAnel(a.id);
   const idsA = new Set(itensA.map(c=>c.id));
   const furosA = checklistFuros.filter(f=>idsA.has(f.checklistLequeId));
-  const pctA = furosA.length ? Math.round(furosA.filter(f=>f.perfilado && f.topografado || f.obstruido).length / furosA.length * 100) : 0;
-  const est = !itensA.length ? 'ini' : pctA >= 100 ? 'ok' : (furosA.some(f=>f.perfilado||f.topografado||f.obstruido) ? 'and' : 'ini');
+  const geralA = progressoGeralFuros(furosA), pctA = geralA.pct; // obstruído/detonado = 1; só perfilado ou só topografado = 0,5
+  const est = !itensA.length ? 'ini' : geralA.completo ? 'ok' : (furosA.some(f=>f.perfilado||f.topografado||f.obstruido) ? 'and' : 'ini');
   return { itensA, furosA, pctA, est, obstruido: furosA.some(f=>f.obstruido) };
 }
 
@@ -1172,6 +1172,12 @@ function renderChecklistBase(){
 
   const textoTopoBarra = el('checklist-progresso-topo-texto');
   const barraTopo = el('checklist-progresso-topo-barra');
+  const textoGeral = el('checklist-progresso-geral-texto'), barraGeral = el('checklist-progresso-geral-barra');
+  if(textoGeral && barraGeral){
+    const g = progressoGeralFuros(todosFurosDoRealce);
+    textoGeral.textContent = `${g.texto} · ${g.pct}%`;
+    barraGeral.style.width = g.pct + '%';
+  }
   if(textoTopoBarra && barraTopo){
     const topografadosNoRealce = todosFurosDoRealce.filter(f=>f.topografado).length;
     const totalFurosNoRealce = todosFurosDoRealce.length;
