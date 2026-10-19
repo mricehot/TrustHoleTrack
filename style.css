@@ -2603,3 +2603,4 @@ body.modo-leitura .checklist-leque-card[data-est=det]{ animation:none; }
 .checklist-progresso-furos.progresso-geral{ grid-column:1 / -1; margin-top:2px; }
 .checklist-progresso-furos-topo small{ font-size:10px; font-weight:500; opacity:.75; }
 .infografico-percentuais .info-geral{ grid-column:1 / -1; }
+.ckp-acoes .btn-status-todos{ flex:1; }
