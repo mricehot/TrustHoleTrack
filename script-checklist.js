@@ -143,8 +143,11 @@ function estadoDoLeque(furos){
   if(furos.some(f=> f.perfilado || f.topografado || f.obstruido)) return 'and';
   return 'ini';
 }
-const ICONE_ESTADO = { ok:'✓', and:'◐', obs:'⚠', ini:'○' };
-const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado' };
+// Leque detonado: todos os furos dele detonados. É um visual próprio do card (preto, com brasas); para
+// contagens e "concluído" o leque continua valendo como completo.
+const lequeTodoDetonado = furos => furos.length > 0 && furos.every(furoDetonado);
+const ICONE_ESTADO = { ok:'✓', and:'◐', obs:'⚠', ini:'○', det:'💥' };
+const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta', ini:'não iniciado', det:'detonado' };
 // Leque 100%: todos os furos perfilados e topografados, nenhum obstruído (ganha os raios discretos).
 function leque100(furos){ return furos.length > 0 && furos.every(f=> f.perfilado && f.topografado && !f.obstruido); }
 function htmlCardChecklist(c, agrupado){
@@ -156,6 +159,8 @@ function htmlCardChecklist(c, agrupado){
   const obstr = furos.filter(f=>f.obstruido).length;
   const pct = n=> furos.length ? Math.round((n / furos.length) * 100) : 0;
   const sel = checklistSelecionados.has(c.id);
+  const detonado = lequeTodoDetonado(furos);
+  const est = detonado ? 'det' : estadoDoLeque(furos);
   const caixa = checklistModoSelecao
     ? `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" class="ck-sel" ${sel ? 'checked' : ''} onchange="alternarSelecaoLeque('${c.id}')" aria-label="selecionar ${codigo}"></label>`
     : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} ${furos.length ? 'disabled' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="${furos.length ? codigo + ' perfilado (automático)' : 'marcar ' + codigo + ' como perfilado'}" title="${furos.length ? 'automático: marca sozinho quando todos os furos estão perfilados' : 'marcar leque como perfilado'}"></label>`;
@@ -248,18 +253,19 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${estadoDoLeque(furos)}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[estadoDoLeque(furos)]}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${est}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[est]}">
+      ${detonado ? '<span class="ck-brasas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' : ''}
       ${leque100(furos) ? '<span class="ck-raios" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
         ${checklistModoSelecao ? '' : `<button type="button" class="ck-arrastar so-gestor" aria-label="arrastar ${codigo} para reorganizar" title="segure e arraste para mudar a posição" onpointerdown="iniciarArrasteChecklist(event, '${c.id}')" onclick="event.stopPropagation()">⠿</button>`}
         ${caixa}
-        <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span><span class="ck-est-ico" data-est="${estadoDoLeque(furos)}" role="img" aria-label="${ROTULO_ESTADO[estadoDoLeque(furos)]}">${ICONE_ESTADO[estadoDoLeque(furos)]}</span></span>
+        <span class="ck-codigo">${codigo}<span class="seta">${expandido ? '▾' : '▸'}</span><span class="ck-est-ico" data-est="${est}" role="img" aria-label="${ROTULO_ESTADO[est]}">${ICONE_ESTADO[est]}</span></span>
         ${progresso}
-        ${obstr ? (obstrucaoAlta(obstr, furos.length)
+        ${detonado ? `<span class="ck-obstr det" title="todos os furos deste leque foram detonados" aria-label="leque detonado: ${obstr} furos">💥 ${obstr}/${furos.length}<span class="txt"> detonados</span></span>` : obstr ? (obstrucaoAlta(obstr, furos.length)
           ? `<span class="ck-obstr alta" title="${obstr} de ${furos.length} furos obstruídos: possível problema na região deste leque" aria-label="atenção: ${obstr} de ${furos.length} furos obstruídos">⚠ ${obstr}/${furos.length}<span class="txt"> obstr.</span></span>`
           : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
       </div>
-      ${estadoDoLeque(furos) === 'ok' ? '<span class="ck-selo-ok" aria-label="leque completo" title="leque completo">✓</span>' : ''}
+      ${est === 'ok' ? '<span class="ck-selo-ok" aria-label="leque completo" title="leque completo">✓</span>' : ''}
       ${resumo}
       ${corpo}
     </div>`;
