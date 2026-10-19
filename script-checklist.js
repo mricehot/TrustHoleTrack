@@ -2,7 +2,9 @@
 const ckMaisAbertos = new Set();
 function alternarMaisAcoes(id, aberto){ if(aberto) ckMaisAbertos.add(id); else ckMaisAbertos.delete(id); }
 const NOTAS_RAPIDAS = ['Rocha solta', 'Tela danificada', 'Acesso bloqueado', 'Furo desviado', 'Equipamento parado'];
-const MOTIVOS_OBSTRUCAO = ['Rocha', 'Tela'];
+// Causa da obstrução. Rocha e Tela aparecem em vermelho; Detonado (furo que já foi detonado) aparece em preto.
+const MOTIVOS_OBSTRUCAO = ['Rocha', 'Tela', 'Detonado'];
+const furoDetonado = f => !!f && !!f.obstruido && /detonad/i.test(f.obstruidoMotivo || '');
 let checklistFiltro = { status:'todos', local:'', busca:'' };
 const checklistGruposFechados = new Set(); // "anelId|localização" — só na sessão
 let checklistModoSelecao = false;
@@ -177,7 +179,7 @@ function htmlCardChecklist(c, agrupado){
             <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">Obs.</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
             <tbody>
               ${furos.map(f=>`
-                <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
+                <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''} ${furoDetonado(f) ? 'detonado' : ''}">
                   <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}${f.obstruido && f.obstruidoMotivo ? `<small class="ck-motivo">${escHtml(f.obstruidoMotivo)}</small>` : ''}</td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
@@ -185,7 +187,7 @@ function htmlCardChecklist(c, agrupado){
                   <td class="ck-acoes-furo">${(f.fotoUrl || fotosPendentes.has(f.id)) ? `<button type="button" class="icon icon-foto ${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'tem' : ''}" onclick="${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'verFotoFuro' : 'tirarFotoFuro'}('${f.id}')" title="${fotosPendentes.has(f.id) ? 'foto guardada no aparelho, aguardando sinal' : f.fotoUrl ? 'ver foto do furo' : 'tirar foto do furo'}" aria-label="foto de F${f.numero}">${fotosPendentes.has(f.id) ? '⏳' : '📷'}</button>` : ''}<button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
                 ${(()=>{ const m = htmlMetragemFuroChecklist(f); return m ? `<tr class="ck-furo-met"><td colspan="5">${m}</td></tr>` : ''; })()}
-                ${(f.id === motivoPendenteId && f.obstruido && !f.obstruidoMotivo) ? `<tr class="ck-furo-motivo"><td colspan="5"><span>Motivo da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : ''}
+                ${(f.id === motivoPendenteId && f.obstruido) ? `<tr class="ck-furo-motivo"><td colspan="5"><span>Causa da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : (f.obstruido ? `<tr class="ck-furo-causa ${furoDetonado(f) ? 'detonado' : ''}"><td colspan="5"><button type="button" class="ck-causa" onclick="trocarCausaObstrucao('${f.id}')" title="trocar a causa da obstrução">${furoDetonado(f) ? '💥' : '⛔'} ${f.obstruidoMotivo ? 'Causa: ' + escHtml(f.obstruidoMotivo) : 'Informar a causa'} ✎</button></td></tr>` : '')}
                 ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
                 ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
                   <label class="so-gestor">Perfilagem<select onchange="definirEquipeFuro('${f.id}','perf',this.value)" aria-label="F${f.numero} equipe da perfilagem">${htmlOpcoesEquipe(f.equipePerfId,'Igual ao leque')}</select></label>
@@ -2141,12 +2143,19 @@ function definirMetragemFuroChecklist(id, texto){
   setTimeout(renderChecklist, 0);
   if(metragemAMenos(v, f.metragemEsperada)) showToast(`F${f.numero}: ${fmtMetCk(Number(f.metragemEsperada) - v)} m a menos que o esperado.`, { tipo:'aviso' });
 }
+// Reabre a escolha da causa (Rocha / Tela / Detonado) de um furo já obstruído.
+function trocarCausaObstrucao(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f || !f.obstruido) return;
+  motivoPendenteId = id;
+  renderChecklist();
+}
 function definirMotivoObstrucao(id, motivo){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
   motivoPendenteId = null;
-  f.obstruidoMotivo = motivo || '';
-  if(motivo) enfileirar('checklist_furos', 'update', { id: f.id, obstruido_motivo: motivo });
+  const mudou = (f.obstruidoMotivo || '') !== (motivo || '');
+  if(motivo) f.obstruidoMotivo = motivo; // "Pular" mantém a causa que já existia
+  if(motivo && mudou) enfileirar('checklist_furos', 'update', { id: f.id, obstruido_motivo: motivo });
   salvarChecklistFurosLocal();
   setTimeout(renderChecklist, 0);
-  if(motivo) showToast(`F${f.numero}: obstruído por ${motivo.toLowerCase()}.`, { tipo:'ok' });
+  if(motivo && mudou) showToast(motivo === 'Detonado' ? `F${f.numero}: furo detonado.` : `F${f.numero}: obstruído por ${motivo.toLowerCase()}.`, { tipo:'ok' });
 }
