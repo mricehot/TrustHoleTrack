@@ -1158,7 +1158,7 @@ button.icon, .icon-remover, .icon-editar{ min-width:44px; min-height:44px; }
 .checklist-furos-tabela td:has(> input[type="checkbox"]),
 .checklist-furos-tabela td:has(> button.icon){ padding:0; }
 .checklist-furos-tabela input[type="checkbox"]{
-  width:26px; height:26px; margin:9px; accent-color:var(--moss); cursor:pointer;
+  width:32px; height:32px; margin:8px; accent-color:var(--moss); cursor:pointer;
 }
 .checklist-furos-tabela td:nth-child(3) input[type="checkbox"]{ accent-color:var(--steel); }
 .checklist-furos-tabela .select-obstruido, .checklist-furos-tabela .input-metragem-checklist{ min-height:44px; }
@@ -2542,7 +2542,7 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
 /* Causa da obstrução — só na caixa de check: Rocha/Tela vermelha, Detonado preta */
 .checklist-furos-tabela .chk-obstruido:checked{ accent-color:#d6453d; }
 .checklist-furos-tabela .chk-obstruido.det:checked{
-  -webkit-appearance:none; appearance:none; box-sizing:border-box; width:28px; height:28px; min-width:0; min-height:0; padding:0; border-radius:7px; border:2px solid #8f9db0; background-color:#000;
+  -webkit-appearance:none; appearance:none; box-sizing:border-box; width:32px; height:32px; min-width:0; min-height:0; padding:0; border-radius:7px; border:2px solid #8f9db0; background-color:#000;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:center; background-size:78%;
   animation:brasa 2.8s ease-in-out infinite;
@@ -2614,3 +2614,46 @@ body.modo-leitura .checklist-leque-card[data-est=det]{ animation:none; }
 #fim-obs-btn{ width:100%; min-height:44px; }
 #fim-obs-texto{ width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:16px; resize:vertical; }
 .fim-obs-acoes{ display:flex; gap:8px; margin-top:8px; } .fim-obs-acoes button{ flex:1; min-height:44px; }
+
+/* Barra de desfazer sempre visível (pilha das últimas marcações) */
+#barra-desfazer{ position:fixed; left:12px; right:12px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:1300; display:flex; align-items:center; gap:8px; max-width:520px; margin:0 auto; padding:8px 8px 8px 14px; background:#1d2733; color:#fff; border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.4); font-size:14px; animation:modalSobe .18s ease-out; }
+#barra-desfazer .bd-texto{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#barra-desfazer .bd-btn{ min-height:48px; padding:0 16px; border:0; border-radius:10px; background:#f2b134; color:#1a1a1a; font-weight:800; font-size:15px; cursor:pointer; }
+#barra-desfazer .bd-x{ min-width:44px; min-height:44px; border:0; background:transparent; color:#9fb0c3; font-size:16px; cursor:pointer; }
+body.modo-leitura #barra-desfazer{ display:none; }
+@media print{ #barra-desfazer{ display:none !important; } }
+/* Furo a furo — tela cheia */
+body.ffa-aberto{ overflow:hidden; }
+#ffa-root{ position:fixed; inset:0; z-index:2000; background:var(--bg, #10151c); }
+.ffa{ height:100%; display:flex; flex-direction:column; gap:12px; padding:12px 14px calc(14px + env(safe-area-inset-bottom)); max-width:560px; margin:0 auto; box-sizing:border-box; }
+.ffa button{ font-family:inherit; cursor:pointer; border-radius:14px; border:2px solid var(--line); background:var(--surface); color:var(--text); font-weight:800; }
+.ffa button:disabled{ opacity:.4; cursor:default; }
+.ffa-topo{ display:flex; align-items:center; gap:10px; }
+.ffa-topo .ffa-x{ min-height:48px; padding:0 14px; font-size:15px; }
+.ffa-cod{ font:800 18px var(--mono, monospace); flex:1; text-align:center; }
+.ffa-pos{ font:700 14px var(--mono, monospace); color:var(--muted); }
+.ffa-furo{ flex:1; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:20px; border:3px solid var(--line); background:var(--surface); }
+.ffa-furo.ok{ border-color:#2e9b57; background:color-mix(in srgb,#2e9b57 14%,var(--surface)); }
+.ffa-furo.obs{ border-color:#d6453d; background:color-mix(in srgb,#d6453d 14%,var(--surface)); }
+.ffa-furo.det{ border-color:#8f9db0; background:#000; color:#fff; }
+.ffa-num{ font:900 clamp(56px,20vw,96px)/1 var(--mono, monospace); }
+.ffa-st{ font-size:17px; font-weight:700; }
+.ffa-acoes{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ffa-acoes button{ min-height:76px; font-size:18px; }
+.ffa-acoes .ffa-obs{ grid-column:1/-1; min-height:60px; }
+.ffa-per.on{ background:#2e9b57; border-color:#2e9b57; color:#fff; }
+.ffa-top.on{ background:#2a6fa8; border-color:#2a6fa8; color:#fff; }
+.ffa-obs.on{ background:#d6453d; border-color:#d6453d; color:#fff; }
+.ffa-causas{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.ffa-causas button{ min-height:56px; font-size:16px; }
+.ffa-causas button.on{ background:#d6453d; border-color:#d6453d; color:#fff; }
+.ffa-causas button[data-m=Detonado].on{ background:#000; border-color:#8f9db0; }
+.ffa-nav{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ffa-nav button{ min-height:64px; font-size:18px; }
+.ffa-pend{ min-height:52px; font-size:15px; background:transparent !important; }
+body.ffa-aberto #barra-desfazer{ z-index:2100; bottom:auto; top:72px; }
+body.modo-leitura .ck-barra-fixa .bf-ffa{ display:inline-flex; }
+.ck-barra-fixa .bf-ffa{ background:var(--surface-2, #2b3340); color:var(--text); border:1px solid var(--line); }
+
+.ck-barra-fixa{ flex-wrap:wrap !important; }
+.ck-barra-fixa .bf-ffa{ flex:1 1 100% !important; flex-direction:row !important; min-height:44px !important; }

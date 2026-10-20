@@ -102,7 +102,8 @@ function injetarBarrasFixas(){
     const c = checklistLeques.find(x=>x.id===id);
     const barra = document.createElement('div'); barra.className = 'ck-barra-fixa';
     barra.innerHTML = `<button type="button" class="bf-per" ${nP >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','perfilado')"><span>✓ Próx. perfilado</span><small>${nP}/${uteis.length}</small></button>
-      <button type="button" class="bf-top" ${nT >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','topografado')"><span>✓ Próx. topografado</span><small>${nT}/${uteis.length}</small></button>`;
+      <button type="button" class="bf-top" ${nT >= uteis.length ? 'disabled' : ''} onclick="marcarProximoPendente('${id}','topografado')"><span>✓ Próx. topografado</span><small>${nT}/${uteis.length}</small></button>
+      <button type="button" class="bf-ffa" onclick="abrirFuroAFuro('${id}')"><span>▢ Furo a furo</span><small>tela cheia</small></button>`;
     const tabela = corpo.querySelector('.checklist-furos-tabela');
     if(tabela) tabela.parentNode.insertBefore(barra, tabela); else corpo.appendChild(barra); // junto das colunas Per./Top., acima da lista de furos
   });
@@ -187,4 +188,77 @@ function injetarBarrasFixas(){
   if(typeof om === 'function'){
     window.mostrarView = function(v){ if(v === 'infografico') window.__infoReset(); return om.apply(this, arguments); };
   }
+})();
+
+// ── Furo a furo: tela cheia, um furo por vez, botões grandes (luva, pouca luz, mão suja) ──
+let ffaLeque = null, ffaIdx = 0;
+function abrirFuroAFuro(lequeId, idx){
+  ffaLeque = lequeId;
+  const lista = checklistFurosDoLeque(lequeId);
+  if(!lista.length){ showToast('Esse leque ainda não tem furos.', { tipo:'aviso' }); return; }
+  if(typeof idx !== 'number'){ const p = lista.findIndex(f=> !f.obstruido && (!f.perfilado || !f.topografado)); idx = p >= 0 ? p : 0; }
+  ffaIdx = Math.max(0, Math.min(lista.length-1, idx));
+  desenharFuroAFuro();
+}
+function fecharFuroAFuro(){ ffaLeque = null; const r = document.getElementById('ffa-root'); if(r) r.remove(); document.body.classList.remove('ffa-aberto'); }
+function desenharFuroAFuro(){
+  if(!ffaLeque) return;
+  const lista = checklistFurosDoLeque(ffaLeque);
+  if(!lista.length){ fecharFuroAFuro(); return; }
+  ffaIdx = Math.max(0, Math.min(lista.length-1, ffaIdx));
+  const f = lista[ffaIdx];
+  const c = checklistLeques.find(x=>x.id===ffaLeque);
+  const cod = c ? (PREFIXO[c.tipo] || '') + c.numero : '';
+  const lock = (typeof modoLeitura !== 'undefined' && modoLeitura) ? 'disabled' : '';
+  const obs = !!f.obstruido, det = furoDetonado(f);
+  const pend = lista.filter(x=> !x.obstruido && (!x.perfilado || !x.topografado)).length;
+  let r = document.getElementById('ffa-root');
+  if(!r){ r = document.createElement('div'); r.id = 'ffa-root'; document.body.appendChild(r); document.body.classList.add('ffa-aberto'); }
+  r.innerHTML = `<div class="ffa" role="dialog" aria-label="Furo a furo">
+    <div class="ffa-topo"><button type="button" class="ffa-x" data-a="fechar">✕ Fechar</button><span class="ffa-cod">${escHtml(cod)}</span><span class="ffa-pos">F${ffaIdx+1} de ${lista.length}</span></div>
+    <div class="ffa-furo ${obs ? (det ? 'det' : 'obs') : (f.perfilado && f.topografado ? 'ok' : '')}">
+      <div class="ffa-num">F${escHtml(String(f.numero))}</div>
+      <div class="ffa-st">${obs ? (det ? '💥 Detonado' : '⛔ Obstruído' + (f.obstruidoMotivo ? ' · ' + escHtml(f.obstruidoMotivo) : '')) : (f.perfilado && f.topografado ? '✓ Completo' : f.perfilado ? 'Perfilado · falta topografar' : f.topografado ? 'Topografado · falta perfilar' : 'Pendente')}</div>
+    </div>
+    <div class="ffa-acoes">
+      <button type="button" class="ffa-per ${f.perfilado ? 'on' : ''}" data-a="perf" ${obs ? 'disabled' : lock}>${f.perfilado ? '✓ Perfilado' : 'Perfilado'}</button>
+      <button type="button" class="ffa-top ${f.topografado ? 'on' : ''}" data-a="topo" ${obs ? 'disabled' : lock}>${f.topografado ? '✓ Topografado' : 'Topografado'}</button>
+      <button type="button" class="ffa-obs ${obs ? 'on' : ''}" data-a="obs" ${lock}>${obs ? '↩ Liberar furo' : '⛔ Obstruído'}</button>
+    </div>
+    ${obs ? `<div class="ffa-causas">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="${f.obstruidoMotivo === m ? 'on' : ''}" data-m="${m}" ${lock}>${m === 'Detonado' ? '💥 ' : ''}${m}</button>`).join('')}</div>` : ''}
+    <div class="ffa-nav">
+      <button type="button" data-a="ant" ${ffaIdx === 0 ? 'disabled' : ''}>‹ Anterior</button>
+      <button type="button" data-a="prox" ${ffaIdx >= lista.length-1 ? 'disabled' : ''}>Próximo ›</button>
+    </div>
+    <button type="button" class="ffa-pend" data-a="pend" ${pend ? '' : 'disabled'}>${pend ? 'Ir ao próximo pendente (' + pend + ')' : 'Nenhum furo pendente'}</button>
+  </div>`;
+  r.querySelector('.ffa').onclick = e=>{
+    const m = e.target.closest('button[data-m]');
+    if(m && !m.disabled){ definirMotivoObstrucao(f.id, m.dataset.m); return; }
+    const b = e.target.closest('button[data-a]'); if(!b || b.disabled) return;
+    const a = b.dataset.a;
+    if(a === 'fechar') fecharFuroAFuro();
+    else if(a === 'ant'){ ffaIdx--; desenharFuroAFuro(); }
+    else if(a === 'prox'){ ffaIdx++; desenharFuroAFuro(); }
+    else if(a === 'pend'){
+      const L = checklistFurosDoLeque(ffaLeque), n = L.length;
+      for(let k=1; k<=n; k++){ const i = (ffaIdx + k) % n; if(!L[i].obstruido && (!L[i].perfilado || !L[i].topografado)){ ffaIdx = i; break; } }
+      desenharFuroAFuro();
+    }
+    else if(a === 'perf') toggleChecklistFuro(f.id);
+    else if(a === 'topo') toggleChecklistFuroTopografado(f.id);
+    else if(a === 'obs') definirObstrucaoChecklistFuro(f.id, obs ? '' : OBSTRUIDO_VALOR);
+  };
+}
+
+(function(){
+  // redesenha a tela cheia a cada mudança de dados (marcar, desfazer, sincronizar)
+  aoRenderizarChecklist(()=>{ if(ffaLeque) desenharFuroAFuro(); });
+  // caixa de marcação: o toque na célula inteira (e não só no quadradinho) conta
+  document.addEventListener('click', e=>{
+    const td = e.target.closest && e.target.closest('table.checklist-furos-tabela td');
+    if(!td || e.target !== td) return;
+    const i = td.querySelector(':scope > input[type=checkbox]');
+    if(i && !i.disabled) i.click();
+  });
 })();

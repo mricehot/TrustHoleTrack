@@ -1716,8 +1716,35 @@ function adicionarFurosAoChecklist(checklistLequeId){
 // Foto do estado de um furo antes de uma marcação, pra poder desfazer só aquele toque (com luva
 // e tela suja, marcar o furo errado acontece). Vale só pra última marcação: o aviso some em 7 s.
 function fotoFuro(f){ return { id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm, obstruido:f.obstruido || '', obstruidoMotivo:f.obstruidoMotivo || '' }; }
+// Pilha de ações desfazíveis, sempre visível numa barra fixa (não some com outro aviso): cada toque
+// em "Desfazer" volta a ação mais recente, e dá pra voltar várias seguidas.
+const PILHA_DESFAZER = [];
+let desfazerTimer = null;
 function avisoDesfazerFuro(f, antes, texto){
-  showToast(texto, { acaoLabel:'Desfazer', onAcao: ()=> desfazerMarcaFuro(antes) });
+  PILHA_DESFAZER.push({ antes, texto });
+  while(PILHA_DESFAZER.length > 12) PILHA_DESFAZER.shift();
+  desenharBarraDesfazer();
+}
+function desenharBarraDesfazer(){
+  let b = document.getElementById('barra-desfazer');
+  if(!PILHA_DESFAZER.length){ if(b) b.remove(); return; }
+  if(!b){
+    b = document.createElement('div'); b.id = 'barra-desfazer'; b.setAttribute('role','status');
+    b.innerHTML = '<span class="bd-texto"></span><button type="button" class="bd-btn">↩ Desfazer</button><button type="button" class="bd-x" aria-label="Fechar">✕</button>';
+    b.querySelector('.bd-btn').onclick = ()=>{ desfazerUltimaAcao(); };
+    b.querySelector('.bd-x').onclick = ()=>{ PILHA_DESFAZER.length = 0; desenharBarraDesfazer(); };
+    document.body.appendChild(b);
+  }
+  const ult = PILHA_DESFAZER[PILHA_DESFAZER.length-1];
+  b.querySelector('.bd-texto').textContent = ult.texto.replace(/ ⚠.*$/, '');
+  b.querySelector('.bd-btn').textContent = '↩ Desfazer' + (PILHA_DESFAZER.length > 1 ? ' (' + PILHA_DESFAZER.length + ')' : '');
+  clearTimeout(desfazerTimer);
+  desfazerTimer = setTimeout(()=>{ PILHA_DESFAZER.length = 0; desenharBarraDesfazer(); }, 15000);
+}
+function desfazerUltimaAcao(){
+  const a = PILHA_DESFAZER.pop();
+  if(a) desfazerMarcaFuro(a.antes);
+  desenharBarraDesfazer();
 }
 function desfazerMarcaFuro(antes){
   const f = checklistFuros.find(x=>x.id===antes.id);
@@ -1730,7 +1757,7 @@ function desfazerMarcaFuro(antes){
   sincronizarLequePerfilado(f.checklistLequeId);;
   salvarChecklistFurosLocal();
   renderChecklist();
-  showToast(`F${f.numero} voltou ao que estava.`);
+  vibrarCurto(10);
 }
 
 // Pulso curto na caixa marcada e nos contadores do leque: confirma o toque sem depender do aviso.
