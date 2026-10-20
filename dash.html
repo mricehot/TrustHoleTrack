@@ -410,18 +410,6 @@
               <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
               <div class="field"><label for="turno-dds">DDS (tema abordado)</label><input id="turno-dds" type="text" placeholder="ex: uso correto de EPI" maxlength="300"></div>
             </div>
-            <details class="sec-det" id="sec-obs" data-secao="obs" open>
-              <summary>Observações do turno <span class="tag" id="sec-obs-cont">0</span></summary>
-              <div class="obs-atalhos" id="obs-atalhos" aria-label="atalhos de observação"></div>
-              <label for="turno-obs-input" class="sr-only">Observações do turno</label>
-              <div class="obs-add-row">
-                <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por rocha solta no LQ04F05" maxlength="300">
-                <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
-              </div>
-              <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram todas juntas no relatório.</div>
-              <div class="obs-list" id="obs-list"></div>
-              <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
-            </details>
             <details class="sec-det" id="sec-fotos" data-secao="fotos" open>
               <summary>Fotos do turno <span class="tag" id="sec-fotos-cont">0</span></summary>
               <div class="hint" id="foto-turno-hint">Pra registrar algo que aconteceu no turno e não é de um leque específico (ex: problema de equipamento, situação de segurança).</div>
@@ -440,6 +428,18 @@
           </div>
           <div class="turno-body">
             <div class="turno-sessao" id="turno-sessao" role="region" aria-label="turno em andamento"></div>
+            <details class="sec-det" id="sec-obs" data-secao="obs" open>
+              <summary>Observações do turno <span class="tag" id="sec-obs-cont">0</span></summary>
+              <div class="obs-atalhos" id="obs-atalhos" aria-label="atalhos de observação"></div>
+              <label for="turno-obs-input" class="sr-only">Observações do turno</label>
+              <div class="obs-add-row">
+                <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por rocha solta no LQ04F05" maxlength="300">
+                <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
+              </div>
+              <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram no resumo logo abaixo.</div>
+              <div class="obs-list" id="obs-list"></div>
+              <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
+            </details>
             <details class="ck-detalhes" id="resumo-turno-previa">
               <summary>Ver o texto que será enviado</summary>
               <div class="ck-detalhes-corpo"><pre class="resumo-turno-texto" id="resumo-turno-texto"></pre></div>
