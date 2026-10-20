@@ -13,7 +13,7 @@ const checklistSelecionados = new Set();
 function lequePendentePerfilagem(c){ return !c.perfilado; }
 function lequePendenteTopografia(c){
   const fl = checklistFurosDoLeque(c.id);
-  return !(fl.length > 0 && fl.every(f=>f.topografado));
+  return !(fl.length > 0 && fl.every(f=>f.topografado || f.obstruido));
 }
 function lequeTemObstruido(c){ return checklistFurosDoLeque(c.id).some(f=>f.obstruido); }
 
@@ -492,6 +492,9 @@ function linhaAreaRealceWa(anelId){
   const a = aneis.find(x=>x.id === anelId);
   return a && (a.nivel || '').trim() ? `Area: ${semAcento(a.nivel.trim())}\n` : '';
 }
+// No resumo (WhatsApp), furo obstruído/detonado conta como concluído: não há mais o que fazer nele.
+const feitoPerf = f => !!(f.perfilado || f.obstruido);
+const feitoTopo = f => !!(f.topografado || f.obstruido);
 function barraWa(pct){ const n = Math.round(Math.max(0,Math.min(100,pct))/10); return '▓'.repeat(n) + '░'.repeat(10-n); }
 function semAcento(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
@@ -500,12 +503,12 @@ function resumoChecklistItens(itens){
   const feitos = itens.filter(c=>c.perfilado).length;
   const ids = new Set(itens.map(c=>c.id));
   const todosFuros = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
-  const fp = todosFuros.filter(f=>f.perfilado).length;
-  const ft = todosFuros.filter(f=>f.topografado).length;
+  const fp = todosFuros.filter(feitoPerf).length;
+  const ft = todosFuros.filter(feitoTopo).length;
   const total = todosFuros.length;
   const pf = total > 0 ? Math.round((fp / total) * 100) : 0;
   const pt = total > 0 ? Math.round((ft / total) * 100) : 0;
-  const topo = c=>{ const fl = checklistFurosDoLeque(c.id); return fl.length > 0 && fl.every(f=>f.topografado); };
+  const topo = c=>{ const fl = checklistFurosDoLeque(c.id); return fl.length > 0 && fl.every(feitoTopo); };
   const lista = (rotulo, codigos)=> codigos.length ? `*${rotulo}*\n${codigos.join('\n')}\n` : '';
   let t = `Leques: ${feitos}/${itens.length} perfilados\n`;
   t += `Furos perfilados: ${fp}/${total} (${pf}%)\n${barraWa(pf)}\nFuros topografados: ${ft}/${total} (${pt}%)\n${barraWa(pt)}\n`;
@@ -561,8 +564,8 @@ function montarBlocoRealceParaWhatsApp(anelId){
 
   const idsLequesChecklist = new Set(itens.map(c=>c.id));
   const todosFuros = checklistFuros.filter(f=>idsLequesChecklist.has(f.checklistLequeId));
-  const furosPerfilados = todosFuros.filter(f=>f.perfilado).length;
-  const furosTopografados = todosFuros.filter(f=>f.topografado).length;
+  const furosPerfilados = todosFuros.filter(feitoPerf).length;
+  const furosTopografados = todosFuros.filter(feitoTopo).length;
   const totalFuros = todosFuros.length;
   const pctFuros = totalFuros > 0 ? Math.round((furosPerfilados / totalFuros) * 100) : 0;
   const pctTopo = totalFuros > 0 ? Math.round((furosTopografados / totalFuros) * 100) : 0;
@@ -575,11 +578,11 @@ function montarBlocoRealceParaWhatsApp(anelId){
   // TODOS os furos dele já estão marcados como topografados.
   const codigosTopografados = compactarCodigosEmIntervalos(itens.filter(c=>{
     const furosDoLeque = checklistFurosDoLeque(c.id);
-    return furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado);
+    return furosDoLeque.length > 0 && furosDoLeque.every(feitoTopo);
   }));
   const codigosPendentesTopografia = compactarCodigosEmIntervalos(itens.filter(c=>{
     const furosDoLeque = checklistFurosDoLeque(c.id);
-    return !(furosDoLeque.length > 0 && furosDoLeque.every(f=>f.topografado)) && !lequeEmAndamentoEtapa(c,'topografado');
+    return !(furosDoLeque.length > 0 && furosDoLeque.every(feitoTopo)) && !lequeEmAndamentoEtapa(c,'topografado');
   }));
 
   if(itens.length === 0 && checklistObsGeraisDoAnel(anelId).length === 0){
@@ -2029,7 +2032,7 @@ async function editarObservacaoFuro(id){
 function montarResumoLequeWhatsApp(c){
   const fl = checklistFurosDoLeque(c.id);
   const cod = PREFIXO[c.tipo] + c.numero;
-  const perf = fl.filter(f=>f.perfilado).length, topo = fl.filter(f=>f.topografado).length, tot = fl.length;
+  const perf = fl.filter(feitoPerf).length, topo = fl.filter(feitoTopo).length, tot = fl.length;
   const pf = tot ? Math.round(perf / tot * 100) : 0, pt = tot ? Math.round(topo / tot * 100) : 0;
   const anel = aneis.find(a=>a.id===c.anelId);
   let t = `📍 *${cod}*${anel ? ' - Realce ' + semAcento(anel.nome) : ''}\n`;
