@@ -702,6 +702,31 @@ function dadosFimDeTurno(){
   const pend = pendenciasPassagem();
   return { perf, topo, notas, pend, obs: observacoesDoTurnoAtual().length, fila: itensDaFila().length };
 }
+// Checagem antes de encerrar: obstruídos sem causa e perfilados do turno sem metragem real.
+function checagemFimDeTurno(){
+  const { noDia } = janelaDoTurno();
+  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
+  const leques = new Map(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>[c.id, c]));
+  const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));
+  const rot = f=>{ const c = leques.get(f.checklistLequeId); return (c ? (PREFIXO[c.tipo]||'') + c.numero + ' · ' : '') + 'F' + f.numero; };
+  return {
+    semCausa: furos.filter(f=> f.obstruido && !f.obstruidoMotivo).map(f=>({ id:f.id, rot:rot(f) })),
+    semMetragem: furos.filter(f=> f.perfilado && !f.obstruido && noDia(f.perfiladoEm) && !(Number(f.metragem) > 0)).map(f=>({ id:f.id, rot:rot(f) }))
+  };
+}
+function irAoFuroPendente(id, tipo){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const c = checklistLeques.find(x=>x.id===f.checklistLequeId); if(!c) return;
+  if(c.anelId !== anelAtivoId && typeof definirAnelAtivo === 'function') definirAnelAtivo(c.anelId);
+  mostrarView('checklist');
+  checklistExpandido.add(c.id);
+  if(tipo === 'causa') motivoPendenteId = f.id;
+  renderChecklist();
+  setTimeout(()=>{
+    destacarLinhaFuro(f.id);
+    if(tipo === 'metragem') setTimeout(()=> pedirMetragemFuro(f.id), 350);
+  }, 60);
+}
 function abrirEncerrarTurno(){
   const root = el('modal-root'); if(!root) return;
   const d = dadosFimDeTurno();
@@ -713,6 +738,7 @@ function abrirEncerrarTurno(){
     <h3 style="margin:0 0 10px">🏁 Encerrar turno</h3>
     <div class="fim-kpis">${kpi(d.perf,'perfilados hoje')}${kpi(d.topo,'topografados hoje')}${kpi(d.pend.nPerf,'a perfilar')}${kpi(d.pend.nTopo,'a topografar')}${kpi(d.pend.nObs,'obstruídos')}<div class="fim-kpi" id="fim-kpi-notas"><b>${d.notas + d.obs}</b><span>notas e obs.</span></div></div>
     ${sinc}
+    ${(()=>{ const ck = checagemFimDeTurno(); const bloco = (tit, tipo, lista)=> lista.length ? `<div class="fim-checa-linha"><b>${tit}</b><div class="fim-checa-chips">${lista.slice(0,12).map(x=>`<button type="button" class="ghost" data-furo="${x.id}" data-tipo="${tipo}">${escHtml(x.rot)}</button>`).join('')}${lista.length > 12 ? `<span class="hint">+${lista.length-12}</span>` : ''}</div></div>` : ''; const h = bloco(`⛔ ${ck.semCausa.length} obstruído(s) sem causa`, 'causa', ck.semCausa) + bloco(`📏 ${ck.semMetragem.length} perfilado(s) sem metragem`, 'metragem', ck.semMetragem); return h ? `<div class="fim-checa" role="alert"><div class="fim-checa-titulo">Antes de enviar, falta preencher — toque no furo para ir direto a ele:</div>${h}</div>` : '<div class="fim-ok">✓ Causas e metragens preenchidas.</div>'; })()}
     <div class="fim-obs">
       <div class="fim-obs-titulo">📝 Observações que vão no relatório</div>
       <div id="fim-obs-lista" class="fim-obs-lista"></div>
@@ -735,6 +761,7 @@ function abrirEncerrarTurno(){
     if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
   };
   el('fim-fechar').onclick = fechar;
+  root.querySelectorAll('.fim-checa button[data-furo]').forEach(b=> b.onclick = ()=>{ fechar(); irAoFuroPendente(b.dataset.furo, b.dataset.tipo); });
   // Observações do turno: aparecem no relatório (só as feitas depois do início do turno).
   const pintarObs = ()=>{
     const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
