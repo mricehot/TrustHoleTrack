@@ -142,19 +142,6 @@ function riDesenhar(c, d, dry){
     riQuebrar(c, ['perfilar: ' + (f.perf.join(', ') || 'completo'), 'topografar: ' + (f.topo.join(', ') || 'completo')], larg - 32, 17).forEach(t=> falta.push({ txt:'    ' + t, dest:true }));
   });
   caixa('O QUE FALTA (LEQUES EM ANDAMENTO)', falta);
-  // metragens
-  if(d.metragens.length){
-    riTexto(c, 'METRAGENS (ESPERADA × REAL)', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
-    const alt = 44 + (d.metragens.length + 1) * 38;
-    if(!dry){ riRect(c, RI_M, y, larg, alt, 12, RI.card, RI.line);
-      [['LEQUE', 0, 'left'], ['ESPERADA', 0.47, 'right'], ['REAL', 0.7, 'right'], ['VARIAÇÃO', 1, 'right']].forEach(([t, p, a])=> riTexto(c, t, a === 'left' ? RI_M + 16 : RI_M + 16 + (larg - 32) * p, y + 28, { tam:13, cor:RI.mut, alinhar:a, espaco:1 }));
-      d.metragens.concat([d.metTotal]).forEach((m, i)=>{ const yy = y + 44 + i * 38 + 24, tot = i === d.metragens.length, peso = tot ? '700' : '400';
-        riTexto(c, m.codigo, RI_M + 16, yy, { tam:17, peso:'700' });
-        riTexto(c, m.esp, RI_M + 16 + (larg - 32) * 0.47, yy, { tam:17, peso, alinhar:'right' });
-        riTexto(c, m.real, RI_M + 16 + (larg - 32) * 0.7, yy, { tam:17, peso, alinhar:'right' });
-        riTexto(c, m.var, RI_M + 16 + (larg - 32), yy, { tam:17, peso, alinhar:'right', cor:m.cor || RI.txt }); }); }
-    y += alt + 14;
-  }
   // fotos
   if(d.fotos.length){
     riTexto(c, 'FOTOS', RI_M, y + 24, { tam:14, peso:'700', cor:RI.mut, espaco:2 }); y += 36;
