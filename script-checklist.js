@@ -765,7 +765,8 @@ function montarResumoTurnoWhatsApp(){
     const pf = Math.round(fp/tot*100), pt = Math.round(ft/tot*100), g = progressoGeralFuros(fs);
     const nObs = fs.filter(f=>f.obstruido).length;
     const area = semAcento(String(a.nivel || '').trim());
-    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})${area ? ' - Area: ' + area : ''}`,
+    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})`,
+      ...(area ? [`Area: ${area}`] : []),
       `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
       `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
       `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
