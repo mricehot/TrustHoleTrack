@@ -757,6 +757,20 @@ function montarResumoTurnoWhatsApp(){
   const obs = observacoesDoTurnoAtual().filter(o=> !inicioTurnoMs || !o.ts || new Date(o.ts).getTime() >= inicioTurnoMs).map(o=>o.texto);
   const obsTxt = `Iniciamos as atividades participando do DDS${ddsTxt ? ' (' + ddsTxt + ')' : ''}.` + (obs.length ? '\n' + obs.map(o=>'- ' + o).join('\n') : '');
 
+  // progresso do(s) realce(s) trabalhado(s): visão do realce inteiro (obstruído/detonado conta como concluído)
+  const progressoRealce = escopoAneis.flatMap(a=>{
+    const fs = lequesEsc.filter(c=>c.anelId === a.id).flatMap(c=>checklistFurosDoLeque(c.id));
+    if(!fs.length) return [];
+    const tot = fs.length, fp = fs.filter(feitoPerf).length, ft = fs.filter(feitoTopo).length;
+    const pf = Math.round(fp/tot*100), pt = Math.round(ft/tot*100), g = progressoGeralFuros(fs);
+    const nObs = fs.filter(f=>f.obstruido).length;
+    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})`,
+      `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
+      `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
+      `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
+      ...(nObs ? [`Obstruídos/detonados: ${nObs}`] : []),
+      linhaSep];
+  });
   const t = [
     `Prezados, ${saud}.`,
     linhaSep,
@@ -791,6 +805,7 @@ function montarResumoTurnoWhatsApp(){
     linhaSep,
     `*Metragem perfilada*: ${mReal ? num(mReal) + ' m' : '-'}`,
     linhaSep,
+    ...progressoRealce,
     `*OBSERVAÇÕES*: ${obsTxt}`
   ];
   return t.join('\n');
