@@ -764,7 +764,8 @@ function montarResumoTurnoWhatsApp(){
     const tot = fs.length, fp = fs.filter(feitoPerf).length, ft = fs.filter(feitoTopo).length;
     const pf = Math.round(fp/tot*100), pt = Math.round(ft/tot*100), g = progressoGeralFuros(fs);
     const nObs = fs.filter(f=>f.obstruido).length;
-    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})`,
+    const loc = String(turnoInfo.local || '').trim();
+    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})${loc && loc !== a.nome ? ' - ' + loc : ''}`,
       `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
       `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
       `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
