@@ -2663,3 +2663,6 @@ body.modo-leitura .ck-barra-fixa .bf-ffa{ display:inline-flex; }
 .fim-checa-linha{ margin-top:6px; }
 .fim-checa-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; align-items:center; }
 .fim-checa-chips button{ min-height:44px; padding:0 12px; font:700 13px var(--mono, monospace); border-radius:10px; }
+
+.ck-total-esp{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:8px 0 4px; padding:10px 12px; border-top:2px solid var(--line); font:700 14px var(--mono, monospace); color:var(--muted); }
+.ck-total-esp b{ color:var(--text); font-size:16px; }
