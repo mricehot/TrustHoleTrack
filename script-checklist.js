@@ -771,7 +771,10 @@ function montarResumoTurnoWhatsApp(){
       `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
       `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
       `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
-      ...(nObs ? [`Obstruídos/detonados: ${nObs}`] : []),
+      ...(nObs ? [`Obstruídos/detonados: ${nObs}`, ...lequesEsc.filter(c=>c.anelId === a.id).map(c=>{
+        const o = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
+        return o.length ? `⛔ ${PREFIXO[c.tipo]}${c.numero}: ` + o.map(f=>`F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`).join(', ') : '';
+      }).filter(Boolean)] : []),
       linhaSep];
   });
   const t = [
