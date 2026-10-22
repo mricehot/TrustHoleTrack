@@ -110,7 +110,10 @@ function calcularResumoSemanal(offset){
     const meta = e.metaSemanal > 0 ? e.metaSemanal : 0;
     return { id: e.id, cor: COR_EQUIPES_RS[Math.max(0, lista.findIndex(x => x.id === e.id)) % 6], nome: e.nome, integrantes: e.integrantes, metros, pontos: Math.round(pontos), antM, antP: Math.round(antP),
       diasTrab: diasTrab.length, media: diasTrab.length ? arred2(metros / diasTrab.length) : 0, melhor, meta, pct: meta ? Math.round(metros / meta * 100) : null,
-      varM: varRS(metros, antM), varP: varRS(Math.round(pontos), Math.round(antP)) };
+      varM: varRS(metros, antM), varP: varRS(Math.round(pontos), Math.round(antP)),
+      porDia: dias.map(d => ({ nome: d.nome, data: d.data, folga: d.folga, metros: (cur.porDia[d.iso] || {}).metros || 0, pontos: Math.round((cur.porDia[d.iso] || {}).pontos || 0) })),
+      furosPerf: checklistFurosNoEscopoAtual().filter(f => f.perfilado && f.perfiladoEm && !f.obstruido && equipePerfEfetivaId(f) === e.id && chaveDia(f.perfiladoEm) >= iniISO && chaveDia(f.perfiladoEm) <= fimISO).length,
+      furosTopo: checklistFurosNoEscopoAtual().filter(f => f.topografado && f.topografadoEm && !f.obstruido && equipeTopoEfetivaId(f) === e.id && chaveDia(f.topografadoEm) >= iniISO && chaveDia(f.topografadoEm) <= fimISO).length };
   }).sort((a, b) => b.metros - a.metros || b.pontos - a.pontos);
   const tot = equipesR.reduce((t, e) => ({ m: t.m + e.metros, p: t.p + e.pontos, am: t.am + e.antM, ap: t.ap + e.antP, meta: t.meta + e.meta }), { m: 0, p: 0, am: 0, ap: 0, meta: 0 });
   tot.m = arred2(tot.m);
@@ -258,7 +261,7 @@ function cartaoResumoSemanalHTML(r){
   const cards = r.equipes.map((e, i) => {
     const largura = e.pct === null ? 0 : Math.min(100, e.pct);
     const melhor = e.melhor ? `${DIAS_CURTOS[new Date(e.melhor.iso + 'T12:00:00').getDay()]} ${ddmmRS(new Date(e.melhor.iso + 'T12:00:00'))} (${numRS(e.melhor.metros)} m)` : '–';
-    return `<div style="border:1px solid ${cor.lin};border-left:6px solid ${e.pct !== null && e.pct >= 100 ? cor.ver : cor.amb};border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff;">
+    return `<div style="border:1px solid ${cor.lin};border-left:6px solid ${e.pct !== null && e.pct >= 100 ? cor.ver : cor.amb};border-radius:10px;padding:12px 14px;margin-bottom:0;background:#fff;min-width:0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
         <div style="font-weight:700;font-size:15px;color:${cor.txt};">${i + 1}º · <i style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${e.cor};margin-right:6px;"></i>${e2(e.nome)}<span style="font-weight:500;font-size:12px;color:${cor.mut};margin-left:8px;">${e2(e.integrantes || '')}</span></div>
         <div style="font:700 18px 'JetBrains Mono',monospace;color:${cor.txt};white-space:nowrap;">${numRS(e.metros)} m</div></div>
@@ -268,7 +271,9 @@ function cartaoResumoSemanalHTML(r){
         <span><b style="color:${cor.txt}">${e.diasTrab}</b> ${e.diasTrab === 1 ? 'dia' : 'dias'}</span>
         <span>média <b style="color:${cor.txt}">${numRS(e.media)}</b> m/dia</span>
         <span>melhor dia <b style="color:${cor.txt}">${melhor}</b></span>
-        <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana`}</div></div>`;
+        <span>metros: ${seta(e.varM)} · pontos: ${seta(e.varP)} <span style="color:${cor.mut}">(vs semana passada)</span></span>
+        <span>checklist: <b style="color:${cor.ver}">${e.furosPerf}</b> perfilados · <b style="color:${cor.aco}">${e.furosTopo}</b> topografados</span></div>
+      <div style="display:flex;gap:4px;margin-top:10px;">${e.porDia.map(d => `<div style="flex:1;min-width:0;text-align:center;background:${d.metros || d.pontos ? cor.fundo : '#fafafc'};border:1px solid ${cor.lin};border-radius:6px;padding:4px 0;"><div style="font-size:10px;color:${cor.mut};font-weight:700;">${d.nome}</div><div style="font:700 11.5px 'JetBrains Mono',monospace;color:${d.metros ? cor.txt : cor.mut};">${d.metros ? numRS(d.metros) : (d.folga ? '·' : '–')}</div><div style="font-size:10px;color:${cor.aco};font-weight:700;height:12px;">${d.pontos ? d.pontos + ' pt' : ''}</div></div>`).join('')}</div>` : `<div style="margin-top:8px;font-size:12.5px;color:${cor.mut};">sem lançamento na semana</div>`}</div>`;
   }).join('');
   const mes = r.mes, mesTem = mes && (mes.acum || mes.meta);
   // Parte do mês no resumo da semana: situação, projeção e tendência das semanas. O detalhe completo (equipes, dia a dia) fica no Relatório mensal.
@@ -326,9 +331,10 @@ function cartaoResumoSemanalHTML(r){
         <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Metros por dia <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">· equipes por cor</span></div>
         <div style="font-size:11.5px;color:${cor.mut};margin-bottom:6px;">${legendaEq}</div>
         <div style="display:flex;gap:4px;">${barras}</div></div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Equipes <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">· ordenadas por metros</span></div>
-        ${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}</div></div>
+    </div>
+    <div style="margin-top:22px;padding-top:14px;border-top:2px solid ${cor.lin};">
+      <div style="font-weight:700;font-size:15px;margin-bottom:8px;">Produtividade por equipe <span style="font-weight:500;color:${cor.mut};font-size:11.5px;">· cada equipe separada, ordenada por metros</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;">${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}</div></div>
     ${realcesHTML}
     <div style="margin-top:14px;font-size:11px;color:${cor.mut};display:flex;justify-content:space-between;"><span>BlastHole Manager${quem ? ' · ' + e2(quem) : ''}</span><span>gerado em ${ddmmRS(agora)} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}</span></div></div>`;
 }
