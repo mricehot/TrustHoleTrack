@@ -109,6 +109,7 @@ function montarRelatorioMensalWhatsApp(offset){
       const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;
       let t = `*${semAcentoRS(x.nome)}*\n   Leques: ${x.leques.ok} completos de ${x.leques.total}` + (x.leques.and + x.leques.obs ? ` | ${x.leques.and + x.leques.obs} em andamento` : '') + (x.leques.ini ? ` | ${x.leques.ini} nao iniciados` : '');
       t += `\n   Furos: perfilados ${x.perf}/${x.furos} (${pct(x.perf)}%) | topografados ${x.topo}/${x.furos} (${pct(x.topo)}%)`;
+      if(x.obstr) t += `\n   Obstruidos: ${x.obstr} (fora da conta; os ${x.furos} restantes = 100%)`;
       t += `\n   No mes: +${x.perfSem} perfilados | +${x.topoSem} topografados`;
       if(x.finalizados.length) t += `\n   Finalizados no mes: ${compactarCodigosEmIntervalos(x.finalizados).join(', ')}`;
       return t;

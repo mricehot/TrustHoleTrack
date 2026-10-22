@@ -24,9 +24,10 @@ function calcularRealcesSemana(iniISO, fimISO){
       finalizados: [], andamento: [], naoIniciados: [], obstruidos: [], problemas: [] };
     leques.forEach(c => {
       const fs = checklistFurosDoLeque(c.id), est = estadoDoLeque(fs), cod = { tipo: c.tipo, numero: c.numero }, rotulo = (PREFIXO[c.tipo] || '') + c.numero;
-      R.leques[est]++; R.furos += fs.length; if(est === 'ok') R.okCods = (R.okCods || []).concat([cod]);
+      R.leques[est]++; R.furos += fs.filter(f => !f.obstruido).length; // obstruído fica fora: 100% = tudo que dava para fazer
+      if(est === 'ok') R.okCods = (R.okCods || []).concat([cod]);
       fs.forEach(f => {
-        if(f.perfilado || f.obstruido) R.perf++; if(f.topografado || f.obstruido) R.topo++; if(f.obstruido) R.obstr++; // obstruído não tem o que fazer: conta como concluído
+        if(f.obstruido){ R.obstr++; } else { if(f.perfilado) R.perf++; if(f.topografado) R.topo++; }
         if(f.perfilado && naSemana(f.perfiladoEm)) R.perfSem++;
         if(f.topografado && naSemana(f.topografadoEm)) R.topoSem++;
       });
@@ -167,6 +168,7 @@ function montarResumoSemanalWhatsApp(offset){
       const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;
       let t = `*${semAcentoRS(x.nome)}*${x.nivel && !String(x.nome).includes(x.nivel) ? ' - Nivel ' + semAcentoRS(x.nivel) : ''}\n   Leques: ${x.leques.ok} completos de ${x.leques.total}` + (x.leques.and + x.leques.obs ? ` | ${x.leques.and + x.leques.obs} em andamento` : '') + (x.leques.ini ? ` | ${x.leques.ini} nao iniciados` : '');
       t += `\n   Furos: perfilados ${x.perf}/${x.furos} (${pct(x.perf)}%) | topografados ${x.topo}/${x.furos} (${pct(x.topo)}%)`;
+      if(x.obstr) t += `\n   Obstruidos: ${x.obstr} (fora da conta; os ${x.furos} restantes = 100%)`;
       t += `\n   Na semana: +${x.perfSem} perfilados | +${x.topoSem} topografados`;
       if(x.finalizados.length) t += `\n   Finalizados na semana: ${compactarCodigosEmIntervalos(x.finalizados).join(', ')}`;
       if(x.andamento.length) t += `\n   Em andamento: ` + x.andamento.map(a => `${a.rotulo} (falta ${a.pendPerf} perf. / ${a.pendTopo} topo${a.obstr ? ', ' + a.obstr + ' obstr.' : ''})`).join('; ');
@@ -219,6 +221,7 @@ function realcesHTMLRS(realces, per){
         <span style="font-size:12px;color:${cor.mut};"><b style="color:${cor.ver}">${x.leques.ok}</b> completos de ${x.leques.total} leques${x.leques.and + x.leques.obs ? ' · <b style="color:#c98a00">' + (x.leques.and + x.leques.obs) + '</b> em andamento' : ''}${x.leques.ini ? ' · ' + x.leques.ini + ' não iniciados' : ''}</span></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Perfilados</span>${barra(x.perf, cor.ver)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.perf}/${x.furos} · ${p(x.perf)}%</b></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px;font-size:12px;"><span style="width:78px;color:${cor.mut};">Topografados</span>${barra(x.topo, cor.aco)}<b style="font:700 12px 'JetBrains Mono',monospace;width:96px;white-space:nowrap;text-align:right;">${x.topo}/${x.furos} · ${p(x.topo)}%</b></div>
+      ${x.obstr ? `<div style="margin-top:6px;font-size:11.5px;color:#c0392b;">⛔ ${x.obstr} obstruído${x.obstr > 1 ? 's' : ''} fora da conta: os ${x.furos} furos restantes são 100%</div>` : ''}
       ${linha(per === 'mês' ? 'No mês:' : 'Na semana:', `+${x.perfSem} perfilados · +${x.topoSem} topografados`)}
       ${x.finalizados.length ? linha(per === 'mês' ? 'Finalizados no mês:' : 'Finalizados na semana:', compactarCodigosEmIntervalos(x.finalizados).map(c => chip(c, cor.ver)).join('')) : ''}
       ${x.andamento.length ? linha('Em andamento:', x.andamento.map(a => chip(`${a.rotulo} · falta ${a.pendPerf} perf / ${a.pendTopo} topo${a.obstr ? ' · ' + a.obstr + ' obstr.' : ''}`, a.alto ? '#d6453d' : '#c98a00')).join('')) : ''}
