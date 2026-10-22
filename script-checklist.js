@@ -209,7 +209,7 @@ function htmlCardChecklist(c, agrupado){
               `).join('')}
             </tbody>
           </table>
-          ${(()=>{ const t = furos.reduce((s,f)=> s + (Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0), 0); return t > 0 ? `<div class="ck-total-esp"><span>Total esperado do leque</span><b>${fmtMetCk(t)} m</b></div>` : ''; })()}
+          ${(()=>{ const num = v => Number(v) > 0 ? Number(v) : 0, t = furos.reduce((s,f)=> s + num(f.metragemEsperada), 0), r = furos.reduce((s,f)=> s + num(f.metragem), 0), n = furos.filter(f=> num(f.metragem) > 0).length; return (t > 0 || r > 0) ? `<div class="ck-total-esp"><span>Total esperado do leque</span><b>${fmtMetCk(t)} m</b></div><div class="ck-total-real"><span>Total real até agora <small>(${n} de ${furos.length} furos)</small></span><b>${fmtMetCk(r)} m</b></div>` : ''; })()}
           ${(()=>{
             const linhas = furos.map(f=>({ f, t: textoQuemQuando(f) })).filter(x=>x.t);
             return linhas.length ? `<details class="ck-quem"><summary>Quem marcou (${linhas.length})</summary>${linhas.map(x=>`<div><b>F${escHtml(x.f.numero)}</b> ${escHtml(x.t)}</div>`).join('')}</details>` : '';
