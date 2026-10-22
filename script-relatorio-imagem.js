@@ -172,13 +172,13 @@ async function riMontarDados(anelId, simples){
   const ROT = { ok:'✓ Completo', and:'Em andamento', ini:'Não iniciado', obs:'Obstrução alta' }, COR = { ok:RI.ok, and:RI.and, ini:RI.ini, obs:RI.obs };
   itens.forEach(c=>{
     const fl = checklistFurosDoLeque(c.id).slice().sort((a,b)=> String(a.numero).localeCompare(String(b.numero), undefined, { numeric:true }));
-    const p = fl.filter(f=>f.perfilado).length, t = fl.filter(f=>f.topografado).length, ob = fl.filter(f=>f.obstruido).length, est = estadoDoLeque(fl);
-    perf += p; topo += t; todos.push(...fl);
+    const ut = fl.filter(f=>!f.obstruido); // obstruído/detonado fica fora das contagens (igual ao relatório do WhatsApp)
+    const p = ut.filter(f=>f.perfilado).length, t = ut.filter(f=>f.topografado).length, ob = fl.length - ut.length, est = estadoDoLeque(fl);
+    perf += p; topo += t; todos.push(...ut);
     const codigo = PREFIXO[c.tipo] + c.numero;
-    cartoes.push({ codigo, n:fl.length, p, t, cor:COR[est], rotulo:ROT[est], sub: fl.length ? `${p}/${fl.length} · ${t}/${fl.length}` + (ob ? `  ⛔ ${ob}` : '') : 'sem furos',
+    cartoes.push({ codigo, n:ut.length, p, t, cor:COR[est], rotulo:ROT[est], sub: fl.length ? `${p}/${ut.length} · ${t}/${ut.length}` + (ob ? `  ⛔ ${ob}` : '') : 'sem furos',
       furos: fl.map(f=> ({ estado: furoDetonado(f) ? 'det' : f.obstruido ? 'obs' : (f.perfilado && f.topografado) ? 'ok' : f.perfilado ? 'p' : f.topografado ? 't' : 'n' })) });
     if(fl.length && est !== 'ok' && fl.some(f=>f.perfilado || f.topografado)){
-      const ut = fl.filter(f=>!f.obstruido);
       faltam.push({ codigo, perf: riCompactar(ut.filter(f=>!f.perfilado).map(f=>f.numero)), topo: riCompactar(ut.filter(f=>!f.topografado).map(f=>f.numero)) });
     }
     fl.filter(f=>f.obstruido).forEach(f=> obstruidos.push(`${codigo} F${f.numero}${f.obstruidoMotivo ? ' — ' + f.obstruidoMotivo : ''}`));
