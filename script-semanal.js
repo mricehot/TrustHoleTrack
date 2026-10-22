@@ -239,7 +239,7 @@ function realcesHTMLRS(realces, per){
 }
 
 // ---- Imagem (cartão claro, largura fixa, igual em qualquer aparelho) ----
-function cartaoResumoSemanalHTML(r){
+function cartaoResumoSemanalHTML(r, parte){
   const e2 = escHtml, cor = { amb: '#ff431d', aco: '#2f6690', ver: '#2e9b57', txt: '#191231', mut: '#6b6b80', lin: '#e3e1ea', fundo: '#f6f5f9' };
   const quem = typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '';
   const agora = new Date();
@@ -309,7 +309,7 @@ function cartaoResumoSemanalHTML(r){
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${cor.mut};margin-top:5px;"><span><b style="color:${cor.amb}">■</b> realizado ${numRS(mes.acum)} m</span><span>projeção até ${ddmmRS(mes.fimMes)} (+${numRS(Math.max(0, mes.proj - mes.acum))} m no ritmo atual)</span><span>${mes.meta ? '<b style="color:' + cor.txt + '">|</b> meta ' + numRS(mes.meta) + ' m' : 'projeção ' + numRS(mes.proj) + ' m'}</span></div></div>`;
   }
   const realcesHTML = realcesHTMLRS(r.realces, 'semana');
-  return `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
+  const html = `<div style="width:860px;box-sizing:border-box;background:#fff;color:${cor.txt};font-family:'Inter',system-ui,sans-serif;padding:26px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid ${cor.amb};padding-bottom:12px;">
       <div><div style="font-size:12px;letter-spacing:2px;font-weight:700;color:${cor.amb};">RESUMO SEMANAL</div>
         <div style="font-size:24px;font-weight:800;margin-top:2px;">${ddmmRS(r.ini)} a ${ddmmRS(r.fim)}</div></div>
@@ -342,20 +342,33 @@ function cartaoResumoSemanalHTML(r){
       <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;">${cards || `<div style="color:${cor.mut};font-size:13px;">Nenhuma equipe cadastrada neste projeto.</div>`}</div></div>
     ${realcesHTML}
     <div style="margin-top:14px;font-size:11px;color:${cor.mut};display:flex;justify-content:space-between;"><span>BlastHole Manager${quem ? ' · ' + e2(quem) : ''}</span><span>gerado em ${ddmmRS(agora)} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}</span></div></div>`;
+  if(!parte) return html;
+  // Duas imagens: 1 = resumo, projeção e gráficos; 2 = produtividade por equipe e realces.
+  const iCorpo = html.indexOf('<div style="font-weight:700;font-size:14px;margin:18px 0 8px;">');
+  const iEq = html.indexOf('<div style="margin-top:22px;padding-top:14px;border-top:2px solid');
+  const iRod = html.lastIndexOf('<div style="margin-top:14px;font-size:11px;');
+  if(iCorpo < 0 || iEq < 0 || iRod < 0) return html;
+  if(parte === 1) return html.slice(0, iEq).replace('>RESUMO SEMANAL<', '>RESUMO SEMANAL · 1/2<') + html.slice(iRod);
+  return html.slice(0, iCorpo).replace('>RESUMO SEMANAL<', '>RESUMO SEMANAL · 2/2 · EQUIPES E REALCES<') + html.slice(iEq).replace('margin-top:22px;padding-top:14px;border-top:2px solid ' + cor.lin + ';', 'margin-top:18px;');
+
 }
 
 async function gerarImagemResumoSemanal(offset){
   if(typeof html2canvas !== 'function') throw new Error('biblioteca de imagem não carregou (precisa de internet na primeira vez)');
   const r = calcularResumoSemanal(offset);
-  const host = document.createElement('div');
-  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:860px;z-index:-1;';
-  host.innerHTML = cartaoResumoSemanalHTML(r);
-  document.body.appendChild(host);
-  try{
-    const canvas = await html2canvas(host.firstElementChild, { backgroundColor: '#ffffff', scale: 2, useCORS: true, windowWidth: 900 });
-    const blob = await new Promise((ok, erro) => canvas.toBlob(b => b ? ok(b) : erro(new Error('falha ao gerar o PNG')), 'image/png'));
-    return { blob, nomeArquivo: `resumo-semanal-${r.iniISO}.png` };
-  }finally{ host.remove(); }
+  const imagens = [];
+  for(const parte of [1, 2]){
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;width:860px;z-index:-1;';
+    host.innerHTML = cartaoResumoSemanalHTML(r, parte);
+    document.body.appendChild(host);
+    try{
+      const canvas = await html2canvas(host.firstElementChild, { backgroundColor: '#ffffff', scale: 2, useCORS: true, windowWidth: 900 });
+      const blob = await new Promise((ok, erro) => canvas.toBlob(b => b ? ok(b) : erro(new Error('falha ao gerar o PNG')), 'image/png'));
+      imagens.push({ blob, nomeArquivo: `resumo-semanal-${r.iniISO}-parte${parte}.png` });
+    }finally{ host.remove(); }
+  }
+  return imagens;
 }
 
 // ---- Janela do resumo ----
@@ -375,8 +388,8 @@ function abrirResumoSemanal(offset){
         <div class="resumo-sem-previa" id="rs-previa"><div class="resumo-sem-zoom" id="rs-zoom">${cartaoResumoSemanalHTML(r)}</div></div>
         <details class="resumo-sem-texto"><summary>Ver a mensagem de WhatsApp</summary><pre id="rs-pre"></pre></details>
         <div class="modal-actions resumo-sem-acoes">
-          <button type="button" class="steel" id="rs-baixar">Baixar imagem</button>
-          <button type="button" class="steel" id="rs-enviar-img">Enviar imagem</button>
+          <button type="button" class="steel" id="rs-baixar">Baixar imagens</button>
+          <button type="button" class="steel" id="rs-enviar-img">Enviar imagens (2)</button>
           <button type="button" class="steel" id="rs-enviar-txt">Enviar mensagem</button>
           <button type="button" class="ghost" id="rs-copiar">Copiar texto</button>
           <button type="button" class="ghost" id="rs-fechar">Fechar</button>
@@ -393,16 +406,16 @@ function abrirResumoSemanal(offset){
   el('rs-ant').addEventListener('click', () => { fechar(); abrirResumoSemanal(resumoSemOffset - 1); });
   el('rs-prox').addEventListener('click', () => { if(resumoSemOffset < 0){ fechar(); abrirResumoSemanal(resumoSemOffset + 1); } });
   const ocupado = async (btn, txt, fn)=>{ const h = btn.innerHTML; btn.disabled = true; btn.textContent = txt; try{ await fn(); }catch(err){ showToast('Erro: ' + (err && err.message ? err.message : err)); } finally{ btn.disabled = false; btn.innerHTML = h; } };
-  el('rs-baixar').addEventListener('click', ev => ocupado(ev.currentTarget, 'Gerando...', async ()=>{ const { blob, nomeArquivo } = await gerarImagemResumoSemanal(resumoSemOffset); baixarBlob(blob, nomeArquivo); showToast('Imagem baixada: ' + nomeArquivo, { erro: false }); }));
+  el('rs-baixar').addEventListener('click', ev => ocupado(ev.currentTarget, 'Gerando...', async ()=>{ const imgs = await gerarImagemResumoSemanal(resumoSemOffset); imgs.forEach(i => baixarBlob(i.blob, i.nomeArquivo)); showToast('2 imagens baixadas.', { erro: false }); }));
   el('rs-enviar-img').addEventListener('click', ev => ocupado(ev.currentTarget, 'Gerando...', async ()=>{
-    const { blob, nomeArquivo } = await gerarImagemResumoSemanal(resumoSemOffset);
-    const arq = new File([blob], nomeArquivo, { type: 'image/png' });
-    if(navigator.canShare && navigator.canShare({ files: [arq] })){
-      try{ await navigator.share({ files: [arq], title: 'Resumo semanal' }); }catch(err){ if(err.name !== 'AbortError') showToast('Não foi possível compartilhar a imagem.'); }
+    const imgs = await gerarImagemResumoSemanal(resumoSemOffset);
+    const arqs = imgs.map(i => new File([i.blob], i.nomeArquivo, { type: 'image/png' }));
+    if(navigator.canShare && navigator.canShare({ files: arqs })){
+      try{ await navigator.share({ files: arqs, title: 'Resumo semanal' }); }catch(err){ if(err.name !== 'AbortError') showToast('Não foi possível compartilhar as imagens.'); }
     }else{
-      baixarBlob(blob, nomeArquivo);
+      imgs.forEach(i => baixarBlob(i.blob, i.nomeArquivo));
       enviarWhatsApp();
-      showToast('Imagem baixada — anexe ela na conversa do WhatsApp que abriu.', { erro: false });
+      showToast('2 imagens baixadas — anexe as duas na conversa do WhatsApp que abriu.', { erro: false });
     }
   }));
   el('rs-enviar-txt').addEventListener('click', () => {
