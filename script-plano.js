@@ -134,6 +134,8 @@ function menuPlano(anelId){
 function atualizarBotoesPlano(){
   const a = aneis.find(x=>x.id===anelAtivoId);
   document.querySelectorAll('.btn-plano-ativo').forEach(b=>{ b.hidden = !(a && a.planoPath); });
+  // No Checklist o botão fica sempre à vista (junto do relatório em imagem); sem plano anexado ele fica apagado e avisa ao tocar.
+  document.querySelectorAll('.btn-plano-checklist').forEach(b=>{ const tem = !!(a && a.planoPath); b.classList.toggle('sem-plano', !tem); b.title = tem ? 'abre o PDF do plano de perfuração deste realce' : 'este realce ainda não tem plano anexado'; });
 }
 // Baixa o plano do realce ativo em segundo plano (com sinal), para abrir depois sem internet.
 async function guardarPlanoAtivo(){
