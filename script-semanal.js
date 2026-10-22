@@ -157,15 +157,20 @@ function montarResumoSemanalWhatsApp(offset){
     if(!d.metros && !d.pontos) return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${d.folga ? 'folga' : 'sem producao'}`;
     return `${semAcentoRS(d.nome)} ${ddmmRS(d.data)}: ${numRS(d.metros)} m | ${Math.round(d.pontos)} ${Math.round(d.pontos) === 1 ? 'ponto' : 'pontos'}`;
   }).join('\n');
-  o += '\n\n*EQUIPES* (por metros)\n' + r.equipes.map((e, i) => {
-    let t = `${i + 1}. *${semAcentoRS(e.nome)}*${e.integrantes ? ' (' + semAcentoRS(e.integrantes) + ')' : ''}\n`;
-    if(!e.diasTrab) return t + '   sem lancamento na semana';
-    t += `   ${numRS(e.metros)} m${e.pct !== null ? ' (' + e.pct + '% da meta de ' + numRS(e.meta) + ' m)' : ''} | ${plural(Math.round(e.pontos), 'ponto', 'pontos')}`;
-    t += `\n   ${plural(e.diasTrab, 'dia', 'dias')} | media ${numRS(e.media)} m/dia`;
-    if(e.melhor){ const dm = new Date(e.melhor.iso + 'T12:00:00'); t += ` | melhor: ${semAcentoRS(DIAS_CURTOS[dm.getDay()])} ${ddmmRS(dm)} (${numRS(e.melhor.metros)} m)`; }
-    t += `\n   ${setaRS(e.varM).replace(' vs semana passada', ' metros vs semana passada')}`;
-    return t;
-  }).join('\n\n');
+  const sepEq = '_______________________________';
+  o += '\n\n*PRODUTIVIDADE POR EQUIPE*\n' + sepEq + '\n' + r.equipes.map(e => {
+    let t = `*${semAcentoRS(e.nome).toUpperCase()}*${e.integrantes ? ' (' + semAcentoRS(e.integrantes) + ')' : ''}\n`;
+    if(!e.diasTrab) return t + 'Perfilagem: 0 m\nSem lancamento na semana\n' + sepEq;
+    t += `Perfilagem: ${numRS(e.metros)} m${e.pct !== null ? ' (' + e.pct + '% da meta de ' + numRS(e.meta) + ' m)' : ''}`;
+    t += `\nTopografia: ${plural(Math.round(e.pontos), 'ponto', 'pontos')}`;
+    t += `\nFuros no checklist: ${e.furosPerf} perfilados | ${e.furosTopo} topografados`;
+    t += `\nDias: ${e.diasTrab} | media ${numRS(e.media)} m/dia`;
+    if(e.melhor){ const dm = new Date(e.melhor.iso + 'T12:00:00'); t += `\nMelhor dia: ${semAcentoRS(DIAS_CURTOS[dm.getDay()])} ${ddmmRS(dm)} (${numRS(e.melhor.metros)} m)`; }
+    t += `\n${setaRS(e.varM).replace(' vs semana passada', ' metros vs semana passada')}`;
+    t += `\nDia a dia: ` + e.porDia.map(d => `${semAcentoRS(d.nome)} ${d.metros ? numRS(d.metros) + ' m' : (d.folga ? 'folga' : '-')}`).join(' | ');
+    return t + '\n' + sepEq;
+  }).join('\n');
+  o += `\n*TOTAL*: ${numRS(r.tot.m)} m | ${plural(Math.round(r.tot.p), 'ponto', 'pontos')}`;
   if(r.realces.length){
     o += '\n\n*REALCES E LEQUES*\n' + r.realces.map(x => {
       const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;

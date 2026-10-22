@@ -96,14 +96,16 @@ function montarRelatorioMensalWhatsApp(offset){
     if(r.meta && r.restantes && r.necessario !== null) o += `\nPara bater a meta: ${numRS(r.necessario)} m/dia nos ${r.restantes} dias uteis restantes`;
   }
   o += '\n\n*SEMANA A SEMANA*\n' + r.semanas.filter(w => !w.futura).map(w => `${w.rotulo}: ${numRS(w.metros)} m | ${plural(w.topo, 'furo topografado', 'furos topografados')}${w.atual && r.emAndamento ? ' (em andamento)' : ''}`).join('\n');
-  o += '\n\n*EQUIPES* (por metros)\n' + r.equipes.map((e, i) => {
-    let t = `${i + 1}. *${semAcentoRS(e.nome)}*${e.integrantes ? ' (' + semAcentoRS(e.integrantes) + ')' : ''}\n`;
-    if(!e.diasTrab) return t + '   sem lancamento no mes';
-    t += `   ${numRS(e.metros)} m${e.pct !== null ? ' (' + e.pct + '% da meta de ' + numRS(e.meta) + ' m)' : ''} | ${plural(e.pontos, 'ponto', 'pontos')}`;
-    t += `\n   ${plural(e.diasTrab, 'dia', 'dias')} | media ${numRS(e.media)} m/dia`;
-    if(e.melhor){ const dm = new Date(e.melhor.iso + 'T12:00:00'); t += ` | melhor: ${semAcentoRS(DIAS_CURTOS[dm.getDay()])} ${ddmmRS(dm)} (${numRS(e.melhor.metros)} m)`; }
-    return t;
-  }).join('\n\n');
+  const sepEq = '_______________________________';
+  o += '\n\n*PRODUTIVIDADE POR EQUIPE*\n' + sepEq + '\n' + r.equipes.map(e => {
+    let t = `*${semAcentoRS(e.nome).toUpperCase()}*${e.integrantes ? ' (' + semAcentoRS(e.integrantes) + ')' : ''}\n`;
+    if(!e.diasTrab) return t + 'Perfilagem: 0 m\nSem lancamento no mes\n' + sepEq;
+    t += `Perfilagem: ${numRS(e.metros)} m${e.pct !== null ? ' (' + e.pct + '% da meta de ' + numRS(e.meta) + ' m)' : ''}`;
+    t += `\nTopografia: ${plural(e.pontos, 'ponto', 'pontos')}`;
+    t += `\nDias: ${e.diasTrab} | media ${numRS(e.media)} m/dia`;
+    if(e.melhor){ const dm = new Date(e.melhor.iso + 'T12:00:00'); t += `\nMelhor dia: ${semAcentoRS(DIAS_CURTOS[dm.getDay()])} ${ddmmRS(dm)} (${numRS(e.melhor.metros)} m)`; }
+    return t + '\n' + sepEq;
+  }).join('\n');
   if(r.realces.length){
     o += '\n\n*REALCES E LEQUES*\n' + r.realces.map(x => {
       const pct = n => x.furos ? Math.round(n / x.furos * 100) : 0;
