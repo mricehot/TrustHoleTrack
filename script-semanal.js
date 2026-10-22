@@ -26,7 +26,7 @@ function calcularRealcesSemana(iniISO, fimISO){
       const fs = checklistFurosDoLeque(c.id), est = estadoDoLeque(fs), cod = { tipo: c.tipo, numero: c.numero }, rotulo = (PREFIXO[c.tipo] || '') + c.numero;
       R.leques[est]++; R.furos += fs.length; if(est === 'ok') R.okCods = (R.okCods || []).concat([cod]);
       fs.forEach(f => {
-        if(f.perfilado) R.perf++; if(f.topografado) R.topo++; if(f.obstruido) R.obstr++;
+        if(f.perfilado || f.obstruido) R.perf++; if(f.topografado || f.obstruido) R.topo++; if(f.obstruido) R.obstr++; // obstruído não tem o que fazer: conta como concluído
         if(f.perfilado && naSemana(f.perfiladoEm)) R.perfSem++;
         if(f.topografado && naSemana(f.topografadoEm)) R.topoSem++;
       });
