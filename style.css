@@ -2678,3 +2678,9 @@ body.modo-leitura .ck-barra-fixa .bf-ffa{ display:inline-flex; }
 .ck-total-real small{ font-weight:500; font-size:11px; }
 .ck-total-real b, .ck-total-esp b{ white-space:nowrap; flex-shrink:0; }
 .ck-total-real small{ display:block; }
+
+/* aviso de alterações não enviadas: faixa fina de uma linha, que nunca cobre o botão Editar nem as abas */
+.alerta-falhas{ z-index:2400 !important; padding:3px 8px !important; font-size:12px !important; gap:6px !important; flex-wrap:nowrap !important; justify-content:space-between !important; }
+.alerta-falhas .alerta-falhas-texto{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.alerta-falhas button{ min-height:30px !important; padding:2px 10px !important; font-size:12px !important; white-space:nowrap; flex-shrink:0; }
+body.modo-leitura .alerta-falhas{ top:62px !important; }

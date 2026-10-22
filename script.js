@@ -649,8 +649,9 @@ function atualizarIndicadorSalvamento(){
     const longo = minParado >= 10;
     alerta.classList.toggle('longo', longo);
     alerta.querySelector('.alerta-falhas-texto').textContent = longo
-      ? `⚠ ${qtdFalhas} alteração(ões) sem enviar há ${minParado} min (${nomes.join(', ')}). Suba até um ponto com sinal antes de trocar de turno, senão o próximo turno não vê o que você marcou.`
-      : `${qtdFalhas} alteração(ões) guardada(s) neste aparelho, ainda não enviadas (${nomes.join(', ')}). Sobem sozinhas quando houver sinal — não precisa ficar com o app aberto.`;
+      ? `⚠ ${qtdFalhas} sem enviar há ${minParado} min`
+      : `${qtdFalhas} sem enviar (sobe com sinal)`;
+    alerta.title = `Guardado neste aparelho, ainda não enviado (${nomes.join(', ')}). Sobe sozinho quando houver sinal — não precisa ficar com o app aberto.` + (longo ? ' Suba até um ponto com sinal antes de trocar de turno, senão o próximo turno não vê o que você marcou.' : '');
     alerta.style.display = 'flex';
   }
 }
