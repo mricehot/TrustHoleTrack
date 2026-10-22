@@ -757,7 +757,7 @@ function montarResumoTurnoWhatsApp(){
   const eqUser = (typeof equipes !== 'undefined' ? equipes : []).find(e=> e.id === minhaEquipeId());
   const tecnicosTxt = String((eqUser && eqUser.integrantes) || turnoInfo.tecnicos || '').split(/\s*(?:[,;\/]| e )\s*/).filter(Boolean).join('/');
   const ddsTxt = String(turnoInfo.dds || '').trim();
-  const obs = observacoesDoTurnoAtual().filter(o=> !inicioTurnoMs || !o.ts || new Date(o.ts).getTime() >= inicioTurnoMs).map(o=>o.texto);
+  const obs = observacoesDoTurnoAtual().filter(o=> !inicioTurnoMs || !o.ts || new Date(o.ts).getTime() >= inicioTurnoMs).map(o=>o.texto).filter(t=> !/^\s*Passagem:/i.test(t)); // a passagem de turno não vai no relatório
   const obsTxt = `Iniciamos as atividades participando do DDS${ddsTxt ? ' (' + ddsTxt + ')' : ''}.` + (obs.length ? '\n' + obs.map(o=>'- ' + o).join('\n') : '');
 
   // progresso do(s) realce(s) trabalhado(s): visão do realce inteiro (obstruído/detonado fora de perfilados/topografados)

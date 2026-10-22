@@ -748,7 +748,6 @@ function abrirEncerrarTurno(){
         <div class="fim-obs-acoes"><button type="button" id="fim-obs-salvar">Adicionar</button><button type="button" class="ghost" id="fim-obs-cancelar">Cancelar</button></div>
       </div>
     </div>
-    ${d.pend.linhas.length ? '<label class="fim-check"><input type="checkbox" id="fim-registrar" checked> Registrar a passagem nas observações do turno</label>' : ''}
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="ghost" id="fim-fechar">Fechar</button>
       <button class="ghost" id="fim-copiar">Copiar</button>
@@ -765,7 +764,7 @@ function abrirEncerrarTurno(){
   // Observações do turno: aparecem no relatório (só as feitas depois do início do turno).
   const pintarObs = ()=>{
     const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
-    const lista = observacoesDoTurnoAtual().filter(o=> !ini || !o.ts || new Date(o.ts).getTime() >= ini);
+    const lista = observacoesDoTurnoAtual().filter(o=> (!ini || !o.ts || new Date(o.ts).getTime() >= ini) && !/^\s*Passagem:/i.test(o.texto));
     el('fim-obs-lista').innerHTML = lista.length
       ? lista.map(o=> `<div class="fim-obs-item"><span>${escHtml(o.texto)}</span><button type="button" class="icon icon-remover" data-id="${o.id}" aria-label="remover observação" title="remover">✕</button></div>`).join('')
       : '<div class="hint">Nenhuma observação ainda.</div>';
