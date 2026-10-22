@@ -193,14 +193,14 @@ async function riMontarDados(anelId, simples){
     metragens.push({ codigo: lequeCode(l), esp: riVir(e), real: riVir(r), var: sem ? `${sem} sem metragem` : (r - e > 0 ? '+' : '') + riVir(r - e), cor: sem ? RI.mut : (r - e) < 0 ? RI.obs : RI.ok });
   });
   const fotos = []; const MAXF = 12;
-  if(!simples) for(const it of fotosLista.slice(0, MAXF)) fotos.push({ codigo: it.codigo, nota: it.nota, img: await riCarregarFoto(it.f) });
+  // as fotos não saem no relatório em imagem (ficam só no "Enviar fotos")
   const agora = new Date(), tot = todos.length;
   const locais = [...new Set(itens.map(c=>(c.localizacao || '').trim()).filter(Boolean))];
   return { nome: anel.nome, nivel: anel.nivel || '', locais, orientacao: anel.orientacao === 'ascendente' ? '↑ Ascendente' : anel.orientacao === 'descendente' ? '↓ Descendente' : '',
     dataTxt: agora.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }), horaTxt: agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
     turno: (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `Turno ${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`.trim() : '',
     perf, topo, total: tot, pPerf: tot ? Math.round(perf / tot * 100) : 0, pTopo: tot ? Math.round(topo / tot * 100) : 0,
-    leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: simples ? 0 : Math.max(0, fotosLista.length - MAXF),
+    leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: 0,
     rodapeEsq: '' };
 }
 
