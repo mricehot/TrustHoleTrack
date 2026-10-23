@@ -2604,8 +2604,15 @@ body.modo-leitura .checklist-leque-card[data-est=det]{ animation:none; }
 .checklist-progresso-furos-topo small{ font-size:10px; font-weight:500; opacity:.75; }
 .infografico-percentuais .info-geral{ grid-column:1 / -1; }
 .ckp-acoes .btn-status-todos{ flex:1; }
-/* "✎ Editar" do realce dentro do cartão do realce no checklist: compacto, não divide a linha em partes iguais */
-.ckp-acoes #btn-editar-realce-ck{ flex:0 0 auto; padding-left:12px; padding-right:12px; color:var(--steel); }
+/* "Editar" (libera a marcação) dentro do cartão do realce no checklist: só aparece em modo Visualização.
+   Na aba Checklist ele substitui o banner fixo do topo. */
+.ckp-liberar{ grid-column:1 / -1; display:none; }
+body.modo-leitura .ckp-liberar{ display:block; }
+#btn-liberar-edicao-ck{ width:100%; min-height:48px; padding:0 16px; border-radius:8px; border:2px solid #3a2f7a; background:#3a2f7a; color:#fff; font-weight:700; font-size:1rem; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
+#btn-liberar-edicao-ck small{ font-weight:500; font-size:12px; opacity:.85; }
+body[data-view="checklist"] .banner-leitura{ display:none; }
+body.modo-leitura[data-view="checklist"]{ padding-top:0; }
+body.modo-leitura[data-view="checklist"] .alerta-falhas{ top:0 !important; }
 
 /* Observações dentro do Encerrar turno */
 .fim-obs{ border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px; background:var(--surface-2); }

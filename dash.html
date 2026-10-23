@@ -621,7 +621,8 @@
           <div class="config-body checklist-corpo">
             <div class="checklist-progresso-resumo">
               <div class="ckp-titulo"><b id="checklist-realce-nome">—</b><span id="checklist-realce-leques"></span></div>
-              <div class="ckp-acoes"><button type="button" id="btn-editar-realce-ck" class="ghost btn-status-todos icon-editar so-gestor" title="editar nome, nível, projeto e orientação do realce" aria-label="editar realce" onclick="if(anelAtivoId) editarAnel(anelAtivoId); else showToast('Nenhum realce ativo.')">✎ Editar</button><button type="button" id="btn-imagem-realce" class="ghost btn-status-todos" title="gera o relatório do realce ativo como imagem para mandar no WhatsApp" onclick="if(anelAtivoId) enviarImagemRealce(anelAtivoId); else showToast('Nenhum realce ativo.')">🖼 Relatório em imagem</button><button type="button" class="ghost btn-status-todos btn-plano-checklist" title="abre o PDF do plano de perfuração deste realce" onclick="abrirPlano()">📄 Plano de perfuração</button></div>
+              <div class="ckp-liberar"><button type="button" id="btn-liberar-edicao-ck" title="libera a marcação de furos e leques neste checklist" onclick="leituraAutomatica=false;definirModoLeitura(false)">✏️ Editar <small>toque para liberar a marcação</small></button></div>
+              <div class="ckp-acoes"><button type="button" id="btn-imagem-realce" class="ghost btn-status-todos" title="gera o relatório do realce ativo como imagem para mandar no WhatsApp" onclick="if(anelAtivoId) enviarImagemRealce(anelAtivoId); else showToast('Nenhum realce ativo.')">🖼 Relatório em imagem</button><button type="button" class="ghost btn-status-todos btn-plano-checklist" title="abre o PDF do plano de perfuração deste realce" onclick="abrirPlano()">📄 Plano de perfuração</button></div>
               <div class="checklist-progresso-furos">
                 <div class="checklist-progresso-furos-topo">
                   <span>Perfilados</span>
