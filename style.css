@@ -2684,3 +2684,44 @@ body.modo-leitura .ck-barra-fixa .bf-ffa{ display:inline-flex; }
 .alerta-falhas .alerta-falhas-texto{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .alerta-falhas button{ min-height:30px !important; padding:2px 10px !important; font-size:12px !important; white-space:nowrap; flex-shrink:0; }
 body.modo-leitura .alerta-falhas{ top:62px !important; }
+
+/* ================= Tema mobile (conceito app): cartões macios, números grandes, cores fixas por situação ================= */
+.turno-hero{ display:none; }
+@media (max-width:700px){
+  body:not(.dark-mode){ --bg:#f3f5f9; --line:#e4e8f0; --surface-2:#f3f5f9; }
+  .view-card{ border-radius:18px; box-shadow:0 1px 2px rgba(20,30,50,.04); }
+  .view-card-header{ padding-top:14px; padding-bottom:12px; }
+  .view-card-label{ font-size:14px; font-weight:700; }
+  button, .chip{ border-radius:14px; }
+  .tab-item.active, .tab-item[data-view].active{ border-top-color:transparent; }
+  .tab-item.active .tab-icon{ border-radius:16px; padding:4px 14px; }
+  .tab-label{ font-weight:600; }
+  .tabbar{ border-radius:20px 20px 0 0; box-shadow:0 -4px 16px rgba(20,30,50,.08); }
+  /* Painel do turno: números grandes e coloridos, cor fixa por situação */
+  .pt-kpi{ border-radius:16px; border-left-width:1px; padding:12px 14px; background:var(--surface); }
+  .pt-kpi .valor{ font-size:30px; }
+  .pt-kpi .rot{ font-weight:600; }
+  .pt-kpi:nth-child(1) .valor{ color:#1f8a4c; } .pt-kpi:nth-child(2) .valor{ color:#1f63b0; }
+  .pt-kpi.perigo .valor{ color:#c9382f; } .pt-kpi.aviso .valor{ color:#a8710a; }
+  body.dark-mode .pt-kpi:nth-child(1) .valor{ color:#4cc27a; } body.dark-mode .pt-kpi:nth-child(2) .valor{ color:#6aa6d8; }
+  body.dark-mode .pt-kpi.perigo .valor{ color:#ff6b5f; }
+  /* Cartão escuro do turno */
+  .turno-hero{ display:block; margin:0 0 12px; }
+  .th-cartao{ background:#17202e; color:#fff; border-radius:20px; padding:16px 16px 14px; }
+  .th-topo small{ display:block; font-size:12px; color:#aab6c8; font-weight:500; }
+  .th-topo strong{ display:block; font-size:24px; font-weight:800; margin-top:2px; }
+  .th-topo em{ display:block; font-style:normal; font-size:13px; color:#aab6c8; margin-top:2px; overflow-wrap:anywhere; }
+  .th-botoes{ display:flex; gap:10px; margin-top:14px; }
+  .th-botoes button{ min-height:52px; font-size:16px; font-weight:700; border:0; text-transform:none; letter-spacing:0; }
+  .th-ffa{ flex:1; background:#e8441a; color:#fff; }
+  .th-fim, .th-ini{ padding:0 16px; background:transparent; color:#fff; border:1.5px solid #3a475b !important; font-size:14px !important; }
+  .th-ini{ background:#1f8a4c; border-color:#1f8a4c !important; }
+  .th-kpis{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:10px; }
+  .th-kpi{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .th-kpi b{ font-family:var(--mono); font-size:28px; line-height:1.1; }
+  .th-kpi span{ font-size:12px; color:var(--muted); font-weight:600; }
+  .th-kpi .perf{ color:#1f8a4c; } .th-kpi .topo{ color:#1f63b0; } .th-kpi .obs{ color:#c9382f; }
+  body.dark-mode .th-kpi .perf{ color:#4cc27a; } body.dark-mode .th-kpi .topo{ color:#6aa6d8; } body.dark-mode .th-kpi .obs{ color:#ff6b5f; }
+  /* o painel antigo repete os mesmos números do cartão: some só o que ficou redundante */
+  #card-painel-turno .pt-kpi:nth-child(1), #card-painel-turno .pt-kpi:nth-child(2), #card-painel-turno .pt-kpi:nth-child(4){ display:none; }
+}
