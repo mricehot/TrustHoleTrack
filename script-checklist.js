@@ -2068,6 +2068,8 @@ function montarResumoLequeWhatsApp(c){
   if(!naoIniciado && pend.length) t += `\n*🟡 PENDENTES PERFILAGEM*\n${pend.join(', ')}\n`;
   if(!naoIniciado && pendT.length) t += `\n*🟡 PENDENTES TOPOGRAFIA*\n${pendT.join(', ')}\n`;
   if(obs.length) t += `\n⛔ *OBSTRUIDOS*\n${obs.join(', ')}\n`;
+  const comAz = fl.filter(f=> f.azimute != null && f.azimute !== '' && !isNaN(Number(f.azimute)));
+  if(comAz.length) t += `\n🧭 *AZIMUTES*\n${comAz.map(f=>'F' + f.numero + ' ' + fmtAzimute(f.azimute) + '°').join(', ')}\n`;
   const notas = blocoNotasFurosWhatsApp([c]); if(notas) t += `\n${notas}\n`;
   const fotosL = blocoFotosFurosWhatsApp([c]); if(fotosL) t += `\n${fotosL}\n`;
   if(c.observacao) t += `\n📝 *OBSERVACAO*\n${semAcento(c.observacao)}\n`;

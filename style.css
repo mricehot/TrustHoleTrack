@@ -2734,3 +2734,6 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
   /* o painel antigo repete os mesmos números do cartão: some só o que ficou redundante */
   #card-painel-turno .pt-kpi:nth-child(1), #card-painel-turno .pt-kpi:nth-child(2), #card-painel-turno .pt-kpi:nth-child(4){ display:none; }
 }
+.ffa-met .ck-met-linha{ justify-content:center; gap:8px; margin:0; }
+.ffa-met .ck-real{ min-height:44px; font-size:.9rem; padding:0 14px; }
+.ffa-met .ck-esp{ font-size:.9rem; }

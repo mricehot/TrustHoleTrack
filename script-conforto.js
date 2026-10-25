@@ -220,6 +220,7 @@ function desenharFuroAFuro(){
       <div class="ffa-num">F${escHtml(String(f.numero))}</div>
       <div class="ffa-st">${obs ? (det ? '💥 Detonado' : '⛔ Obstruído' + (f.obstruidoMotivo ? ' · ' + escHtml(f.obstruidoMotivo) : '')) : (f.perfilado && f.topografado ? '✓ Completo' : f.perfilado ? 'Perfilado · falta topografar' : f.topografado ? 'Topografado · falta perfilar' : 'Pendente')}</div>
     </div>
+    <div class="ffa-met">${(()=>{ if(typeof htmlMetragemFuroChecklist !== 'function') return ''; let h = htmlMetragemFuroChecklist(f) || '<div class="ck-met-linha"></div>'; if(!h.includes('ck-az')) h = h.replace(/<\/div>$/, `<button type="button" class="ck-real ck-az vazio" onclick="pedirAzimuteFuro('${f.id}')">+ azimute</button></div>`); return h; })()}</div>
     <div class="ffa-acoes">
       <button type="button" class="ffa-per ${f.perfilado ? 'on' : ''}" data-a="perf" ${obs ? 'disabled' : lock}>${f.perfilado ? '✓ Perfilado' : 'Perfilado'}</button>
       <button type="button" class="ffa-top ${f.topografado ? 'on' : ''}" data-a="topo" ${obs ? 'disabled' : lock}>${f.topografado ? '✓ Topografado' : 'Topografado'}</button>
