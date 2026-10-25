@@ -2209,13 +2209,46 @@ const metragemAMenos = (real, esp) => Number(esp) > 0 && Number(real) > 0 && (Nu
 const fmtMetCk = n => (Math.round(Number(n)*10)/10).toFixed(1).replace('.', ',');
 function htmlMetragemFuroChecklist(f){
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0, real = Number(f.metragem) > 0 ? Number(f.metragem) : 0;
-  if(!esp && !real && !(f.perfilado || f.obstruido)) return '';
+  const az = (f.azimute != null && f.azimute !== '' && !isNaN(Number(f.azimute))) ? Number(f.azimute) : null;
+  if(!esp && !real && az == null && !(f.perfilado || f.topografado || f.obstruido)) return '';
   const falta = metragemAMenos(real, esp);
   const espTxt = esp ? `<span class="ck-esp">esp. ${fmtMetCk(esp)} m</span>` : '';
   const realTxt = (f.perfilado || f.obstruido)
     ? `<button type="button" class="ck-real ${falta ? 'a-menos' : ''} ${real ? '' : 'vazio'}" onclick="pedirMetragemFuro('${f.id}')" aria-label="F${escHtml(String(f.numero))} metragem real: toque para informar">${real ? 'real ' + fmtMetCk(real) + ' m' : '+ real'}</button>`
     : '';
-  return `<div class="ck-met-linha">${espTxt}${realTxt}</div>`;
+  const azTxt = (az != null || f.perfilado || f.topografado || f.obstruido)
+    ? `<button type="button" class="ck-real ck-az ${az != null ? '' : 'vazio'}" onclick="pedirAzimuteFuro('${f.id}')" aria-label="F${escHtml(String(f.numero))} azimute: toque para informar">${az != null ? 'az. ' + fmtAzimute(az) + '°' : '+ azimute'}</button>`
+    : '';
+  return `<div class="ck-met-linha">${espTxt}${realTxt}${azTxt}</div>`;
+}
+const fmtAzimute = n => (Math.round(Number(n)*10)/10).toString().replace('.', ',');
+function definirAzimuteFuro(id, texto){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const t = String(texto||'').trim().replace(',', '.');
+  const v = t === '' ? null : parseFloat(t);
+  if(v != null && (isNaN(v) || v < 0 || v > 360)){ showToast('Azimute inválido. Use de 0 a 360, ex.: 215,5.', { tipo:'aviso' }); setTimeout(renderChecklist, 0); return; }
+  f.azimute = v;
+  enfileirar('checklist_furos', 'update', { id: f.id, azimute: v });
+  salvarChecklistFurosLocal();
+  setTimeout(renderChecklist, 0);
+}
+function pedirAzimuteFuro(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;margin:0 0 4px;">F${escHtml(String(f.numero))} · azimute</p>
+    <p class="hint" style="margin:0 0 10px;">Em graus, de 0 a 360.</p>
+    <input id="az-val" type="text" inputmode="decimal" enterkeyhint="done" maxlength="6" placeholder="graus, ex.: 215,5" value="${f.azimute != null && f.azimute !== '' ? fmtAzimute(f.azimute) : ''}" style="width:100%;min-height:52px;font-size:1.3rem;text-align:center;">
+    <div class="modal-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="steel" id="az-ok">Salvar</button>
+      <button type="button" class="ghost" id="az-pular">Cancelar</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('az-ok').onclick = ()=>{ const v = el('az-val').value; fechar(); definirAzimuteFuro(id, v); };
+  el('az-pular').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('az-val').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el('az-ok').click(); } });
+  setTimeout(()=>{ try{ el('az-val').focus(); el('az-val').select(); }catch(_){} }, 50);
 }
 function definirMetragemFuroChecklist(id, texto){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
