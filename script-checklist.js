@@ -747,6 +747,11 @@ function montarResumoTurnoWhatsApp(){
   const obstruidos = lequesEsc.flatMap(c=> checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor) && obsNoTurno(f)).sort((a,b)=>nf(a)-nf(b))
     .map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`));
 
+  // leques do realce ainda com furos por fazer (obstruídos ficam de fora)
+  const lequesPendentes = campo => lequesEsc.map(c=>{
+    const n = checklistFurosDoLeque(c.id).filter(f=> !f.obstruido && !f[campo]).length;
+    return n ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ${n} ${n === 1 ? 'furo' : 'furos'}` : '';
+  }).filter(Boolean);
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
   // status geral
   const todosFuros = lequesEsc.flatMap(c=>checklistFurosDoLeque(c.id));
@@ -773,10 +778,7 @@ function montarResumoTurnoWhatsApp(){
       `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
       `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
       `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
-      ...(nObs ? [`Obstruídos: ${nObs}`, ...lequesEsc.filter(c=>c.anelId === a.id).map(c=>{
-        const o = checklistFurosDoLeque(c.id).filter(f=>f.obstruido);
-        return o.length ? `⛔ ${PREFIXO[c.tipo]}${c.numero}: ` + o.map(f=>`F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`).join(', ') : '';
-      }).filter(Boolean)] : []),
+      ...(nObs ? [`Obstruídos: ${nObs}`] : []),
       linhaSep];
   });
   const t = [
@@ -804,9 +806,9 @@ function montarResumoTurnoWhatsApp(){
     '',
     bloco('⚠️', 'Perfuração a menos', menos(false)),
     '',
-    bloco('⚠️', 'Obstruídos', obstruidos).replace('*Obstruídos*', '*Obstruídos* ( rocha/tela )'),
+    bloco('🟡', 'Leques pendentes - Perfilagem', lequesPendentes('perfilado'), '✅'),
     '',
-    bloco('⚠️', 'Obstruídos metragem a menos', menos(true)),
+    bloco('🟡', 'Leques pendentes - Topografia', lequesPendentes('topografado'), '✅'),
     '',
     linhaSep,
     `*Status:*  ${status}`,
