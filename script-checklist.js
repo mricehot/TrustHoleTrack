@@ -751,7 +751,7 @@ function montarResumoTurnoWhatsApp(){
   const lequesPendentes = campo => lequesEsc.map(c=>{
     const todos = checklistFurosDoLeque(c.id), fs = todos.filter(f=> !f.obstruido && !f[campo]);
     if(!fs.length) return '';
-    const iniciado = todos.some(f=> f.perfilado || f.topografado); // furo a furo só em leque iniciado e não concluído
+    const iniciado = todos.some(f=> f[campo]); // furo a furo só se este bloco (perfilagem ou topografia) já começou naquele leque e não terminou
     return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}${iniciado ? ': ' + faixa(fs.map(f=>f.numero)) + ' (' + fs.length + ')' : ' (nao iniciado)'}`;
   }).filter(Boolean);
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
