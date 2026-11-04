@@ -749,8 +749,10 @@ function montarResumoTurnoWhatsApp(){
 
   // leques do realce ainda com furos por fazer (obstruídos ficam de fora)
   const lequesPendentes = campo => lequesEsc.map(c=>{
-    const fs = checklistFurosDoLeque(c.id).filter(f=> !f.obstruido && !f[campo]);
-    return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ${faixa(fs.map(f=>f.numero))} (${fs.length})` : '';
+    const todos = checklistFurosDoLeque(c.id), fs = todos.filter(f=> !f.obstruido && !f[campo]);
+    if(!fs.length) return '';
+    const iniciado = todos.some(f=> f.perfilado || f.topografado); // furo a furo só em leque iniciado e não concluído
+    return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}${iniciado ? ': ' + faixa(fs.map(f=>f.numero)) + ' (' + fs.length + ')' : ' (nao iniciado)'}`;
   }).filter(Boolean);
   const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
   // status geral
