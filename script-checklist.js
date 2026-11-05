@@ -1447,7 +1447,7 @@ restaurarFormChecklist();
 
 // Aviso de equipe errada: marcar um leque que é de outra equipe pede confirmação.
 function equipeDivergente(f, tipo){
-  const minha = (typeof minhaEquipeId === 'function') ? minhaEquipeId() : null;
+  const minha = (typeof equipeDeMarcacao === 'function') ? equipeDeMarcacao() : null;
   if(!minha) return null;
   const c = checklistLeques.find(x=>x.id===f.checklistLequeId); if(!c) return null;
   const dona = tipo === 'perf' ? c.equipePerfId : c.equipeTopoId;
@@ -1490,7 +1490,7 @@ function podeDesmarcar(autor, equipeId){
   if(!autor) return true;
   const eu = (typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '').toLowerCase();
   if(eu && String(autor).toLowerCase() === eu) return true;
-  const minha = (typeof minhaEquipeId === 'function') ? minhaEquipeId() : null;
+  const minha = (typeof equipeDeMarcacao === 'function') ? equipeDeMarcacao() : null;
   return !!(minha && equipeId && minha === equipeId);
 }
 function avisarSoQuemMarcou(autor, equipeId){
@@ -2278,3 +2278,18 @@ function definirMotivoObstrucao(id, motivo){
   if(motivo === 'Detonado' && mudou) setTimeout(()=> animarDetonado(id), 90);
   if(motivo && mudou) showToast(motivo === 'Detonado' ? `F${f.numero}: furo detonado.` : `F${f.numero}: obstruído por ${motivo.toLowerCase()}.`, { tipo:'ok' });
 }
+
+// ---- Seletor "Marcar como equipe" no topo do checklist ----
+function renderSeletorEquipeMarcar(){
+  const box = document.getElementById('ckp-marcar'); if(!box) return;
+  const lista = (typeof equipesDoProjeto === 'function') ? equipesDoProjeto() : [];
+  if(!lista.length){ box.hidden = true; return; }
+  const esc = equipeEscolhidaParaMarcar(), padrao = minhaEquipeId();
+  box.hidden = false;
+  box.dataset.escolhida = esc ? '1' : '0';
+  box.innerHTML = `<label>Marcar como equipe<select aria-label="equipe a quem as marcações são atribuídas" onchange="escolherEquipeParaMarcar(this.value)">
+    <option value="">${padrao ? 'Minha equipe (' + escHtml(nomeDaEquipeId(padrao)) + ')' : 'Sem equipe'}</option>
+    ${lista.filter(e=>e.id !== padrao).map(e=>`<option value="${e.id}" ${e.id === esc ? 'selected' : ''}>${escHtml(e.nome)}</option>`).join('')}
+  </select></label>`;
+}
+aoRenderizarChecklist(renderSeletorEquipeMarcar);

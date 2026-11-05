@@ -2737,3 +2737,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 .ffa-met .ck-met-linha{ justify-content:center; gap:8px; margin:0; }
 .ffa-met .ck-real{ min-height:44px; font-size:.9rem; padding:0 14px; }
 .ffa-met .ck-esp{ font-size:.9rem; }
+.ckp-marcar{ grid-column:1 / -1; }
+.ckp-marcar label{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--muted); }
+.ckp-marcar select{ flex:1; min-height:44px; font-size:15px; font-weight:600; }
+.ckp-marcar[data-escolhida="1"] select{ border-color:var(--amber); box-shadow:0 0 0 2px color-mix(in srgb, var(--amber) 25%, transparent); }

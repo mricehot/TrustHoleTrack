@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l102">
+<link rel="stylesheet" href="style.css?v=l103">
 
 </head>
 <body>
@@ -621,6 +621,7 @@
           <div class="config-body checklist-corpo">
             <div class="checklist-progresso-resumo">
               <div class="ckp-titulo"><b id="checklist-realce-nome">—</b><span id="checklist-realce-leques"></span></div>
+              <div class="ckp-marcar" id="ckp-marcar" hidden></div>
               <div class="ckp-liberar"><button type="button" id="btn-liberar-edicao-ck" title="libera a marcação de furos e leques neste checklist" onclick="leituraAutomatica=false;definirModoLeitura(false)">✏️ Editar <small>toque para liberar a marcação</small></button></div>
               <div class="ckp-acoes"><button type="button" id="btn-imagem-realce" class="ghost btn-status-todos" title="gera o relatório do realce ativo como imagem para mandar no WhatsApp" onclick="if(anelAtivoId) enviarImagemRealce(anelAtivoId); else showToast('Nenhum realce ativo.')">🖼 Relatório em imagem</button><button type="button" class="ghost btn-status-todos btn-plano-checklist" title="abre o PDF do plano de perfuração deste realce" onclick="abrirPlano()">📄 Plano de perfuração</button></div>
               <div class="checklist-progresso-furos">
@@ -871,14 +872,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=l83"></script>
+<script src="script.js?v=l84"></script>
 <script src="script-leques.js?v=l90"></script>
-<script src="script-checklist.js?v=l111"></script>
+<script src="script-checklist.js?v=l112"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l89"></script>
 <script src="script-turno-pdf.js?v=l91"></script>
 <script src="script-telas.js?v=l89"></script>
-<script src="script-sessao.js?v=l93"></script>
+<script src="script-sessao.js?v=l94"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v=l2"></script>
 <script src="script-conforto.js?v=l83"></script>

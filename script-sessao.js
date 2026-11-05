@@ -803,6 +803,21 @@ function minhaEquipeId(){
   if(equipes.length && !equipes.some(e=>e.id === u.equipeId)) return null;
   return u.equipeId;
 }
+// Equipe a quem as marcações do checklist são atribuídas: a escolhida no checklist (neste aparelho) ou, sem escolha, a equipe fixa do usuário.
+const EQUIPE_MARCAR_KEY = 'perfilagem-equipe-marcar-v1';
+function equipeEscolhidaParaMarcar(){
+  try{
+    const id = localStorage.getItem(EQUIPE_MARCAR_KEY) || '';
+    if(id && typeof equipes !== 'undefined' && equipes.some(e=>e.id === id)) return id;
+  }catch(e){}
+  return null;
+}
+function equipeDeMarcacao(){ return equipeEscolhidaParaMarcar() || minhaEquipeId(); }
+function escolherEquipeParaMarcar(id){
+  try{ if(id) localStorage.setItem(EQUIPE_MARCAR_KEY, id); else localStorage.removeItem(EQUIPE_MARCAR_KEY); }catch(e){}
+  if(typeof showToast === 'function') showToast(id ? 'Marcações deste aparelho vão para: ' + nomeDaEquipeId(id) + '.' : 'Marcações voltam para a sua equipe padrão.', { tipo:'ok' });
+  if(typeof renderChecklist === 'function') renderChecklist();
+}
 async function carregarUsuariosEmpresa(){
   if(!usuarioAtual || !navigator.onLine) return;
   try{

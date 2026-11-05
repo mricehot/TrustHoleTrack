@@ -791,7 +791,7 @@ function carimbarAutor(tabela, acao, registro){
   const eu = nomeDoUsuario();
   if(tabela === 'checklist_furos'){
     const f = checklistFuros.find(x=>x.id===registro.id);
-    const eq = (typeof minhaEquipeId === 'function') ? minhaEquipeId() : null; // equipe fixa do usuário
+    const eq = (typeof equipeDeMarcacao === 'function') ? equipeDeMarcacao() : null; // equipe escolhida no checklist ou a fixa do usuário
     if('perfilado' in registro){ registro.perfilado_por = registro.perfilado ? eu : null; if(f) f.perfiladoPor = registro.perfilado ? eu : ''; if(eq && registro.perfilado){ registro.equipe_perfilagem_id = eq; registro.equipe_perfilagem_manual = false; if(f){ f.equipePerfId = eq; f.equipePerfManual = false; } } }
     if('topografado' in registro){ registro.topografado_por = registro.topografado ? eu : null; if(f) f.topografadoPor = registro.topografado ? eu : ''; if(eq && registro.topografado){ registro.equipe_topografia_id = eq; registro.equipe_topografia_manual = false; if(f){ f.equipeTopoId = eq; f.equipeTopoManual = false; } } }
     if('obstruido' in registro){ registro.obstruido_em = registro.obstruido ? new Date().toISOString() : null; if(f) f.obstruidoEm = registro.obstruido_em; registro.obstruido_por = registro.obstruido ? eu : null; if(f) f.obstruidoPor = registro.obstruido ? eu : ''; registro.equipe_obstrucao_id = (registro.obstruido && eq) ? eq : null; if(f) f.equipeObsId = (registro.obstruido && eq) ? eq : null; }
