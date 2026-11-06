@@ -2784,3 +2784,21 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
   .mapa-linha{ border-radius:14px; }
   .mapa-cels i{ width:18px; height:18px; border-radius:5px; }
 }
+@media (max-width:700px){
+  /* filtros do checklist numa linha só */
+  .ck-filtros-linha{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .ck-filtros-linha #checklist-busca{ flex:1 1 0; min-width:0; }
+  .ck-filtros-linha #btn-checklist-selecionar{ flex:none; width:auto; min-height:48px; padding:0 16px; }
+  .ck-filtros-linha #checklist-filtro-local{ flex:1 1 100%; }
+  /* cartões dos leques */
+  .checklist-leque-card{ border-radius:16px; border:1px solid var(--line); background:var(--surface); box-shadow:0 1px 3px rgba(20,30,50,.06); margin-bottom:10px; }
+  .ck-cab{ min-height:68px; }
+  .ck-codigo{ font-size:1.1rem; font-weight:800; }
+  .ck-prog-bar{ height:9px; border-radius:6px; }
+  .ck-prog-bar i{ background:#1f8a4c; border-radius:6px; }
+  .ck-prog-linha.topo .ck-prog-bar i{ background:#1f63b0; }
+  .ck-prog-linha .rot{ font-weight:700; }
+  .ck-prog-linha:not(.topo) .rot{ color:#1f8a4c; } .ck-prog-linha.topo .rot{ color:#1f63b0; }
+  .ck-check input[type=checkbox]{ width:28px; height:28px; border-radius:8px; }
+  .ck-check{ min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center; }
+}
