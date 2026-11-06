@@ -835,6 +835,7 @@ function salvarTurnoSecoes(){ try{ localStorage.setItem(TURNO_SECOES_KEY, JSON.s
 function secaoTurnoRecolhida(chave){
   if(chave in turnoSecoes) return !!turnoSecoes[chave];
   if(chave === 'comunicados') return comunicadosVigentesNoEscopo().length === 0; // vazio: começa recolhido
+  if((chave === 'dados' || chave === 'fotos' || chave === 'inicio') && window.matchMedia && matchMedia('(max-width:700px)').matches) return true; // celular: o essencial aparece sem rolar
   if(chave === 'passagem' || chave === 'exportar') return true; // uso raro: começa recolhido (o resumo no título mostra o essencial)
   return false;
 }
@@ -2288,7 +2289,7 @@ function renderSeletorEquipeMarcar(){
   box.hidden = false;
   box.dataset.escolhida = esc ? '1' : '0';
   box.innerHTML = `<label>Marcar como equipe<select aria-label="equipe a quem as marcações são atribuídas" onchange="escolherEquipeParaMarcar(this.value)">
-    <option value="">${padrao ? 'Minha equipe (' + escHtml(nomeDaEquipeId(padrao)) + ')' : 'Sem equipe'}</option>
+    <option value="">${padrao ? 'Minha equipe (' + escHtml(nomeDaEquipeId(padrao)) + ')' : 'Escolher equipe…'}</option>
     ${lista.filter(e=>e.id !== padrao).map(e=>`<option value="${e.id}" ${e.id === esc ? 'selected' : ''}>${escHtml(e.nome)}</option>`).join('')}
   </select></label>`;
 }
