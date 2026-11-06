@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l106">
+<link rel="stylesheet" href="style.css?v=l107">
 
 </head>
 <body>
@@ -299,6 +299,7 @@
               </select>
               <div class="hint">Escolhendo um projeto, só aparecem (e só nascem) realces daquele projeto. Pra criar ou apagar projetos, use a aba Config.</div>
             </div>
+            <button type="button" id="btn-novo-anel" class="ghost so-gestor btn-novo-anel" onclick="document.getElementById('form-anel').classList.toggle('aberto'); this.setAttribute('aria-expanded', document.getElementById('form-anel').classList.contains('aberto'))" aria-expanded="false">+ Novo realce</button>
             <div class="anel-form so-gestor" id="form-anel">
               <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1 1 100%;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:1 1 200px; min-width:0;">

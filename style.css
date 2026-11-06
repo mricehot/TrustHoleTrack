@@ -2764,3 +2764,23 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
   .ckp-acoes{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .ckp-acoes > button{ min-height:48px; }
 }
+@media (max-width:700px){
+  table.checklist-furos-tabela .ck-met-linha{ gap:6px; flex-wrap:nowrap; align-items:center; }
+  table.checklist-furos-tabela .ck-met-linha .ck-esp{ font-size:.78rem; white-space:nowrap; }
+  table.checklist-furos-tabela .ck-met-linha .ck-real{ min-height:36px; font-size:.78rem; padding:0 8px; white-space:nowrap; }
+  table.checklist-furos-tabela .ck-furo-met td{ padding-top:2px; padding-bottom:8px; }
+}
+.btn-novo-anel{ display:none; }
+@media (max-width:700px){
+  #view-aneis .anel-body{ display:flex; flex-direction:column; }
+  #view-aneis .anel-body > .field .hint{ display:none; }
+  #view-aneis .anel-todos{ order:1; }
+  #view-aneis .anel-list{ order:2; }
+  #view-aneis .btn-novo-anel{ display:block; order:3; width:100%; min-height:48px; margin:12px 0 0; border-style:dashed; font-weight:700; }
+  #view-aneis #form-anel{ order:4; display:none; margin-top:10px; }
+  #view-aneis #form-anel.aberto{ display:flex; }
+  #view-aneis .anel-body > .hint{ order:5; }
+  /* mapa de leques: quadradinhos maiores e cores fixas */
+  .mapa-linha{ border-radius:14px; }
+  .mapa-cels i{ width:18px; height:18px; border-radius:5px; }
+}
