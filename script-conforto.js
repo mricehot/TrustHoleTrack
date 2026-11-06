@@ -72,6 +72,7 @@ function abrirMenuFuro(id){
   el('mf-fechar').onclick = fechar;
   el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
   root.querySelector('.mf-grade').addEventListener('click', e=>{
+    const q = e.target.closest('button[data-i]'); if(q){ ffaIdx = parseInt(q.dataset.i, 10) || 0; desenharFuroAFuro(); return; }
     const b = e.target.closest('button[data-a]'); if(!b || b.disabled) return;
     fechar();
     const a = b.dataset.a;
@@ -216,6 +217,7 @@ function desenharFuroAFuro(){
   if(!r){ r = document.createElement('div'); r.id = 'ffa-root'; document.body.appendChild(r); document.body.classList.add('ffa-aberto'); }
   r.innerHTML = `<div class="ffa" role="dialog" aria-label="Furo a furo">
     <div class="ffa-topo"><button type="button" class="ffa-x" data-a="fechar">✕ Fechar</button><span class="ffa-cod">${escHtml(cod)}</span><span class="ffa-pos">F${ffaIdx+1} de ${lista.length}</span></div>
+    <div class="ffa-tira" role="group" aria-label="Furos do leque">${lista.map((x,i)=>`<button type="button" data-i="${i}" class="ffa-q ${furoDetonado(x) ? 'det' : x.obstruido ? 'obs' : (x.perfilado && x.topografado) ? 'ok' : (x.perfilado || x.topografado) ? 'meio' : ''} ${i === ffaIdx ? 'atual' : ''}" aria-label="F${escHtml(String(x.numero))}">${escHtml(String(x.numero))}</button>`).join('')}</div>
     <div class="ffa-furo ${obs ? (det ? 'det' : 'obs') : (f.perfilado && f.topografado ? 'ok' : '')}">
       <div class="ffa-num">F${escHtml(String(f.numero))}</div>
       <div class="ffa-st">${obs ? (det ? '💥 Detonado' : '⛔ Obstruído' + (f.obstruidoMotivo ? ' · ' + escHtml(f.obstruidoMotivo) : '')) : (f.perfilado && f.topografado ? '✓ Completo' : f.perfilado ? 'Perfilado · falta topografar' : f.topografado ? 'Topografado · falta perfilar' : 'Pendente')}</div>
@@ -224,7 +226,7 @@ function desenharFuroAFuro(){
     <div class="ffa-acoes">
       <button type="button" class="ffa-per ${f.perfilado ? 'on' : ''}" data-a="perf" ${obs ? 'disabled' : lock}>${f.perfilado ? '✓ Perfilado' : 'Perfilado'}</button>
       <button type="button" class="ffa-top ${f.topografado ? 'on' : ''}" data-a="topo" ${obs ? 'disabled' : lock}>${f.topografado ? '✓ Topografado' : 'Topografado'}</button>
-      <button type="button" class="ffa-obs ${obs ? 'on' : ''}" data-a="obs" ${lock}>${obs ? '↩ Liberar furo' : '⛔ Obstruído'}</button>
+      <button type="button" class="ffa-obs ${obs ? 'on' : ''}" data-a="obs" ${lock}>${obs ? '↩ Liberar furo' : 'Obstruído'}</button>
     </div>
     ${obs ? `<div class="ffa-causas">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="${f.obstruidoMotivo === m ? 'on' : ''}" data-m="${m}" ${lock}>${m === 'Detonado' ? '💥 ' : ''}${m}</button>`).join('')}</div>` : ''}
     <div class="ffa-nav">
