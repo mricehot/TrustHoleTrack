@@ -2861,3 +2861,20 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 }
 /* menu da conta (⋮) sempre acima da barra de abas, dos avisos e do furo a furo */
 .menu-mais, .menu-mais.open{ z-index:2600 !important; }
+/* Checklist: ao rolar, só as barras de progresso ficam fixas (antes ficava tudo: nome, equipe, botões e barras) */
+#view-checklist .checklist-progresso-resumo{ position:static; padding:6px 0 0; border-bottom:0; margin:-4px 0 6px; }
+.ckp-barras{ position:sticky; top:0; z-index:40; background:var(--surface); padding:8px 0 8px; margin-top:6px; border-bottom:1px solid var(--line); }
+.ckp-barras .checklist-progresso-furos{ margin:0 0 6px; }
+.ckp-barras .checklist-progresso-furos:last-child{ margin-bottom:0; }
+@media (min-width:701px){
+  .ckp-barras{ top:48px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px 22px; padding:6px 0 8px; }
+  .ckp-barras .checklist-progresso-furos{ margin:0; }
+}
+@media (max-width:700px){
+  .ckp-barras .progress-track{ height:7px; }
+  .ckp-barras .checklist-progresso-furos-topo{ font-size:12px; }
+}
+#view-checklist .checklist-progresso-resumo{ display:contents; }
+#view-checklist .ckp-titulo, #view-checklist .ckp-marcar, #view-checklist .ckp-liberar, #view-checklist .ckp-acoes{ margin-bottom:8px; }
+.ckp-barras .progresso-geral{ grid-column:auto !important; }
+@media (max-width:700px){ .ckp-barras{ top:36px; } }
