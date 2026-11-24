@@ -2310,3 +2310,21 @@ function renderSeletorEquipeMarcar(){
   </select></label>`;
 }
 aoRenderizarChecklist(renderSeletorEquipeMarcar);
+
+// Minimizar o topo do checklist (equipe, relatório, plano): sobram só o nome do realce e as barras
+(function(){
+  const CHAVE='checklist-topo-minimizado-v1';
+  function aplicar(min){
+    const v=document.getElementById('view-checklist'); if(!v) return;
+    v.classList.toggle('ckp-min', !!min);
+    const b=document.getElementById('btn-min-ckp');
+    if(b){ b.textContent = min ? '▼ Expandir' : '▲ Minimizar'; b.setAttribute('aria-expanded', min?'false':'true'); }
+  }
+  function iniciar(){
+    const b=document.getElementById('btn-min-ckp'); if(!b || b.dataset.ok) return; b.dataset.ok='1';
+    let min=false; try{ min=localStorage.getItem(CHAVE)==='1'; }catch(e){}
+    aplicar(min);
+    b.addEventListener('click', ()=>{ min=!min; try{ localStorage.setItem(CHAVE, min?'1':'0'); }catch(e){} aplicar(min); });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
+})();

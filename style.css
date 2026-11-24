@@ -2878,3 +2878,6 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 #view-checklist .ckp-titulo, #view-checklist .ckp-marcar, #view-checklist .ckp-liberar, #view-checklist .ckp-acoes{ margin-bottom:8px; }
 .ckp-barras .progresso-geral{ grid-column:auto !important; }
 @media (max-width:700px){ .ckp-barras{ top:36px; } }
+.btn-min-ckp{ margin-left:auto; flex:none; min-height:32px; padding:4px 10px; font-size:12px; font-weight:600; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); cursor:pointer; }
+.ckp-titulo span{ margin-left:8px; }
+#view-checklist.ckp-min .ckp-marcar, #view-checklist.ckp-min .ckp-liberar, #view-checklist.ckp-min .ckp-acoes{ display:none !important; }
