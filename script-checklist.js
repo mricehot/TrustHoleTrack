@@ -379,7 +379,9 @@ function desfazerLoteChecklist(snapLeques, snapFuros){
     const f = checklistFuros.find(x=>x.id===s.id);
     if(!f) return;
     f.perfilado = s.perfilado; f.perfiladoEm = s.perfiladoEm; f.topografado = s.topografado; f.topografadoEm = s.topografadoEm;
-    enfileirar('checklist_furos', 'update', { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm });
+    const reg = { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm };
+    if('azimuteOk' in s){ f.azimuteOk = !!s.azimuteOk; reg.azimute_ok = f.azimuteOk; }
+    enfileirar('checklist_furos', 'update', reg);
   });
   salvarChecklistLocal();
   salvarChecklistFurosLocal();
@@ -2175,7 +2177,7 @@ function abrirMarcarFaixa(lequeId){
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
     <p style="font-weight:700;">Marcar faixa · ${escHtml(PREFIXO[c.tipo]+c.numero)}</p>
-    <div class="field"><label>O que marcar<select id="faixa-tipo"><option value="perfilado">Perfilado</option><option value="topografado">Topografado</option></select></label></div>
+    <div class="field"><label>O que marcar<select id="faixa-tipo"><option value="perfilado">Perfilado</option><option value="topografado">Topografado</option><option value="azimute">Azimute</option></select></label></div>
     <div class="field"><label>Do furo<select id="faixa-de">${opts(0)}</select></label></div>
     <div class="field" style="margin-bottom:16px;"><label>Até o furo<select id="faixa-ate">${opts(fl.length-1)}</select></label></div>
     <p class="hint" id="faixa-previa"></p>
@@ -2185,7 +2187,7 @@ function abrirMarcarFaixa(lequeId){
     let i = parseInt(el('faixa-de').value,10), j = parseInt(el('faixa-ate').value,10);
     if(i > j) [i,j] = [j,i];
     const tipo = el('faixa-tipo').value;
-    return { tipo, alvo: fl.slice(i, j+1).filter(f=> !f.obstruido && !(tipo === 'perfilado' ? f.perfilado : f.topografado)), total: j-i+1 };
+    return { tipo, alvo: fl.slice(i, j+1).filter(f=> !f.obstruido && !(tipo === 'perfilado' ? f.perfilado : tipo === 'azimute' ? furoTemAzimute(f) : f.topografado)), total: j-i+1 };
   };
   const previa = ()=>{ const r = faixa(); el('faixa-previa').textContent = r.alvo.length ? `Vai marcar ${r.alvo.length} furo(s): ${r.alvo.map(f=>'F'+f.numero).join(', ')}.` : 'Nenhum furo a marcar nessa faixa (já marcados ou obstruídos).'; };
   ['faixa-tipo','faixa-de','faixa-ate'].forEach(id=> el(id).addEventListener('change', previa));
@@ -2200,15 +2202,16 @@ function aplicarFaixa(lequeId, tipo, alvo){
   const agora = new Date().toISOString();
   const snap = [];
   alvo.forEach(f=>{
-    snap.push({ id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm });
-    if(tipo === 'perfilado'){ f.perfilado = true; f.perfiladoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, perfilado:true, perfilado_em:agora }); }
+    snap.push({ id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm, azimuteOk:f.azimuteOk });
+    if(tipo === 'azimute'){ f.azimuteOk = true; enfileirar('checklist_furos', 'update', { id:f.id, azimute_ok:true }); }
+    else if(tipo === 'perfilado'){ f.perfilado = true; f.perfiladoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, perfilado:true, perfilado_em:agora }); }
     else { f.topografado = true; f.topografadoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, topografado:true, topografado_em:agora }); }
   });
-  sincronizarLequePerfilado(lequeId);
+  if(tipo !== 'azimute') sincronizarLequePerfilado(lequeId);
   vibrarCurto(10);
   salvarChecklistFurosLocal();
   renderChecklist();
-  showToast(`${alvo.length} furo(s) marcados como ${tipo === 'perfilado' ? 'perfilados' : 'topografados'}.`, { acaoLabel:'Desfazer', onAcao: ()=> desfazerLoteChecklist([], snap) });
+  showToast(`${alvo.length} furo(s) marcados como ${tipo === 'perfilado' ? 'perfilados' : tipo === 'azimute' ? 'com azimute' : 'topografados'}.`, { acaoLabel:'Desfazer', onAcao: ()=> desfazerLoteChecklist([], snap) });
 }
 
 // Motivo da obstrução: um toque (Rocha, Tela, Água, Desvio) logo depois de obstruir o furo.
