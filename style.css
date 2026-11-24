@@ -2881,3 +2881,12 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .btn-min-ckp{ margin-left:auto; flex:none; min-height:32px; padding:4px 10px; font-size:12px; font-weight:600; background:transparent; border:1px solid var(--line); border-radius:8px; color:var(--muted); cursor:pointer; }
 .ckp-titulo span{ margin-left:8px; }
 #view-checklist.ckp-min .ckp-marcar, #view-checklist.ckp-min .ckp-liberar, #view-checklist.ckp-min .ckp-acoes{ display:none !important; }
+.progress-fill.fill-az{ background:#8a5cc2; }
+@media (min-width:701px){ .ckp-barras{ grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px 16px; } }
+@media (min-width:701px){ .ckp-barras .progresso-geral small{ display:none; } }
+@media (max-width:700px){
+  .ckp-barras{ display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; padding:6px 0 6px; }
+  .ckp-barras .checklist-progresso-furos-topo{ font-size:11px; gap:4px; }
+  .ckp-barras .progresso-geral small{ display:none; }
+  .ckp-barras .progress-track{ height:6px; }
+}

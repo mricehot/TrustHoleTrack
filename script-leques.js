@@ -1186,6 +1186,14 @@ function renderChecklistBase(){
     barraTopo.style.width = percentual + '%';
   }
 
+  const textoAz = el('checklist-progresso-az-texto'), barraAz = el('checklist-progresso-az-barra');
+  if(textoAz && barraAz){
+    const totAz = todosFurosDoRealce.length, feitosAz = todosFurosDoRealce.filter(f=>typeof furoTemAzimute==='function' ? furoTemAzimute(f) : false).length;
+    const pctAz = totAz > 0 ? Math.round((feitosAz / totAz) * 100) : 0;
+    textoAz.textContent = `${feitosAz}/${totAz} · ${pctAz}%`;
+    barraAz.style.width = pctAz + '%';
+  }
+
   renderChecklistPorEquipe(todosFurosDoRealce);
 
   const detAdicionar = el('checklist-adicionar');

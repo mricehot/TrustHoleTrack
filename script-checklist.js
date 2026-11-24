@@ -1210,7 +1210,7 @@ function animarEntradaDaAba(viewId){
       const alvo = b.style.width; if(!alvo || alvo === '0%' || alvo === '0px') return;
       b.animate([{ width:'0%' }, { width:alvo }], { duration:b.matches('.ck-prog-bar i') ? 1100 : 650, delay: Math.min(i++, 14) * 25, easing:b.matches('.ck-prog-bar i') ? 'cubic-bezier(.4,0,.85,.55)' : 'cubic-bezier(.2,.7,.2,1)', fill:'backwards' });
     });
-    raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor, .pt-kpi .valor').forEach(n=> contarNumeros(n, 650));
+    raiz.querySelectorAll('#checklist-progresso-furos-texto, #checklist-progresso-topo-texto, #checklist-progresso-az-texto, .ck-prog-linha .num, .infografico-kpi .valor, .equipe-valor, .pt-kpi .valor').forEach(n=> contarNumeros(n, 650));
   }catch(e){}
 }
 // 2) Leque novo desliza para dentro; ao mover para cima/baixo os cards trocam de lugar suavemente (FLIP).
