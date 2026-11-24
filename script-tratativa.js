@@ -74,3 +74,21 @@ function renderTratativa(){
 }
 aoRenderizarTudo(renderTratativa);
 aoRenderizarChecklist(renderTratativa);
+
+// Número na aba Tratamento: leques prontos para tratar (perfilados + topografados, ainda não tratados)
+// nos realces favoritados (ou no ativo, se não houver favoritos).
+function atualizarContadorAbaTratamento(){
+  const aba = document.querySelector('.tab-item[data-view="perfilagem"]'); if(!aba) return;
+  let n = 0;
+  try{
+    const ids = new Set(realcesDaTratativa().lista.map(a=>a.id));
+    n = checklistLeques.filter(c=>ids.has(c.anelId)).filter(c=>estadoTratativaLeque(c).pronto).length;
+  }catch(e){}
+  let sel = aba.querySelector('.tab-badge');
+  if(!sel){ sel = document.createElement('span'); sel.className = 'tab-badge tab-badge-trat'; aba.querySelector('.tab-icon').appendChild(sel); }
+  sel.textContent = n > 99 ? '99+' : String(n);
+  sel.hidden = n === 0;
+  aba.setAttribute('aria-label', n ? `Tratamento, ${n} leque(s) pronto(s) para tratar` : 'Tratamento');
+}
+aoRenderizarTudo(atualizarContadorAbaTratamento);
+aoRenderizarChecklist(atualizarContadorAbaTratamento);

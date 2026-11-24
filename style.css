@@ -2890,3 +2890,4 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
   .ckp-barras .progresso-geral small{ display:none; }
   .ckp-barras .progress-track{ height:6px; }
 }
+.tab-badge.tab-badge-trat{ background:#0f7d78; }
