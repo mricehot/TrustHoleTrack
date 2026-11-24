@@ -284,7 +284,7 @@ function aoMudarLequeTempoReal(p){
     const novo = mapChecklistLeque(row);
     const atual = checklistLeques.find(x=>x.id===row.id);
     if(!atual){ checklistLeques.push(novo); salvarChecklistLocal(); renderChecklistSeguro(); return; }
-    const mudou = atual.perfilado !== novo.perfilado || atual.observacao !== novo.observacao || (atual.localizacao||'') !== (novo.localizacao||'') || atual.ordem !== novo.ordem || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
+    const mudou = !!atual.tratado !== !!novo.tratado || atual.perfilado !== novo.perfilado || atual.observacao !== novo.observacao || (atual.localizacao||'') !== (novo.localizacao||'') || atual.ordem !== novo.ordem || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
     if(!mudou) return;
     const perfMudou = atual.perfilado !== novo.perfilado;
     Object.assign(atual, novo);

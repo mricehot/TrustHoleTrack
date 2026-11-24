@@ -262,7 +262,7 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-est="${est}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[est]}">
+    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-id="${c.id}" data-est="${est}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[est]}">
       ${detonado ? '<span class="ck-brasas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' : ''}
       ${leque100(furos) ? '<span class="ck-raios" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
@@ -275,6 +275,7 @@ function htmlCardChecklist(c, agrupado){
           : `<span class="ck-obstr" title="furos obstruídos neste leque" aria-label="${obstr} furo(s) obstruído(s)">⛔ ${obstr}</span>`) : ''}
       </div>
       ${est === 'ok' ? '<span class="ck-selo-ok" aria-label="leque completo" title="leque completo">✓</span>' : ''}
+      ${typeof htmlTratadoLeque === 'function' ? htmlTratadoLeque(c) : ''}
       ${resumo}
       ${corpo}
     </div>`;

@@ -2802,3 +2802,46 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
   .ck-check input[type=checkbox]{ width:28px; height:28px; border-radius:8px; }
   .ck-check{ min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center; }
 }
+
+/* ===== Tratativa dos dados (aba Perfilagem) ===== */
+#view-perfilagem.com-tratativa > :not(#tratativa-root){ display:none !important; }
+#tratativa-root{ display:block; }
+.trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
+.trat-topo h2{ margin:0; font-size:1.25rem; }
+.trat-badge{ background:#fde9e2; color:#b23511; border-radius:999px; padding:6px 12px; font-weight:700; font-size:13px; }
+.trat-badge.nada{ background:var(--surface-2); color:var(--muted); }
+.trat-dica{ margin-bottom:10px; }
+.trat-vazio{ padding:24px; text-align:center; color:var(--muted); }
+.trat-card{ background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(20,30,50,.06); }
+.trat-card > header{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.trat-card > header b{ display:block; font-size:1.05rem; overflow-wrap:anywhere; }
+.trat-card > header small{ color:var(--muted); font-weight:600; }
+.trat-card > header button{ min-height:44px; white-space:nowrap; }
+.trat-linha{ display:grid; grid-template-columns:118px minmax(0,1fr) 52px; align-items:center; gap:8px; margin:7px 0; font-size:13px; }
+.trat-rot{ display:flex; align-items:center; gap:7px; font-weight:700; }
+.trat-rot i{ font-style:normal; width:22px; height:22px; border-radius:50%; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:12px; flex:none; }
+.trat-bar{ height:10px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line); overflow:hidden; }
+.trat-bar i{ display:block; height:100%; border-radius:6px; }
+.trat-linha b{ font-family:var(--mono); text-align:right; }
+.trat-prontos{ margin:12px 0 4px; border:2px solid #e8441a; border-radius:14px; padding:10px; background:color-mix(in srgb, #e8441a 7%, transparent); }
+.trat-prontos-t{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+.trat-prontos-t button{ min-height:40px; }
+.trat-pronto{ display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px dashed var(--line); }
+.trat-pronto:first-of-type{ border-top:0; }
+.trat-pronto span{ flex:1; font-size:13px; color:var(--muted); }
+.trat-pronto em{ color:#a8710a; font-style:normal; font-weight:700; }
+.trat-cod{ min-height:44px; min-width:64px; font-family:var(--mono); font-weight:800; border-radius:12px; border:2px solid var(--line); background:var(--surface); }
+.trat-pronto .steel{ min-height:44px; padding:0 16px; }
+.trat-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.trat-chip{ min-height:38px; padding:0 12px; border-radius:12px; border:2px solid var(--line); background:var(--surface); font:700 13px var(--mono); color:var(--muted); }
+.trat-chip.parcial{ border-color:#e8b04a; color:var(--text); }
+.trat-chip.pronto{ background:#e8441a; border-color:#e8441a; color:#fff; }
+.trat-chip.tratado{ background:#0f7d78; border-color:#0f7d78; color:#fff; }
+/* selo no cartão do leque do checklist */
+.trat-faixa{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 10px; padding:8px 10px; border-radius:12px; font-weight:700; font-size:13px; }
+.trat-faixa.pronto{ background:#fde9e2; color:#b23511; border:1px solid #e8441a; }
+.trat-faixa.ok{ background:#d9f1ef; color:#0b5f5b; }
+.trat-faixa button{ min-height:40px; padding:0 14px; flex:none; }
+/* na Tratativa os contadores e o caminho de leque da medição antiga não se aplicam */
+body[data-view="perfilagem"] .readout, body[data-view="perfilagem"] #breadcrumb{ display:none; }
+body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, body.modo-leitura .trat-prontos-t button{ display:none !important; }
