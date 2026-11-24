@@ -1369,7 +1369,7 @@ async function puxarDoChecklist(silencioso){
       }
     }
     ajustes.forEach(({ f, mud })=> enfileirar('furos', 'update', Object.assign({ id: f.id }, mud)));
-    showToast(`Perfilagem atualizada pelo checklist: ${novosLeques.length} leque(s), ${novosFuros.length} furo(s) novos${ajustes.length ? ', ' + ajustes.length + ' ajuste(s)' : ''}. Falta só preencher as metragens.`);
+    if(document.body.dataset.view !== "perfilagem") showToast(`Perfilagem atualizada pelo checklist: ${novosLeques.length} leque(s), ${novosFuros.length} furo(s) novos${ajustes.length ? ', ' + ajustes.length + ' ajuste(s)' : ''}. Falta só preencher as metragens.`);
   }finally{ puxandoChecklist = false; }
 }
 

@@ -2829,11 +2829,17 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 .trat-pronto{ display:flex; align-items:center; gap:10px; padding:6px 0; border-top:1px dashed var(--line); }
 .trat-pronto:first-of-type{ border-top:0; }
 .trat-pronto span{ flex:1; font-size:13px; color:var(--muted); }
-.trat-pronto em{ color:#a8710a; font-style:normal; font-weight:700; }
-.trat-cod{ min-height:44px; min-width:64px; font-family:var(--mono); font-weight:800; border-radius:12px; border:2px solid var(--line); background:var(--surface); }
+.trat-pronto span{ display:flex; flex-direction:column; gap:2px; color:var(--text); font-weight:600; }
+.trat-pronto small{ font-size:12px; font-weight:600; color:var(--muted); }
+.trat-pronto small.az-falta{ color:#c78a14; }
+.trat-leques-t{ margin-top:14px; font-size:13px; font-weight:700; color:var(--muted); }
+.trat-leg{ display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; font-size:12px; color:var(--muted); }
+.trat-leg i{ display:inline-block; width:12px; height:12px; border-radius:4px; margin-right:5px; vertical-align:-2px; border:2px solid var(--line); }
+.trat-leg .l-parcial{ border-color:#e8b04a; } .trat-leg .l-pronto{ background:#e8441a; border-color:#e8441a; } .trat-leg .l-tratado{ background:#0f7d78; border-color:#0f7d78; }
+.trat-cod{ color:var(--text); min-height:44px; min-width:64px; font-family:var(--mono); font-weight:800; border-radius:12px; border:2px solid var(--line); background:var(--surface); }
 .trat-pronto .steel{ min-height:44px; padding:0 16px; }
 .trat-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-.trat-chip{ min-height:38px; padding:0 12px; border-radius:12px; border:2px solid var(--line); background:var(--surface); font:700 13px var(--mono); color:var(--muted); }
+.trat-chip{ min-height:40px; padding:0 12px; border-radius:12px; border:2px solid var(--line); background:var(--surface); font:700 13px var(--mono); color:var(--muted); }
 .trat-chip.parcial{ border-color:#e8b04a; color:var(--text); }
 .trat-chip.pronto{ background:#e8441a; border-color:#e8441a; color:#fff; }
 .trat-chip.tratado{ background:#0f7d78; border-color:#0f7d78; color:#fff; }
