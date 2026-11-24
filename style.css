@@ -2859,3 +2859,5 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
   .ck-prog-linha.az .ck-prog-bar i{ background:#8a5cc2; }
   table.checklist-furos-tabela th, table.checklist-furos-tabela td{ padding-left:4px; padding-right:4px; }
 }
+/* menu da conta (⋮) sempre acima da barra de abas, dos avisos e do furo a furo */
+.menu-mais, .menu-mais.open{ z-index:2600 !important; }
