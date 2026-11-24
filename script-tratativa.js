@@ -4,7 +4,7 @@ function estadoTratativaLeque(c){
   const fs = checklistFurosDoLeque(c.id), uteis = fs.filter(f=>!f.obstruido);
   const tem = uteis.length > 0;
   const perf = tem && uteis.every(f=>f.perfilado), topo = tem && uteis.every(f=>f.topografado);
-  const semAz = uteis.filter(f=> f.azimute == null || f.azimute === '' || isNaN(Number(f.azimute)));
+  const semAz = uteis.filter(f=> !furoTemAzimute(f));
   const az = tem && semAz.length === 0;
   const tratado = !!c.tratado;
   return { c, tem, uteis: uteis.length, perf, topo, az, semAz: semAz.length, tratado, pronto: tem && perf && topo && !tratado,

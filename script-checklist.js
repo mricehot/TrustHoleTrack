@@ -172,10 +172,12 @@ function htmlCardChecklist(c, agrupado){
   const caixa = checklistModoSelecao
     ? `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" class="ck-sel" ${sel ? 'checked' : ''} onchange="alternarSelecaoLeque('${c.id}')" aria-label="selecionar ${codigo}"></label>`
     : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} ${furos.length ? 'disabled' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="${furos.length ? codigo + ' perfilado (automático)' : 'marcar ' + codigo + ' como perfilado'}" title="${furos.length ? 'automático: marca sozinho quando todos os furos estão perfilados' : 'marcar leque como perfilado'}"></label>`;
+  const azs = furos.filter(furoTemAzimute).length;
   const progresso = furos.length ? `
       <div class="ck-progresso">
         <div class="ck-prog-linha"><span class="rot ic ic-perf" title="perfilado" aria-label="perfilado">Per.</span><span class="ck-prog-bar"><i style="width:${pct(feitos)}%"></i></span><span class="num">${feitos===furos.length ? '✓' : ''}${feitos}/${furos.length}</span></div>
         <div class="ck-prog-linha topo"><span class="rot ic ic-topo" title="topografado" aria-label="topografado">Top.</span><span class="ck-prog-bar"><i style="width:${pct(topo)}%"></i></span><span class="num">${topo===furos.length ? '✓' : ''}${topo}/${furos.length}</span></div>
+        <div class="ck-prog-linha az"><span class="rot ic ic-az" title="azimute" aria-label="azimute">Az.</span><span class="ck-prog-bar"><i style="width:${pct(azs)}%"></i></span><span class="num">${azs===furos.length ? '✓' : ''}${azs}/${furos.length}</span></div>
       </div>`
     : `<div class="ck-progresso"><span class="ck-sem-furos">sem furos ainda</span></div>`;
   const local = (c.localizacao||'').trim();
@@ -189,20 +191,21 @@ function htmlCardChecklist(c, agrupado){
   if(expandido){
     const tabela = furos.length === 0 ? '<div class="hint">Nenhum furo nesse leque do checklist ainda.</div>' : `
           <table class="checklist-furos-tabela">
-            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">Obs.</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
+            <thead><tr><th>Furo</th><th title="perfilado"><span class="ic ic-perf" aria-hidden="true">Per.</span><span class="sr-only">Perfilado</span></th><th title="topografado"><span class="ic ic-topo" aria-hidden="true">Top.</span><span class="sr-only">Topografado</span></th><th title="azimute lançado"><span class="ic ic-az" aria-hidden="true">Az.</span><span class="sr-only">Azimute</span></th><th title="obstruído (rocha ou tela)"><span class="ic ic-obs" aria-hidden="true">Obs.</span><span class="sr-only">Obstruído</span></th><th></th></tr></thead>
             <tbody>
               ${furos.map(f=>`
                 <tr class="${f.perfilado ? 'feito' : ''} ${f.obstruido ? 'obstruido' : ''}">
                   <td><button type="button" class="ck-furo-num ${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? 'excecao' : ''}" onclick="alternarEquipeFuro('${f.id}')" aria-expanded="${furosComEquipeAberta.has(f.id)}" title="equipe deste furo (toque para alterar)">F${f.numero}${((c.equipePerfId && f.equipePerfId && f.equipePerfId !== c.equipePerfId)||(c.equipeTopoId && f.equipeTopoId && f.equipeTopoId !== c.equipeTopoId)) ? '<i aria-label="equipe diferente do leque">●</i>' : ''}</button>${htmlEtiquetaEquipeFuro(f)}${f.obstruido && f.obstruidoMotivo ? `<small class="ck-motivo">${escHtml(f.obstruidoMotivo)}</small>` : ''}</td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.perfilado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuro('${f.id}')" title="perfilado" aria-label="F${f.numero} perfilado"></td>
                   <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" ${f.topografado ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroTopografado('${f.id}')" title="topografado" aria-label="F${f.numero} topografado"></td>
+                  <td class="${f.obstruido ? 'bloq' : ''}"><input type="checkbox" class="chk-az" ${furoTemAzimute(f) ? 'checked' : ''} ${f.obstruido ? 'disabled' : ''} onchange="toggleChecklistFuroAzimute('${f.id}')" title="azimute lançado" aria-label="F${f.numero} azimute"></td>
                   <td><input type="checkbox" class="chk-obstruido ${furoDetonado(f) ? 'det' : ''}" ${f.obstruido ? 'checked' : ''} onchange="definirObstrucaoChecklistFuro('${f.id}', this.checked ? '${OBSTRUIDO_VALOR}' : '')" title="${furoDetonado(f) ? 'furo detonado' : f.obstruido ? 'obstruído por ' + escHtml((f.obstruidoMotivo || 'causa não informada').toLowerCase()) : 'furo obstruído (rocha, tela ou detonado)'}" aria-label="F${f.numero} obstruído"></td>
                   <td class="ck-acoes-furo">${(f.fotoUrl || fotosPendentes.has(f.id)) ? `<button type="button" class="icon icon-foto ${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'tem' : ''}" onclick="${(f.fotoUrl || fotosPendentes.has(f.id)) ? 'verFotoFuro' : 'tirarFotoFuro'}('${f.id}')" title="${fotosPendentes.has(f.id) ? 'foto guardada no aparelho, aguardando sinal' : f.fotoUrl ? 'ver foto do furo' : 'tirar foto do furo'}" aria-label="foto de F${f.numero}">${fotosPendentes.has(f.id) ? '⏳' : '📷'}</button>` : ''}<button type="button" class="icon icon-nota ${f.observacao ? 'tem' : ''}" onclick="editarObservacaoFuro('${f.id}')" title="${f.observacao ? 'editar anotação' : 'anotar neste furo'}" aria-label="anotação de F${f.numero}">✎</button><button type="button" class="icon icon-remover so-gestor" onclick="removerChecklistFuro('${f.id}')" title="remover furo" aria-label="remover F${f.numero}">✕</button></td>
                 </tr>
-                ${(()=>{ const m = htmlMetragemFuroChecklist(f); return m ? `<tr class="ck-furo-met"><td colspan="5">${m}</td></tr>` : ''; })()}
-                ${(f.id === motivoPendenteId && f.obstruido) ? `<tr class="ck-furo-motivo"><td colspan="5"><span>Causa da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : ''}
-                ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="5"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
-                ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="5">
+                ${(()=>{ const m = htmlMetragemFuroChecklist(f); return m ? `<tr class="ck-furo-met"><td colspan="6">${m}</td></tr>` : ''; })()}
+                ${(f.id === motivoPendenteId && f.obstruido) ? `<tr class="ck-furo-motivo"><td colspan="6"><span>Causa da obstrução de F${escHtml(String(f.numero))}:</span><div class="ck-motivos">${MOTIVOS_OBSTRUCAO.map(m=>`<button type="button" class="ck-chip" onclick="definirMotivoObstrucao('${f.id}','${m}')">${m}</button>`).join('')}<button type="button" class="ghost" onclick="definirMotivoObstrucao('${f.id}','')">Pular</button></div></td></tr>` : ''}
+                ${f.observacao ? `<tr class="ck-furo-nota"><td colspan="6"><span>📝 ${escHtml(f.observacao)}</span></td></tr>` : ''}
+                ${furosComEquipeAberta.has(f.id) ? `<tr class="ck-furo-eq"><td colspan="6">
                   <label class="so-gestor">Perfilagem<select onchange="definirEquipeFuro('${f.id}','perf',this.value)" aria-label="F${f.numero} equipe da perfilagem">${htmlOpcoesEquipe(f.equipePerfId,'Igual ao leque')}</select></label>
                   <label class="so-gestor">Topografia<select onchange="definirEquipeFuro('${f.id}','topo',this.value)" aria-label="F${f.numero} equipe da topografia">${htmlOpcoesEquipe(f.equipeTopoId,'Igual ao leque')}</select></label>
                 </td></tr>` : ''}
@@ -2229,14 +2232,26 @@ function htmlMetragemFuroChecklist(f){
     : '';
   return `<div class="ck-met-linha">${espTxt}${realTxt}${azTxt}</div>`;
 }
+const furoTemAzimute = f => !!f.azimuteOk || (f.azimute != null && f.azimute !== '' && !isNaN(Number(f.azimute)));
+function toggleChecklistFuroAzimute(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  if(f.obstruido){ renderChecklist(); return; }
+  const vaiMarcar = !furoTemAzimute(f);
+  f.azimuteOk = vaiMarcar;
+  const reg = { id: f.id, azimute_ok: vaiMarcar };
+  if(!vaiMarcar && f.azimute != null){ f.azimute = null; reg.azimute = null; }
+  vibrarCurto(10);
+  enfileirar('checklist_furos', 'update', reg);
+  salvarChecklistFurosLocal(); renderChecklist();
+}
 const fmtAzimute = n => (Math.round(Number(n)*10)/10).toString().replace('.', ',');
 function definirAzimuteFuro(id, texto){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
   const t = String(texto||'').trim().replace(',', '.');
   const v = t === '' ? null : parseFloat(t);
   if(v != null && (isNaN(v) || v < 0 || v > 360)){ showToast('Azimute inválido. Use de 0 a 360, ex.: 215,5.', { tipo:'aviso' }); setTimeout(renderChecklist, 0); return; }
-  f.azimute = v;
-  enfileirar('checklist_furos', 'update', { id: f.id, azimute: v });
+  f.azimute = v; f.azimuteOk = v != null;
+  enfileirar('checklist_furos', 'update', { id: f.id, azimute: v, azimute_ok: v != null });
   salvarChecklistFurosLocal();
   setTimeout(renderChecklist, 0);
 }

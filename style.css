@@ -2851,3 +2851,11 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 /* na Tratativa os contadores e o caminho de leque da medição antiga não se aplicam */
 body[data-view="perfilagem"] .readout, body[data-view="perfilagem"] #breadcrumb{ display:none; }
 body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, body.modo-leitura .trat-prontos-t button{ display:none !important; }
+.ic-az{ color:#8a5cc2; }
+.ck-prog-linha.az .ck-prog-bar i{ background:#8a5cc2; }
+.chk-az{ accent-color:#8a5cc2; }
+@media (max-width:700px){
+  .ck-prog-linha.az .rot{ color:#8a5cc2; }
+  .ck-prog-linha.az .ck-prog-bar i{ background:#8a5cc2; }
+  table.checklist-furos-tabela th, table.checklist-furos-tabela td{ padding-left:4px; padding-right:4px; }
+}

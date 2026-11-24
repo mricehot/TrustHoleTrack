@@ -260,7 +260,7 @@ function aoMudarFuroTempoReal(p){
     if(atual.perfilado !== novo.perfilado) mudancas.push({ por: novo.perfiladoPor, txt: novo.perfilado ? 'perfilado' : 'desmarcou perfilado' });
     if(atual.topografado !== novo.topografado) mudancas.push({ por: novo.topografadoPor, txt: novo.topografado ? 'topografado' : 'desmarcou topografado' });
     if((atual.obstruido||'') !== (novo.obstruido||'')) mudancas.push({ por: novo.obstruidoPor, txt: novo.obstruido ? 'obstruído' : 'liberado' });
-    const metrDiff = atual.metragem !== novo.metragem || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
+    const metrDiff = atual.metragem !== novo.metragem || (atual.azimute ?? null) !== (novo.azimute ?? null) || !!atual.azimuteOk !== !!novo.azimuteOk || (atual.equipePerfId||null) !== (novo.equipePerfId||null) || (atual.equipeTopoId||null) !== (novo.equipeTopoId||null);
     if(!mudancas.length && !metrDiff) return; // eco da minha própria gravação
     Object.assign(atual, novo);
     salvarChecklistFurosLocal();
