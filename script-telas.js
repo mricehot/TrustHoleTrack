@@ -1035,8 +1035,28 @@ function renderInfografico(){
   const tagEscopo = el('infografico-escopo-tag');
   if(tagEscopo) tagEscopo.textContent = configApp.projetoAtivo ? `projeto: ${configApp.projetoAtivo}` : 'todos os projetos';
 
+  renderChipsProjetoInfo();
   renderProdutividadeEquipes(); // já atualiza o resumo (KPIs e gráficos) no fim
 }
+
+// Troca rápida de projeto: um toque, sem ir até Config.
+function renderChipsProjetoInfo(){
+  const box = el('info-projetos'); if(!box) return;
+  const nomes = (typeof projetos !== 'undefined' ? projetos : []).map(p=>p.nome);
+  if(nomes.length < 1){ box.innerHTML = ''; return; }
+  const atual = configApp.projetoAtivo || '';
+  const chip = (v, txt)=> `<button type="button" class="chip info-chip${v===atual?' active':''}" data-projeto="${escHtml(v)}" aria-pressed="${v===atual}">${escHtml(txt)}</button>`;
+  box.innerHTML = chip('', 'Todos') + nomes.map(n=>chip(n,n)).join('');
+}
+document.addEventListener('click', ev=>{
+  const b = ev.target.closest && ev.target.closest('.info-chip'); if(!b) return;
+  configApp.projetoAtivo = b.dataset.projeto || '';
+  salvarConfigLocal();
+  const sel = el('anel-projeto-ativo'); if(sel) sel.value = configApp.projetoAtivo;
+  if(typeof renderAneisMenu === 'function') renderAneisMenu();
+  if(typeof preencherSelectsDeProjeto === 'function') preencherSelectsDeProjeto();
+  renderAll();
+});
 
 function periodoMetrosInfografico(){
   let n = 7; try{ n = Number(localStorage.getItem('info-metros-dias')) === 14 ? 14 : 7; }catch(e){}

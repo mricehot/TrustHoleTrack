@@ -2916,3 +2916,7 @@ body.modo-leitura .trat-linha-tr .ghost{ display:none !important; }
 .nota-acoes{ display:flex; gap:6px; flex-wrap:wrap; } .nota-acoes .ghost{ min-height:42px; padding:0 12px; font-size:13px; text-transform:none; }
 .nota-acoes .perigo{ color:#c9382f; }
 body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !important; }
+
+/* Infográfico: troca rápida de projeto */
+.info-projetos{ margin:0 0 12px; }
+.info-projetos .info-chip{ width:auto; padding:10px 16px; min-height:44px; font-family:inherit; font-size:14px; }
