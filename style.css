@@ -2774,7 +2774,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 }
 
 /* ===== Tratativa dos dados (aba Perfilagem) ===== */
-#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root){ display:none !important; }
+#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root):not(#notas-root){ display:none !important; }
 #tratativa-root{ display:block; }
 .trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
 .trat-topo h2{ margin:0; font-size:1.25rem; }
@@ -2897,3 +2897,30 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .trat-linha-tr span{ flex:1; font-size:12px; color:var(--muted); min-width:0; }
 .trat-linha-tr .ghost{ min-height:40px; padding:0 10px; font-size:13px; text-transform:none; white-space:nowrap; }
 body.modo-leitura .trat-linha-tr .ghost{ display:none !important; }
+
+/* ---- Anotações de tratamento ---- */
+#notas-root{ margin:18px 0 28px; }
+.nota-topo{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.nota-topo h2{ margin:0; font-size:18px; }
+.nota-add{ width:100%; min-height:48px; margin-bottom:10px; font-weight:600; background:var(--surface); color:var(--text); border:1px dashed var(--steel); border-radius:12px; cursor:pointer; }
+.nota-form{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; }
+.nota-form textarea{ width:100%; min-height:140px; resize:vertical; }
+.nota-btns{ display:flex; gap:8px; margin-top:6px; } .nota-btns button{ min-height:46px; flex:1; }
+.nota-busca{ width:100%; min-height:46px; margin-bottom:8px; }
+.nota-chips, .nota-tipos{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.nota-chip{ min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-weight:600; font-size:13px; cursor:pointer; text-transform:none; letter-spacing:0; }
+.nota-chip small{ color:var(--muted); font-weight:500; }
+.nota-chip.on{ background:#0f7d78; border-color:#0f7d78; color:#fff; } .nota-chip.on small{ color:#d9f2f0; }
+.nota{ background:var(--surface); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+.nota.fixada{ border-color:#0f7d78; }
+.nota-cab{ width:100%; display:flex; align-items:center; gap:10px; min-height:52px; padding:8px 12px; background:transparent; border:0; color:var(--text); text-align:left; cursor:pointer; font-size:15px; text-transform:none; letter-spacing:0; }
+.nota-cab b{ flex:1; min-width:0; overflow-wrap:anywhere; font-weight:700; }
+.nota-seta{ color:var(--muted); }
+.nota-tag{ flex:none; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; color:#fff; text-transform:uppercase; letter-spacing:.03em; }
+.nota-tag.t-como_fazer{ background:#1f63b0; } .nota-tag.t-duvida{ background:#c7821a; } .nota-tag.t-dica{ background:#0f7d78; }
+.nota-corpo{ padding:0 12px 12px; border-top:1px solid var(--line); }
+.nota-texto{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; line-height:1.55; padding:10px 0; font-family:var(--sans); }
+.nota-meta{ font-size:12px; color:var(--muted); margin-bottom:8px; }
+.nota-acoes{ display:flex; gap:6px; flex-wrap:wrap; } .nota-acoes .ghost{ min-height:42px; padding:0 12px; font-size:13px; text-transform:none; }
+.nota-acoes .perigo{ color:#c9382f; }
+body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !important; }
