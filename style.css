@@ -871,7 +871,7 @@ table.checklist-furos-tabela th, table.checklist-furos-tabela td{ padding-left:5
 }
 .menu-mais-info:empty{ display:none; }
 /* Contadores do topo só fazem sentido na Perfilagem e no Realce */
-body[data-view]:not([data-view="perfilagem"]):not([data-view="aneis"]) .readout{ display:none; }
+@media (max-width:700px){ body[data-view]:not([data-view="perfilagem"]):not([data-view="aneis"]) .readout{ display:none; } }
 /* "Realce > leque aberto" só vale na Perfilagem */
 body[data-view]:not([data-view="perfilagem"]) #breadcrumb{ display:none; }
 
@@ -2089,7 +2089,6 @@ body[data-papel="tecnico"] .so-gestor{ display:none !important; }
 .banner-leitura{ position:fixed; top:0; left:0; right:0; z-index:2500; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; background:#3a2f7a; color:#fff; font-weight:700; font-size:.95rem; box-shadow:0 2px 10px rgba(0,0,0,.35); }
 .banner-leitura[hidden]{ display:none; }
 .banner-leitura button{ min-height:40px; padding:0 16px; border-radius:8px; border:2px solid #fff; background:transparent; color:#fff; font-weight:700; }
-body.modo-leitura{ padding-top:56px; }
 body.modo-leitura .so-gestor, body.modo-leitura .ck-arrastar, body.modo-leitura .icon-remover, body.modo-leitura .icon-nota, body.modo-leitura .icon-foto:not(.tem),
 body.modo-leitura .ck-mais-acoes, body.modo-leitura .perf-forms, body.modo-leitura .perf-puxar, body.modo-leitura .icon-metragens, body.modo-leitura .icon-editar, body.modo-leitura .icon-refazer,
 body.modo-leitura #foto-remover, body.modo-leitura #foto-trocar, body.modo-leitura .ck-furo-motivo, body.modo-leitura .checklist-furos-add, body.modo-leitura [onclick*="abrirMarcarFaixa"],
@@ -2574,7 +2573,6 @@ body.modo-leitura .ckp-liberar{ display:block; }
 #btn-liberar-edicao-ck{ width:100%; min-height:48px; padding:0 16px; border-radius:8px; border:2px solid #3a2f7a; background:#3a2f7a; color:#fff; font-weight:700; font-size:1rem; display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; }
 #btn-liberar-edicao-ck small{ font-weight:500; font-size:12px; opacity:.85; }
 body[data-view="checklist"] .banner-leitura{ display:none; }
-body.modo-leitura[data-view="checklist"]{ padding-top:0; }
 body.modo-leitura[data-view="checklist"] .alerta-falhas{ top:0 !important; }
 
 /* Observações dentro do Encerrar turno */
@@ -2812,7 +2810,8 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 .trat-faixa.ok{ background:#d9f1ef; color:#0b5f5b; }
 .trat-faixa button{ min-height:40px; padding:0 14px; flex:none; }
 /* na Tratativa os contadores e o caminho de leque da medição antiga não se aplicam */
-body[data-view="perfilagem"] .readout, body[data-view="perfilagem"] #breadcrumb{ display:none; }
+body[data-view="perfilagem"] #breadcrumb{ display:none; }
+@media (max-width:700px){ body[data-view="perfilagem"] .readout{ display:none; } }
 body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, body.modo-leitura .trat-prontos-t button{ display:none !important; }
 .ic-az{ color:#8a5cc2; }
 .ck-prog-linha.az .ck-prog-bar i{ background:#8a5cc2; }
