@@ -27,83 +27,50 @@ function dadosRelatorioTratativa(anelIds){
   return { realces, envios, tot, metrosEnviados: envios.reduce((s,e)=> s + e.metragem, 0) };
 }
 
+// Resumido: só os leques TRATADOS, com metros e data da tratativa.
+function linhasTratados(anelIds){
+  return dadosRelatorioTratativa(anelIds).realces.map(r=>({ realce: r.realce,
+    leques: r.leques.filter(l=>l.status === 'Tratado').sort((x,y)=> String(x.tratadoEm).localeCompare(String(y.tratadoEm)) || x.codigo.localeCompare(y.codigo, undefined, { numeric:true })) }))
+    .filter(r=>r.leques.length);
+}
+// Metros tratados = metragem real medida; se ainda não foi preenchida, usa a esperada.
+const metrosDoLeque = l => l.real > 0 ? l.real : l.esp;
+
 async function exportarRelatorioTratativaPDF(anelIds){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-  const d = dadosRelatorioTratativa(anelIds);
+  const grupos = linhasTratados(anelIds);
+  if(!grupos.length){ showToast('Nenhum leque tratado nos realces escolhidos.', { tipo:'aviso' }); return; }
   const doc = new window.jspdf.jsPDF();
-  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO DE TRATATIVA DE DADOS' });
-  const nova = ()=>{ doc.addPage(); y = 20; };
-  const garante = h => { if(y + h > 280) nova(); };
-
-  // Resumo geral
-  doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Resumo geral', 15, y); y += 7;
-  doc.setFontSize(10); doc.setFont(undefined,'normal');
-  const t = d.tot, pct = (v, n)=> n ? Math.round(v / n * 100) + '%' : '-';
-  [
-    `Realces: ${d.realces.length}   ·   Leques: ${t.leques || 0}   ·   Furos: ${t.furos || 0} (${t.obst || 0} obstruídos)`,
-    `Perfilados: ${t.perf || 0}/${t.uteis || 0} (${pct(t.perf, t.uteis)})   ·   Topografados: ${t.topo || 0}/${t.uteis || 0} (${pct(t.topo, t.uteis)})   ·   Azimutados: ${t.az || 0}/${t.uteis || 0} (${pct(t.az, t.uteis)})`,
-    `Leques tratados: ${t.tratados || 0}/${t.leques || 0}   ·   Prontos para tratar: ${t.prontos || 0}`,
-    `Metragem esperada: ${fmtM(t.esp)} m   ·   Metragem real (medida): ${fmtM(t.real)} m   ·   Variação nos furos medidos: ${fmtM((t.real || 0) - (t.espMed || 0))} m`,
-    `Metragem enviada (tratativas): ${fmtM(d.metrosEnviados)} m em ${d.envios.length} ${d.envios.length === 1 ? 'envio' : 'envios'}`
-  ].forEach(l=>{ doc.text(l, 15, y, { maxWidth:180 }); y += 6; });
-  y += 4;
-
-  // Tabela por realce
-  const COLS = [['Leque',22,'l'],['Furos',13,'r'],['Perf.',15,'r'],['Topo',15,'r'],['Azim.',15,'r'],['Obst.',13,'r'],['Esp. (m)',20,'r'],['Real (m)',20,'r'],['Situação',47,'l']];
-  const linha = (cel, negrito)=>{ doc.setFont(undefined, negrito ? 'bold' : 'normal'); let x = 15;
-    COLS.forEach(([,w,al],i)=>{ const txt = String(cel[i] ?? ''); doc.text(txt, al === 'r' ? x + w - 2 : x + 1, y, { align: al === 'r' ? 'right' : 'left', maxWidth: w - 2 }); x += w; }); y += 5.5; };
-  const cabTabela = ()=>{ doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(9); linha(COLS.map(c=>c[0]), true); doc.setFontSize(9); };
-  d.realces.forEach(r=>{
-    garante(30);
-    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(r.realce.nome, 15, y);
-    doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(110);
-    doc.text([r.realce.nivel, r.realce.orientacao === 'ascendente' ? 'Ascendente' : 'Descendente', r.realce.projeto].filter(Boolean).join(' · '), 15, y + 5); doc.setTextColor(0); y += 11;
-    if(!r.leques.length){ doc.setFontSize(9); doc.text('Sem leques no checklist.', 15, y); y += 8; return; }
-    cabTabela();
-    r.leques.forEach(l=>{
-      if(y > 278){ nova(); cabTabela(); }
-      const sit = l.status === 'Tratado' ? `Tratado ${fmtDataBR(l.tratadoEm)}${l.tratadoPor ? ' · ' + l.tratadoPor.split(' ')[0] : ''}` : l.status;
-      linha([l.codigo, l.furos, `${l.perf}/${l.uteis}`, `${l.topo}/${l.uteis}`, `${l.az}/${l.uteis}`, l.obst || '', l.esp ? fmtM(l.esp) : '-', l.real ? fmtM(l.real) : '-', sit]);
-      if(l.observacao){ doc.setFontSize(8); doc.setTextColor(110); doc.text('Obs.: ' + l.observacao, 17, y - 1.2, { maxWidth:176 }); doc.setTextColor(0); doc.setFontSize(9); y += 3.5; }
-    });
-    const T = r.tot; doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8);
-    linha(['Total', T.furos, `${T.perf}/${T.uteis}`, `${T.topo}/${T.uteis}`, `${T.az}/${T.uteis}`, T.obst || '', fmtM(T.esp), fmtM(T.real), `${T.tratados} tratados`], true);
-    y += 6;
+  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO DE LEQUES TRATADOS' });
+  const todos = grupos.flatMap(g=>g.leques), totM = todos.reduce((s,l)=> s + metrosDoLeque(l), 0);
+  doc.setFontSize(11); doc.setFont(undefined,'bold');
+  doc.text(`${todos.length} ${todos.length === 1 ? 'leque tratado' : 'leques tratados'}  ·  ${fmtM(totM)} m`, 15, y); y += 9;
+  const cab = ()=>{ doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(10); doc.setFont(undefined,'bold');
+    doc.text('Leque', 17, y); doc.text('Metros tratados', 120, y, { align:'right' }); doc.text('Data', 150, y); y += 6.5; };
+  grupos.forEach(g=>{
+    if(y > 262){ doc.addPage(); y = 20; }
+    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(g.realce.nome, 15, y); y += 7; cab();
+    doc.setFont(undefined,'normal'); doc.setFontSize(10);
+    g.leques.forEach(l=>{
+      if(y > 280){ doc.addPage(); y = 20; cab(); doc.setFont(undefined,'normal'); doc.setFontSize(10); }
+      doc.text(l.codigo, 17, y); doc.text(fmtM(metrosDoLeque(l)), 120, y, { align:'right' }); doc.text(fmtDataBR(l.tratadoEm), 150, y); y += 5.5; });
+    doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
+    doc.text(`Total (${g.leques.length})`, 17, y); doc.text(fmtM(g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0)), 120, y, { align:'right' }); y += 10;
   });
-
-  // Envios por mês
-  garante(30);
-  doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Envios das tratativas', 15, y); y += 7;
-  if(!d.envios.length){ doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.text('Nenhum envio registrado.', 15, y); y += 8; }
-  else{
-    const porMes = {}; d.envios.forEach(e=> (porMes[e.data.slice(0,7)] = porMes[e.data.slice(0,7)] || []).push(e));
-    Object.keys(porMes).sort().forEach(ym=>{
-      const es = porMes[ym]; garante(20);
-      doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text(`${rotuloMesEnvio(ym)} ${ym.slice(0,4)} — ${fmtM(es.reduce((s,e)=>s+e.metragem,0))} m (${es.length} ${es.length === 1 ? 'envio' : 'envios'})`, 15, y); y += 5.5;
-      doc.setFont(undefined,'normal'); doc.setFontSize(9);
-      es.forEach(e=>{ const txt = `${fmtDiaEnvio(e.data)}  ·  ${fmtM(e.metragem)} m  ·  ${e.anelRotulo || '-'}${e.leques ? '  ·  ' + e.leques : ''}${e.observacao ? '  ·  ' + e.observacao : ''}`;
-        const ls = doc.splitTextToSize(txt, 176); garante(ls.length * 4.5 + 2); doc.text(ls, 19, y); y += ls.length * 4.5 + 1; });
-      y += 3;
-    });
-  }
   adicionarNumeracaoPaginas(doc);
-  const nome = `tratativas_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
-  await baixarOuCompartilharPDF(doc, nome, true);
+  await baixarOuCompartilharPDF(doc, `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório em PDF gerado.', { tipo:'ok' });
 }
 
 function exportarRelatorioTratativaCSV(anelIds){
-  const d = dadosRelatorioTratativa(anelIds);
+  const grupos = linhasTratados(anelIds);
+  if(!grupos.length){ showToast('Nenhum leque tratado nos realces escolhidos.', { tipo:'aviso' }); return; }
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
-  const n = v => String(Math.round(Number(v || 0) * 10) / 10).replace('.', ',');
-  const L = [['Realce','Projeto','Nível','Leque','Furos','Obstruídos','Perfilados','Topografados','Azimutados','Esperada (m)','Real (m)','Variação (m)','Situação','Tratado em','Tratado por','Observação']];
-  d.realces.forEach(r=> r.leques.forEach(l=> L.push([r.realce.nome, r.realce.projeto || '', r.realce.nivel || '', l.codigo, l.furos, l.obst, `${l.perf}/${l.uteis}`, `${l.topo}/${l.uteis}`, `${l.az}/${l.uteis}`, n(l.esp), n(l.real), n(l.real ? l.real - l.espMed : 0), l.status, fmtDataBR(l.tratadoEm), l.tratadoPor, l.observacao])));
-  L.push([]); L.push(['ENVIOS DAS TRATATIVAS']); L.push(['Data','Realce','Metragem (m)','Leques','Observação']);
-  d.envios.forEach(e=> L.push([e.data.slice(8,10) + '/' + e.data.slice(5,7) + '/' + e.data.slice(0,4), e.anelRotulo, n(e.metragem), e.leques, e.observacao]));
-  L.push(['Total enviado','', n(d.metrosEnviados)]);
-  const csv = '﻿' + L.map(r=> r.map(q).join(';')).join('\r\n');
+  const L = [['Realce','Leque','Metros tratados','Data']];
+  grupos.forEach(g=> g.leques.forEach(l=> L.push([g.realce.nome, l.codigo, String(Math.round(metrosDoLeque(l) * 10) / 10).replace('.', ','), fmtDataBR(l.tratadoEm)])));
+  const csv = '\ufeff' + L.map(r=> r.map(q).join(';')).join('\r\n');
   const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
-  const a = document.createElement('a'); a.href = url; a.download = `tratativas_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+  const a = document.createElement('a'); a.href = url; a.download = `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
   showToast('Planilha gerada.', { tipo:'ok' });
 }
@@ -115,8 +82,8 @@ function abrirExportarTratativa(){
   const marcados = new Set(lista.map(a=>a.id));
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
-    <p style="font-weight:700;">Exportar relatório das tratativas</p>
-    <div class="hint" style="margin-bottom:8px;">Inclui, por realce e leque: furos, perfilados, topografados, azimutados, obstruídos, metragem esperada e real, situação (tratado em / por quem) e os envios.</div>
+    <p style="font-weight:700;">Exportar leques tratados</p>
+    <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os metros e a data da tratativa.</div>
     <div class="rel-realces" role="group" aria-label="Realces do relatório">${noEscopo.map(a=>`<label class="rel-item"><input type="checkbox" value="${a.id}" ${marcados.has(a.id) ? 'checked' : ''}><span>${escHtml(a.nome)}</span></label>`).join('') || '<div class="hint">Nenhum realce.</div>'}</div>
     <div class="rel-atalhos"><button type="button" class="ghost" id="rel-todos">Marcar todos</button><button type="button" class="ghost" id="rel-nenhum">Limpar</button></div>
     <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="ghost" id="rel-csv">Planilha (CSV)</button><button class="steel" id="rel-pdf">Baixar PDF</button></div>
