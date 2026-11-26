@@ -42,6 +42,38 @@ function htmlTratadoLeque(c){
   return '';
 }
 const TRAT_ETAPAS = [['perf','1','Perfilagem','#1f8a4c'], ['topo','2','Topografia','#1f63b0'], ['az','3','Azimute','#8a5cc2'], ['tratado','4','Tratado','#0f7d78']];
+// ---- Tabela densa (computador): uma linha por leque, ordenável, com filtro por situação ----
+const tratTab = { filtro:'todos', ordem:'leque', dir:1 };
+const TRAT_SIT = { pendente:'Pendente', andamento:'Em andamento', pronto:'Pronto p/ tratar', tratado:'Tratado' };
+const situacaoLeque = e=> e.tratado ? 'tratado' : e.pronto ? 'pronto' : (e.perf || e.topo || e.feitos.perf || e.feitos.topo) ? 'andamento' : 'pendente';
+function ordenarTratativa(k){ if(tratTab.ordem === k) tratTab.dir = -tratTab.dir; else { tratTab.ordem = k; tratTab.dir = 1; } renderTratativa(); }
+function filtrarTratativa(f){ tratTab.filtro = f; renderTratativa(); }
+function tabelaTratativa(a, es){
+  const cont = { todos: es.length }; Object.keys(TRAT_SIT).forEach(k=> cont[k] = es.filter(e=>situacaoLeque(e) === k).length);
+  const ordemSit = { pronto:0, andamento:1, pendente:2, tratado:3 };
+  const val = {
+    leque: e=> null, uteis: e=> e.uteis, perf: e=> e.feitos.perf, topo: e=> e.feitos.topo, az: e=> e.uteis - e.semAz,
+    sit: e=> ordemSit[situacaoLeque(e)], data: e=> e.c.tratadoEm || ''
+  }[tratTab.ordem];
+  let linhas = es.filter(e=> tratTab.filtro === 'todos' || situacaoLeque(e) === tratTab.filtro);
+  if(tratTab.ordem !== 'leque') linhas = linhas.slice().sort((x,y)=>{ const p = val(x), q = val(y); return (p < q ? -1 : p > q ? 1 : 0) * tratTab.dir; });
+  else if(tratTab.dir < 0) linhas = linhas.slice().reverse();
+  const th = (k, rot, cls)=> `<th class="${cls || ''}" aria-sort="${tratTab.ordem === k ? (tratTab.dir > 0 ? 'ascending' : 'descending') : 'none'}"><button type="button" onclick="ordenarTratativa('${k}')">${rot}<i>${tratTab.ordem === k ? (tratTab.dir > 0 ? '▲' : '▼') : ''}</i></button></th>`;
+  const filtros = [['todos','Todos'], ['pronto','Prontos'], ['andamento','Em andamento'], ['pendente','Pendentes'], ['tratado','Tratados']]
+    .map(([k, r])=> `<button type="button" class="trat-filtro ${tratTab.filtro === k ? 'on' : ''}" onclick="filtrarTratativa('${k}')">${r} <b>${cont[k]}</b></button>`).join('');
+  const dt = (c)=> c.tratado && c.tratadoEm ? new Date(c.tratadoEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + (c.tratadoPor ? ' · ' + escHtml(c.tratadoPor) : '') : '—';
+  const corpo = linhas.map(e=>{ const sit = situacaoLeque(e), cod = escHtml(codigoLequeCk(e.c)), az = e.uteis - e.semAz;
+    const acao = e.tratado ? `<button type="button" class="ghost" onclick="marcarLequeTratado('${e.c.id}', false)">↩ Desfazer</button>`
+      : e.pronto ? `<button type="button" class="steel" onclick="marcarLequeTratado('${e.c.id}')">Tratado</button>` : '';
+    const n = (v)=> `<td class="num ${v >= e.uteis && e.uteis ? 'cheio' : ''}">${v}<small>/${e.uteis}</small></td>`;
+    return `<tr class="sit-${sit}"><td><button type="button" class="trat-cod-t" onclick="abrirRealceNoChecklist('${a.id}','${e.c.id}')" title="abrir no checklist">${cod}</button></td>
+      <td class="num">${e.uteis}</td>${n(e.feitos.perf)}${n(e.feitos.topo)}${n(az)}
+      <td><span class="trat-sit ${sit}">${TRAT_SIT[sit]}</span></td><td class="data">${dt(e.c)}</td><td class="acao">${acao}</td></tr>`; }).join('');
+  const todos = cont.pronto ? `<button type="button" class="steel trat-marcar-todos" onclick="marcarProntosTratados('${a.id}')">Marcar ${cont.pronto} ${cont.pronto === 1 ? 'pronto' : 'prontos'} como tratados</button>` : '';
+  return `<div class="trat-tabela"><div class="trat-filtros" role="group" aria-label="Filtrar leques">${filtros}${todos}</div>
+    <div class="trat-tabela-rolagem"><table><thead><tr>${th('leque','Leque')}${th('uteis','Furos','num')}${th('perf','Perfilados','num')}${th('topo','Topografados','num')}${th('az','Azimutes','num')}${th('sit','Situação')}${th('data','Tratado em')}<th></th></tr></thead>
+    <tbody>${corpo || '<tr><td colspan="8" class="vazio">Nenhum leque neste filtro.</td></tr>'}</tbody></table></div></div>`;
+}
 function realcesDaTratativa(){
   if(typeof carregarFavoritosRealces === 'function') carregarFavoritosRealces();
   const favs = aneis.filter(a=>realcesFavoritos.has(a.id));
@@ -63,6 +95,7 @@ function renderTratativa(){
     const linhas = TRAT_ETAPAS.map(([k, num, rot, cor])=>{ const v = cont[k], pct = n ? Math.round(v / n * 100) : 0;
       return `<div class="trat-linha"><span class="trat-rot"><i style="background:${cor}">${num}</i>${rot}</span><div class="trat-bar"><i style="width:${pct}%;background:${cor}"></i></div><b>${v}/${n}</b></div>`; }).join('');
     const prontos = es.filter(e=>e.pronto);
+    const tabela = tabelaTratativa(a, es);
     const tratados = es.filter(e=>e.tratado);
     const dtTrat = c=> c.tratadoEm ? new Date(c.tratadoEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) : '';
     const listaTratados = tratados.length ? `<section class="trat-tratados" aria-label="Leques tratados"><h4>✓ Leques tratados (${tratados.length})</h4>${tratados.map(e=>`<div class="trat-linha-tr"><b>${escHtml(codigoLequeCk(e.c))}</b><span>${dtTrat(e.c)}${e.c.tratadoPor ? ' · ' + escHtml(e.c.tratadoPor) : ''}</span><button type="button" class="ghost" onclick="marcarLequeTratado('${e.c.id}', false)" title="tira o leque de tratado e volta para a lista de pendentes">↩ Desfazer tratado</button></div>`).join('')}</section>` : '';
@@ -70,9 +103,9 @@ function renderTratativa(){
       return `<button type="button" class="trat-chip ${cl}" onclick="abrirRealceNoChecklist('${a.id}','${e.c.id}')" title="${e.tratado ? 'tratado' : e.pronto ? 'pronto para tratar' : 'ver no checklist'}">${escHtml(cod)}${e.tratado ? ' ✓' : ''}</button>`; }).join('');
     const listaProntos = prontos.length ? `<div class="trat-prontos"><div class="trat-prontos-t"><b>Prontos para tratar (${prontos.length})</b><button type="button" class="ghost" onclick="marcarProntosTratados('${a.id}')">Marcar todos</button></div>${prontos.map(e=>`<div class="trat-pronto"><button type="button" class="trat-cod" onclick="abrirRealceNoChecklist('${a.id}','${e.c.id}')">${escHtml(codigoLequeCk(e.c))}</button><span>${e.uteis} furos<small class="${e.az ? 'az-ok' : 'az-falta'}">azimute ${e.uteis - e.semAz}/${e.uteis}</small></span><button type="button" class="steel" onclick="marcarLequeTratado('${e.c.id}')">Tratado</button></div>`).join('')}</div>` : '';
     return `<section class="trat-card"><header><div><b>${escHtml(a.nome)}</b><small>${escHtml(a.nivel || '')}${a.nivel && a.orientacao ? ' · ' : ''}${a.orientacao === 'ascendente' ? '↑ Ascendente' : a.orientacao === 'descendente' ? '↓ Descendente' : ''}</small></div><button type="button" class="ghost" onclick="abrirRealceNoChecklist('${a.id}')">Checklist ›</button></header>
-      <div class="trat-acoes-card"><button type="button" class="steel" onclick="abrirRelatorio2D('${a.id}')" title="PDF: imagem geral dos leques e, por leque, imagem + tabela de furos">📐 Relatório 2D</button></div>
+      <div class="trat-corpo"><div class="trat-lado"><div class="trat-acoes-card"><button type="button" class="steel" onclick="abrirRelatorio2D('${a.id}')" title="PDF: imagem geral dos leques e, por leque, imagem + tabela de furos">📐 Relatório 2D</button></div>
       <label class="trat-arq ${a.arquivosOk ? 'ok' : ''}"><input type="checkbox" ${a.arquivosOk ? 'checked' : ''} onchange="alternarArquivosRealce('${a.id}', this.checked)"><span><b>${a.arquivosOk ? '✓ Arquivos do realce recebidos' : 'Arquivos do realce ainda não recebidos'}</b>${a.arquivosOk && a.arquivosOkEm ? `<small>${new Date(a.arquivosOkEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })}${a.arquivosOkPor ? ' · ' + escHtml(a.arquivosOkPor) : ''}</small>` : '<small>marque quando tiver os arquivos</small>'}</span></label>
-      ${n ? `<div class="trat-linhas">${linhas}</div>${listaProntos}${listaTratados}<div class="trat-leques-t">Todos os leques</div><div class="trat-chips" role="group" aria-label="Leques do realce">${chips}</div><div class="trat-leg"><span><i class="l-nada"></i>pendente</span><span><i class="l-parcial"></i>em andamento</span><span><i class="l-pronto"></i>pronto p/ tratar</span><span><i class="l-tratado"></i>tratado</span></div>` : '<div class="hint">Sem leques neste realce ainda.</div>'}</section>`;
+      ${n ? `<div class="trat-linhas">${linhas}</div>` : ''}</div><div class="trat-main">${n ? `${tabela}${listaProntos}${listaTratados}<div class="trat-leques-t">Todos os leques</div><div class="trat-chips" role="group" aria-label="Leques do realce">${chips}</div><div class="trat-leg"><span><i class="l-nada"></i>pendente</span><span><i class="l-parcial"></i>em andamento</span><span><i class="l-pronto"></i>pronto p/ tratar</span><span><i class="l-tratado"></i>tratado</span></div>` : '<div class="hint">Sem leques neste realce ainda.</div>'}</div></div></section>`;
   }).join('');
   root.innerHTML = `<div class="trat-topo"><h2>Tratativa dos dados</h2><button type="button" class="ghost trat-export" onclick="abrirExportarTratativa()" title="PDF ou planilha com os leques tratados: metros e data">⬇ Exportar relatório</button>${prontosTot ? `<span class="trat-badge">${prontosTot} ${prontosTot === 1 ? 'leque pronto' : 'leques prontos'} para tratar</span>` : '<span class="trat-badge nada">nada pronto agora</span>'}</div>
     ${fallback ? '<div class="hint trat-dica">Nenhum realce favoritado: mostrando o realce ativo. Toque na ⭐ na aba Realce para fixar os que você trata.</div>' : ''}${cartoes}`;

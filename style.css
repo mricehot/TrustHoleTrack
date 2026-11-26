@@ -3019,3 +3019,51 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .env-mes-topo{ padding:8px 12px 8px 0; gap:10px; }
 .env-mes-topo .env-mes-cab{ min-height:44px; padding-top:0; padding-bottom:0; }
 .env-exp{ min-height:44px; padding:0 16px; margin:0; }
+
+/* ================= Computador (telas largas): usa a largura, tabelas densas ================= */
+.trat-corpo, .trat-lado, .trat-main{ display:contents; }
+.trat-tabela{ display:none; }
+@media (min-width:1100px){
+  body{ padding:20px 32px 60px; }
+  .wrap{ max-width:1560px; }
+  /* selos das abas ao lado do nome, sem cobrir o texto */
+  .tab-item .tab-icon{ display:contents; }
+  .tab-item .tab-badge{ position:static; order:3; margin-left:2px; }
+  /* Tratamento: resumo fixo à esquerda, tabela de leques à direita */
+  .trat-corpo{ display:grid; grid-template-columns:340px minmax(0,1fr); gap:28px; align-items:start; }
+  .trat-lado{ display:block; position:sticky; top:12px; }
+  .trat-main{ display:block; min-width:0; }
+  .trat-prontos, .trat-tratados, .trat-leques-t, .trat-chips, .trat-leg{ display:none !important; }
+  .trat-tabela{ display:block; }
+  .trat-filtros{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px; }
+  .trat-filtros button{ min-height:34px !important; padding:4px 12px; border-radius:999px; font-size:13px; font-weight:600; text-transform:none; background:var(--surface); border:1px solid var(--line); color:var(--text); }
+  .trat-filtros button b{ font-family:var(--mono); margin-left:4px; color:var(--muted); }
+  .trat-filtros button.on{ background:var(--text); color:#fff; border-color:var(--text); } .trat-filtros button.on b{ color:#fff; }
+  .trat-filtros .trat-marcar-todos{ margin-left:auto; background:var(--steel); color:#fff; border-color:var(--steel); border-radius:10px; }
+  .trat-tabela-rolagem{ border:1px solid var(--line); border-radius:12px; overflow:auto; max-height:calc(100vh - 260px); background:var(--surface); }
+  .trat-tabela table{ width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px; }
+  .trat-tabela th{ position:sticky; top:0; background:var(--surface-2); z-index:1; text-align:left; padding:0; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .trat-tabela th button{ width:100%; min-height:38px !important; padding:6px 12px; background:transparent; border:0; border-radius:0; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; display:flex; align-items:center; gap:4px; cursor:pointer; }
+  .trat-tabela th.num button{ justify-content:flex-end; } .trat-tabela th button i{ font-style:normal; font-size:9px; min-width:9px; }
+  .trat-tabela th button:hover{ color:var(--text); }
+  .trat-tabela td{ padding:5px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .trat-tabela tbody tr:hover td{ background:color-mix(in srgb, var(--steel) 6%, var(--surface)); }
+  .trat-tabela td.num{ text-align:right; font-family:var(--mono); white-space:nowrap; } .trat-tabela td.num small{ color:var(--muted); }
+  .trat-tabela td.num.cheio{ color:#1f8a4c; font-weight:700; }
+  .trat-tabela td.data{ color:var(--muted); font-size:12.5px; white-space:nowrap; }
+  .trat-tabela td.acao{ text-align:right; white-space:nowrap; width:1%; }
+  .trat-tabela td.acao button{ min-height:30px !important; padding:3px 12px; font-size:12.5px; border-radius:8px; }
+  .trat-tabela td.vazio{ text-align:center; color:var(--muted); padding:24px; }
+  .trat-cod-t{ min-height:30px !important; padding:2px 10px; font-family:var(--mono); font-weight:800; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--text); text-transform:none; }
+  .trat-cod-t:hover{ border-color:var(--steel); }
+  .trat-sit{ display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--line); color:var(--muted); }
+  .trat-sit.andamento{ color:#9a6a0c; background:#fdf3dc; border-color:#e8b04a; }
+  .trat-sit.pronto{ color:#b23511; background:#fde9e2; border-color:#e8441a; }
+  .trat-sit.tratado{ color:#0f7d78; background:#e0f3f1; border-color:#0f7d78; }
+  .trat-tabela tr.sit-tratado td:first-child{ box-shadow:inset 3px 0 #0f7d78; } .trat-tabela tr.sit-pronto td:first-child{ box-shadow:inset 3px 0 #e8441a; }
+}
+@media (min-width:1100px){
+  /* Checklist: cartões de leque em colunas, para as barras não ficarem esticadas pela tela toda */
+  .checklist-grid .ck-lista{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; align-items:start; }
+}
+@media (min-width:1500px){ .checklist-grid .ck-lista{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
