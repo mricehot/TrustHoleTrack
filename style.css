@@ -3083,3 +3083,5 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
   #view-config > .view-card{ margin:0 0 16px; }
 }
 @media (min-width:1450px){ #anel-list{ grid-template-columns:repeat(3, minmax(0,1fr)) !important; } }
+.and-previa{ white-space:pre-wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.5; max-height:46vh; overflow:auto; margin:0 0 10px; }
+.trat-acoes-card{ display:flex; flex-wrap:wrap; gap:8px; }
