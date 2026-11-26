@@ -2953,3 +2953,12 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .anel-chip{ min-height:38px; padding:6px 12px; font-size:13px; white-space:nowrap; flex:none; }
 .anel-todos{ margin:0 0 8px; }
 .anel-todos .btn-status-todos, .anel-todos button{ min-height:40px; font-size:13px; }
+
+/* Exportar relatório das tratativas */
+.trat-export{ margin-left:auto; min-height:40px; text-transform:none; letter-spacing:0; font-weight:600; }
+.rel-realces{ max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:4px 8px; }
+.rel-item{ display:flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; text-transform:none; letter-spacing:0; font-size:14px; }
+.rel-item input{ width:22px; height:22px; flex:none; }
+.rel-atalhos{ display:flex; gap:8px; margin:8px 0 4px; }
+.rel-atalhos button{ min-height:40px; text-transform:none; }
+.modal-actions button{ text-transform:none; }
