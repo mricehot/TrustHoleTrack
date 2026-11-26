@@ -5,7 +5,7 @@ let envioForm = null;     // null = fechado; { id?:string } = aberto (id = edita
 const enviosMesAberto = new Set();
 try{ tratativaEnvios = JSON.parse(localStorage.getItem(ENVIOS_KEY) || '[]') || []; }catch(e){ tratativaEnvios = []; }
 const salvarEnviosLocal = ()=>{ try{ localStorage.setItem(ENVIOS_KEY, JSON.stringify(tratativaEnvios)); }catch(e){} };
-function mapEnvio(r){ return { id:r.id, projeto:r.projeto || '', anelId:r.anel_id || '', anelRotulo:r.anel_rotulo || '', data:String(r.data || '').slice(0,10), metragem:Number(r.metragem) || 0, leques:r.leques || '', observacao:r.observacao || '', criadoPor:r.criado_por || '', ts:r.criado_em || '' }; }
+function mapEnvio(r){ return { id:r.id, projeto:r.projeto || '', anelId:r.anel_id || '', anelRotulo:r.anel_rotulo || '', data:String(r.data || '').slice(0,10), metragem:Number(r.metragem) || 0, leques:r.leques || '', lequeIds:Array.isArray(r.leque_ids) ? r.leque_ids : [], observacao:r.observacao || '', criadoPor:r.criado_por || '', ts:r.criado_em || '' }; }
 const envioNoEscopo = e => { const pr = typeof configApp !== 'undefined' ? configApp.projetoAtivo : ''; return !pr || !e.projeto || e.projeto === pr; };
 const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const rotuloMesEnvio = ym => { const m = MESES_PT[parseInt(ym.slice(5,7),10)-1]; return m.charAt(0).toUpperCase() + m.slice(1) + ' de ' + ym.slice(0,4); };
@@ -49,15 +49,48 @@ function renderEnvios(){
   const form = f ? `<form class="env-form" onsubmit="event.preventDefault();salvarEnvio()">
       <div class="grid-2"><div class="field"><label for="env-data">Data (feita e enviada)</label><input id="env-data" type="date" value="${e2(ed ? ed.data : dataISOLocal(new Date()))}" required></div>
         <div class="field"><label for="env-met">Metragem enviada (m)</label><input id="env-met" type="text" inputmode="decimal" placeholder="ex.: 1250,5" value="${ed ? e2(String(ed.metragem).replace('.', ',')) : ''}" autocomplete="off" required></div></div>
-      <div class="field"><label for="env-anel">Realce</label><select id="env-anel"><option value="">— nenhum —</option>${realces.map(a=>`<option value="${a.id}" ${ed && ed.anelId === a.id ? 'selected' : (!ed && a.id === anelAtivoId ? 'selected' : '')}>${ids.has(a.id) ? '⭐ ' : ''}${e2(a.nome)}</option>`).join('')}</select></div>
-      <div class="field"><label for="env-leques">Leques (opcional)</label><input id="env-leques" type="text" maxlength="200" placeholder="ex.: LQ01 a LQ05" value="${ed ? e2(ed.leques) : ''}" autocomplete="off"></div>
+      <div class="field"><label for="env-anel">Realce</label><select id="env-anel" onchange="envioTrocouRealce()"><option value="">— nenhum —</option>${realces.map(a=>`<option value="${a.id}" ${ed && ed.anelId === a.id ? 'selected' : (!ed && a.id === anelAtivoId ? 'selected' : '')}>${ids.has(a.id) ? '⭐ ' : ''}${e2(a.nome)}</option>`).join('')}</select></div>
+      <div class="field"><label>Leques enviados</label><div id="env-chips" class="env-chips"></div></div>
+      <div class="field"><label for="env-leques">Outros leques / texto livre (opcional)</label><input id="env-leques" type="text" maxlength="200" placeholder="ex.: complemento do LQ04" value="${ed ? e2((ed.lequeIds || []).length ? (ed.leques.split(' · ')[1] || '') : ed.leques) : ''}" autocomplete="off"></div>
       <div class="field"><label for="env-obs">Observação (opcional)</label><input id="env-obs" type="text" maxlength="400" value="${ed ? e2(ed.observacao) : ''}" autocomplete="off"></div>
       <div class="env-btns"><button type="submit" class="steel">${ed ? 'Salvar alterações' : 'Registrar envio'}</button><button type="button" class="ghost" onclick="envioForm=null;renderEnvios()">Cancelar</button></div></form>`
     : `<button type="button" class="env-add" onclick="abrirFormEnvio()">＋ Registrar envio</button>`;
   root.innerHTML = `<div class="env-topo"><h2>Envios da tratativa</h2><span class="hint">data e metragem enviada, por mês</span></div>${form}${blocos || (f ? '' : '<div class="trat-vazio">Nenhum envio registrado ainda.</div>')}`;
+  if(f) envioRenderChips();
 }
+function lequesDoRealceEnvio(anelId){
+  if(!anelId || typeof checklistLeques === 'undefined') return [];
+  const ord = (a,b)=> codigoLequeCk(a).localeCompare(codigoLequeCk(b), undefined, { numeric:true });
+  return checklistLeques.filter(c=>c.anelId === anelId).sort(ord);
+}
+function lequesJaEnviados(anelId, ignorarId){
+  const m = new Set();
+  tratativaEnvios.forEach(e=>{ if(e.anelId === anelId && e.id !== ignorarId) (e.lequeIds || []).forEach(id=>m.add(id)); });
+  return m;
+}
+function envioRenderChips(){
+  const box = document.getElementById('env-chips'); if(!box || !envioForm) return;
+  const anelId = document.getElementById('env-anel').value;
+  const ls = lequesDoRealceEnvio(anelId);
+  if(!anelId){ box.innerHTML = '<span class="hint">Escolha o realce para marcar os leques.</span>'; return; }
+  if(!ls.length){ box.innerHTML = '<span class="hint">Este realce não tem leques no checklist.</span>'; return; }
+  const ja = lequesJaEnviados(anelId, envioForm.id), sel = envioForm.sel;
+  const chips = ls.map(c=>{ const on = sel.has(c.id), antes = ja.has(c.id); const t = escHtml(codigoLequeCk(c));
+    return `<button type="button" class="env-chip ${on ? 'on' : ''} ${antes ? 'ja' : ''}" aria-pressed="${on}" onclick="envioAlternarLeque('${c.id}')" title="${antes ? 'já enviado em outro envio' : ''}">${on ? '✓ ' : ''}${t}${antes ? '<i>enviado</i>' : ''}</button>`; }).join('');
+  const faltam = ls.filter(c=>!ja.has(c.id) && !sel.has(c.id)).length;
+  box.innerHTML = `<div class="env-chips-acoes"><button type="button" class="ghost" onclick="envioSelecionarLeques('pendentes')">Marcar os ainda não enviados</button><button type="button" class="ghost" onclick="envioSelecionarLeques('nenhum')">Limpar</button></div><div class="env-chips-lista">${chips}</div><small class="hint">${sel.size} marcado(s) agora · ${ja.size} já enviado(s) antes · ${faltam} sem envio</small>`;
+}
+function envioAlternarLeque(id){ if(!envioForm) return; if(envioForm.sel.has(id)) envioForm.sel.delete(id); else envioForm.sel.add(id); envioRenderChips(); }
+function envioSelecionarLeques(modo){
+  if(!envioForm) return; const anelId = document.getElementById('env-anel').value;
+  if(modo === 'nenhum') envioForm.sel.clear();
+  else { const ja = lequesJaEnviados(anelId, envioForm.id); lequesDoRealceEnvio(anelId).forEach(c=>{ if(!ja.has(c.id)) envioForm.sel.add(c.id); }); }
+  envioRenderChips();
+}
+function envioTrocouRealce(){ if(envioForm) envioForm.sel.clear(); envioRenderChips(); }
 function abrirFormEnvio(id){
-  envioForm = id ? { id } : {}; renderEnvios();
+  const ed = id ? tratativaEnvios.find(x=>x.id === id) : null;
+  envioForm = { id: id || null, sel: new Set(ed ? (ed.lequeIds || []) : []) }; renderEnvios(); envioRenderChips();
   const m = document.getElementById('env-met'); if(m){ m.scrollIntoView({ block:'center', behavior:'smooth' }); if(!id) m.focus(); }
 }
 function alternarMesEnvio(ym){ if(enviosMesAberto.has(ym)) enviosMesAberto.delete(ym); else enviosMesAberto.add(ym); renderEnvios(); }
@@ -67,9 +100,12 @@ function salvarEnvio(){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(data)){ showToast('Informe a data.', { tipo:'aviso' }); return; }
   if(isNaN(met) || met < 0){ showToast('Informe a metragem enviada, ex.: 1250,5.', { tipo:'aviso' }); document.getElementById('env-met').focus(); return; }
   const anelId = document.getElementById('env-anel').value, a = anelId ? aneis.find(x=>x.id === anelId) : null;
-  const leques = (document.getElementById('env-leques').value || '').trim().slice(0,200), obs = (document.getElementById('env-obs').value || '').trim().slice(0,400);
-  const campos = { data, metragem: Math.round(met*100)/100, leques, observacao: obs, anelId, anelRotulo: a ? a.nome : '' };
-  const regCampos = { data, metragem: campos.metragem, leques, observacao: obs, anel_rotulo: campos.anelRotulo, anel_id: anelId || null };
+  const livre = (document.getElementById('env-leques').value || '').trim().slice(0,100), obs = (document.getElementById('env-obs').value || '').trim().slice(0,400);
+  const lequeIds = anelId ? [...envioForm.sel] : [];
+  const rotulos = lequesDoRealceEnvio(anelId).filter(c=>lequeIds.includes(c.id)).map(c=>codigoLequeCk(c));
+  const leques = [rotulos.join(', '), livre].filter(Boolean).join(' · ').slice(0,200);
+  const campos = { data, metragem: Math.round(met*100)/100, leques, lequeIds, observacao: obs, anelId, anelRotulo: a ? a.nome : '' };
+  const regCampos = { data, metragem: campos.metragem, leques, leque_ids: lequeIds, observacao: obs, anel_rotulo: campos.anelRotulo, anel_id: anelId || null };
   if(envioForm && envioForm.id){
     const e = tratativaEnvios.find(x=>x.id === envioForm.id); if(!e){ envioForm = null; renderEnvios(); return; }
     Object.assign(e, campos); enfileirar('tratativa_envios', 'update', Object.assign({ id:e.id }, regCampos));
@@ -91,7 +127,7 @@ function removerEnvio(id){
   renderEnvios();
   showToast(`Envio de ${fmtDiaEnvio(e.data)} apagado.`, { acaoLabel:'Desfazer', onAcao: ()=>{
     tratativaEnvios.push(e); salvarEnviosLocal();
-    enfileirar('tratativa_envios', 'insert', { id:e.id, projeto:e.projeto, anel_id:e.anelId || null, anel_rotulo:e.anelRotulo, data:e.data, metragem:e.metragem, leques:e.leques, observacao:e.observacao, criado_por:e.criadoPor, criado_em:e.ts });
+    enfileirar('tratativa_envios', 'insert', { id:e.id, projeto:e.projeto, anel_id:e.anelId || null, anel_rotulo:e.anelRotulo, data:e.data, metragem:e.metragem, leques:e.leques, leque_ids:e.lequeIds || [], observacao:e.observacao, criado_por:e.criadoPor, criado_em:e.ts });
     renderEnvios();
   } });
 }

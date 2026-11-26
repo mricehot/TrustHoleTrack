@@ -2804,7 +2804,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 }
 
 /* ===== Tratativa dos dados (aba Perfilagem) ===== */
-#view-perfilagem.com-tratativa > :not(#tratativa-root){ display:none !important; }
+#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root){ display:none !important; }
 #tratativa-root{ display:block; }
 .trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
 .trat-topo h2{ margin:0; font-size:1.25rem; }
@@ -2913,3 +2913,10 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .env-m{ font-family:var(--mono); font-weight:700; white-space:nowrap; }
 .env-del{ width:44px; background:transparent; border:0; color:var(--muted); cursor:pointer; font-size:16px; }
 .env-mes-cab, .env-info, .env-del, .env-mes-cab b{ text-transform:none !important; letter-spacing:normal; }
+.env-chips-acoes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.env-chips-acoes .ghost{ min-height:36px; padding:4px 10px; font-size:12px; text-transform:none; }
+.env-chips-lista{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.env-chip{ min-height:42px; min-width:56px; padding:4px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-family:var(--mono); font-weight:600; font-size:13px; cursor:pointer; text-transform:none; }
+.env-chip i{ display:block; font-style:normal; font-family:inherit; font-size:10px; font-weight:500; color:var(--muted); }
+.env-chip.ja{ opacity:.65; }
+.env-chip.on{ background:#0f7d78; border-color:#0f7d78; color:#fff; opacity:1; } .env-chip.on i{ color:#d9f2f0; }
