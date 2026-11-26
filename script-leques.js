@@ -127,24 +127,45 @@ function htmlLinhaAnel(a, info){
     b('✎', 'Editar', `editarAnel('${a.id}')`, 'so-gestor', 'editar nome, nível, projeto e orientação'),
     b('✕', 'Remover', `removerAnel('${a.id}')`, 'so-gestor perigo', 'remover realce')
   ].join('');
+  const furosA = info.furosA || [];
+  const nF = furosA.length, nPerf = furosA.filter(f=>f.perfilado).length, nTopo = furosA.filter(f=>f.topografado).length;
+  const nAz = furosA.filter(f=> typeof furoTemAzimute === 'function' && furoTemAzimute(f)).length;
+  const nums = nF ? `<span class="ar-n" title="furos perfilados">Perf <b>${nPerf}/${nF}</b></span><span class="ar-n" title="furos topografados">Topo <b>${nTopo}/${nF}</b></span><span class="ar-n" title="furos azimutados">Az <b>${nAz}/${nF}</b></span>` : '<span class="ar-n">sem furos no checklist</span>';
+  const aberto = realcesMaisAbertos.has(a.id);
   return `
-    <div class="anel-row ar ${ativo ? 'ativo' : ''} ${a.foraEstatisticas ? 'fora-estat' : ''}" data-anel-id="${a.id}" data-est="${estA}">
-      <div class="ar-topo">
+    <div class="anel-row ar ar-c ${ativo ? 'ativo' : ''} ${a.foraEstatisticas ? 'fora-estat' : ''} ${aberto ? 'mais-aberto' : ''}" data-anel-id="${a.id}" data-est="${estA}">
+      <div class="ar-l1">
         <button type="button" class="fav-estrela ${fav ? 'on' : ''}" aria-pressed="${fav}" aria-label="${fav ? 'tirar ' + nome + ' dos fixados' : 'fixar ' + nome + ' no topo'}" title="${fav ? 'fixado no topo' : 'fixar no topo'}" onclick="alternarFavoritoRealce('${a.id}')">${fav ? '★' : '☆'}</button>
-        <div class="ar-titulo">
+        <button type="button" class="ar-nome-btn" onclick="usarAnel('${a.id}')" title="${ativo ? 'abrir o Tratamento deste realce' : 'usar este realce e abrir o Tratamento'}">
           <span class="nome"><i class="lq-ico" data-est="${estA}" aria-hidden="true">${icoA}</i>${nome}</span>
-          <div class="ar-selos">${sel}</div>
-        </div>
+        </button>
+        ${ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo</span>' : ''}
+        ${info.obstruido ? '<span class="badge-fora" title="tem furo obstruído">⚠ obstr.</span>' : ''}
+        <button type="button" class="ar-mais-btn" aria-expanded="${aberto}" aria-label="mais opções de ${nome}" onclick="alternarMenuRealce('${a.id}', this)">⋯</button>
       </div>
-      ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}% · ${itensA.length} leque${itensA.length===1?'':'s'}</span></div>` : ''}
-      ${!ativo ? `<button type="button" class="ar-usar" onclick="usarAnel('${a.id}')">Usar este realce</button>` : ''}
-      <div class="ar-envio">${envio}</div>
-      <details class="ar-mais" ${realcesMaisAbertos.has(a.id) ? 'open' : ''} ontoggle="alternarMaisRealce('${a.id}', this.open)">
-        <summary>⚙ Gerenciar realce</summary>
+      <div class="ar-l2">
+        ${a.nivel ? `<span class="ar-nivel">${escHtml(a.nivel)}</span>` : ''}
+        <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Asc.' : '↓ Desc.'}</span>
+        ${itensA.length ? `<span class="ar-n">${itensA.length} leque${itensA.length===1?'':'s'}</span>` : ''}
+        ${nums}
+        ${realceChecklistCompleto(a.id) ? '<span class="badge-completo" title="todos os leques do checklist estão completos">✓ 100%</span>' : ''}
+        ${a.foraEstatisticas ? '<span class="badge-fora" title="não entra em estatísticas nem relatórios">📦 fora das estat.</span>' : ''}
+      </div>
+      ${itensA.length ? `<div class="lq-barra anel-barra" role="img" aria-label="${pctA}% concluído"><i style="width:${pctA}%"></i><span>${pctA}%</span></div>` : ''}
+      <div class="ar-menu">
+        <div class="ar-envio">${envio}</div>
         <div class="ar-grade">${gerenciar}</div>
-      </details>
+      </div>
     </div>
   `;
+}
+
+function alternarMenuRealce(id, btn){
+  const row = btn.closest('.anel-row'); if(!row) return;
+  const abre = !row.classList.contains('mais-aberto');
+  row.classList.toggle('mais-aberto', abre);
+  btn.setAttribute('aria-expanded', String(abre));
+  alternarMaisRealce(id, abre);
 }
 
 function usarAnel(id){

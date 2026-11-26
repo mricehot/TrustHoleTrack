@@ -2923,3 +2923,33 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .progress-fill.fill-az{ background:var(--amber); }
 .infografico-kpi-az .valor{ color:var(--amber); }
 .infografico-kpi-perf .valor{ color:var(--est-ok); }
+
+/* Realce: lista compacta */
+.anel-row.ar-c{ padding:6px 10px 8px; margin-bottom:6px; }
+.ar-c .ar-l1{ display:flex; align-items:center; gap:6px; min-height:44px; }
+.ar-c .fav-estrela{ flex:none; }
+.ar-c .ar-nome-btn{ flex:1 1 auto; min-width:0; min-height:44px; text-align:left; background:none; border:0; padding:0 4px; color:inherit; text-transform:none; letter-spacing:0; cursor:pointer; }
+.ar-c .ar-nome-btn .nome{ font-size:15px; font-weight:700; line-height:1.2; word-break:break-word; }
+.ar-c .ar-mais-btn{ flex:none; width:44px; min-height:44px; padding:0; font-size:22px; line-height:1; background:none; border:1px solid var(--line); border-radius:10px; color:var(--muted); text-transform:none; }
+.ar-c.mais-aberto .ar-mais-btn{ border-color:var(--steel); color:var(--steel); }
+.ar-c .ar-l2{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:0 4px; font-size:12px; color:var(--muted); }
+.ar-c .ar-n b{ font-family:var(--mono); color:var(--text); font-weight:700; }
+.ar-c .anel-barra{ margin:6px 4px 0; height:12px; flex:none; }
+.ar-c .anel-barra span{ font-size:10px; }
+.ar-c .ar-menu{ display:none; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px; }
+.ar-c.mais-aberto .ar-menu{ display:block; }
+.ar-c .ar-envio{ margin-top:0; }
+@media (min-width:900px){ #anel-list{ display:grid; grid-template-columns:1fr 1fr; gap:0 10px; align-items:start; } #anel-list > .anel-fixados, #anel-list > .hint{ grid-column:1 / -1; } }
+@media (min-width:701px){
+  #view-aneis .btn-novo-anel{ display:inline-flex; align-items:center; min-height:40px; margin:0 0 10px; border-style:dashed; }
+  #view-aneis #form-anel{ display:none; }
+  #view-aneis #form-anel.aberto{ display:flex; }
+}
+/* filtros mais baixos: chips em uma linha rolável */
+.anel-filtros{ gap:6px; margin-bottom:8px; }
+.anel-filtros input[type=search]{ min-height:42px; }
+.anel-chips{ flex-wrap:nowrap; overflow-x:auto; gap:6px; padding-bottom:2px; scrollbar-width:none; }
+.anel-chips::-webkit-scrollbar{ display:none; }
+.anel-chip{ min-height:38px; padding:6px 12px; font-size:13px; white-space:nowrap; flex:none; }
+.anel-todos{ margin:0 0 8px; }
+.anel-todos .btn-status-todos, .anel-todos button{ min-height:40px; font-size:13px; }

@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l137">
+<link rel="stylesheet" href="style.css?v=l139">
 
 </head>
 <body>
@@ -278,12 +278,11 @@
             <span class="current" id="anel-menu-current">nenhum realce ativo</span>
           </div>
           <div class="anel-body">
-            <div class="field" style="margin-bottom:16px;">
-              <label for="anel-projeto-ativo">Projeto ativo</label>
+            <div class="field" style="margin-bottom:10px;">
+              <label for="anel-projeto-ativo" title="Escolhendo um projeto, só aparecem (e só nascem) realces daquele projeto. Pra criar ou apagar projetos, use a aba Config.">Projeto ativo</label>
               <select id="anel-projeto-ativo">
                 <option value="">Todos os projetos</option>
               </select>
-              <div class="hint">Escolhendo um projeto, só aparecem (e só nascem) realces daquele projeto. Pra criar ou apagar projetos, use a aba Config.</div>
             </div>
             <button type="button" id="btn-novo-anel" class="ghost so-gestor btn-novo-anel" onclick="document.getElementById('form-anel').classList.toggle('aberto'); this.setAttribute('aria-expanded', document.getElementById('form-anel').classList.contains('aberto'))" aria-expanded="false">+ Novo realce</button>
             <div class="anel-form so-gestor" id="form-anel">
@@ -648,7 +647,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js?v=l85"></script>
-<script src="script-leques.js?v=l96"></script>
+<script src="script-leques.js?v=l97"></script>
 <script src="script-checklist.js?v=l121"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l90"></script>
