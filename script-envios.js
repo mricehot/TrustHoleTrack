@@ -158,3 +158,14 @@ async function carregarEnviosServidor(){
   window.addEventListener('load', ()=>{ renderEnvios(); carregarEnviosServidor(); });
   aoRenderizarTudo(()=>{ if(!envioForm) renderEnvios(); });
 })();
+
+// leque (id do checklist) -> último envio em que ele foi marcado
+function enviosPorLeque(anelId){
+  const m = new Map();
+  tratativaEnvios.filter(e=> e.anelId === anelId && envioNoEscopo(e)).sort((a,b)=> a.data.localeCompare(b.data)).forEach(e=> (e.lequeIds || []).forEach(id=> m.set(id, { id:e.id, data:e.data, metragem:e.metragem })));
+  return m;
+}
+function abrirEnvioDoLeque(envioId){
+  abrirFormEnvio(envioId);
+  const r = document.getElementById('envios-root'); if(r) r.scrollIntoView({ behavior:'smooth', block:'start' });
+}

@@ -3019,3 +3019,7 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .env-mes-topo{ padding:8px 12px 8px 0; gap:10px; }
 .env-mes-topo .env-mes-cab{ min-height:44px; padding-top:0; padding-bottom:0; }
 .env-exp{ min-height:44px; padding:0 16px; margin:0; }
+.trat-enviados{ margin:12px 0 0; border:1.5px solid var(--steel); border-radius:14px; background:rgba(60,110,160,.06); overflow:hidden; }
+.trat-enviados h4{ margin:0; padding:12px 14px; font-size:15px; color:var(--steel); background:rgba(60,110,160,.12); text-transform:none; letter-spacing:0; }
+.trat-enviados .trat-linha-tr{ padding:8px 14px; }
+.trat-enviados .trat-linha-tr .ghost{ background:var(--surface); border-color:var(--steel); color:var(--steel); font-weight:600; }
