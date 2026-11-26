@@ -36,9 +36,11 @@ function renderEnvios(){
       </button>
       <button type="button" class="env-del" onclick="removerEnvio('${e.id}')" aria-label="Apagar envio" title="Apagar">✕</button></li>`).join('');
     return `<section class="env-mes ${aberto ? 'aberto' : ''}">
+      <div class="env-mes-topo">
       <button type="button" class="env-mes-cab" onclick="alternarMesEnvio('${ym}')" aria-expanded="${aberto}">
         <span class="env-seta">${aberto ? '▾' : '▸'}</span><b>${rotuloMesEnvio(ym)}${ym === ymHoje ? ' <i>(mês atual)</i>' : ''}</b>
         <span class="env-tot">${fmtMetEnvio(tot)} m <small>· ${es.length} ${es.length === 1 ? 'envio' : 'envios'}</small></span></button>
+      <button type="button" class="env-exp" onclick="abrirExportarMes('${ym}')" title="exporta o fechamento de ${rotuloMesEnvio(ym)}: envios e leques tratados no mês" aria-label="Exportar ${rotuloMesEnvio(ym)}">⬇ Exportar</button></div>
       ${aberto ? `<ul class="env-lista">${linhas}</ul>` : ''}</section>`;
   }).join('');
   const f = envioForm, ed = f && f.id ? tratativaEnvios.find(x=>x.id === f.id) : null;
