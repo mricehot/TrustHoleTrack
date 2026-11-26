@@ -322,7 +322,6 @@ async function aplicarLoteChecklist(acao, idsExplicitos){
   if(!leques.length) return;
   if(acao === 'limpar' && !(await confirmDialog(`Limpar as marcas de perfilagem e topografia de ${leques.length} leque(s)?`, 'Limpar'))) return;
 
-  if(acao !== 'limpar') iniciarTurnoSeNecessario();
   const agora = new Date().toISOString();
   const snapLeques = [], snapFuros = [];
   let furosAlterados = 0, puladosObstruidos = 0, bloqueadosLimpar = 0;
@@ -692,244 +691,6 @@ function montarBlocoProdutividadeMensalWhatsApp(){
   return out;
 }
 
-// ---------- Janela do turno (única definição) ----------
-// O que conta como "deste turno": com turno iniciado, só marcas feitas depois do início; sem turno iniciado,
-// o dia da data do turno. Usada pelo resumo do turno, pela conferência de Encerrar turno e pelo contador "Meu turno".
-function janelaDoTurno(){
-  const dia = (typeof dataBRParaISO === 'function' && dataBRParaISO(turnoInfo.data)) || chaveDia(new Date());
-  const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
-  const noDia = iso => !!iso && (ini ? new Date(iso).getTime() >= ini : chaveDia(iso) === dia);
-  // obstrução: com turno aberto, só vale a marcada depois do início (obstruídos antigos, sem hora, ficam de fora)
-  const obsNoTurno = f => ini ? !!f.obstruidoEm && new Date(f.obstruidoEm).getTime() >= ini : (!f.obstruidoEm || chaveDia(f.obstruidoEm) === dia);
-  return { dia, ini, noDia, obsNoTurno };
-}
-// ---------- Resumo do turno no padrão "STATUS TURNO PERFILAGEM LAVRA" ----------
-// Segue o modelo que a equipe manda no grupo: saudação, cabeçalho do turno, resumo das atividades
-// (o que foi feito NO DIA), pendências do realce e status. Mantém acentos (o modelo tem).
-function montarResumoTurnoWhatsApp(){
-  const num = n => (Math.round(n*10)/10).toFixed(1).replace('.', ',');
-  const { dia, ini: inicioTurnoMs, noDia, obsNoTurno } = janelaDoTurno();
-  const [ano, mes, dd] = dia.split('-');
-  const h = new Date().getHours();
-  const saud = h < 12 ? 'Bom Dia' : h < 18 ? 'Boa Tarde' : 'Boa Noite';
-  // só o que ESTE usuário marcou (marcas de outros no mesmo dia ficam de fora)
-  const euNome = String(nomeDoUsuario() || '').trim().toLowerCase();
-  const euEmail = usuarioAtual && usuarioAtual.email ? String(usuarioAtual.email).split('@')[0].toLowerCase() : '';
-  const fui = por => { const v = String(por || '').trim().toLowerCase(); return !!v && (v === euNome || v === euEmail); };
-  const linhaSep = '_______________________________';
-  const escopoAneis = aneis.filter(x=>x.id === anelAtivoId), escopo = new Set(escopoAneis.map(a=>a.id));
-  const multi = escopo.size > 1;
-  const nomeAnel = id => (aneis.find(a=>a.id === id) || {}).nome || '';
-  const sufixo = c => multi ? ` (${nomeAnel(c.anelId)})` : '';
-  const lequesEsc = checklistLeques.filter(c=>escopo.has(c.anelId));
-  const ordC = (a,b)=> (PREFIXO[a.tipo]||'').localeCompare(PREFIXO[b.tipo]||'') || cmpNumero(a.numero, b.numero);
-  lequesEsc.sort(ordC);
-  // todos os furos, um por um: F1, F2, F3, F4, F5
-  const faixa = nums => [...new Set(nums.map(n=>parseInt(n,10)).filter(n=>!isNaN(n)))].sort((a,b)=>a-b).map(n=>'F'+n).join(', ');
-  // o que foi feito no dia, leque a leque
-  const feitoNoDia = (campoOk, campoEm)=> lequesEsc.map(c=>{
-    const fs = checklistFurosDoLeque(c.id).filter(f=> f[campoOk] && noDia(f[campoEm]) && fui(campoOk === 'perfilado' ? f.perfiladoPor : f.topografadoPor));
-    return fs.length ? `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}: ${faixa(fs.map(f=>f.numero))}` : '';
-  }).filter(Boolean);
-  const perfDia = feitoNoDia('perfilado', 'perfiladoEm'), topoDia = feitoNoDia('topografado', 'topografadoEm');
-
-  // metragem real x esperada: vem do checklist (digitada no furo); furos de leques que só existem na perfilagem entram como complemento
-  const nf = f => parseInt(f.numero,10) || 0;
-  const txtMet = (f, obstruido) => `F${nf(f)}: ${obstruido ? 'obstruiu em' : 'perfurou'} ${num(f.metragem)} m de ${num(f.metragemEsperada)} m previstos`;
-  const aMenosCk = (c, obstruido)=> checklistFurosDoLeque(c.id).filter(f=> !!f.obstruido === obstruido && (obstruido ? (fui(f.obstruidoPor) && obsNoTurno(f)) : (f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor))) && metragemAMenos(f.metragem, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
-  const codigosCk = new Set(lequesEsc.map(c=> c.anelId + '|' + PREFIXO[c.tipo] + c.numero));
-  const lequesPerf = leques.filter(l=>escopo.has(l.anelId) && !codigosCk.has(l.anelId + '|' + lequeCode(l))).sort((a,b)=> lequeCode(a).localeCompare(lequeCode(b), undefined, { numeric:true }));
-  const menos = (obstruido)=> {
-    const doCk = lequesEsc.flatMap(c=> aMenosCk(c, obstruido).map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} ${txtMet(f, obstruido)}`));
-    const daPerf = lequesPerf.map(l=>{
-      const fs = furos.filter(f=> f.lequeId === l.id && (f.situacao === 'obstruido') === obstruido && metragemAMenos(f.metragemReal, f.metragemEsperada)).sort((a,b)=>nf(a)-nf(b));
-      return fs.length ? `${lequeCode(l)}${multi ? ' (' + nomeAnel(l.anelId) + ')' : ''}: ` + fs.map(f=>`F${nf(f)} (${num(f.metragemReal)}/${num(f.metragemEsperada)} m)`).join(', ') : '';
-    }).filter(Boolean);
-    return doCk; // furos só da aba Perfilagem não têm autor: ficam fora do resumo pessoal
-  };
-  // metros do dia: soma das metragens reais digitadas nos furos perfilados hoje x esperada desses mesmos furos
-  let mReal = 0, mEsp = 0;
-  lequesEsc.forEach(c=> checklistFurosDoLeque(c.id).forEach(f=>{ if(f.perfilado && noDia(f.perfiladoEm) && fui(f.perfiladoPor) && Number(f.metragem) > 0){ mReal += Number(f.metragem); mEsp += Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0; } }));
-  const obstruidos = lequesEsc.flatMap(c=> checklistFurosDoLeque(c.id).filter(f=>f.obstruido && fui(f.obstruidoPor) && obsNoTurno(f)).sort((a,b)=>nf(a)-nf(b))
-    .map(f=> `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)} F${nf(f)}${f.obstruidoMotivo ? ' (' + String(f.obstruidoMotivo).toLowerCase() + ')' : ''}`));
-
-  // leques do realce ainda com furos por fazer (obstruídos ficam de fora)
-  const lequesPendentes = campo => lequesEsc.map(c=>{
-    const todos = checklistFurosDoLeque(c.id), fs = todos.filter(f=> !f.obstruido && !f[campo]);
-    if(!fs.length) return '';
-    const iniciado = todos.some(f=> f[campo]); // furo a furo só se este bloco (perfilagem ou topografia) já começou naquele leque e não terminou
-    return `${PREFIXO[c.tipo]}${c.numero}${sufixo(c)}${iniciado ? ': ' + faixa(fs.map(f=>f.numero)) + ' (' + fs.length + ')' : ' (nao iniciado)'}`;
-  }).filter(Boolean);
-  const bloco = (icone, titulo, linhas, vazio)=> `${linhas.length ? icone : (vazio || icone)} *${titulo}*${linhas.length ? '\n' + linhas.join('\n') : ''}`;
-  // status geral
-  const todosFuros = lequesEsc.flatMap(c=>checklistFurosDoLeque(c.id));
-  const concluido = lequesEsc.length > 0 && todosFuros.length > 0 && todosFuros.every(f=> f.obstruido || (f.perfilado && f.topografado));
-  const status = !lequesEsc.length ? 'Sem checklist' : concluido ? 'Concluído' : 'Em andamento';
-
-  const turnoTxt = (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `${turnoInfo.turnoNumero || ''}°TURNO${turnoInfo.turnoLetra ? ' - ' + turnoInfo.turnoLetra : ''}` : 'TURNO';
-  const eqUser = (typeof equipes !== 'undefined' ? equipes : []).find(e=> e.id === minhaEquipeId());
-  const tecnicosTxt = String((eqUser && eqUser.integrantes) || turnoInfo.tecnicos || '').split(/\s*(?:[,;\/]| e )\s*/).filter(Boolean).join('/');
-  const ddsTxt = String(turnoInfo.dds || '').trim();
-  const obs = observacoesDoTurnoAtual().filter(o=> !inicioTurnoMs || !o.ts || new Date(o.ts).getTime() >= inicioTurnoMs).map(o=>o.texto).filter(t=> !/^\s*Passagem:/i.test(t)); // a passagem de turno não vai no relatório
-  const obsTxt = `Iniciamos as atividades participando do DDS${ddsTxt ? ' (' + ddsTxt + ')' : ''}.` + (obs.length ? '\n' + obs.map(o=>'- ' + o).join('\n') : '');
-
-  // progresso do(s) realce(s) trabalhado(s): visão do realce inteiro (obstruído/detonado fora de perfilados/topografados)
-  const progressoRealce = escopoAneis.flatMap(a=>{
-    const fs = lequesEsc.filter(c=>c.anelId === a.id).flatMap(c=>checklistFurosDoLeque(c.id));
-    if(!fs.length) return [];
-    const ut = fs.filter(f=>!f.obstruido), tot = ut.length, fp = ut.filter(f=>f.perfilado).length, ft = ut.filter(f=>f.topografado).length;
-    const pf = tot ? Math.round(fp/tot*100) : 0, pt = tot ? Math.round(ft/tot*100) : 0, g = progressoGeralFuros(fs);
-    const nObs = fs.filter(f=>f.obstruido).length;
-    const area = semAcento(String(a.nivel || '').trim());
-    return [`*PROGRESSO DO REALCE* (${semAcento(a.nome)})`,
-      ...(area ? [`Area: ${area}`] : []),
-      `Perfilados: ${fp}/${tot} (${pf}%)`, barraWa(pf),
-      `Topografados: ${ft}/${tot} (${pt}%)`, barraWa(pt),
-      `Geral: ${g.texto} (${g.pct}%)`, barraWa(g.pct),
-      ...(nObs ? [`Obstruídos: ${nObs}`] : []),
-      linhaSep];
-  });
-  const t = [
-    `Prezados, ${saud}.`,
-    linhaSep,
-    `*STATUS TURNO PERFILAGEM LAVRA*`,
-    `*${turnoTxt}*`,
-    `*Data* ${dd}/${mes}/${ano}`,
-    `*TÉCNICOS* : ${tecnicosTxt || '-'}`,
-    `*Supervisor*: ${turnoInfo.supervisor || '-'}`,
-    `*PROJETO: ${turnoInfo.projeto || '-'}*`,
-    `*LOCAL: ${turnoInfo.local || escopoAneis.map(a=>a.nome).join(', ') || '-'}*`,
-    `*DDS*: ${ddsTxt || '-'}`,
-    linhaSep,
-    '',
-    `*RESUMO DAS ATIVIDADES:*`,
-    '',
-    bloco('✅', 'Perfilagem', perfDia, '❌'),
-    '',
-    bloco('✅', 'Levantamento Topográfico', topoDia, '❌') + (topoDia.length ? '' : ':'),
-    '',
-    bloco('✅', 'Azimute', topoDia, '❌'),
-    '',
-    `⚠️ *Não Perfurados*`,
-    '',
-    bloco('⚠️', 'Perfuração a menos', menos(false)),
-    '',
-    bloco('🟡', 'Leques pendentes - Perfilagem', lequesPendentes('perfilado'), '✅'),
-    '',
-    bloco('🟡', 'Leques pendentes - Topografia', lequesPendentes('topografado'), '✅'),
-    '',
-    linhaSep,
-    `*Status:*  ${status}`,
-    linhaSep,
-    `*Metragem perfilada*: ${mReal ? num(mReal) + ' m' : '-'}`,
-    linhaSep,
-    ...progressoRealce,
-    `*OBSERVAÇÕES*: ${obsTxt}`
-  ];
-  return t.join('\n');
-}
-function renderResumoTurno(){
-  renderPainelTurno(); atualizarContagensTurno(); aplicarSecoesTurno();
-  const pre = el('resumo-turno-texto');
-  if(pre) pre.textContent = montarResumoTurnoWhatsApp();
-}
-// ---------- Página Turno: painel, seções recolhíveis e atalhos de observação ----------
-const TURNO_SECOES_KEY = 'perfilagem-turno-secoes-v1';
-let turnoSecoes = {};
-try{ turnoSecoes = JSON.parse(localStorage.getItem(TURNO_SECOES_KEY) || '{}') || {}; }catch(e){ turnoSecoes = {}; }
-function salvarTurnoSecoes(){ try{ localStorage.setItem(TURNO_SECOES_KEY, JSON.stringify(turnoSecoes)); }catch(e){} }
-function secaoTurnoRecolhida(chave){
-  if(chave in turnoSecoes) return !!turnoSecoes[chave];
-  if(chave === 'comunicados') return comunicadosVigentesNoEscopo().length === 0; // vazio: começa recolhido
-  if((chave === 'dados' || chave === 'fotos' || chave === 'inicio') && window.matchMedia && matchMedia('(max-width:700px)').matches) return true; // celular: o essencial aparece sem rolar
-  if(chave === 'passagem' || chave === 'exportar') return true; // uso raro: começa recolhido (o resumo no título mostra o essencial)
-  return false;
-}
-function aplicarSecoesTurno(){
-  document.querySelectorAll('#view-turno > .view-card[data-secao]').forEach(card=>{
-    const rec = secaoTurnoRecolhida(card.dataset.secao);
-    card.classList.toggle('recolhido', rec);
-    const cab = card.querySelector('.view-card-header');
-    if(cab){ cab.setAttribute('aria-expanded', String(!rec)); }
-  });
-  document.querySelectorAll('#view-turno details.sec-det[data-secao]').forEach(det=>{
-    const rec = secaoTurnoRecolhida(det.dataset.secao);
-    if(det.open === rec) det.open = !rec;
-  });
-}
-function alternarSecaoTurno(card){
-  const chave = card.dataset.secao;
-  const vaiRecolher = !card.classList.contains('recolhido');
-  turnoSecoes[chave] = vaiRecolher; salvarTurnoSecoes();
-  const corpo = card.querySelector(':scope > .turno-body'), chev = card.querySelector('.sec-chev');
-  const cab = card.querySelector('.view-card-header'); if(cab) cab.setAttribute('aria-expanded', String(!vaiRecolher));
-  if(vaiRecolher) animarFechar(corpo, chev, ()=> card.classList.add('recolhido'));
-  else{ card.classList.remove('recolhido'); animarAbrir(corpo, chev); }
-}
-(function iniciarSecoesTurno(){
-  document.querySelectorAll('#view-turno > .view-card[data-secao]').forEach(card=>{
-    const cab = card.querySelector('.view-card-header'); if(!cab) return;
-    const chev = document.createElement('span'); chev.className = 'sec-chev'; chev.setAttribute('aria-hidden', 'true'); chev.textContent = '▾';
-    cab.insertBefore(chev, cab.firstChild);
-    cab.classList.add('sec-cab'); cab.setAttribute('role', 'button'); cab.tabIndex = 0;
-    cab.addEventListener('click', ev=>{
-      if(ev.target.closest('button, input, select, a')){
-        if(ev.target.closest('#btn-novo-comunicado') && card.classList.contains('recolhido')){ turnoSecoes.comunicados = false; salvarTurnoSecoes(); aplicarSecoesTurno(); }
-        return;
-      }
-      alternarSecaoTurno(card);
-    });
-    cab.addEventListener('keydown', ev=>{ if((ev.key === 'Enter' || ev.key === ' ') && ev.target === cab){ ev.preventDefault(); alternarSecaoTurno(card); } });
-  });
-  document.querySelectorAll('#view-turno details.sec-det[data-secao]').forEach(det=>{
-    det.addEventListener('toggle', ()=>{ turnoSecoes[det.dataset.secao] = !det.open; salvarTurnoSecoes(); });
-  });
-  window.addEventListener("load", aplicarSecoesTurno); // depois que todos os scripts carregaram
-})();
-function atualizarContagensTurno(){
-  const o = el('sec-obs-cont'), f = el('sec-fotos-cont');
-  if(o) o.textContent = observacoesDoTurnoAtual().length;
-  if(f) f.textContent = fotosDoTurnoAtual().length;
-}
-
-// Painel do turno: o que foi feito HOJE no realce ativo, por equipe, e o que ainda pende.
-function renderPainelTurno(){
-  const kpis = el('pt-kpis'); if(!kpis) return;
-  const hoje = dataISOLocal(new Date());
-  const ehHoje = v=> v && dataISOLocal(new Date(v)) === hoje;
-  const itens = checklistDoAnelAtivo();
-  const ids = new Set(itens.map(c=>c.id));
-  const furosR = checklistFuros.filter(f=>ids.has(f.checklistLequeId));
-  const perfHoje = furosR.filter(f=>f.perfilado && ehHoje(f.perfiladoEm)).length;
-  const topoHoje = furosR.filter(f=>f.topografado && ehHoje(f.topografadoEm)).length;
-  const obstr = furosR.filter(f=>f.obstruido).length;
-  const pend = itens.filter(c=> estadoDoLeque(checklistFurosDoLeque(c.id)) !== 'ok').length;
-  const tile = (valor, rotulo, cls)=> `<div class="pt-kpi ${cls||''}"><span class="valor">${valor}</span><span class="rot">${rotulo}</span></div>`;
-  kpis.innerHTML = tile(perfHoje, 'perfilados hoje') + tile(topoHoje, 'topografados hoje') + tile(pend, 'leques pendentes', pend ? 'aviso' : 'ok') + tile(obstr, 'obstruídos', obstr ? 'perigo' : '');
-  const mapa = new Map();
-  const lin = id=>{ if(!mapa.has(id)) mapa.set(id, { p:0, t:0 }); return mapa.get(id); };
-  furosR.forEach(f=>{
-    if(f.perfilado && ehHoje(f.perfiladoEm)){ const id = equipePerfEfetivaId(f); if(id && nomeDaEquipeId(id)) lin(id).p++; }
-    if(f.topografado && ehHoje(f.topografadoEm)){ const id = equipeTopoEfetivaId(f); if(id && nomeDaEquipeId(id)) lin(id).t++; }
-  });
-  const box = el('pt-equipes');
-  const eqs = equipes.filter(e=> mapa.has(e.id));
-  box.innerHTML = eqs.length ? `<div class="ck-pe-titulo">Por equipe hoje</div>` + eqs.map(e=>{
-    const l = mapa.get(e.id), m = somaLancamentos(e.id, hoje, hoje).metros;
-    return `<div class="ck-pe-linha" style="--eq-cor:${corDaEquipe(e)}"><span class="ck-pe-nome">${marcaDaEquipe(e)}${escHtml(e.nome)}</span><span class="ck-pe-num">Perf. <b>${l.p}</b></span><span class="ck-pe-num">Topo <b>${l.t}</b></span>${m > 0 ? `<span class="ck-pe-num"><b>${fmt1(m).replace('.', ',')}</b> m</span>` : ''}</div>`;
-  }).join('') : '';
-  const esc = el('painel-escopo'); if(esc){ const a = aneis.find(x=>x.id===anelAtivoId); esc.textContent = 'hoje · ' + (a ? a.nome : 'sem realce ativo'); }
-}
-el('pt-ir-checklist').addEventListener('click', ()=> mostrarView('checklist'));
-
-// Observações em um toque.
-const ATALHOS_OBS = ['Rocha solta', 'Equipamento parado', 'Falta de ventilação', 'Aguardando liberação', 'Acesso bloqueado'];
-(function iniciarAtalhosObs(){
-  const box = el('obs-atalhos'); if(!box) return;
-  box.innerHTML = ATALHOS_OBS.map((t,i)=> `<button type="button" class="obs-atalho" data-i="${i}">${t}</button>`).join('');
-  box.addEventListener('click', ev=>{ const b = ev.target.closest('.obs-atalho'); if(b) adicionarObservacaoTurno(ATALHOS_OBS[+b.dataset.i], true); });
-})();
-
 async function copiarTextoResumo(texto){
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(texto); return true; }
@@ -939,41 +700,6 @@ async function copiarTextoResumo(texto){
     document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
   }catch(e){ return false; }
 }
-// Antes de compartilhar o resumo, pergunta o tema do DDS do dia (vira a observação "Iniciamos as atividades participando do DDS").
-function pedirDDS(aoConfirmar){
-  const root = el('modal-root');
-  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
-    <p style="font-weight:700;margin:0 0 4px;">DDS do turno</p>
-    <p class="hint" style="margin:0 0 10px;">Qual foi o tema do DDS? Vai nas observações do resumo.</p>
-    <input id="dds-tema" type="text" maxlength="120" placeholder="tema do DDS" value="${escHtml(turnoInfo.dds || '')}" style="width:100%;min-height:48px;font-size:1.05rem;" aria-label="tema do DDS">
-    <div class="modal-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
-      <button type="button" class="steel" id="dds-ok">Continuar</button>
-      <button type="button" class="ghost" id="dds-x">Cancelar</button>
-    </div></div></div>`;
-  const fechar = ()=>{ root.innerHTML = ''; };
-  const seguir = ()=>{
-    turnoInfo.dds = el('dds-tema').value.trim();
-    const campo = el('turno-dds'); if(campo) campo.value = turnoInfo.dds;
-    try{ saveTurnoInfo(); }catch(e){}
-    fechar(); aoConfirmar();
-  };
-  el('dds-ok').onclick = seguir; el('dds-x').onclick = fechar;
-  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
-  el('dds-tema').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); seguir(); } });
-  setTimeout(()=>{ try{ el('dds-tema').focus(); }catch(_){} }, 50);
-}
-el('btn-resumo-turno-copiar').addEventListener('click', ()=> pedirDDS(async ()=>{
-  const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp());
-  showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar. Use "Enviar no WhatsApp".', { erro:false });
-  renderResumoTurno();
-}));
-el('btn-resumo-turno-whatsapp').addEventListener('click', ()=> pedirDDS(()=>{
-  const texto = montarResumoTurnoWhatsApp();
-  enviarWhatsApp(texto);
-  renderResumoTurno();
-}));
-el('btn-resumo-turno-atualizar').addEventListener('click', ()=>{ renderResumoTurno(); showToast('Resumo atualizado.', { erro:false }); });
-
 // Abre o WhatsApp; se o navegador bloquear a janela (acontece depois de esperar upload), navega na mesma aba.
 function abrirWhatsApp(url){ const w = window.open(url, '_blank'); if(!w) location.href = url; }
 // Único jeito de montar o link do WhatsApp (com o número configurado, se houver) e de enviar texto.
@@ -1872,7 +1598,6 @@ function toggleChecklistFuro(id){
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.perfilado && !podeDesmarcarFuro(f,'perf')){ avisarSoQuemMarcou(f.perfiladoPor, equipePerfEfetivaId(f)); return; }
   const divergente = !f.perfilado ? equipeDivergente(f,'perf') : null;
-  if(!f.perfilado) iniciarTurnoSeNecessario();
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.perfilado = !f.perfilado;
@@ -1919,7 +1644,6 @@ function toggleChecklistFuroTopografado(id){
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(f.topografado && !podeDesmarcarFuro(f,'topo')){ avisarSoQuemMarcou(f.topografadoPor, equipeTopoEfetivaId(f)); return; }
   const divergente = !f.topografado ? equipeDivergente(f,'topo') : null;
-  if(!f.topografado) iniciarTurnoSeNecessario();
   const antes = fotoFuro(f);
   guardarEstadoLeque(f.checklistLequeId);
   f.topografado = !f.topografado;
@@ -1941,7 +1665,6 @@ function definirObstrucaoChecklistFuro(id, motivo){
   const valor = motivo ? OBSTRUIDO_VALOR : '';
   if(lequeConcluidoTravado(f.checklistLequeId)){ avisarLequeTravado(); return; }
   if(!valor && f.obstruido && !podeDesmarcarFuro(f,'obs')){ avisarSoQuemMarcou(f.obstruidoPor, equipeObsEfetivaId(f)); return; }
-  if(valor) iniciarTurnoSeNecessario();
   vibrarCurto(valor ? [12, 40, 12] : 10);
   const antes = fotoFuro(f);
   f.obstruido = valor;
@@ -2198,7 +1921,6 @@ function abrirMarcarFaixa(lequeId){
 }
 function aplicarFaixa(lequeId, tipo, alvo){
   if(!alvo.length){ showToast('Nenhum furo para marcar nessa faixa.'); return; }
-  iniciarTurnoSeNecessario();
   const agora = new Date().toISOString();
   const snap = [];
   alvo.forEach(f=>{

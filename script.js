@@ -48,10 +48,6 @@ async function atualizarWakeLock(){
 }
 document.addEventListener('visibilitychange', atualizarWakeLock);
 const fmt1 = n => (Math.round(n*10)/10).toFixed(1);
-// Antes cada letra de turno tinha uma dupla fixa de técnicos. Foi esvaziado a pedido:
-// as equipes agora são cadastradas por projeto (Infográfico > Gerenciar equipes).
-const TECNICOS_POR_LETRA = {}; // sem duplas fixas: os técnicos de cada turno são digitados à mão na aba Turno
-
 const ICONE_CADEADO = '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const fmt3 = n => Number(n).toFixed(3);
 const pad2 = n => String(n).padStart(2,'0');
@@ -208,7 +204,7 @@ window.addEventListener('offline', atualizarStatusConexao);
 // aparelho e sobe sozinha quando o sinal voltar. Só o que depende da rede de verdade
 // fica bloqueado: fotos (upload), senha e nome de exibição (conta).
 const SELETOR_SO_ONLINE = [
-  '#btn-escolher-foto-leque', '#leque-foto-input', '#btn-escolher-foto-turno', '#foto-turno-input',
+  '#btn-escolher-foto-leque', '#leque-foto-input',
   '[onclick*="selecionarFotoLeque"]', '[onclick*="removerFotoLeque"]',
   '#btn-alterar-senha', '#btn-salvar-perfil', '#tecnico-nome', '#tecnico-senha-nova', '#tecnico-senha-confirma'
 ].join(',');
@@ -281,13 +277,10 @@ el('btn-tema').addEventListener('click', alternarTema);
 
 // ---------- Armazenamento local (funciona 100% sem internet) ----------
 const LOCAL_KEY = 'perfilagem-local-v1';
-const TURNO_LOCAL_KEY = 'perfilagem-turno-local-v1';
-const OBS_LOCAL_KEY = 'perfilagem-obs-turno-v1';
 const CHECKLIST_LOCAL_KEY = 'perfilagem-checklist-leques-v1';
 const CHECKLIST_FUROS_LOCAL_KEY = 'perfilagem-checklist-furos-v1';
 const CHECKLIST_OBS_GERAL_LOCAL_KEY = 'perfilagem-checklist-obs-geral-v1';
 const PROJETOS_LOCAL_KEY = 'perfilagem-projetos-v1';
-const FOTOS_TURNO_LOCAL_KEY = 'perfilagem-fotos-turno-v1';
 const PF_LOCAL_KEY = 'perfilagem-pontos-fixos-v1';
 let aneis = [];        // { id, nome, ativo }
 let leques = [];       // { id, anelId, tipo, numero, nome, status: 'aberto'|'fechado', orientacao }
@@ -421,9 +414,6 @@ function toggleSelecaoLeque(id, marcado){
   document.querySelectorAll('.leque-group[data-leque-id="'+id+'"]').forEach(elGroup=>{
     elGroup.classList.toggle('selecionado', marcado);
   });
-  // mantém em sincronia com a checklist da seção "Exportar turno" (mesma seleção, dois lugares)
-  const chkTurno = document.querySelector('#turno-leques-checklist .turno-leque-check[data-id="'+id+'"]');
-  if(chkTurno) chkTurno.checked = marcado;
 }
 
 function limparSelecaoLeques(){
@@ -447,48 +437,6 @@ function renderExportBar(){
     .sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}))
     .map(l=>lequeCode(l)).join(', ');
   el('export-bar-count').textContent = (n===1 ? '1 leque selecionado: ' : n+' leques selecionados: ') + codigos;
-}
-
-// Lista, dentro da seção "Exportar turno", os leques do anel ativo pra marcar quais
-// entram junto no PDF — só aparece quando o técnico responde "Sim" à pergunta acima.
-// Usa o mesmo Set (lequesSelecionados) da seleção da lista principal, então marcar
-// aqui ou lá embaixo dá no mesmo.
-function renderTurnoLequesChecklist(){
-  const wrap = el('turno-leques-wrap');
-  const lista = el('turno-leques-checklist');
-  const vazio = el('turno-leques-vazio');
-  if(!wrap || !lista || !vazio) return;
-
-  const grupo = el('turno-incluir-leques-group');
-  const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
-  const incluir = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
-  wrap.style.display = incluir ? '' : 'none';
-  if(!incluir) return;
-
-  const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
-  const lequesDoAnel = anelAtivo ? leques.filter(l=>l.anelId===anelAtivo.id) : [];
-  const ordenados = [...lequesDoAnel].sort((x,y)=> lequeCode(x).localeCompare(lequeCode(y), undefined, {numeric:true}));
-
-  if(ordenados.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-  vazio.style.display = 'none';
-
-  lista.innerHTML = ordenados.map(l=>{
-    const qtdFuros = furos.filter(f=>f.lequeId===l.id).length;
-    const marcado = lequesSelecionados.has(l.id);
-    return `
-      <label class="turno-leque-item">
-        <input type="checkbox" class="turno-leque-check" data-id="${l.id}" ${marcado ? 'checked' : ''}>
-        <span class="info">
-          <span class="code">${lequeCode(l)}</span>
-          <span class="hint">${tipoLabel(l.tipo)}${l.nome ? ' · '+escHtml(l.nome) : ''} · ${qtdFuros} furo(s)</span>
-        </span>
-      </label>
-    `;
-  }).join('');
 }
 
 function uuidv4(){
@@ -841,28 +789,13 @@ atualizarStatusConexao();
 // cada lugar que ainda chama ela.
 function removerDaFila(tabela, id){}
 
-// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o nome
-// do anel + o nível cadastrado nele (ex: "Realce N3-Leste · N-125 TR6733") — evita
-// digitar a mesma informação duas vezes. Só sincroniza quando o anel tem um nível de
-// fato; se estiver vazio, não apaga o que a pessoa já tinha digitado em Local.
-// Sempre que troca ou cria o anel ativo, já preenche o "Local" do turno com o
-// código/nome do anel — e o nível também, se estiver cadastrado (ex: "32PE12"
-// ou "32PE12 · N-125 TR6733"). Antes só sincronizava quando tinha nível
-// preenchido, o que deixava o Local sem atualizar pra quem usa o próprio
-// código do anel como nome, sem separar num campo de nível.
+// Sempre que troca ou cria o anel ativo, os leques novos herdam a orientação dele.
 function sincronizarLocalComNivelDoAnel(){
   const anel = aneis.find(a=>a.id===anelAtivoId);
   if(!anel) return;
-  const campoLocal = el('turno-local');
-  if(campoLocal) campoLocal.value = anel.nivel ? `${anel.nome} · ${anel.nivel}` : anel.nome;
-  // O campo Projeto do turno é só-leitura — segue automaticamente o projeto
-  // associado ao realce ativo (configurado na criação/edição do realce).
-  const campoProjeto = el('turno-projeto');
-  if(campoProjeto) campoProjeto.value = anel.projeto || '';
   // Leques novos herdam a orientação do realce ativo (o chip do formulário já vem marcado).
   const orient = anel.orientacao || 'descendente';
   document.querySelectorAll('#leque-orientacao-group .chip').forEach(c=> c.classList.toggle('active', c.dataset.val === orient));
-  saveTurnoInfo();
 }
 
 // Realce ativo é POR USUÁRIO: cada pessoa tem o seu, guardado na tabela
@@ -904,7 +837,7 @@ async function buscarTudo(tabela){
 // se não houver nada pendente (pra nunca perder alterações ainda não enviadas).
 // Impressão digital dos dados que vêm do servidor, para saber se uma atualização trouxe algo novo.
 function assinaturaDosDados(){
-  try{ return JSON.stringify([aneis, leques, furos, turnoObservacoes, fotosTurno, checklistLeques, checklistFuros, checklistObservacoesGerais, projetos, equipes, lancamentosProd, comunicados, anelAtivoId]); }
+  try{ return JSON.stringify([aneis, leques, furos, checklistLeques, checklistFuros, checklistObservacoesGerais, projetos, equipes, lancamentosProd, comunicados, anelAtivoId]); }
   catch(e){ return String(Math.random()); }
 }
 async function atualizarDoServidor(){
@@ -923,23 +856,19 @@ async function atualizarDoServidor(){
     }
     const comResp = await buscarTudo('comunicados');
     if(!comResp.error){ comunicados = (comResp.data || []).map(mapComunicado); salvarComunicadosLocal(); }
-    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: obsData, error: e4 }, { data: fotosData, error: e5 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
+    const [{ data: aneisData, error: e1 }, { data: lequesData, error: e2 }, { data: furosData, error: e3 }, { data: checklistData, error: e6 }, { data: checklistFurosData, error: e7 }, { data: checklistObsGeralData, error: e8 }, { data: projetosData, error: e9 }] = await Promise.all([
       buscarTudo('aneis'),
       buscarTudo('leques'),
       buscarTudo('furos'),
-      buscarTudo('turno_observacoes'),
-      buscarTudo('fotos_turno'),
       buscarTudo('checklist_leques'),
       buscarTudo('checklist_furos'),
       buscarTudo('checklist_observacoes_gerais'),
       buscarTudo('projetos')
     ]);
-    if(e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9) throw (e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9);
+    if(e1 || e2 || e3 || e6 || e7 || e8 || e9) throw (e1 || e2 || e3 || e6 || e7 || e8 || e9);
     aneis = (aneisData || []).map(mapAnel);
     leques = (lequesData || []).map(mapLeque);
     furos = (furosData || []).map(mapFuro);
-    turnoObservacoes = (obsData || []).map(mapObservacao);
-    fotosTurno = (fotosData || []).map(mapFotoTurno);
     checklistLeques = (checklistData || []).map(mapChecklistLeque);
     checklistFuros = (checklistFurosData || []).map(mapChecklistFuro);
     checklistObservacoesGerais = (checklistObsGeralData || []).map(mapObservacaoGeralChecklist);
@@ -962,8 +891,6 @@ async function atualizarDoServidor(){
     // Nada mudou no servidor: não redesenha a tela (redesenhar tudo a cada atualização fazia a tela piscar e tremer).
     if(assinaturaAntes === assinaturaDosDados()){ registrarSincronizacaoOk(); return true; }
     salvarLocal();
-    salvarObsLocal();
-    salvarFotosTurnoLocal();
     salvarChecklistLocal();
     salvarChecklistFurosLocal();
     salvarChecklistObsGeralLocal();
@@ -972,8 +899,6 @@ async function atualizarDoServidor(){
     salvarProdutividadeLocal();
     renderAll();
     renderComunicados();
-    renderObservacoesTurno();
-    renderFotosTurno();
     registrarSincronizacaoOk();
     return true;
   }catch(e){
@@ -1003,7 +928,6 @@ el('btn-atualizar').addEventListener('click', sincronizarDoServidor);
 async function loadData(){
   carregarLocal();
   carregarUltimaSincronizacaoLocal();
-  carregarFotosTurnoLocal();
   carregarChecklistLocal();
   carregarChecklistFurosLocal();
   carregarChecklistObsGeralLocal();
@@ -1319,7 +1243,6 @@ function editarFuro(id){
 function editLequeModal(leque){
   return new Promise(resolve=>{
     const root = el('modal-root');
-    const letras = ['A','B','C','D','E'];
     root.innerHTML = `
       <div class="modal-overlay" id="modal-overlay">
         <div class="modal-box">
@@ -1352,12 +1275,6 @@ function editLequeModal(leque){
               <button type="button" class="chip chip-wide${leque.orientacao==='descendente'?' active':''}" data-val="descendente">↓ Descendente</button>
             </div>
           </div>
-          <div class="field" style="margin-bottom:16px;">
-            <label>Letra do turno que abriu</label>
-            <div class="chip-group" id="edit-leque-letra-group">
-              ${letras.map(l=>`<button type="button" class="chip${l===leque.turnoLetra?' active':''}" data-val="${l}">${l}</button>`).join('')}
-            </div>
-          </div>
           <div class="modal-actions">
             <button class="ghost" id="modal-cancelar">Cancelar</button>
             <button class="steel" id="modal-salvar">Salvar</button>
@@ -1365,20 +1282,12 @@ function editLequeModal(leque){
         </div>
       </div>
     `;
-    let letraSelecionada = leque.turnoLetra || null;
     let orientacaoSelecionada = leque.orientacao === 'descendente' ? 'descendente' : 'ascendente';
     root.querySelectorAll('#edit-leque-orientacao-group .chip').forEach(chip=>{
       chip.addEventListener('click', ()=>{
         root.querySelectorAll('#edit-leque-orientacao-group .chip').forEach(c=> c.classList.remove('active'));
         chip.classList.add('active');
         orientacaoSelecionada = chip.dataset.val;
-      });
-    });
-    root.querySelectorAll('#edit-leque-letra-group .chip').forEach(chip=>{
-      chip.addEventListener('click', ()=>{
-        root.querySelectorAll('#edit-leque-letra-group .chip').forEach(c=> c.classList.remove('active'));
-        chip.classList.add('active');
-        letraSelecionada = chip.dataset.val;
       });
     });
     const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
@@ -1392,7 +1301,7 @@ function editLequeModal(leque){
         showToast('Preencha o número do leque.');
         return;
       }
-      fechar({ tipo, numero, nome, orientacao: orientacaoSelecionada, turnoLetra: letraSelecionada });
+      fechar({ tipo, numero, nome, orientacao: orientacaoSelecionada });
     };
     el('modal-salvar').addEventListener('click', salvar);
     ['edit-leque-numero','edit-leque-nome'].forEach(id=>{
@@ -1421,9 +1330,8 @@ function editarLeque(id){
     l.numero = resultado.numero;
     l.nome = resultado.nome;
     l.orientacao = resultado.orientacao;
-    l.turnoLetra = resultado.turnoLetra;
     enfileirar('leques', 'update', {
-      id: l.id, tipo: l.tipo, numero: l.numero, nome: l.nome, orientacao: l.orientacao, turno_letra: l.turnoLetra
+      id: l.id, tipo: l.tipo, numero: l.numero, nome: l.nome, orientacao: l.orientacao
     });
     salvarLocal();
     renderAll();

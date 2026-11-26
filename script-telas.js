@@ -111,7 +111,6 @@ function render(){
               <span class="badge-orientacao ${l.orientacao}" title="orientação do leque">${l.orientacao === 'descendente' ? '↓ Descendente' : '↑ Ascendente'}</span>
               <span class="status ${l.status}"><i class="lq-ico" data-est="${estL}" aria-hidden="true">${ICO_EST_P[estL]}</i>${l.status === 'aberto' ? 'aberto' : (estL === 'ini' && todosFurosL.length ? 'sem metragens' : estL === 'and' ? 'incompleto' : 'fechado')}</span>
               ${l.nome ? `<span class="hint">${escHtml(l.nome)}</span>` : ''}
-              ${(l.turnoNumero || l.turnoLetra) ? `<span class="hint" title="turno que abriu este leque">Turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${TECNICOS_POR_LETRA[l.turnoLetra] ? ' · ' + TECNICOS_POR_LETRA[l.turnoLetra] : ''}</span>` : ''}
             </div>
             <div class="leque-head-line2">
               <div class="stats">
@@ -177,13 +176,11 @@ function renderAllBase(){
   renderPainelTrabalho();
   render();
   renderExportBar();
-  renderTurnoLequesChecklist();
   renderChecklist();
   renderAvisoRefazer();
   preencherSelectsDeProjeto();
   renderInfografico();
   renderComunicados();
-  if(document.body.dataset.view === 'turno') renderResumoTurno();
 }
 
 ['f-tipo','f-situacao','f-busca'].forEach(id=> el(id).addEventListener('input', render));
@@ -262,29 +259,6 @@ el('btn-csv').addEventListener('click', ()=>{
   showToast(`${furosParaExportar.length} furo(s) exportado(s) para CSV.`);
 });
 
-['data','tecnicos','local','dds'].forEach(k=>{
-  const campo = document.getElementById('turno-'+k);
-  if(campo) campo.addEventListener('input', saveTurnoInfo);
-});
-document.querySelectorAll('#turno-numero-group .chip, #turno-letra-group .chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
-    chip.classList.add('active');
-    // Cada letra tem uma dupla fixa de técnicos — preenche na hora, em vez de
-    // digitar de novo a cada turno.
-    if(chip.parentElement.id === 'turno-letra-group'){
-      const nomes = TECNICOS_POR_LETRA[chip.dataset.val];
-      if(nomes) el('turno-tecnicos').value = nomes;
-      // Só ajusta o padrão da criação de leque se ninguém tinha escolhido
-      // manualmente ainda — não sobrescreve uma escolha explícita.
-      if(!document.querySelector('#leque-letra-group .chip.active')){
-        selecionarChip('leque-letra-group', chip.dataset.val);
-      }
-    }
-    saveTurnoInfo();
-  });
-});
-
 el('lista').addEventListener('change', (e)=>{
   const chk = e.target.closest('.leque-select');
   if(!chk) return;
@@ -297,50 +271,9 @@ el('btn-exportar-selecionados').addEventListener('click', ()=>{
 el('btn-baixar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados), { baixar:true });
 });
-document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('#turno-incluir-leques-group .chip').forEach(c=> c.classList.remove('active'));
-    chip.classList.add('active');
-    renderTurnoLequesChecklist();
-  });
-});
-
-el('turno-leques-checklist').addEventListener('change', (e)=>{
-  const chk = e.target.closest('.turno-leque-check');
-  if(!chk) return;
-  toggleSelecaoLeque(chk.dataset.id, chk.checked);
-});
-
-async function exportarTurnoOuCombinado(){
-  const grupo = el('turno-incluir-leques-group');
-  const chipAtivo = grupo ? grupo.querySelector('.chip.active') : null;
-  const incluirLeques = chipAtivo ? chipAtivo.dataset.val === 'sim' : false;
-
-  if(incluirLeques){
-    const idsMarcados = Array.from(document.querySelectorAll('#turno-leques-checklist .turno-leque-check:checked')).map(c=>c.dataset.id);
-    if(idsMarcados.length === 0){
-      showToast('Marque ao menos um leque, ou escolha "Não" pra exportar só o turno.');
-      return;
-    }
-    await exportarLequesPDF(idsMarcados);
-  }else{
-    await exportarTurnoPDF();
-  }
-
-  // Depois de exportar o relatório do turno, já limpa os campos (Data, Turno,
-  // Letra, Técnicos, DDS) pra deixar pronto pro próximo turno — sem precisar
-  // clicar em "Limpar" à parte. Observações e fotos continuam guardadas.
-  // O toast da própria exportação (ex: "PDF do turno exportado.") já apareceu
-  // acima — espera ele passar antes de mostrar o da limpeza, pra não um
-  // sobrescrever o outro (o toast é um elemento só, reaproveitado).
-  executarLimpezaCamposTurno();
-  setTimeout(()=> showToast('Dados do turno limpos, pronto pro próximo.'), 2400);
-}
-el('btn-exportar-turno').addEventListener('click', exportarTurnoOuCombinado);
-
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
 const VIEWS_SECUNDARIAS = ['infografico','pendencias','painel','historico','config','tecnico'];
-const ORDEM_VIEWS = ['turno','aneis','perfilagem','checklist','infografico','pendencias','painel','historico','config','tecnico'];
+const ORDEM_VIEWS = ['aneis','perfilagem','checklist','infografico','pendencias','painel','historico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;
@@ -357,7 +290,6 @@ function mostrarView(viewId){
   // renderChecklist roda nesse caso) — então garante dado fresco toda vez
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
-  if(viewId === 'turno') renderResumoTurno();
   if(viewId === 'perfilagem' && typeof puxarDoChecklist === 'function') setTimeout(()=>puxarDoChecklist(true), 200);
   if(viewId === 'painel' && typeof renderPainelGestor === 'function') renderPainelGestor();
   if(viewId === 'tecnico' && typeof atualizarAvatarEMeuDia === 'function') atualizarAvatarEMeuDia();
@@ -370,7 +302,7 @@ function mostrarView(viewId){
       if(novo && novo.animate && !semMovimento()) novo.animate([{ opacity:0, transform:`translateX(${28*dir}px)` }, { opacity:1, transform:'none' }], { duration:230, easing:'cubic-bezier(.2,.7,.2,1)' });
     }catch(e){}
   }
-  if(viewId === 'checklist' || viewId === 'infografico' || viewId === 'turno') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
+  if(viewId === 'checklist' || viewId === 'infografico') requestAnimationFrame(()=> animarEntradaDaAba(viewId));
   if(viewId === 'aneis' && anelFxPendente.size){
     const ids = [...anelFxPendente]; anelFxPendente.clear();
     requestAnimationFrame(()=> ids.forEach(id=> brilharBorda(document.querySelector(`.anel-row[data-anel-id="${id}"]`), false)));

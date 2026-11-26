@@ -428,7 +428,7 @@ function abrirResumoSemanal(offset){
 function atualizarAvisoSabado(){
   const sab = new Date().getDay() === 6;
   let visto = false; try{ visto = !!localStorage.getItem('resumo-semanal-visto-' + dataISOLocal(inicioDaSemana(new Date()))); }catch(e){}
-  ['view-turno', 'view-infografico'].forEach(id => {
+  ['view-infografico'].forEach(id => {
     const sec = el(id); if(!sec) return;
     let av = sec.querySelector(':scope > .aviso-semanal');
     if(!sab || visto){ if(av) av.remove(); return; }

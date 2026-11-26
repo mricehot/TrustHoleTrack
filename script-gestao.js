@@ -193,13 +193,10 @@ function htmlHojeNaMina(){
   const cards = lista.map(e=>{
     const mHoje = arred2(doEscopo.filter(l=>l.equipeId === e.id && l.data === hojeISO).reduce((s, l)=>s + l.metros, 0));
     const mSem = arred2(doEscopo.filter(l=>l.equipeId === e.id && l.data >= iniISO && l.data <= hojeISO).reduce((s, l)=>s + l.metros, 0));
-    const r = typeof itensDoInicio === 'function' ? { itens: itensDoInicio(e.id) } : { itens: [] };
-    const feitos = r.itens.filter(i=>itemFeitoHoje(i.id)).length, total = r.itens.length;
     let ritmo = '', rit = 0;
     if(e.metaSemanal){ const esperado = e.metaSemanal * uteisPassados / 5; rit = mSem >= esperado * 0.9 ? 1 : -1; ritmo = rit > 0 ? '<span class="ck ok">no ritmo</span>' : '<span class="ck am">abaixo do ritmo</span>'; }
-    const ck = !total ? '<span class="ck neutro">sem checklist de turno</span>' : feitos === total ? `<span class="ck ok">✓ checklist ${feitos}/${total}</span>` : feitos ? `<span class="ck am">checklist ${feitos}/${total}</span>` : '<span class="ck no">checklist não iniciado</span>';
-    const nivel = (total && feitos === 0) || rit < 0 && mHoje === 0 ? 'w' : ((total && feitos < total) || rit < 0) ? 'w' : '';
-    return { e, mHoje, mSem, ck, ritmo, rit, nivel: !total && !e.metaSemanal ? '' : (total && feitos === 0 && mHoje === 0 ? 'r' : nivel) };
+    const nivel = rit < 0 ? 'w' : '';
+    return { e, mHoje, mSem, ritmo, rit, nivel: !e.metaSemanal ? '' : (rit < 0 && mHoje === 0 ? 'r' : nivel) };
   });
   // alertas
   const alertas = [];
@@ -230,7 +227,7 @@ function htmlHojeNaMina(){
       <button type="button" class="gp-k ${pend.length ? 'al' : ''}" onclick="mostrarView('pendencias')"><small>PENDÊNCIAS ABERTAS</small><b>${pend.length}</b><span>${pendVelhas ? pendVelhas + ' há mais de 2 dias' : 'toque para abrir'}</span></button>
       <div class="gp-k ${obstTotal ? 'rd' : ''}"><small>FUROS OBSTRUÍDOS</small><b>${obstTotal}</b><span>${topo.n > 1 ? e2(topo.rot) + ' · ' + topo.n + ' no mesmo leque' : (obstTotal ? 'espalhados' : 'nenhum')}</span></div>
     </div>
-    ${cards.length ? `<div class="sec-gp">EQUIPES · INÍCIO DE TURNO</div>${cards.map(c=>`<div class="gp-eq ${c.nivel}"><div class="gp-eq-t"><span>${e2(c.e.nome)}</span><span>${c.mHoje ? fmt(c.mHoje) + ' m' : '—'}</span></div><div class="gp-eq-s">${c.ck}${c.ritmo}</div></div>`).join('')}` : ''}
+    ${cards.length ? `<div class="sec-gp">EQUIPES · HOJE</div>${cards.map(c=>`<div class="gp-eq ${c.nivel}"><div class="gp-eq-t"><span>${e2(c.e.nome)}</span><span>${c.mHoje ? fmt(c.mHoje) + ' m' : '—'}</span></div><div class="gp-eq-s">${c.ritmo}</div></div>`).join('')}` : ''}
     ${alertas.length ? `<div class="sec-gp">ALERTAS</div>${alertas.map(a=>`<div class="gp-al"><span class="ic">${a.ic}</span><div><b>${e2(a.t)}</b><small>${e2(a.s)}</small></div></div>`).join('')}` : ''}
     ${mesHtml}
   </section>`;

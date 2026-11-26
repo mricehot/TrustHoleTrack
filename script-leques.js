@@ -465,20 +465,18 @@ function criarLeque(){
   }
   const chipOrientacao = document.querySelector('#leque-orientacao-group .chip.active');
   const orientacao = chipOrientacao ? chipOrientacao.dataset.val : 'ascendente';
-  const chipLetraLeque = document.querySelector('#leque-letra-group .chip.active');
-  const letraQuemPerfilou = chipLetraLeque ? chipLetraLeque.dataset.val : (turnoInfo.turnoLetra || null);
   const novoId = uuidv4();
   const nome = el('leque-nome').value.trim() || null;
   const criadoPor = usuarioAtual ? usuarioAtual.id : null;
   const novoLeque = {
     id: novoId, anelId: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: letraQuemPerfilou, criadoPor, fotoUrl: null
+    turnoNumero: null, turnoLetra: null, criadoPor, fotoUrl: null
   };
   leques.push(novoLeque);
   CARDS_NOVOS.add(novoId);
   enfileirar('leques', 'insert', {
     id: novoId, anel_id: anelAtivo.id, tipo, numero, nome, status: 'aberto', orientacao,
-    turno_numero: novoLeque.turnoNumero, turno_letra: novoLeque.turnoLetra, criado_por: criadoPor
+    criado_por: criadoPor
   });
 
   const arquivoFoto = el('leque-foto-input').files[0];
@@ -494,12 +492,6 @@ function criarLeque(){
 }
 el('btn-add-leque').addEventListener('click', criarLeque);
 el('leque-tipo').addEventListener('change', ()=>{ el('btn-add-leque').textContent = tipoBotaoLabel(el('leque-tipo').value); });
-document.querySelectorAll('#leque-letra-group .chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    chip.parentElement.querySelectorAll('.chip').forEach(c=> c.classList.remove('active'));
-    chip.classList.add('active');
-  });
-});
 document.querySelectorAll('#leque-orientacao-group .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     document.querySelectorAll('#leque-orientacao-group .chip').forEach(c=> c.classList.remove('active'));
@@ -1257,7 +1249,6 @@ function renderChecklistBase(){
   }
   renderBarraLoteChecklist(visiveis);
   aplicarEntradaCards();
-  renderPainelTurno();
 }
 
 
@@ -1322,7 +1313,7 @@ function pendenciasPuxarChecklist(anelId){
     if(!l) l = novosLeques.find(x=> x.tipo === c.tipo && numSemZero(x.numero) === numSemZero(c.numero));
     if(!l){
       l = { id: uuidv4(), anelId, tipo: c.tipo, numero: normalizarNumero(c.numero), nome: null, status: 'fechado', orientacao: (aneis.find(a=>a.id===anelId) || {}).orientacao || 'descendente',
-            turnoNumero: turnoInfo.turnoNumero || null, turnoLetra: turnoInfo.turnoLetra || null, criadoPor: usuarioAtual ? usuarioAtual.id : null, fotoUrl: null };
+            turnoNumero: null, turnoLetra: null, criadoPor: usuarioAtual ? usuarioAtual.id : null, fotoUrl: null };
       novosLeques.push(l);
     }
     checklistFurosDoLeque(c.id).forEach(cf=>{

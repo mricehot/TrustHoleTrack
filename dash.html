@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l127">
+<link rel="stylesheet" href="style.css?v=l128">
 
 </head>
 <body>
@@ -128,10 +128,8 @@
       </div>
     </div>
   </header>
-  <div class="meu-turno-faixa" id="meu-turno-faixa" role="status" aria-live="polite" hidden></div>
 
   <nav class="tabbar" id="tabbar">
-    <button type="button" class="tab-item" data-view="turno"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span><span class="tab-label">Turno</span></button>
     <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="tab-label">Realce</span></button>
     <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="15"/></svg></span><span class="tab-label">Tratamento</span></button>
     <button type="button" class="tab-item" data-view="checklist"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="tab-label">Checklist</span></button>
@@ -181,16 +179,6 @@
                   <div class="chip-group" id="leque-orientacao-group">
                     <button type="button" class="chip chip-wide active" data-val="ascendente">↑ Ascendente</button>
                     <button type="button" class="chip chip-wide" data-val="descendente">↓ Descendente</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label>Letra de quem perfilou</label>
-                  <div class="chip-group" id="leque-letra-group">
-                    <button type="button" class="chip" data-val="A">A</button>
-                    <button type="button" class="chip" data-val="B">B</button>
-                    <button type="button" class="chip" data-val="C">C</button>
-                    <button type="button" class="chip" data-val="D">D</button>
-                    <button type="button" class="chip" data-val="E">E</button>
                   </div>
                 </div>
                 <div class="field">
@@ -316,168 +304,6 @@
         </div>
       </section>
 
-      <section class="view" id="view-turno">
-        <div class="view-card accent-amber" id="card-inicio-turno" data-secao="inicio">
-          <div class="view-card-header">
-            <span class="view-card-label">Início de turno</span>
-            <span class="tag" id="inicio-cont">—</span>
-          </div>
-          <div class="turno-body" id="inicio-turno-corpo"></div>
-        </div>
-        <div class="view-card accent-amber" id="card-painel-turno" data-secao="painel">
-          <div class="view-card-header">
-            <span class="view-card-label">Painel do turno</span>
-            <span class="tag" id="painel-escopo">hoje · realce ativo</span>
-          </div>
-          <div class="turno-body">
-            <div class="pt-kpis" id="pt-kpis"></div>
-            <div id="pt-equipes"></div>
-            <button type="button" class="ghost" id="pt-ir-checklist">Ver pendências no checklist</button>
-          </div>
-        </div>
-        <div class="view-card accent-amber" id="card-passagem" data-secao="passagem">
-          <div class="view-card-header">
-            <span class="view-card-label">Passagem de turno</span>
-            <span class="tag" id="passagem-resumo"></span>
-          </div>
-          <div class="turno-body">
-            <div class="hint">O que fica para o próximo turno, no realce ativo.</div>
-            <div id="passagem-lista" class="passagem-lista"></div>
-            <button type="button" class="ghost" id="passagem-obs">Registrar nas observações do turno</button>
-          </div>
-        </div>
-        <div class="view-card accent-amber" id="card-comunicados" data-secao="comunicados">
-          <div class="view-card-header">
-            <span class="view-card-label">Comunicados do gestor</span>
-            <span class="tag" id="comunicados-cont">0</span>
-            <span class="spacer"></span>
-            <button type="button" class="ghost" id="btn-novo-comunicado" aria-expanded="false" onclick="const f=document.getElementById('form-comunicado');f.hidden=!f.hidden;this.setAttribute('aria-expanded',String(!f.hidden));this.textContent=f.hidden?'Novo comunicado':'Fechar'">Novo comunicado</button>
-          </div>
-          <div class="turno-body">
-            <form id="form-comunicado" hidden onsubmit="publicarComunicado();return false;">
-              <div class="field"><label for="com-titulo">Título</label><input id="com-titulo" type="text" maxlength="80" placeholder="ex: Galeria N-203 bloqueada"></div>
-              <div class="field"><label for="com-texto">Mensagem</label><textarea id="com-texto" maxlength="600" rows="3" placeholder="O que o turno precisa saber e fazer"></textarea></div>
-              <div class="field"><label id="com-prio-rot">Prioridade</label>
-                <div class="com-seg" id="com-prioridade" role="group" aria-labelledby="com-prio-rot">
-                  <button type="button" data-p="normal" aria-pressed="true" onclick="definirPrioridadeComunicado('normal')">Normal</button>
-                  <button type="button" data-p="urgente" class="u" aria-pressed="false" onclick="definirPrioridadeComunicado('urgente')">Urgente</button>
-                </div></div>
-              <div class="grid-2">
-                <div class="field"><label for="com-projeto">Vale para</label><select id="com-projeto"><option value="">Todos os projetos</option></select></div>
-                <div class="field"><label for="com-dias">Validade (dias)</label><input id="com-dias" type="number" min="1" max="60" value="7" inputmode="numeric"></div>
-              </div>
-              <button type="submit" id="btn-publicar-comunicado">Publicar comunicado</button>
-            </form>
-            <div id="comunicados-lista"></div>
-          </div>
-        </div>
-        <div class="view-card accent-amber" data-secao="dados">
-          <div class="view-card-header">
-            <span class="view-card-label">Dados do Turno</span>
-            <span class="tag">usado na exportação do relatório</span>
-            <span class="spacer"></span>
-            <button type="button" id="btn-limpar-turno" class="ghost" title="limpar data, turno, letra e técnicos — pra começar um turno novo">Limpar</button>
-          </div>
-          <div class="turno-body">
-            <div class="grid-3">
-              <div class="field"><label for="turno-data">Data</label><input id="turno-data" type="text" placeholder="preenchido automaticamente"></div>
-              <div class="field">
-                <label>Turno</label>
-                <div class="chip-group" id="turno-numero-group">
-                  <button type="button" class="chip" data-val="1">1</button>
-                  <button type="button" class="chip" data-val="2">2</button>
-                  <button type="button" class="chip" data-val="3">3</button>
-                  <button type="button" class="chip" data-val="4">4</button>
-                  <button type="button" class="chip" data-val="5">5</button>
-                </div>
-              </div>
-              <div class="field">
-                <label>Letra</label>
-                <div class="chip-group" id="turno-letra-group">
-                  <button type="button" class="chip" data-val="A">A</button>
-                  <button type="button" class="chip" data-val="B">B</button>
-                  <button type="button" class="chip" data-val="C">C</button>
-                  <button type="button" class="chip" data-val="D">D</button>
-                  <button type="button" class="chip" data-val="E">E</button>
-                </div>
-              </div>
-            </div>
-            <div class="grid-3">
-              <div class="field"><label for="turno-tecnicos">Técnicos</label><input id="turno-tecnicos" type="text" placeholder="ex: Graziel/Bruno/Alexandre"></div>
-              <div class="field"><label for="turno-supervisor">Supervisor</label><input id="turno-supervisor" type="text" readonly></div>
-              <div class="field"><label for="turno-projeto">Projeto</label><input id="turno-projeto" type="text" readonly></div>
-            </div>
-            <div class="grid-2">
-              <div class="field"><label for="turno-local">Local</label><input id="turno-local" type="text" placeholder="ex: N-203 3RE08 e N-991 26PE07"></div>
-              <div class="field"><label for="turno-dds">DDS (tema abordado)</label><input id="turno-dds" type="text" placeholder="ex: uso correto de EPI" maxlength="300"></div>
-            </div>
-            <details class="sec-det" id="sec-fotos" data-secao="fotos" open>
-              <summary>Fotos do turno <span class="tag" id="sec-fotos-cont">0</span></summary>
-              <div class="hint" id="foto-turno-hint">Pra registrar algo que aconteceu no turno e não é de um leque específico (ex: problema de equipamento, situação de segurança).</div>
-              <input id="foto-turno-input" type="file" accept="image/*" style="display:none;">
-              <button type="button" id="btn-escolher-foto-turno" class="steel" style="margin-top:8px;"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.5l2-3h7l2 3H21a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Adicionar foto</button>
-              <div class="fotos-turno-grid" id="fotos-turno-grid"></div>
-              <div class="hint" id="fotos-turno-vazio">Nenhuma foto registrada neste turno ainda.</div>
-            </details>
-          </div>
-        </div>
-
-        <div class="view-card accent-amber" style="margin-top:18px;" id="card-resumo-turno" data-secao="resumo">
-          <div class="view-card-header">
-            <span class="view-card-label">Resumo do Turno</span>
-            <span class="tag">fim de turno em um toque</span>
-          </div>
-          <div class="turno-body">
-            <div class="turno-sessao" id="turno-sessao" role="region" aria-label="turno em andamento"></div>
-            <details class="sec-det" id="sec-obs" data-secao="obs" open>
-              <summary>Observações do turno <span class="tag" id="sec-obs-cont">0</span></summary>
-              <div class="obs-atalhos" id="obs-atalhos" aria-label="atalhos de observação"></div>
-              <label for="turno-obs-input" class="sr-only">Observações do turno</label>
-              <div class="obs-add-row">
-                <input id="turno-obs-input" type="text" placeholder="ex: atraso na perfuração por rocha solta no LQ04F05" maxlength="300">
-                <button type="button" id="btn-add-obs" class="steel">+ Adicionar</button>
-              </div>
-              <div class="hint" id="obs-hint">Registre cada observação assim que acontecer, pra não esquecer no fim do turno. Elas entram no resumo logo abaixo.</div>
-              <div class="obs-list" id="obs-list"></div>
-              <div class="hint" id="obs-vazio">Nenhuma observação registrada neste turno ainda.</div>
-            </details>
-            <details class="ck-detalhes" id="resumo-turno-previa">
-              <summary>Ver o texto que será enviado</summary>
-              <div class="ck-detalhes-corpo"><pre class="resumo-turno-texto" id="resumo-turno-texto"></pre></div>
-            </details>
-            <div class="resumo-turno-acoes resumo-parcial">
-              <span class="rp-rot">Posição parcial, sem encerrar o turno:</span>
-              <button type="button" class="ghost" id="btn-resumo-turno-whatsapp">Enviar parcial</button>
-              <button type="button" class="ghost" id="btn-resumo-turno-copiar">Copiar parcial</button>
-              <button type="button" class="ghost" id="btn-resumo-turno-atualizar">Atualizar texto</button>
-            </div>
-            <div class="hint">Junta o que foi marcado por você com o turno aberto, a produção das equipes, pendências e obstruídos do realce ativo e as observações do turno.</div>
-          </div>
-        </div>
-
-        <div class="view-card" style="margin-top:18px;" data-secao="exportar">
-          <div class="view-card-header">
-            <span class="view-card-label">Exportar Relatório</span>
-            <span class="tag">gera o PDF a partir dos dados acima</span>
-          </div>
-          <div class="turno-body">
-            <div class="field" id="turno-incluir-leques-field">
-              <label>Incluir leques neste relatório?</label>
-              <div class="chip-group" id="turno-incluir-leques-group">
-                <button type="button" class="chip active" data-val="nao">Não</button>
-                <button type="button" class="chip" data-val="sim">Sim</button>
-              </div>
-              <div class="hint">Se marcar "Sim", escolha abaixo quais leques do realce ativo entram junto no PDF.</div>
-            </div>
-            <div id="turno-leques-wrap" style="display:none;">
-              <div class="hint" id="turno-leques-vazio" style="display:none;">Nenhum leque neste realce ainda.</div>
-              <div class="turno-leques-checklist" id="turno-leques-checklist"></div>
-            </div>
-            <button type="button" class="steel" id="btn-exportar-turno">Exportar turno</button>
-          </div>
-        </div>
-      </section>
-
       <section class="view" id="view-pendencias">
         <div class="view-card accent-amber">
           <div class="view-card-header">
@@ -512,6 +338,31 @@
       </section>
 
       <section class="view" id="view-config">
+        <div class="view-card accent-amber" id="card-comunicados">
+          <div class="view-card-header">
+            <span class="view-card-label">Comunicados do gestor</span>
+            <span class="tag" id="comunicados-cont">0</span>
+            <span class="spacer"></span>
+            <button type="button" class="ghost" id="btn-novo-comunicado" aria-expanded="false" onclick="const f=document.getElementById('form-comunicado');f.hidden=!f.hidden;this.setAttribute('aria-expanded',String(!f.hidden));this.textContent=f.hidden?'Novo comunicado':'Fechar'">Novo comunicado</button>
+          </div>
+          <div class="turno-body">
+            <form id="form-comunicado" hidden onsubmit="publicarComunicado();return false;">
+              <div class="field"><label for="com-titulo">Título</label><input id="com-titulo" type="text" maxlength="80" placeholder="ex: Galeria N-203 bloqueada"></div>
+              <div class="field"><label for="com-texto">Mensagem</label><textarea id="com-texto" maxlength="600" rows="3" placeholder="O que a equipe precisa saber e fazer"></textarea></div>
+              <div class="field"><label id="com-prio-rot">Prioridade</label>
+                <div class="com-seg" id="com-prioridade" role="group" aria-labelledby="com-prio-rot">
+                  <button type="button" data-p="normal" aria-pressed="true" onclick="definirPrioridadeComunicado('normal')">Normal</button>
+                  <button type="button" data-p="urgente" class="u" aria-pressed="false" onclick="definirPrioridadeComunicado('urgente')">Urgente</button>
+                </div></div>
+              <div class="grid-2">
+                <div class="field"><label for="com-projeto">Vale para</label><select id="com-projeto"><option value="">Todos os projetos</option></select></div>
+                <div class="field"><label for="com-dias">Validade (dias)</label><input id="com-dias" type="number" min="1" max="60" value="7" inputmode="numeric"></div>
+              </div>
+              <button type="submit" id="btn-publicar-comunicado">Publicar comunicado</button>
+            </form>
+            <div id="comunicados-lista"></div>
+          </div>
+        </div>
         <div class="view-card">
           <div class="view-card-header">
             <span class="view-card-label">Configurações</span>
@@ -526,7 +377,7 @@
               <label for="config-whatsapp">WhatsApp para envio do checklist</label>
               <input id="config-whatsapp" type="text" inputmode="tel" placeholder="ex: 5511987654321 (DDI+DDD+número, só números)">
             </div>
-            <div class="hint so-gestor">Esses campos preenchem automaticamente o Supervisor em Dados do Turno, e o número usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
+            <div class="hint so-gestor">O supervisor aparece nos relatórios em PDF, e o número é usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
             <button type="button" id="btn-salvar-config" class="steel so-gestor" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
@@ -882,24 +733,22 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=l84"></script>
-<script src="script-leques.js?v=l94"></script>
-<script src="script-checklist.js?v=l118"></script>
+<script src="script.js?v=l85"></script>
+<script src="script-leques.js?v=l95"></script>
+<script src="script-checklist.js?v=l119"></script>
 <script src="script-fotos.js?v="></script>
-<script src="script-relatorio-imagem.js?v=l89"></script>
-<script src="script-turno-pdf.js?v=l91"></script>
-<script src="script-telas.js?v=l89"></script>
-<script src="script-sessao.js?v=l96"></script>
+<script src="script-relatorio-imagem.js?v=l90"></script>
+<script src="script-config.js?v=2"></script>
+<script src="script-telas.js?v=l90"></script>
+<script src="script-sessao.js?v=l97"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v=l2"></script>
 <script src="script-conforto.js?v=l84"></script>
-<script src="script-mobile.js?v=1"></script>
 <script src="script-tratativa.js?v=4"></script>
 <script src="script-envios.js?v=2"></script>
-<script src="script-semanal.js?v=l87"></script>
+<script src="script-semanal.js?v=l88"></script>
 <script src="script-mensal.js?v=l83"></script>
-<script src="script-inicio-turno.js?v=l83"></script>
-<script src="script-gestao.js?v=fe1"></script>
+<script src="script-gestao.js?v=fe2"></script>
 <script src="script-importar-pdf.js?v=l81"></script>
 <script>
   if(!window.__appCarregado && window.__diagMostrar){

@@ -71,7 +71,6 @@ function riDesenhar(c, d, dry){
   }
   riTexto(c, d.dataTxt, RI_W - RI_M, y + 12, { tam:15, cor:RI.mut, alinhar:'right' });
   riTexto(c, d.horaTxt, RI_W - RI_M, y + 34, { tam:16, peso:'700', alinhar:'right' });
-  if(d.turno) riTexto(c, d.turno, RI_W - RI_M, y + 56, { tam:15, cor:RI.mut, alinhar:'right' });
   y += 116; if(!dry){ c.fillStyle = RI.line; c.fillRect(RI_M, y, RI_W - 2*RI_M, 2); } y += 20;
   // KPIs
   const kw = (RI_W - 2*RI_M - 14) / 2;
@@ -198,7 +197,6 @@ async function riMontarDados(anelId, simples){
   const locais = [...new Set(itens.map(c=>(c.localizacao || '').trim()).filter(Boolean))];
   return { nome: anel.nome, nivel: anel.nivel || '', locais, orientacao: anel.orientacao === 'ascendente' ? '↑ Ascendente' : anel.orientacao === 'descendente' ? '↓ Descendente' : '',
     dataTxt: agora.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' }), horaTxt: agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
-    turno: (turnoInfo.turnoNumero || turnoInfo.turnoLetra) ? `Turno ${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`.trim() : '',
     perf, topo, total: tot, pPerf: tot ? Math.round(perf / tot * 100) : 0, pTopo: tot ? Math.round(topo / tot * 100) : 0,
     leques: cartoes, faltam, obstruidos, metragens, metTotal: { codigo:'Total', esp: riVir(tE), real: riVir(tR), var: '' }, fotos, fotosExtra: 0,
     rodapeEsq: '' };

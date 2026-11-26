@@ -65,7 +65,6 @@ function iniciarApp(){
   carregarConfigLocal();
   renderConfig();
   renderPerfilTecnico();
-  loadTurnoInfo();
   loadData();
   iniciarTempoReal();
   loadHistoricoExportacoes();
@@ -348,7 +347,6 @@ function renderComunicados(){
   const ativos = comunicadosVigentesNoEscopo();
   const enc = comunicados.filter(c=> !comunicadoVigente(c) && comunicadoDoEscopo(c)).sort((a,b)=> new Date(b.validoAte) - new Date(a.validoAte)).slice(0, 10);
   el('comunicados-cont').textContent = ativos.length;
-  if(typeof aplicarSecoesTurno === 'function' && !('comunicados' in turnoSecoes)) aplicarSecoesTurno();
   lista.innerHTML = (ativos.length ? ativos.map(c=>htmlCartaoComunicado(c, true)).join('') : '<div class="hint">Nenhum comunicado em vigor.</div>')
     + (enc.length ? `<details class="com-enc"><summary>Encerrados (${enc.length})</summary>${enc.map(c=>htmlCartaoComunicado(c, true)).join('')}</details>` : '');
   const sel = el('com-projeto');
@@ -653,144 +651,6 @@ function renderAtividadeRecente(){
 })();
 
 
-/* ================= Passagem de turno ================= */
-function pendenciasPassagem(){
-  const itens = checklistDoAnelAtivo();
-  const linhas = [];
-  let nPerf = 0, nTopo = 0, nObs = 0;
-  itens.forEach(c=>{
-    const fl = checklistFurosDoLeque(c.id);
-    const perf = fl.filter(f=>!f.perfilado && !f.obstruido).map(f=>'F'+f.numero);
-    const topo = fl.filter(f=>!f.topografado && !f.obstruido).map(f=>'F'+f.numero);
-    const obs = fl.filter(f=>f.obstruido).map(f=>'F'+f.numero);
-    nPerf += perf.length; nTopo += topo.length; nObs += obs.length;
-    if(perf.length || topo.length || obs.length || !fl.length) linhas.push({ cod: PREFIXO[c.tipo] + c.numero, perf, topo, obs, vazio: !fl.length });
-  });
-  return { linhas, nPerf, nTopo, nObs, total: itens.length };
-}
-function renderPassagemTurno(){
-  const box = el('passagem-lista'); if(!box) return;
-  const d = pendenciasPassagem();
-  const r = el('passagem-resumo');
-  if(r) r.textContent = !d.total ? '' : (d.linhas.length ? `${d.nPerf} a perfilar · ${d.nTopo} a topografar` : '✓ nada pendente');
-  const lista = (rot, arr)=> arr.length ? `<span class="pass-grupo"><em>${rot}</em> ${arr.slice(0,10).join(', ')}${arr.length>10 ? ` +${arr.length-10}` : ''}</span>` : '';
-  box.innerHTML = !d.total ? '<div class="hint">Nenhum leque no checklist deste realce.</div>'
-    : (d.linhas.length ? d.linhas.slice(0,12).map(l=>`<div class="pass-linha"><b>${escHtml(l.cod)}</b><div>${l.vazio ? '<span class="pass-grupo"><em>sem furos lançados</em></span>' : lista('perfilar', l.perf) + lista('topografar', l.topo) + lista('obstruído', l.obs)}</div></div>`).join('') + (d.linhas.length > 12 ? `<div class="hint">+${d.linhas.length-12} leques com pendência</div>` : '')
-      : '<div class="passagem-ok">✓ Nada pendente: tudo perfilado e topografado.</div>');
-}
-(function(){
-  const b = el('passagem-obs');
-  if(b) b.addEventListener('click', ()=>{
-    const d = pendenciasPassagem();
-    if(!d.linhas.length){ showToast('Nada pendente para registrar.'); return; }
-    const txt = 'Passagem: ' + d.linhas.slice(0,6).map(l=> l.cod + (l.perf.length ? ' perf. ' + l.perf.slice(0,6).join(',') : '') + (l.topo.length ? ' topo ' + l.topo.slice(0,6).join(',') : '') + (l.obs.length ? ' obstr. ' + l.obs.join(',') : '')).join(' | ');
-    adicionarObservacaoTurno(txt.slice(0, 290), true);
-  });
-  const orig = renderResumoTurno;
-  renderResumoTurno = function(){ const r = orig.apply(this, arguments); try{ renderPassagemTurno(); }catch(e){} return r; };
-})();
-
-/* ================= Encerrar turno (conferência antes de sair da mina) ================= */
-function dadosFimDeTurno(){
-  const { noDia } = janelaDoTurno();
-  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
-  const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
-  const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));
-  const perf = furos.filter(f=>f.perfilado && noDia(f.perfiladoEm)).length;
-  const topo = furos.filter(f=>f.topografado && noDia(f.topografadoEm)).length;
-  const notas = furos.filter(f=>(f.observacao||'').trim()).length;
-  const pend = pendenciasPassagem();
-  return { perf, topo, notas, pend, obs: observacoesDoTurnoAtual().length, fila: itensDaFila().length };
-}
-// Checagem antes de encerrar: obstruídos sem causa e perfilados do turno sem metragem real.
-function checagemFimDeTurno(){
-  const { noDia } = janelaDoTurno();
-  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
-  const leques = new Map(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>[c.id, c]));
-  const furos = checklistFuros.filter(f=>leques.has(f.checklistLequeId));
-  const rot = f=>{ const c = leques.get(f.checklistLequeId); return (c ? (PREFIXO[c.tipo]||'') + c.numero + ' · ' : '') + 'F' + f.numero; };
-  return {
-    semCausa: furos.filter(f=> f.obstruido && !f.obstruidoMotivo).map(f=>({ id:f.id, rot:rot(f) })),
-    semMetragem: furos.filter(f=> f.perfilado && !f.obstruido && noDia(f.perfiladoEm) && !(Number(f.metragem) > 0)).map(f=>({ id:f.id, rot:rot(f) }))
-  };
-}
-function irAoFuroPendente(id, tipo){
-  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
-  const c = checklistLeques.find(x=>x.id===f.checklistLequeId); if(!c) return;
-  if(c.anelId !== anelAtivoId && typeof definirAnelAtivo === 'function') definirAnelAtivo(c.anelId);
-  mostrarView('checklist');
-  checklistExpandido.add(c.id);
-  if(tipo === 'causa') motivoPendenteId = f.id;
-  renderChecklist();
-  setTimeout(()=>{
-    destacarLinhaFuro(f.id);
-    if(tipo === 'metragem') setTimeout(()=> pedirMetragemFuro(f.id), 350);
-  }, 60);
-}
-function abrirEncerrarTurno(){
-  const root = el('modal-root'); if(!root) return;
-  const d = dadosFimDeTurno();
-  const sinc = d.fila
-    ? `<div class="fim-aviso" role="alert">⚠ ${d.fila} alteração(ões) ainda não sincronizada(s). Salvas no aparelho, mas o gestor só vê quando houver sinal. Não limpe os dados do navegador.</div>`
-    : '<div class="fim-ok">✓ Tudo sincronizado.</div>';
-  const kpi = (n, r)=> `<div class="fim-kpi"><b>${n}</b><span>${r}</span></div>`;
-  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga">
-    <h3 style="margin:0 0 10px">🏁 Encerrar turno</h3>
-    <div class="fim-kpis">${kpi(d.perf,'perfilados hoje')}${kpi(d.topo,'topografados hoje')}${kpi(d.pend.nPerf,'a perfilar')}${kpi(d.pend.nTopo,'a topografar')}${kpi(d.pend.nObs,'obstruídos')}<div class="fim-kpi" id="fim-kpi-notas"><b>${d.notas + d.obs}</b><span>notas e obs.</span></div></div>
-    ${sinc}
-    ${(()=>{ const ck = checagemFimDeTurno(); const bloco = (tit, tipo, lista)=> lista.length ? `<div class="fim-checa-linha"><b>${tit}</b><div class="fim-checa-chips">${lista.slice(0,12).map(x=>`<button type="button" class="ghost" data-furo="${x.id}" data-tipo="${tipo}">${escHtml(x.rot)}</button>`).join('')}${lista.length > 12 ? `<span class="hint">+${lista.length-12}</span>` : ''}</div></div>` : ''; const h = bloco(`⛔ ${ck.semCausa.length} obstruído(s) sem causa`, 'causa', ck.semCausa) + bloco(`📏 ${ck.semMetragem.length} perfilado(s) sem metragem`, 'metragem', ck.semMetragem); return h ? `<div class="fim-checa" role="alert"><div class="fim-checa-titulo">Antes de enviar, falta preencher — toque no furo para ir direto a ele:</div>${h}</div>` : '<div class="fim-ok">✓ Causas e metragens preenchidas.</div>'; })()}
-    <div class="fim-obs">
-      <div class="fim-obs-titulo">📝 Observações que vão no relatório</div>
-      <div id="fim-obs-lista" class="fim-obs-lista"></div>
-      <button type="button" class="ghost" id="fim-obs-btn">＋ Adicionar observação</button>
-      <div id="fim-obs-form" hidden>
-        <textarea id="fim-obs-texto" rows="3" maxlength="500" placeholder="Ex.: rocha solta no SL06, avisar o próximo turno"></textarea>
-        <div class="fim-obs-acoes"><button type="button" id="fim-obs-salvar">Adicionar</button><button type="button" class="ghost" id="fim-obs-cancelar">Cancelar</button></div>
-      </div>
-    </div>
-    <div class="modal-actions" style="flex-wrap:wrap">
-      <button class="ghost" id="fim-fechar">Fechar</button>
-      <button class="ghost" id="fim-copiar">Copiar</button>
-      <button class="ghost" id="fim-so-encerrar" title="encerra o turno sem copiar nem enviar o resumo">Só encerrar</button>
-      <button id="fim-enviar">Enviar no WhatsApp</button>
-    </div></div></div>`;
-  const fechar = ()=>{ root.innerHTML = ''; };
-  const registrar = ()=>{
-    const c = el('fim-registrar');
-    if(c && c.checked && pendenciasPassagem().linhas.length){ const b = el('passagem-obs'); if(b) b.click(); }
-  };
-  el('fim-fechar').onclick = fechar;
-  root.querySelectorAll('.fim-checa button[data-furo]').forEach(b=> b.onclick = ()=>{ fechar(); irAoFuroPendente(b.dataset.furo, b.dataset.tipo); });
-  // Observações do turno: aparecem no relatório (só as feitas depois do início do turno).
-  const pintarObs = ()=>{
-    const ini = typeof turnoIniciadoEm === 'function' ? turnoIniciadoEm() : 0;
-    const lista = observacoesDoTurnoAtual().filter(o=> (!ini || !o.ts || new Date(o.ts).getTime() >= ini) && !/^\s*Passagem:/i.test(o.texto));
-    el('fim-obs-lista').innerHTML = lista.length
-      ? lista.map(o=> `<div class="fim-obs-item"><span>${escHtml(o.texto)}</span><button type="button" class="icon icon-remover" data-id="${o.id}" aria-label="remover observação" title="remover">✕</button></div>`).join('')
-      : '<div class="hint">Nenhuma observação ainda.</div>';
-    const k = el('fim-kpi-notas'); if(k){ const x = dadosFimDeTurno(); k.querySelector('b').textContent = x.notas + x.obs; }
-    el('fim-obs-lista').querySelectorAll('button[data-id]').forEach(b=> b.onclick = ()=>{
-      const id = b.dataset.id;
-      turnoObservacoes = turnoObservacoes.filter(o=>o.id!==id);
-      enfileirar('turno_observacoes', 'delete', { id });
-      salvarObsLocal(); renderObservacoesTurno(); try{ renderResumoTurno(); }catch(e){}
-      pintarObs();
-    });
-  };
-  pintarObs();
-  const abrirForm = aberto=>{ el('fim-obs-form').hidden = !aberto; el('fim-obs-btn').hidden = aberto; if(aberto) setTimeout(()=> el('fim-obs-texto').focus(), 50); };
-  el('fim-obs-btn').onclick = ()=> abrirForm(true);
-  el('fim-obs-cancelar').onclick = ()=>{ el('fim-obs-texto').value = ''; abrirForm(false); };
-  el('fim-obs-salvar').onclick = ()=>{
-    const t = el('fim-obs-texto').value.trim(); if(!t){ el('fim-obs-texto').focus(); return; }
-    adicionarObservacaoTurno(t, true, true);
-    el('fim-obs-texto').value = ''; abrirForm(false); pintarObs();
-  };
-  el('fim-copiar').onclick = ()=>{ registrar(); fechar(); pedirDDS(async ()=>{ const ok = await copiarTextoResumo(montarResumoTurnoWhatsApp()); showToast(ok ? 'Resumo copiado. É só colar onde quiser.' : 'Não foi possível copiar.', { tipo: ok ? 'ok' : 'erro' }); if(ok) finalizarSessaoTurno(); }); };
-  el('fim-enviar').onclick = ()=>{ registrar(); fechar(); pedirDDS(()=>{ enviarWhatsApp(montarResumoTurnoWhatsApp()); finalizarSessaoTurno(); }); };
-  const so = el('fim-so-encerrar'); if(so) so.onclick = ()=>{ registrar(); fechar(); finalizarSessaoTurno(); };
-}
-
 /* ================= Usuários travados em equipes ================= */
 const USUARIOS_KEY = 'perfilagem-usuarios-v1';
 let usuariosEmpresa = []; // { id, email, nome, equipeId }
@@ -887,42 +747,6 @@ function completarEquipeDoLeque(lequeId){
     renderChecklist();
   });
 }
-
-/* ================= Contador do meu turno ================= */
-function contagemMeuTurno(){
-  const { noDia } = janelaDoTurno(); // mesma janela do relatório: depois do início do turno, se houver
-  const minha = minhaEquipeId();
-  const eu = (nomeDoUsuario() || '').toLowerCase();
-  const escopo = new Set(aneisNoEscopoAtual().map(a=>a.id));
-  const leques = new Set(checklistLeques.filter(c=>escopo.has(c.anelId)).map(c=>c.id));
-  let perf = 0, topo = 0;
-  checklistFuros.forEach(f=>{
-    if(!leques.has(f.checklistLequeId)) return;
-    const meuP = minha ? equipePerfEfetivaId(f) === minha : (eu && (f.perfiladoPor||'').toLowerCase() === eu);
-    const meuT = minha ? equipeTopoEfetivaId(f) === minha : (eu && (f.topografadoPor||'').toLowerCase() === eu);
-    if(f.perfilado && noDia(f.perfiladoEm) && meuP) perf++;
-    if(f.topografado && noDia(f.topografadoEm) && meuT) topo++;
-  });
-  return { perf, topo, quem: minha ? nomeDaEquipeId(minha) : 'você' };
-}
-let ultimoContadorTurno = '';
-function renderMeuTurno(){
-  const box = el('meu-turno-faixa'); if(!box) return;
-  if(!usuarioAtual){ box.hidden = true; return; }
-  const c = contagemMeuTurno();
-  const chave = c.perf + '/' + c.topo + '/' + c.quem;
-  box.hidden = false;
-  box.innerHTML = `<span class="mt-quem">Hoje · ${escHtml(c.quem)}</span><span class="mt-n"><b>${c.perf}</b> perfilados</span><span class="mt-n"><b>${c.topo}</b> topografados</span>`;
-  if(chave !== ultimoContadorTurno && ultimoContadorTurno !== '' && !semMovimento()){
-    box.animate([{ background:'var(--surface-2)' }, { background:'rgba(34,197,94,.28)' }, { background:'var(--surface-2)' }], { duration:700 });
-  }
-  ultimoContadorTurno = chave;
-}
-(function(){
-  aoRenderizarChecklist(()=> renderMeuTurno());
-  window.addEventListener('load', ()=> setTimeout(renderMeuTurno, 800));
-})();
-
 
 /* ================= Papéis: gestor e técnico ================= */
 // Enquanto o servidor não informar o papel (função antiga, sem sinal e sem cache), ninguém fica travado.
@@ -1225,41 +1049,6 @@ let leituraAutomatica = false;
   };
   if(document.body.dataset.view === 'checklist' && checklistTravado){ leituraAutomatica = true; definirModoLeitura(true, true); }
 })();
-
-// ---------- Números que contam ao mudar ----------
-// Quando um contador (faixa "Hoje · você", quadros do Painel do turno) muda por causa de uma marcação,
-// o número sobe rodando do valor antigo até o novo, em vez de trocar de repente.
-const ULTIMOS_NUMEROS = {};
-function contarMudanca(chave, elemento){
-  if(!elemento) return;
-  const novo = parseInt(elemento.textContent, 10);
-  if(isNaN(novo)){ return; }
-  const antigo = ULTIMOS_NUMEROS[chave];
-  ULTIMOS_NUMEROS[chave] = novo;
-  if(antigo === undefined || antigo === novo || semMovimento()) return;
-  const ms = Math.min(700, 250 + Math.abs(novo - antigo) * 40), ini = performance.now();
-  const token = (elemento._tokenCM = (elemento._tokenCM || 0) + 1);
-  elemento.classList.add('numero-muda');
-  const passo = agora=>{
-    if(token !== elemento._tokenCM) return;
-    const t = Math.min(1, (agora - ini) / ms), e = 1 - Math.pow(1 - t, 3);
-    elemento.textContent = String(Math.round(antigo + (novo - antigo) * e));
-    if(t < 1 && elemento.isConnected) requestAnimationFrame(passo);
-    else { elemento.textContent = String(novo); elemento.classList.remove('numero-muda'); }
-  };
-  requestAnimationFrame(passo);
-}
-function aplicarContagemNumeros(){
-  document.querySelectorAll('#meu-turno-faixa .mt-n b').forEach((b, i)=> contarMudanca('mt' + i, b));
-  document.querySelectorAll('#pt-kpis .pt-kpi .valor').forEach((v, i)=> contarMudanca('pt' + i, v));
-}
-(function(){
-  ['renderMeuTurno', 'renderPainelTurno'].forEach(nome=>{
-    const orig = window[nome]; if(typeof orig !== 'function') return;
-    window[nome] = function(){ const r = orig.apply(this, arguments); try{ aplicarContagemNumeros(); }catch(e){} return r; };
-  });
-})();
-
 
 /* ================= Imagem do mapa dos realces favoritos ================= */
 // Desenha direto em canvas (sem biblioteca externa, funciona sem sinal): um bloco por realce favorito,

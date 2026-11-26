@@ -1,8 +1,4 @@
-// ---------- Dados do turno (também local, com fila própria) ----------
-// A tabela turno_info guarda uma única linha (sobrescrita a cada turno). A coluna `id`
-// é do tipo uuid, então precisa ser um UUID de verdade — não pode ser um texto livre
-// como 'current', senão o Postgres rejeita com "invalid input syntax for type uuid".
-const TURNO_ROW_ID = '00000000-0000-0000-0000-000000000001';
+// ---------- Configurações do app, perfil do técnico e relatórios em PDF ----------
 // Supervisor e Projeto eram fixos no código — agora ficam editáveis na aba
 // Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
 // estavam no código antes), pra quem já usa o app não ver nada em branco.
@@ -29,9 +25,6 @@ function salvarConfig(){
   configApp.supervisor = el('config-supervisor').value.trim() || configApp.supervisor;
   configApp.whatsapp = el('config-whatsapp').value.replace(/\D/g, ''); // só dígitos
   salvarConfigLocal();
-  turnoInfo.supervisor = configApp.supervisor;
-  if(el('turno-supervisor')) el('turno-supervisor').value = configApp.supervisor;
-  saveTurnoInfo();
   showToast('Configurações salvas.');
 }
 el('btn-salvar-config').addEventListener('click', salvarConfig);
@@ -138,9 +131,6 @@ el('btn-alterar-senha').addEventListener('click', alterarSenhaTecnico);
 ['tecnico-senha-nova','tecnico-senha-confirmar'].forEach(id=>{
   el(id).addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); alterarSenhaTecnico(); } });
 });
-let turnoInfo = { data:'', turnoNumero:'', turnoLetra:'', tecnicos:'', supervisor:configApp.supervisor, projeto:'', local:'', dds:'' };
-let turnoObservacoes = []; // { id, data (ISO), turnoNumero, turnoLetra, texto, ts }
-let fotosTurno = []; // { id, data (ISO), turnoNumero, turnoLetra, url, descricao, ts }
 
 function selecionarChip(grupoId, valor){
   document.querySelectorAll('#'+grupoId+' .chip').forEach(chip=>{
@@ -166,101 +156,6 @@ function dataParaExibicao(data){
   const isoMatch = String(data).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
   return data;
-}
-
-function mapObservacao(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, texto: row.texto, ts: row.criado_em }; }
-function mapFotoTurno(row){ return { id: row.id, data: row.data, turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, url: row.url, descricao: row.descricao || '', ts: row.criado_em }; }
-
-function carregarObsLocal(){
-  try{
-    const raw = localStorage.getItem(OBS_LOCAL_KEY);
-    turnoObservacoes = raw ? JSON.parse(raw) : [];
-  }catch(e){ turnoObservacoes = []; }
-}
-function salvarObsLocal(){
-  try{ localStorage.setItem(OBS_LOCAL_KEY, JSON.stringify(turnoObservacoes)); }catch(e){}
-}
-function carregarFotosTurnoLocal(){
-  try{
-    const raw = localStorage.getItem(FOTOS_TURNO_LOCAL_KEY);
-    fotosTurno = raw ? JSON.parse(raw) : [];
-  }catch(e){ fotosTurno = []; }
-}
-function salvarFotosTurnoLocal(){
-  try{ localStorage.setItem(FOTOS_TURNO_LOCAL_KEY, JSON.stringify(fotosTurno)); }catch(e){}
-}
-
-
-// Mesmo formato de código dos furos perfilados (LQ04F05), só que montado a partir de
-// texto digitado à mão, sem precisar existir um leque/furo real por trás.
-
-
-
-
-// Agrupa os furos manuais por leque (LQ04: F01, F05...), igual à lista de furos de
-// verdade agrupa por leque — mais fácil de ver o conjunto do que uma lista solta.
-
-
-
-
-
-
-// Observações são por turno (mesma data + número + letra) — assim um turno não
-// mistura anotações com o turno seguinte, mesmo que o app fique aberto o dia todo.
-function observacoesDoTurnoAtual(){
-  const dataISO = dataBRParaISO(turnoInfo.data);
-  return turnoObservacoes
-    .filter(o => o.data === dataISO && o.turnoNumero === turnoInfo.turnoNumero && o.turnoLetra === turnoInfo.turnoLetra)
-    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
-}
-
-function renderObservacoesTurno(){
-  atualizarContagensTurno();
-  const lista = el('obs-list');
-  const vazio = el('obs-vazio');
-  if(!lista) return;
-  const obs = observacoesDoTurnoAtual();
-  if(obs.length === 0){
-    lista.innerHTML = '';
-    if(vazio) vazio.style.display = 'block';
-    return;
-  }
-  if(vazio) vazio.style.display = 'none';
-  lista.innerHTML = obs.map(o=>{
-    return `
-      <div class="obs-item">
-        <span class="texto">${escHtml(o.texto)}</span>
-        <button class="icon icon-editar" onclick="editarObservacaoTurno('${o.id}')" title="editar">✎</button>
-        <button class="icon icon-remover" onclick="removerObservacaoTurno('${o.id}')" title="remover">✕</button>
-      </div>
-    `;
-  }).join('');
-}
-
-function adicionarObservacaoTurno(textoPronto, rapida, silencioso){
-  const campo = el('turno-obs-input');
-  const texto = (typeof textoPronto === 'string' ? textoPronto : campo.value).trim();
-  if(!texto) return;
-  const dataISO = dataBRParaISO(turnoInfo.data) || new Date().toISOString().slice(0,10);
-  const novoId = uuidv4();
-  const novaObs = { id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra, texto, ts: new Date().toISOString() };
-  turnoObservacoes.push(novaObs);
-  enfileirar('turno_observacoes', 'insert', {
-    id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra, texto
-  });
-  if(!rapida){ campo.value = ''; campo.focus(); }
-  salvarObsLocal();
-  renderObservacoesTurno();
-  renderResumoTurno();
-  try{ const it = document.querySelector('#obs-list .obs-item:last-child'); if(it && !semMovimento()) it.animate([{ opacity:0, transform:'translateY(-8px)' }, { opacity:1, transform:'none' }], { duration:260, easing:'cubic-bezier(.2,.8,.3,1.1)' }); const ct = el('sec-obs-cont'); if(ct && !semMovimento()) ct.animate([{ transform:'scale(1.5)' }, { transform:'none' }], { duration:260 }); }catch(e){}
-  if(silencioso){ /* quem chamou já mostra o resultado (ex.: tela Encerrar turno) */ }
-  else if(rapida){
-    showToast(`Observação: ${texto}`, { acaoLabel:'Desfazer', onAcao: ()=>{
-      turnoObservacoes = turnoObservacoes.filter(o=>o.id!==novoId);
-      enfileirar('turno_observacoes', 'delete', { id: novoId });
-      salvarObsLocal(); renderObservacoesTurno(); atualizarContagensTurno();
-    }});
-  }else showToast('Observação adicionada.');
 }
 
 function editarObservacaoModal(valorAtual, atalhos, titulo){
@@ -299,290 +194,6 @@ function editarObservacaoModal(valorAtual, atalhos, titulo){
     }));
     el('obs-turno-editar-input').focus();
   });
-}
-
-async function editarObservacaoTurno(id){
-  const o = turnoObservacoes.find(x=>x.id===id);
-  if(!o) return;
-  const novoTexto = await editarObservacaoModal(o.texto);
-  if(novoTexto === null || novoTexto === o.texto) return;
-  o.texto = novoTexto;
-  enfileirar('turno_observacoes', 'update', { id: o.id, texto: novoTexto });
-  salvarObsLocal();
-  renderObservacoesTurno();
-  showToast('Observação atualizada.');
-}
-
-async function removerObservacaoTurno(id){
-  const o = turnoObservacoes.find(x=>x.id===id);
-  if(!o) return;
-  if(!(await confirmDialog('Remover esta observação do turno?', 'Remover'))) return;
-
-  turnoObservacoes = turnoObservacoes.filter(o=>o.id!==id);
-  enfileirar('turno_observacoes', 'delete', { id });
-  salvarObsLocal();
-  renderObservacoesTurno();
-  showToast('Observação removida.', {
-    acaoLabel: 'Desfazer',
-    onAcao: ()=> desfazerRemocaoObservacao(o)
-  });
-}
-
-function desfazerRemocaoObservacao(obsRemovida){
-  if(turnoObservacoes.some(o=>o.id===obsRemovida.id)) return; // já foi restaurado
-  turnoObservacoes.push(obsRemovida);
-  restaurarNaFila('turno_observacoes', obsRemovida.id, {
-    id: obsRemovida.id, data: obsRemovida.data, turno_numero: obsRemovida.turnoNumero,
-    turno_letra: obsRemovida.turnoLetra, texto: obsRemovida.texto
-  });
-  salvarObsLocal();
-  renderObservacoesTurno();
-  showToast('Observação restaurada.');
-}
-
-el('btn-add-obs').addEventListener('click', ()=> adicionarObservacaoTurno());
-el('turno-obs-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); adicionarObservacaoTurno(); } });
-
-// ---------- Fotos do turno (algo que aconteceu no turno, sem ser de um leque específico) ----------
-function fotosDoTurnoAtual(){
-  const dataISO = dataBRParaISO(turnoInfo.data);
-  return fotosTurno
-    .filter(f => f.data === dataISO && f.turnoNumero === turnoInfo.turnoNumero && f.turnoLetra === turnoInfo.turnoLetra)
-    .sort((a,b)=> new Date(a.ts) - new Date(b.ts));
-}
-
-function renderFotosTurno(){
-  atualizarContagensTurno();
-  const grid = el('fotos-turno-grid');
-  const vazio = el('fotos-turno-vazio');
-  if(!grid) return;
-  const fotos = fotosDoTurnoAtual();
-  if(fotos.length === 0){
-    grid.innerHTML = '';
-    if(vazio) vazio.style.display = 'block';
-    return;
-  }
-  if(vazio) vazio.style.display = 'none';
-  grid.innerHTML = fotos.map(f=>`
-    <div class="foto-turno-item">
-      <a href="${f.url}" target="_blank" rel="noopener"><img src="${f.url}" alt="foto do turno" title="ver em tamanho maior"></a>
-      <button class="icon icon-remover" onclick="removerFotoTurno('${f.id}')" title="remover">✕</button>
-      <button class="foto-turno-obs" onclick="editarDescricaoFotoTurno('${f.id}')" title="clique pra ${f.descricao ? 'editar' : 'adicionar'} a observação">
-        ${f.descricao ? escHtml(f.descricao) : '+ observação'}
-      </button>
-    </div>
-  `).join('');
-}
-
-function selecionarFotoTurno(){
-  if(!navigator.onLine){ showToast('Precisa de internet pra enviar uma foto.'); return; }
-  el('foto-turno-input').click();
-}
-el('btn-escolher-foto-turno').addEventListener('click', selecionarFotoTurno);
-el('foto-turno-input').addEventListener('change', ()=>{
-  const arquivo = el('foto-turno-input').files[0];
-  el('foto-turno-input').value = '';
-  if(arquivo) enviarFotoTurno(arquivo);
-});
-
-function descricaoFotoModal(valorAtual){
-  return new Promise(resolve=>{
-    const root = el('modal-root');
-    root.innerHTML = `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal-box">
-          <p style="font-weight:700;">Observação da foto (opcional)</p>
-          <div class="field" style="margin-bottom:16px;">
-            <label for="foto-turno-descricao-input">O que essa foto mostra?</label>
-            <input id="foto-turno-descricao-input" type="text" maxlength="200" placeholder="ex: vazamento de óleo na perfuratriz" value="${(valorAtual || '').replace(/"/g,'&quot;')}">
-          </div>
-          <div class="modal-actions">
-            <button class="ghost" id="modal-cancelar">Pular</button>
-            <button class="steel" id="modal-salvar">Salvar</button>
-          </div>
-        </div>
-      </div>
-    `;
-    const fechar = (resultado)=>{ root.innerHTML = ''; resolve(resultado); };
-    el('modal-cancelar').addEventListener('click', ()=> fechar(valorAtual || ''));
-    el('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id === 'modal-overlay') fechar(valorAtual || ''); });
-    const salvar = ()=> fechar(el('foto-turno-descricao-input').value.trim());
-    el('modal-salvar').addEventListener('click', salvar);
-    el('foto-turno-descricao-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); salvar(); } });
-    el('foto-turno-descricao-input').focus();
-  });
-}
-
-async function enviarFotoTurno(arquivo){
-  showToast('Enviando foto...');
-  try{
-    const dataISO = dataBRParaISO(turnoInfo.data) || new Date().toISOString().slice(0,10);
-    const extensao = (arquivo.name.split('.').pop() || 'jpg').toLowerCase();
-    const novoId = uuidv4();
-    const caminho = `${novoId}.${extensao}`;
-    const { error: erroUpload } = await db.storage.from('fotos-turno').upload(caminho, arquivo, { upsert: true });
-    if(erroUpload) throw erroUpload;
-    const { data } = db.storage.from('fotos-turno').getPublicUrl(caminho);
-
-    const descricao = await descricaoFotoModal('');
-
-    const novaFoto = {
-      id: novoId, data: dataISO, turnoNumero: turnoInfo.turnoNumero, turnoLetra: turnoInfo.turnoLetra,
-      url: data.publicUrl, descricao, ts: new Date().toISOString()
-    };
-    fotosTurno.push(novaFoto);
-    enfileirar('fotos_turno', 'insert', {
-      id: novoId, data: dataISO, turno_numero: turnoInfo.turnoNumero, turno_letra: turnoInfo.turnoLetra,
-      url: novaFoto.url, descricao
-    });
-    salvarFotosTurnoLocal();
-    renderFotosTurno();
-    showToast('Foto do turno adicionada.');
-  }catch(e){
-    showToast(`Não foi possível enviar a foto: ${e && e.message ? e.message : e}`);
-  }
-}
-
-async function editarDescricaoFotoTurno(id){
-  const f = fotosTurno.find(x=>x.id===id);
-  if(!f) return;
-  const descricao = await descricaoFotoModal(f.descricao);
-  if(descricao === f.descricao) return; // nada mudou
-  f.descricao = descricao;
-  enfileirar('fotos_turno', 'update', { id: f.id, descricao });
-  salvarFotosTurnoLocal();
-  renderFotosTurno();
-  showToast('Observação atualizada.');
-}
-
-async function removerFotoTurno(id){
-  const f = fotosTurno.find(x=>x.id===id);
-  if(!f) return;
-  if(!(await confirmDialog('Remover esta foto do turno?', 'Remover'))) return;
-  fotosTurno = fotosTurno.filter(x=>x.id!==id);
-  enfileirar('fotos_turno', 'delete', { id });
-  salvarFotosTurnoLocal();
-  renderFotosTurno();
-  showToast('Foto removida.', {
-    acaoLabel: 'Desfazer',
-    onAcao: ()=> desfazerRemocaoFotoTurno(f)
-  });
-}
-
-function desfazerRemocaoFotoTurno(fotoRemovida){
-  if(fotosTurno.some(x=>x.id===fotoRemovida.id)) return; // já foi restaurado
-  fotosTurno.push(fotoRemovida);
-  restaurarNaFila('fotos_turno', fotoRemovida.id, {
-    id: fotoRemovida.id, data: fotoRemovida.data, turno_numero: fotoRemovida.turnoNumero,
-    turno_letra: fotoRemovida.turnoLetra, url: fotoRemovida.url, descricao: fotoRemovida.descricao
-  });
-  salvarFotosTurnoLocal();
-  renderFotosTurno();
-  showToast('Foto restaurada.');
-}
-
-function carregarTurnoLocal(){
-  try{
-    const raw = localStorage.getItem(TURNO_LOCAL_KEY);
-    if(raw) turnoInfo = { ...turnoInfo, ...JSON.parse(raw) };
-  }catch(e){}
-}
-function salvarTurnoLocal(){
-  try{ localStorage.setItem(TURNO_LOCAL_KEY, JSON.stringify(turnoInfo)); }catch(e){}
-}
-
-async function loadTurnoInfo(){
-  carregarTurnoLocal();
-  carregarObsLocal();
-
-  if(navigator.onLine){
-    try{
-      const { data, error } = await db.from('turno_info').select('*').eq('id', TURNO_ROW_ID).maybeSingle();
-      if(error) throw error;
-      if(data){
-        turnoInfo.tecnicos = data.tecnicos || '';
-        turnoInfo.local = data.local || '';
-        turnoInfo.turnoNumero = data.turno_numero || '';
-        turnoInfo.turnoLetra = data.turno_letra || '';
-        turnoInfo.dds = data.dds || '';
-      }
-    }catch(e){
-      // sem sinal — segue com o que já está salvo localmente
-    }
-  }
-
-  turnoInfo.data = new Date().toLocaleDateString('pt-BR');
-  turnoInfo.supervisor = configApp.supervisor;
-
-  el('turno-data').value = turnoInfo.data;
-  el('turno-tecnicos').value = turnoInfo.tecnicos || '';
-  el('turno-local').value = turnoInfo.local || '';
-  el('turno-dds').value = turnoInfo.dds || '';
-  el('turno-supervisor').value = turnoInfo.supervisor;
-  // Projeto não entra aqui — é só-leitura e sincronizado a partir do realce
-  // ativo (sincronizarLocalComNivelDoAnel), não de um valor salvo à parte.
-  selecionarChip('turno-numero-group', turnoInfo.turnoNumero);
-  selecionarChip('turno-letra-group', turnoInfo.turnoLetra);
-  // Pré-seleciona a letra na criação de leque com o turno atual, só como
-  // ponto de partida — a pessoa pode trocar manualmente antes de criar,
-  // já que quem perfila pode ser diferente de quem está com o turno aberto.
-  if(!document.querySelector('#leque-letra-group .chip.active')){
-    selecionarChip('leque-letra-group', turnoInfo.turnoLetra);
-  }
-  renderObservacoesTurno();
-  renderFotosTurno();
-
-  salvarTurnoLocal();
-}
-
-// Limpa data/turno/letra/técnicos pra começar um turno novo — não apaga
-// observações nem fotos já registradas (elas só passam a não aparecer, já que
-// são filtradas pelo turno atual; continuam guardadas se voltar pro turno certo).
-// Faz a limpeza de verdade — separado da confirmação, pra poder ser chamado
-// tanto pelo botão manual (com confirmação) quanto automaticamente depois de
-// exportar o relatório do turno (sem confirmação, já é esperado nesse ponto).
-function executarLimpezaCamposTurno(){
-  el('turno-data').value = new Date().toLocaleDateString('pt-BR');
-  el('turno-tecnicos').value = '';
-  el('turno-dds').value = '';
-  document.querySelectorAll('#turno-numero-group .chip').forEach(c=> c.classList.remove('active'));
-  document.querySelectorAll('#turno-letra-group .chip').forEach(c=> c.classList.remove('active'));
-  saveTurnoInfo();
-}
-
-async function limparDadosTurno(){
-  const msg = 'Limpar Data, Turno, Letra, Técnicos e DDS pra começar um turno novo? As observações e fotos já registradas não são apagadas — só deixam de aparecer aqui até você voltar pro turno/letra em que foram feitas.';
-  if(!(await confirmDialog(msg, 'Limpar'))) return;
-  executarLimpezaCamposTurno();
-  showToast('Dados do turno limpos.');
-}
-el('btn-limpar-turno').addEventListener('click', limparDadosTurno);
-
-function saveTurnoInfo(){
-  turnoInfo.data = el('turno-data').value;
-  turnoInfo.tecnicos = el('turno-tecnicos').value;
-  turnoInfo.local = el('turno-local').value;
-  turnoInfo.dds = el('turno-dds').value;
-  turnoInfo.supervisor = configApp.supervisor;
-  turnoInfo.projeto = el('turno-projeto').value;
-  const chipNumero = document.querySelector('#turno-numero-group .chip.active');
-  const chipLetra = document.querySelector('#turno-letra-group .chip.active');
-  turnoInfo.turnoNumero = chipNumero ? chipNumero.dataset.val : '';
-  turnoInfo.turnoLetra = chipLetra ? chipLetra.dataset.val : '';
-  salvarTurnoLocal();
-  enfileirar('turno_info', 'upsert', {
-    id: TURNO_ROW_ID,
-    data: dataBRParaISO(turnoInfo.data),
-    turno_numero: turnoInfo.turnoNumero,
-    turno_letra: turnoInfo.turnoLetra,
-    tecnicos: turnoInfo.tecnicos,
-    supervisor: turnoInfo.supervisor,
-    projeto: turnoInfo.projeto,
-    local: turnoInfo.local,
-    dds: turnoInfo.dds
-  });
-  renderObservacoesTurno();
-  renderFotosTurno();
 }
 
 function drawHeaderTabelaPDF(doc, y){
@@ -641,7 +252,7 @@ function desenharResumoPDF(doc, y, stats){
   doc.setDrawColor(200); doc.setLineWidth(0.3);
   doc.rect(15, y, 180, alturaBox);
   doc.setFont(undefined,'bold'); doc.setFontSize(11);
-  doc.text('RESUMO DO TURNO', 20, y+8);
+  doc.text('RESUMO', 20, y+8);
   doc.setFont(undefined,'normal'); doc.setFontSize(10);
 
   const col1 = 20, col2 = 78, col3 = 138;
@@ -671,10 +282,10 @@ function desenharResumoPDF(doc, y, stats){
   return y + alturaBox + 8;
 }
 
-// Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + dados do turno).
+// Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + supervisor e projeto).
 // Devolve a coordenada Y onde o conteúdo específico do relatório deve começar.
 async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
-  const titulo = opcoes.titulo || 'STATUS TURNO PERFILAGEM DE LAVRA';
+  const titulo = opcoes.titulo || 'RELATÓRIO DE PERFILAGEM DE LAVRA';
 
   try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
 
@@ -687,45 +298,13 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
 
   doc.setFontSize(PDF_FONT_INFO);
   let y = 38;
-  const turnoDisplay = (turnoInfo.turnoNumero || turnoInfo.turnoLetra)
-    ? `${turnoInfo.turnoNumero || '-'}º Turno - Letra ${turnoInfo.turnoLetra || '-'}`
-    : '-';
-  const campos = [
-    ['Data:', turnoInfo.data],
-    ['Turno:', turnoDisplay],
-    ['Tecnicos:', turnoInfo.tecnicos],
-    ['Supervisor:', turnoInfo.supervisor],
-    ['Projeto:', turnoInfo.projeto],
-    ['Local:', turnoInfo.local],
-    ['DDS:', turnoInfo.dds],
-  ];
+  const campos = [['Supervisor:', configApp.supervisor], ['Projeto:', configApp.projetoAtivo]];
   doc.setFont(undefined,'normal');
   campos.forEach(([label,val])=>{
     doc.text(label, 15, y);
     doc.text(String(val||'-'), 42, y);
     y += 7;
   });
-
-  const obsAtuais = observacoesDoTurnoAtual();
-  if(obsAtuais.length > 0){
-    y += 2;
-    doc.setFont(undefined,'bold'); doc.text('Observações:', 15, y); y += 6;
-    doc.setFont(undefined,'normal');
-    obsAtuais.forEach(o=>{
-      const linhasObs = doc.splitTextToSize(`• ${o.texto}`, 172);
-      if(y > 270){ doc.addPage(); y = 20; }
-      doc.text(linhasObs, 18, y);
-      y += linhasObs.length * 6;
-    });
-  }
-
-  const fotosAtuais = fotosDoTurnoAtual();
-  if(fotosAtuais.length > 0){
-    y += 4;
-    doc.setFont(undefined,'bold'); doc.text('Fotos do turno:', 15, y); y += 6;
-    doc.setFont(undefined,'normal');
-    y = await desenharGradeFotosPDF(doc, fotosAtuais, y);
-  }
 
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
@@ -767,9 +346,6 @@ async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArqu
   try{
     const { error } = await db.from('export_historico').insert({
       tipo,
-      turno_data: dataBRParaISO(turnoInfo.data),
-      turno_numero: turnoInfo.turnoNumero,
-      turno_letra: turnoInfo.turnoLetra,
       leques: leques || null,
       qtd_leques: qtdLeques || 0,
       qtd_furos: qtdFuros || 0,
@@ -808,11 +384,10 @@ function renderHistoricoExportacoes(){
   }
   if(vazio) vazio.style.display = 'none';
 
-  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado' };
+  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado' }; // 'turno' = envios antigos
 
   lista.innerHTML = historicoExportacoes.map(reg=>{
     const quando = reg.criado_em ? new Date(reg.criado_em).toLocaleString('pt-BR') : '-';
-    const turnoLabelReg = [reg.turno_numero, reg.turno_letra].filter(Boolean).join('');
     const detalhe = reg.tipo === 'turno'
       ? 'Sem perfilagem de furos'
       : `${reg.leques || '-'} · ${reg.qtd_furos || 0} furo(s)`;
@@ -820,7 +395,7 @@ function renderHistoricoExportacoes(){
       <div class="historico-row">
         <span class="quando">${quando}</span>
         <span class="tipo ${reg.tipo}">${TIPO_LABEL[reg.tipo] || reg.tipo}</span>
-        <span>${dataParaExibicao(reg.turno_data)}${turnoLabelReg ? ' · Turno '+turnoLabelReg : ''}</span>
+        <span>${dataParaExibicao(reg.turno_data || reg.criado_em)}</span>
         <span class="detalhe">${detalhe}</span>
         <span class="arquivo">${reg.nome_arquivo || ''}</span>
       </div>
@@ -828,35 +403,7 @@ function renderHistoricoExportacoes(){
   }).join('');
 }
 
-// ---------- Exportação de PDF: turno só, leque único, e combinado ----------
-async function exportarTurnoPDF(){
-  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  let y = await desenharCabecalhoTurnoPDF(doc);
-
-  doc.setFontSize(PDF_FONT_AVISO); doc.setFont(undefined,'italic'); doc.setTextColor(120);
-  doc.text('Nenhuma perfilagem de furos vinculada a este relatório.', 15, y);
-  doc.setTextColor(0); doc.setFont(undefined,'normal');
-
-  adicionarMarcaDaguaPDF(doc);
-  adicionarNumeracaoPaginas(doc);
-
-  const dataArquivo = (turnoInfo.data || '').replace(/\//g,'-') || 'sem-data';
-  const sufixoTurno = (turnoInfo.turnoNumero || turnoInfo.turnoLetra)
-    ? `_${turnoInfo.turnoNumero || ''}${turnoInfo.turnoLetra || ''}`
-    : '';
-  const nomeArquivo = ('Turno_' + dataArquivo + sufixoTurno).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
-
-  await baixarOuCompartilharPDF(doc, nomeArquivo);
-  const salvoNoHistorico = await registrarExportacao({ tipo:'turno', leques:null, qtdLeques:0, qtdFuros:0, nomeArquivo });
-  showToast(salvoNoHistorico
-    ? 'PDF do turno exportado.'
-    : 'PDF do turno exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
-}
-
+// ---------- Exportação de PDF: leque único e combinado ----------
 // Busca a foto do leque e devolve já em base64 (formato que o jsPDF entende),
 // junto com as dimensões reais — pra desenhar no PDF sem esticar/espremer a
 // imagem. Se falhar por qualquer motivo (sem sinal na hora de exportar, etc.),
@@ -913,63 +460,6 @@ async function desenharFotoLequePDF(doc, fotoUrl, y, legendaTexto){
   }
 }
 
-// Desenha várias fotos lado a lado, em 2 colunas — usado só pras fotos do turno,
-// que podem ser várias (diferente da foto de leque, que é sempre uma só). Evita
-// que o PDF fique enorme empilhando foto atrás de foto numa coluna só.
-async function desenharGradeFotosPDF(doc, fotos, y){
-  const COLUNAS = 2;
-  const GAP = 8;
-  const LARGURA_TOTAL = 180; // de x=15 até x=195
-  const larguraCol = (LARGURA_TOTAL - GAP * (COLUNAS - 1)) / COLUNAS;
-  const alturaMaxFoto = 55;
-
-  let coluna = 0;
-  let yLinha = y;
-  let alturaMaxLinha = 0;
-
-  for(const f of fotos){
-    const foto = await carregarImagemParaPDF(f.url);
-    if(!foto) continue;
-
-    let largura = larguraCol, altura = larguraCol * (foto.h / foto.w);
-    if(altura > alturaMaxFoto){ altura = alturaMaxFoto; largura = alturaMaxFoto * (foto.w / foto.h); }
-
-    const legenda = f.descricao || 'Foto do turno';
-    doc.setFont(undefined,'italic'); doc.setFontSize(8.5);
-    const linhasLegenda = doc.splitTextToSize(legenda, larguraCol);
-    doc.setFont(undefined,'normal');
-    const alturaLinha = altura + 5 + linhasLegenda.length * 4 + 8;
-
-    // só quebra página no início de uma linha nova (coluna 0), pra não cortar
-    // uma foto pela metade nem deixar a segunda coluna desalinhada da primeira
-    if(coluna === 0 && yLinha + alturaLinha > 278){
-      doc.addPage();
-      yLinha = 20;
-    }
-
-    const x = 15 + coluna * (larguraCol + GAP);
-    try{
-      const formato = foto.dataUrl.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
-      doc.setDrawColor(200); doc.setLineWidth(0.3);
-      doc.rect(x, yLinha, largura, altura);
-      doc.addImage(foto.dataUrl, formato, x, yLinha, largura, altura);
-      doc.setFont(undefined,'italic'); doc.setFontSize(8.5); doc.setTextColor(120);
-      doc.text(linhasLegenda, x, yLinha + altura + 5);
-      doc.setFont(undefined,'normal'); doc.setTextColor(0,0,0);
-    }catch(e){}
-
-    alturaMaxLinha = Math.max(alturaMaxLinha, alturaLinha);
-    coluna++;
-    if(coluna >= COLUNAS){
-      coluna = 0;
-      yLinha += alturaMaxLinha;
-      alturaMaxLinha = 0;
-    }
-  }
-  if(coluna !== 0) yLinha += alturaMaxLinha; // sobrou 1 foto pendente numa linha ímpar
-
-  return yLinha;
-}
 
 async function exportarLequePDF(id){
   const l = leques.find(x=>x.id===id);
@@ -987,13 +477,6 @@ async function exportarLequePDF(id){
   doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
   doc.text('Realce: ' + (a ? a.nome : '-'), 15, y); y += 7;
   doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
-  if(l.turnoLetra || l.turnoNumero){
-    doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
-    const nomesTecnicos = TECNICOS_POR_LETRA[l.turnoLetra];
-    doc.text(`Aberto no turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${nomesTecnicos ? ' · ' + nomesTecnicos : ''}`, 15, y);
-    doc.setTextColor(0,0,0); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-    y += 6;
-  }
   y += 2;
 
   if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
@@ -1111,13 +594,6 @@ async function exportarLequesPDF(ids, opcoes){
     doc.setFontSize(PDF_FONT_LEQUE_TITULO); doc.setFont(undefined,'bold');
     doc.text('Realce: ' + (a ? a.nome : '-'), 15, y); y += 7;
     doc.text(tipoLabel(l.tipo) + ': ' + lequeCode(l) + (l.nome ? ' - ' + l.nome : ''), 15, y); y += 8;
-    if(l.turnoLetra || l.turnoNumero){
-      doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(110);
-      const nomesTecnicos = TECNICOS_POR_LETRA[l.turnoLetra];
-      doc.text(`Aberto no turno ${l.turnoNumero || '-'}${l.turnoLetra || ''}${nomesTecnicos ? ' · ' + nomesTecnicos : ''}`, 15, y);
-      doc.setTextColor(0,0,0); doc.setFontSize(PDF_FONT_LEQUE_TITULO);
-      y += 6;
-    }
     y += 2;
 
     if(l.fotoUrl) y = await desenharFotoLequePDF(doc, l.fotoUrl, y, 'Foto do leque ' + lequeCode(l));
@@ -1188,7 +664,7 @@ async function exportarLequesPDF(ids, opcoes){
   adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
 
-  const nomeArquivo = ('Turno_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+  const nomeArquivo = ('Relatorio_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo, baixar);
   const salvoNoHistorico = await registrarExportacao({
     tipo:'combinado',
