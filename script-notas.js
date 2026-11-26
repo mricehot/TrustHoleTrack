@@ -1,4 +1,4 @@
-// ---------- Anotações de tratamento: como fazer, dúvidas tiradas e dicas (aba Tratamento) ----------
+// ---------- Anotações de tratamento: como fazer, dúvidas tiradas e dicas (aba Anotações) ----------
 const NOTAS_KEY = 'perfilagem-tratativa-notas-v1';
 const CATEG_NOTA = { como_fazer: 'Como fazer', duvida: 'Dúvida', dica: 'Dica' };
 let tratativaNotas = []; // { id, projeto, titulo, texto, categoria, fixada, criadoPor, ts, atualizadoEm }
@@ -13,13 +13,9 @@ const notaSemAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, 
 const fmtDataNota = ts => ts ? new Date(ts).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '';
 
 function renderNotas(){
-  const view = document.getElementById('view-perfilagem'); if(!view) return;
+  const view = document.getElementById('view-notas'); if(!view) return;
   let root = document.getElementById('notas-root');
-  if(!root){
-    root = document.createElement('div'); root.id = 'notas-root';
-    const ant = document.getElementById('envios-root') || document.getElementById('tratativa-root');
-    if(ant && ant.nextSibling) view.insertBefore(root, ant.nextSibling); else view.appendChild(root);
-  }
+  if(!root){ root = document.createElement('div'); root.id = 'notas-root'; view.appendChild(root); }
   const e2 = escHtml;
   const todas = tratativaNotas.filter(notaNoEscopo);
   const q = notaSemAcento(notaBusca.trim());
@@ -126,5 +122,6 @@ async function carregarNotasServidor(){
     try{ canal = db.channel('tratativa_notas').on('postgres_changes', { event:'*', schema:'public', table:'tratativa_notas' }, agendar).subscribe(); }catch(e){ canal = null; }
   }, 4000);
   window.addEventListener('load', ()=>{ renderNotas(); carregarNotasServidor(); });
+  const omv = mostrarView; mostrarView = function(v){ const r = omv.apply(this, arguments); if(v === 'notas') renderNotas(); return r; };
   aoRenderizarTudo(()=>{ if(!notaForm && document.activeElement !== document.getElementById('nota-busca')) renderNotas(); });
 })();

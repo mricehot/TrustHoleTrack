@@ -2774,7 +2774,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 }
 
 /* ===== Tratativa dos dados (aba Perfilagem) ===== */
-#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root):not(#notas-root){ display:none !important; }
+#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root){ display:none !important; }
 #tratativa-root{ display:block; }
 .trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
 .trat-topo h2{ margin:0; font-size:1.25rem; }
@@ -2899,7 +2899,7 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 body.modo-leitura .trat-linha-tr .ghost{ display:none !important; }
 
 /* ---- Anotações de tratamento ---- */
-#notas-root{ margin:18px 0 28px; }
+#notas-root{ margin:0 0 28px; }
 .nota-topo{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
 .nota-topo h2{ margin:0; font-size:18px; }
 .nota-add{ width:100%; min-height:48px; margin-bottom:10px; font-weight:600; background:var(--surface); color:var(--text); border:1px dashed var(--steel); border-radius:12px; cursor:pointer; }
