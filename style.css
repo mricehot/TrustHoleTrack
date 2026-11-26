@@ -2968,3 +2968,18 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .trat-arq small{ color:var(--muted); font-weight:600; }
 .trat-arq.ok{ border-style:solid; border-color:var(--est-ok); background:rgba(46,155,87,.08); }
 .trat-arq:not(.ok) b{ color:#b4570a; }
+
+/* Visualizador do plano de perfuração */
+#plano-painel{ position:fixed; z-index:900; inset:0; display:flex; flex-direction:column; background:var(--surface); }
+#plano-painel > header{ display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); min-height:56px; }
+#plano-painel > header b{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#plano-painel > header .spacer{ flex:1; }
+#plano-painel > header button, #plano-painel > header a{ min-height:44px; display:inline-flex; align-items:center; text-transform:none; letter-spacing:0; padding:0 14px; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px; }
+#plano-painel > header a.ghost{ border:1px solid var(--line); color:var(--text); }
+#plano-painel .pl-corpo{ flex:1; min-height:0; }
+#plano-painel iframe{ width:100%; height:100%; border:0; background:#fff; }
+#plano-painel .pl-carregando{ padding:24px; color:var(--muted); }
+@media (min-width:1000px){
+  #plano-painel{ inset:0 0 0 auto; width:50vw; box-shadow:-8px 0 30px rgba(0,0,0,.25); border-left:1px solid var(--line); }
+  body.plano-aberto{ padding-right:50vw; }
+}

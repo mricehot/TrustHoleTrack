@@ -13,7 +13,8 @@ function dadosRelatorioTratativa(anelIds){
       const esp = uteis.reduce((s,f)=> s + Number(f.metragemEsperada || 0), 0), real = uteis.reduce((s,f)=> s + Number(f.metragem || 0), 0);
       const espMed = uteis.filter(f=>Number(f.metragem) > 0).reduce((s,f)=> s + Number(f.metragemEsperada || 0), 0); // esperada só dos furos já medidos (base justa p/ variação)
       const status = e.tratado ? 'Tratado' : e.pronto ? 'Pronto p/ tratar' : !e.tem ? 'Sem furos' : (fs.some(f=>f.perfilado || f.topografado) ? 'Em andamento' : 'Não iniciado');
-      return { codigo: codigoLequeCk(e.c), furos: fs.length, uteis: uteis.length, obst,
+      const furosLista = fs.map(f=>({ numero: String(f.numero), obst: !!f.obstruido, metros: Number(f.metragem) > 0 ? Number(f.metragem) : Number(f.metragemEsperada || 0) }));
+      return { codigo: codigoLequeCk(e.c), furosLista, furos: fs.length, uteis: uteis.length, obst,
         perf: uteis.filter(f=>f.perfilado).length, topo: uteis.filter(f=>f.topografado).length, az: uteis.filter(f=>furoTemAzimute(f)).length,
         esp, real, espMed, status, tratadoEm: e.tratado ? e.c.tratadoEm : null, tratadoPor: e.tratado ? e.c.tratadoPor : '', observacao: e.c.observacao || '' };
     });
@@ -78,7 +79,13 @@ async function exportarRelatorioTratativaPDF(anelIds){
     doc.setFont(undefined,'normal'); doc.setFontSize(10);
     g.leques.forEach(l=>{
       if(y > 280){ doc.addPage(); y = 20; cab(); doc.setFont(undefined,'normal'); doc.setFontSize(10); }
-      doc.text(l.codigo, 17, y); doc.text(fmtM(metrosDoLeque(l)), 120, y, { align:'right' }); doc.text(fmtDataBR(l.tratadoEm), 150, y); y += 5.5; });
+      doc.text(l.codigo, 17, y); doc.text(fmtM(metrosDoLeque(l)), 120, y, { align:'right' }); doc.text(fmtDataBR(l.tratadoEm), 150, y); y += 5;
+      if(l.furosLista.length){
+        const txt = 'Furos: ' + l.furosLista.map(f=> `F${f.numero} ${f.obst ? 'obstruído' : fmtM(f.metros) + ' m'}`).join('  ·  ');
+        const ls = doc.splitTextToSize(txt, 172); doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(100);
+        if(y + ls.length * 3.6 > 284){ doc.addPage(); y = 20; }
+        doc.text(ls, 21, y); y += ls.length * 3.6 + 2; doc.setTextColor(0); doc.setFontSize(10);
+      } else y += 0.5; });
     doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
     doc.text(`Total (${g.leques.length})`, 17, y); doc.text(fmtM(g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0)), 120, y, { align:'right' }); y += 10;
   });
@@ -115,8 +122,12 @@ function exportarRelatorioTratativaCSV(anelIds){
   const grupos = linhasTratados(anelIds);
   if(!grupos.length){ showToast('Nenhum leque tratado nos realces escolhidos.', { tipo:'aviso' }); return; }
   const q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
-  const L = [['Realce','Leque','Metros tratados','Data']];
-  grupos.forEach(g=> g.leques.forEach(l=> L.push([g.realce.nome, l.codigo, String(Math.round(metrosDoLeque(l) * 10) / 10).replace('.', ','), fmtDataBR(l.tratadoEm)])));
+  const L = [['Realce','Leque','Furo','Metros','Data']];
+  const nm = v => String(Math.round(Number(v || 0) * 10) / 10).replace('.', ',');
+  grupos.forEach(g=> g.leques.forEach(l=>{
+    l.furosLista.forEach(f=> L.push([g.realce.nome, l.codigo, 'F' + f.numero, f.obst ? 'obstruído' : nm(f.metros), fmtDataBR(l.tratadoEm)]));
+    L.push([g.realce.nome, l.codigo, 'TOTAL DO LEQUE', nm(metrosDoLeque(l)), fmtDataBR(l.tratadoEm)]);
+  }));
   const csv = '\ufeff' + L.map(r=> r.map(q).join(';')).join('\r\n');
   const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
@@ -132,7 +143,7 @@ function abrirExportarTratativa(){
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
     <p style="font-weight:700;">Exportar leques tratados</p>
-    <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os metros e a data da tratativa.</div>
+    <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os furos, os metros e a data da tratativa.</div>
     <div class="rel-realces" role="group" aria-label="Realces do relatório">${noEscopo.map(a=>`<label class="rel-item"><input type="checkbox" value="${a.id}" ${marcados.has(a.id) ? 'checked' : ''}><span>${escHtml(a.nome)}</span></label>`).join('') || '<div class="hint">Nenhum realce.</div>'}</div>
     <div class="rel-atalhos"><button type="button" class="ghost" id="rel-todos">Marcar todos</button><button type="button" class="ghost" id="rel-nenhum">Limpar</button></div>
     <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="ghost" id="rel-csv">Planilha (CSV)</button><button class="ghost" id="rel-img">Só imagem</button><button class="steel" id="rel-pdf">Baixar PDF</button></div>

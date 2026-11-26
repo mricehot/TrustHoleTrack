@@ -47,23 +47,34 @@ async function obterPlano(a){
   return blob;
 }
 
+// Visualizador do plano dentro do app: no computador abre num painel à direita (o checklist continua utilizável
+// à esquerda); no celular ocupa a tela toda, com botão para fechar e voltar ao checklist.
+let planoUrlAberta = null;
+function fecharPlanoPainel(){
+  const p = document.getElementById('plano-painel'); if(p) p.remove();
+  document.body.classList.remove('plano-aberto');
+  if(planoUrlAberta){ URL.revokeObjectURL(planoUrlAberta); planoUrlAberta = null; }
+}
 async function abrirPlano(anelId){
   const a = aneis.find(x=>x.id === (anelId || anelAtivoId));
   if(!a || !a.planoPath){ showToast('Este realce não tem plano de perfuração anexado.', { tipo:'aviso' }); return; }
-  // A janela abre já (antes do download) para o navegador não bloquear como pop-up.
-  let janela = null;
-  try{ janela = window.open('', '_blank'); if(janela) janela.document.write('<p style="font-family:sans-serif;padding:20px">Abrindo o plano…</p>'); }catch(e){}
+  fecharPlanoPainel();
+  const painel = document.createElement('aside'); painel.id = 'plano-painel'; painel.setAttribute('role', 'dialog'); painel.setAttribute('aria-label', 'Plano de perfuração');
+  painel.innerHTML = `<header><b>📄 Plano · ${escHtml(a.nome)}</b><span class="spacer"></span><a class="ghost pl-nova" target="_blank" rel="noopener" hidden>Abrir em outra aba</a><button type="button" class="steel" id="plano-fechar">Fechar ✕</button></header><div class="pl-corpo"><div class="pl-carregando">Carregando o plano…</div></div>`;
+  document.body.appendChild(painel); document.body.classList.add('plano-aberto');
+  painel.querySelector('#plano-fechar').onclick = fecharPlanoPainel;
   try{
     const blob = await obterPlano(a);
-    const url = URL.createObjectURL(blob);
-    if(janela && !janela.closed) janela.location.href = url;
-    else { const l = document.createElement('a'); l.href = url; l.target = '_blank'; l.rel = 'noopener'; document.body.appendChild(l); l.click(); l.remove(); }
-    setTimeout(()=> URL.revokeObjectURL(url), 5 * 60 * 1000);
+    if(!document.getElementById('plano-painel')) return; // fechou enquanto carregava
+    planoUrlAberta = URL.createObjectURL(blob);
+    painel.querySelector('.pl-corpo').innerHTML = `<iframe title="Plano de perfuração" src="${planoUrlAberta}"></iframe>`;
+    const l = painel.querySelector('.pl-nova'); l.href = planoUrlAberta; l.hidden = false;
   }catch(e){
-    if(janela) try{ janela.close(); }catch(_){}
+    fecharPlanoPainel();
     showToast(e.message || 'Não foi possível abrir o plano.', { erro:true });
   }
 }
+document.addEventListener('keydown', ev=>{ if(ev.key === 'Escape' && document.getElementById('plano-painel')) fecharPlanoPainel(); });
 
 // ----- anexar / trocar / remover (só gestor) -----
 // Envia o PDF e grava no realce. Devolve true se anexou. A empresa vem do próprio realce ou de qualquer
