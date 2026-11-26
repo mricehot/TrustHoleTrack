@@ -8,7 +8,8 @@ const notasAbertas = new Set();
 try{ tratativaNotas = JSON.parse(localStorage.getItem(NOTAS_KEY) || '[]') || []; }catch(e){ tratativaNotas = []; }
 const salvarNotasLocal = ()=>{ try{ localStorage.setItem(NOTAS_KEY, JSON.stringify(tratativaNotas)); }catch(e){} };
 function mapNota(r){ return { id:r.id, projeto:r.projeto || '', titulo:r.titulo || '', texto:r.texto || '', categoria:r.categoria || 'como_fazer', fixada:!!r.fixada, criadoPor:r.criado_por || '', ts:r.criado_em || '', atualizadoEm:r.atualizado_em || r.criado_em || '' }; }
-const notaNoEscopo = n => { const pr = typeof configApp !== 'undefined' ? configApp.projetoAtivo : ''; return !pr || !n.projeto || n.projeto === pr; };
+let notaTodosProjetos = false; // mostra também as anotações de outros projetos
+const notaNoEscopo = n => { if(notaTodosProjetos) return true; const pr = typeof configApp !== 'undefined' ? configApp.projetoAtivo : ''; return !pr || !n.projeto || n.projeto === pr; };
 const notaSemAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const fmtDataNota = ts => ts ? new Date(ts).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }) : '';
 
@@ -18,6 +19,7 @@ function renderNotas(){
   if(!root){ root = document.createElement('div'); root.id = 'notas-root'; view.appendChild(root); }
   const e2 = escHtml;
   const todas = tratativaNotas.filter(notaNoEscopo);
+  const foraEscopo = notaTodosProjetos ? 0 : tratativaNotas.length - todas.length;
   const q = notaSemAcento(notaBusca.trim());
   const lista = todas.filter(n=> (notaFiltro === 'todas' || n.categoria === notaFiltro) && (!q || notaSemAcento(n.titulo + ' ' + n.texto).includes(q)))
     .sort((a,b)=> (b.fixada - a.fixada) || String(b.atualizadoEm).localeCompare(String(a.atualizadoEm)));
@@ -42,10 +44,11 @@ function renderNotas(){
         <div class="nota-meta">${n.criadoPor ? e2(n.criadoPor) + ' · ' : ''}${fmtDataNota(n.atualizadoEm)}</div>
         <div class="nota-acoes"><button type="button" class="ghost" onclick="abrirFormNota('${n.id}')">Editar</button><button type="button" class="ghost" onclick="fixarNota('${n.id}')">${n.fixada ? 'Desafixar' : 'Fixar no topo'}</button><button type="button" class="ghost perigo" onclick="removerNota('${n.id}')">Apagar</button></div></div>` : ''}</article>`;
   }).join('');
-  const vazio = !todas.length ? 'Nenhuma anotação ainda. Registre aqui como fazer cada passo e as dúvidas que forem tiradas.' : (!lista.length ? 'Nada encontrado com esse filtro.' : '');
+  const vazio = !todas.length && foraEscopo ? 'Nenhuma anotação neste projeto.' : !todas.length ? 'Nenhuma anotação ainda. Registre aqui como fazer cada passo e as dúvidas que forem tiradas.' : (!lista.length ? 'Nada encontrado com esse filtro.' : '');
   const buscaVal = e2(notaBusca);
   root.innerHTML = `<div class="nota-topo"><h2>Anotações de tratamento</h2><span class="hint">como fazer, dúvidas tiradas e dicas</span></div>${form}
     ${todas.length ? `<input id="nota-busca" type="search" class="nota-busca" placeholder="Buscar nas anotações" value="${buscaVal}" autocomplete="off" aria-label="buscar nas anotações"><div class="nota-chips" role="group" aria-label="filtrar por tipo">${chips}</div>` : ''}
+    ${foraEscopo ? `<div class="nota-fora"><span>${foraEscopo} ${foraEscopo === 1 ? 'anotação de outro projeto está oculta' : 'anotações de outros projetos estão ocultas'} (projeto ativo: ${e2((typeof configApp !== 'undefined' && configApp.projetoAtivo) || '—')}).</span><button type="button" class="ghost" onclick="notaTodosProjetos=true;renderNotas()">Mostrar todas</button></div>` : (notaTodosProjetos && tratativaNotas.some(n=>!(typeof configApp !== 'undefined' && (!configApp.projetoAtivo || !n.projeto || n.projeto === configApp.projetoAtivo))) ? '<div class="nota-fora"><span>Mostrando anotações de todos os projetos.</span><button type="button" class="ghost" onclick="notaTodosProjetos=false;renderNotas()">Só do projeto ativo</button></div>' : '')}
     ${cartoes}${vazio ? `<div class="trat-vazio">${vazio}</div>` : ''}`;
   const b = document.getElementById('nota-busca');
   if(b) b.addEventListener('input', ()=>{ notaBusca = b.value; const pos = b.selectionStart; renderNotas(); const n = document.getElementById('nota-busca'); if(n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });

@@ -3136,3 +3136,8 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
   .trat-prontos-d th{ background:color-mix(in srgb, #e8441a 10%, var(--surface)); }
   .trat-filtros-t{ font-weight:700; color:var(--muted); margin-right:4px; font-size:13px; }
 }
+.trat-dados-m{ min-width:44px; padding:0 8px; font-size:16px; }
+.trat-tabela td.acao .trat-dados{ margin-right:4px; }
+.nota-fora{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#fdf3dc; border:1px solid #e8b04a; border-radius:12px; padding:8px 12px; margin:0 0 12px; font-size:13px; }
+.nota-fora button{ min-height:36px !important; text-transform:none; }
+@media (max-width:420px){ .tab-item .tab-label{ font-size:10.5px; letter-spacing:-.1px; } }
