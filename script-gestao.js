@@ -1,4 +1,4 @@
-// ---------- Pendências (o que está travando) + "Hoje na mina" no Painel do gestor ----------
+// ---------- Pendências (o que está travando) ----------
 const PENDENCIAS_KEY = 'perfilagem-pendencias-v1';
 const CATEG_PEND = { obstrucao: 'Obstrução', equipamento: 'Equipamento', area: 'Área', outro: 'Outro' };
 const STATUS_PEND = { aberta: 'Aberta', em_resolucao: 'Em resolução', resolvida: 'Resolvida' };
@@ -144,7 +144,6 @@ async function carregarPendenciasServidor(){
     const r = await buscarTudo('pendencias'); if(r.error) return;
     pendencias = r.data.map(mapPendencia); salvarPendenciasLocal();
     renderPendencias();
-    if(document.body.dataset.view === 'painel' && typeof renderPainelGestor === 'function') renderPainelGestor();
   }catch(e){}
 }
 (function(){
@@ -161,83 +160,4 @@ async function carregarPendenciasServidor(){
   window.addEventListener('load', ()=>{ renderPendencias(); carregarPendenciasServidor(); });
   const om = mostrarView;
   mostrarView = function(v){ const r = om.apply(this, arguments); if(v === 'pendencias') renderPendencias(); return r; };
-})();
-
-// ---------- "Hoje na mina" (topo do Painel do gestor) ----------
-function htmlHojeNaMina(){
-  const e2 = escHtml, hojeISO = dataISOLocal(new Date());
-  const lista = typeof equipesDoProjeto === 'function' ? equipesDoProjeto(configApp.projetoAtivo) : equipes;
-  const efet = typeof lancamentosEfetivos === 'function' ? lancamentosEfetivos() : [];
-  const ini = inicioDaSemana(new Date()), iniISO = dataISOLocal(ini);
-  const ids = new Set(lista.map(e=>e.id));
-  const doEscopo = efet.filter(l=>ids.has(l.equipeId));
-  const hojeM = arred2(doEscopo.filter(l=>l.data === hojeISO).reduce((s, l)=>s + l.metros, 0));
-  const hojeP = Math.round(doEscopo.filter(l=>l.data === hojeISO).reduce((s, l)=>s + l.pontos, 0));
-  const semP = Math.round(doEscopo.filter(l=>l.data >= iniISO && l.data <= hojeISO).reduce((s, l)=>s + l.pontos, 0));
-  const diasProd = new Set(doEscopo.filter(l=>l.data >= iniISO && l.data <= hojeISO && (l.metros || l.pontos)).map(l=>l.data)).size;
-  const metaSem = lista.reduce((s, e)=>s + (e.metaSemanal || 0), 0);
-  const metaDia = metaSem ? arred2(metaSem / 5) : 0;
-  const fmt = n => String(Math.round(n * 10) / 10).replace('.', ',');
-  const dow = new Date().getDay(); // 1..5 úteis; sáb/dom contam como semana completa
-  const uteisPassados = dow === 0 || dow === 6 ? 5 : dow, uteisRestantes = Math.max(1, 5 - uteisPassados + 1);
-  const pend = pendencias.filter(p=>pendNoEscopo(p) && pendAberta(p));
-  const pendVelhas = pend.filter(p=>diasDesde(p.ts) >= 2).length;
-  // furos obstruídos e onde se concentram
-  const anelsEscopo = aneis.filter(a=> !a.foraEstatisticas && (!configApp.projetoAtivo || a.projeto === configApp.projetoAtivo));
-  let obstTotal = 0, topo = { n: 0, rot: '' };
-  anelsEscopo.forEach(a=>{
-    const lq = checklistDoAnel(a.id);
-    lq.forEach(c=>{ const n = checklistFurosDoLeque(c.id).filter(f=>f.obstruido).length; obstTotal += n; if(n > topo.n) topo = { n, rot: a.nome.split('—')[0].trim() + ' · ' + PREFIXO[c.tipo] + c.numero }; });
-  });
-  // equipes
-  const cards = lista.map(e=>{
-    const mHoje = arred2(doEscopo.filter(l=>l.equipeId === e.id && l.data === hojeISO).reduce((s, l)=>s + l.metros, 0));
-    const mSem = arred2(doEscopo.filter(l=>l.equipeId === e.id && l.data >= iniISO && l.data <= hojeISO).reduce((s, l)=>s + l.metros, 0));
-    let ritmo = '', rit = 0;
-    if(e.metaSemanal){ const esperado = e.metaSemanal * uteisPassados / 5; rit = mSem >= esperado * 0.9 ? 1 : -1; ritmo = rit > 0 ? '<span class="ck ok">no ritmo</span>' : '<span class="ck am">abaixo do ritmo</span>'; }
-    const nivel = rit < 0 ? 'w' : '';
-    return { e, mHoje, mSem, ritmo, rit, nivel: !e.metaSemanal ? '' : (rit < 0 && mHoje === 0 ? 'r' : nivel) };
-  });
-  // alertas
-  const alertas = [];
-  anelsEscopo.forEach(a=>{
-    const d = dadosPainelRealce(a); if(!d.total || d.completos === d.total || !d.andamento.length) return;
-    const ult = Math.max(...d.andamento.map(i=>i.ultima || 0)); if(!ult) return;
-    const dias = Math.floor((Date.now() - ult) / 86400000);
-    if(dias >= 3) alertas.push({ ic:'⚠', t: `${a.nome} sem avanço há ${dias} dias`, s: `${d.completos}/${d.total} leques completos${d.obstruidos ? ' · ' + d.obstruidos + ' furo(s) obstruído(s)' : ''}` });
-  });
-  cards.forEach(c=>{ if(c.rit < 0){ const nec = (c.e.metaSemanal - c.mSem) / uteisRestantes, faz = uteisPassados ? c.mSem / uteisPassados : 0; alertas.push({ ic:'📉', t: `${c.e.nome} abaixo do ritmo da meta`, s: `precisa de ${fmt(Math.max(0, nec))} m/dia, faz ${fmt(faz)}` }); } });
-  const vencidas = pend.filter(pendVencida).length, semDono = pend.filter(p=>!p.responsavel).length;
-  if(vencidas) alertas.push({ ic:'⏰', t: `${vencidas} pendência(s) com prazo vencido`, s: 'veja em Pendências' });
-  if(semDono) alertas.push({ ic:'👤', t: `${semDono} pendência(s) sem responsável`, s: 'defina o dono em Pendências' });
-  // mês
-  let mesHtml = '';
-  try{
-    const mes = typeof calcularMesSemana === 'function' ? calcularMesSemana(ini, lista, efet) : null;
-    if(mes && (mes.meta || mes.acum)){
-      const base = Math.max(1, mes.meta || 0, mes.proj || 0);
-      mesHtml = `<div class="sec-gp">MÊS · PROJEÇÃO</div><div style="font-size:13px;color:var(--muted)"><b style="color:var(--text)">${fmt(mes.acum)} m</b>${mes.meta ? ' de ' + fmt(mes.meta) + ' m' : ''} · projeção ${fmt(mes.proj)} m</div><div class="gp-bar"><i style="width:${Math.min(100, mes.acum / base * 100).toFixed(1)}%"></i></div>`;
-    }
-  }catch(e){}
-  return `<section class="hoje-mina" aria-label="Hoje na mina">
-    <h3 class="hm-tit">Hoje na mina · ${DIAS_CURTOS_GP[new Date().getDay()]} ${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth() + 1).padStart(2, '0')}</h3>
-    <div class="gp-kpis">
-      <div class="gp-k"><small>METROS HOJE</small><b>${fmt(hojeM)} m</b><span>${metaDia ? 'meta do dia ' + fmt(metaDia) + ' m · ' + Math.round(hojeM / metaDia * 100) + '%' : 'sem meta semanal definida'}</span></div>
-      <div class="gp-k"><small>PONTOS TOPO</small><b>${hojeP}</b><span>${diasProd ? 'média da semana: ' + fmt(semP / diasProd) : 'sem lançamentos na semana'}</span></div>
-      <button type="button" class="gp-k ${pend.length ? 'al' : ''}" onclick="mostrarView('pendencias')"><small>PENDÊNCIAS ABERTAS</small><b>${pend.length}</b><span>${pendVelhas ? pendVelhas + ' há mais de 2 dias' : 'toque para abrir'}</span></button>
-      <div class="gp-k ${obstTotal ? 'rd' : ''}"><small>FUROS OBSTRUÍDOS</small><b>${obstTotal}</b><span>${topo.n > 1 ? e2(topo.rot) + ' · ' + topo.n + ' no mesmo leque' : (obstTotal ? 'espalhados' : 'nenhum')}</span></div>
-    </div>
-    ${cards.length ? `<div class="sec-gp">EQUIPES · HOJE</div>${cards.map(c=>`<div class="gp-eq ${c.nivel}"><div class="gp-eq-t"><span>${e2(c.e.nome)}</span><span>${c.mHoje ? fmt(c.mHoje) + ' m' : '—'}</span></div><div class="gp-eq-s">${c.ritmo}</div></div>`).join('')}` : ''}
-    ${alertas.length ? `<div class="sec-gp">ALERTAS</div>${alertas.map(a=>`<div class="gp-al"><span class="ic">${a.ic}</span><div><b>${e2(a.t)}</b><small>${e2(a.s)}</small></div></div>`).join('')}` : ''}
-    ${mesHtml}
-  </section>`;
-}
-const DIAS_CURTOS_GP = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-(function(){
-  const orig = renderPainelGestor;
-  renderPainelGestor = function(){
-    const r = orig.apply(this, arguments);
-    try{ const body = document.getElementById('painel-body'); if(body) body.insertAdjacentHTML('afterbegin', htmlHojeNaMina()); }catch(e){ console.error(e); }
-    return r;
-  };
 })();

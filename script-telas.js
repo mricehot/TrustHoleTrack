@@ -272,8 +272,8 @@ el('btn-baixar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados), { baixar:true });
 });
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
-const VIEWS_SECUNDARIAS = ['infografico','pendencias','painel','historico','config','tecnico'];
-const ORDEM_VIEWS = ['aneis','perfilagem','notas','checklist','infografico','pendencias','painel','historico','config','tecnico'];
+const VIEWS_SECUNDARIAS = ['infografico','pendencias','historico','config','tecnico'];
+const ORDEM_VIEWS = ['aneis','perfilagem','notas','checklist','infografico','pendencias','historico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;
@@ -291,7 +291,6 @@ function mostrarView(viewId){
   // que a aba é aberta de verdade.
   if(viewId === 'infografico') renderInfografico();
   if(viewId === 'perfilagem' && typeof puxarDoChecklist === 'function') setTimeout(()=>puxarDoChecklist(true), 200);
-  if(viewId === 'painel' && typeof renderPainelGestor === 'function') renderPainelGestor();
   if(viewId === 'tecnico' && typeof atualizarAvatarEMeuDia === 'function') atualizarAvatarEMeuDia();
   atualizarWakeLock();
   if(viewAnterior && viewAnterior !== viewId){
