@@ -3016,3 +3016,6 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .env-mes-topo{ display:flex; align-items:center; gap:6px; padding-right:8px; }
 .env-mes-topo .env-mes-cab{ flex:1; min-width:0; width:auto; }
 .env-exp{ flex:none; min-height:44px; padding:0 12px; border:1px solid var(--steel); background:var(--surface); color:var(--steel); border-radius:10px; font-weight:700; font-size:13px; text-transform:none; letter-spacing:0; cursor:pointer; white-space:nowrap; }
+.env-mes-topo{ padding:8px 12px 8px 0; gap:10px; }
+.env-mes-topo .env-mes-cab{ min-height:44px; padding-top:0; padding-bottom:0; }
+.env-exp{ min-height:44px; padding:0 16px; margin:0; }
