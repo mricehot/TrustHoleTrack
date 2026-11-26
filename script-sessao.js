@@ -860,7 +860,7 @@ function sugerirLocalChecklist(){
 // Não é gravado: ao reabrir o app volta ao normal.
 let modoLeitura = false;
 const FUNCOES_BLOQUEADAS_LEITURA = [
-  'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'toggleChecklistLeque',
+  'toggleChecklistFuro', 'toggleChecklistFuroTopografado', 'definirObstrucaoChecklistFuro', 'definirMotivoObstrucao', 'toggleChecklistLeque', 'alternarLiberarLeque', 'liberarLequeTratamento',
   'aplicarFaixa', 'abrirMarcarFaixa', 'aplicarLoteChecklist', 'alternarModoSelecaoChecklist', 'editarObservacaoFuro', 'editarObservacaoChecklistLeque', 'removerObservacaoChecklistLeque',
   'editarLocalizacaoChecklistLeque', 'tirarFotoFuro', 'adicionarFurosAoChecklist', 'adicionarAoChecklist', 'removerChecklistFuro', 'removerChecklistLeque',
   'definirEquipeFuro', 'definirEquipeLeque', 'editarFuro', 'abrirPreencherMetragens', 'toggleRefazerFuro', 'ciclarSituacaoFuro', 'removerFuro', 'editarLeque', 'puxarDoChecklist', 'salvarMetragemInline', 'marcarProximoPendente', 'abrirMenuFuro'

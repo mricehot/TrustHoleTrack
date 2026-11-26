@@ -171,7 +171,9 @@ function htmlCardChecklist(c, agrupado){
   const est = detonado ? 'det' : estadoDoLeque(furos);
   const caixa = checklistModoSelecao
     ? `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" class="ck-sel" ${sel ? 'checked' : ''} onchange="alternarSelecaoLeque('${c.id}')" aria-label="selecionar ${codigo}"></label>`
-    : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} ${furos.length ? 'disabled' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="${furos.length ? codigo + ' perfilado (automático)' : 'marcar ' + codigo + ' como perfilado'}" title="${furos.length ? 'automático: marca sozinho quando todos os furos estão perfilados' : 'marcar leque como perfilado'}"></label>`;
+    : (furos.length
+      ? `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado || c.liberado ? 'checked' : ''} onchange="alternarLiberarLeque('${c.id}')" aria-label="${codigo}: liberar para tratar" title="${c.tratado ? 'leque já tratado' : c.perfilado ? 'leque completo: já aparece em Prontos para tratar' : c.liberado ? 'liberado: aparece em Prontos para tratar (desmarque para tirar)' : 'marque para liberar este leque em Prontos para tratar, mesmo sem marcar todos os furos'}"></label>`
+      : `<label class="ck-check" onclick="event.stopPropagation()"><input type="checkbox" ${c.perfilado ? 'checked' : ''} onchange="toggleChecklistLeque('${c.id}')" aria-label="marcar ${codigo} como perfilado" title="marcar leque como perfilado"></label>`);
   const azs = furos.filter(furoTemAzimute).length;
   const progresso = furos.length ? `
       <div class="ck-progresso">
@@ -1235,6 +1237,13 @@ function podeDesmarcarFuro(f, tipo){
   if(tipo === 'perf') return podeDesmarcar(f.perfiladoPor, equipePerfEfetivaId(f));
   if(tipo === 'topo') return podeDesmarcar(f.topografadoPor, equipeTopoEfetivaId(f));
   return podeDesmarcar(f.obstruidoPor, equipeObsEfetivaId(f));
+}
+// Caixa geral do leque (quando ele tem furos): marcar libera o leque em "Prontos para tratar", sem precisar marcar os furos.
+function alternarLiberarLeque(id){
+  const c = checklistLeques.find(x=>x.id===id); if(!c) return;
+  if(c.tratado){ showToast('Esse leque já foi tratado.', { tipo:'aviso' }); renderChecklist(); return; }
+  if(c.perfilado){ showToast('Leque completo: já aparece em Prontos para tratar.', { tipo:'aviso' }); renderChecklist(); return; }
+  liberarLequeTratamento(id, !c.liberado);
 }
 function toggleChecklistLeque(id){
   const c = checklistLeques.find(x=>x.id===id);
