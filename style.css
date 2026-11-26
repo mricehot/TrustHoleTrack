@@ -3067,3 +3067,19 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
   .checklist-grid .ck-lista{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; align-items:start; }
 }
 @media (min-width:1500px){ .checklist-grid .ck-lista{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+/* Infográfico (tela, computador): três colunas — perfilados | topografados | azimutados.
+   Posições por ordem dos filhos de .config-body; a imagem exportada usa windowWidth 900, então não é afetada. */
+@media (min-width:1100px){
+  #view-infografico .config-body{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); grid-auto-flow:dense; column-gap:24px; align-items:start; }
+  #view-infografico .config-body > *{ grid-column:1 / -1; margin-top:0 !important; }
+  #view-infografico .config-body > :nth-child(3), #view-infografico .config-body > :nth-child(4), #view-infografico .config-body > :nth-child(9), #view-infografico .config-body > :nth-child(10){ grid-column:1; }
+  #view-infografico .config-body > :nth-child(5), #view-infografico .config-body > :nth-child(6), #view-infografico .config-body > :nth-child(11), #view-infografico .config-body > :nth-child(12){ grid-column:2; }
+  #view-infografico .config-body > :nth-child(7), #view-infografico .config-body > :nth-child(8), #view-infografico .config-body > :nth-child(13), #view-infografico .config-body > :nth-child(14){ grid-column:3; }
+  #view-infografico .infografico-kpis{ grid-template-columns:1fr 1fr; }
+  #view-infografico .card-titulo{ margin-top:12px !important; }
+  #view-infografico .infografico-percentuais{ margin-top:24px !important; }
+  /* Configurações: comunicados e ajustes lado a lado */
+  #view-config.active{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 20px; align-items:start; }
+  #view-config > .view-card{ margin:0 0 16px; }
+}
+@media (min-width:1450px){ #anel-list{ grid-template-columns:repeat(3, minmax(0,1fr)) !important; } }
