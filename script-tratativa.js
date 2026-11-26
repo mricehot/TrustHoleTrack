@@ -70,6 +70,7 @@ function renderTratativa(){
       return `<button type="button" class="trat-chip ${cl}" onclick="abrirRealceNoChecklist('${a.id}','${e.c.id}')" title="${e.tratado ? 'tratado' : e.pronto ? 'pronto para tratar' : 'ver no checklist'}">${escHtml(cod)}${e.tratado ? ' ✓' : ''}</button>`; }).join('');
     const listaProntos = prontos.length ? `<div class="trat-prontos"><div class="trat-prontos-t"><b>Prontos para tratar (${prontos.length})</b><button type="button" class="ghost" onclick="marcarProntosTratados('${a.id}')">Marcar todos</button></div>${prontos.map(e=>`<div class="trat-pronto"><button type="button" class="trat-cod" onclick="abrirRealceNoChecklist('${a.id}','${e.c.id}')">${escHtml(codigoLequeCk(e.c))}</button><span>${e.uteis} furos<small class="${e.az ? 'az-ok' : 'az-falta'}">azimute ${e.uteis - e.semAz}/${e.uteis}</small></span><button type="button" class="steel" onclick="marcarLequeTratado('${e.c.id}')">Tratado</button></div>`).join('')}</div>` : '';
     return `<section class="trat-card"><header><div><b>${escHtml(a.nome)}</b><small>${escHtml(a.nivel || '')}${a.nivel && a.orientacao ? ' · ' : ''}${a.orientacao === 'ascendente' ? '↑ Ascendente' : a.orientacao === 'descendente' ? '↓ Descendente' : ''}</small></div><button type="button" class="ghost" onclick="abrirRealceNoChecklist('${a.id}')">Checklist ›</button></header>
+      <label class="trat-arq ${a.arquivosOk ? 'ok' : ''}"><input type="checkbox" ${a.arquivosOk ? 'checked' : ''} onchange="alternarArquivosRealce('${a.id}', this.checked)"><span><b>${a.arquivosOk ? '✓ Arquivos do realce recebidos' : 'Arquivos do realce ainda não recebidos'}</b>${a.arquivosOk && a.arquivosOkEm ? `<small>${new Date(a.arquivosOkEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })}${a.arquivosOkPor ? ' · ' + escHtml(a.arquivosOkPor) : ''}</small>` : '<small>marque quando tiver os arquivos</small>'}</span></label>
       ${n ? `<div class="trat-linhas">${linhas}</div>${listaProntos}${listaTratados}<div class="trat-leques-t">Todos os leques</div><div class="trat-chips" role="group" aria-label="Leques do realce">${chips}</div><div class="trat-leg"><span><i class="l-nada"></i>pendente</span><span><i class="l-parcial"></i>em andamento</span><span><i class="l-pronto"></i>pronto p/ tratar</span><span><i class="l-tratado"></i>tratado</span></div>` : '<div class="hint">Sem leques neste realce ainda.</div>'}</section>`;
   }).join('');
   root.innerHTML = `<div class="trat-topo"><h2>Tratativa dos dados</h2><button type="button" class="ghost trat-export" onclick="abrirExportarTratativa()" title="PDF ou planilha com os leques tratados: metros e data">⬇ Exportar relatório</button>${prontosTot ? `<span class="trat-badge">${prontosTot} ${prontosTot === 1 ? 'leque pronto' : 'leques prontos'} para tratar</span>` : '<span class="trat-badge nada">nada pronto agora</span>'}</div>
@@ -102,3 +103,11 @@ aoRenderizarChecklist(atualizarContadorAbaTratamento);
   if(typeof orig !== 'function') return;
   window.mostrarView = function(v){ const r = orig.apply(this, arguments); if(v === 'perfilagem'){ try{ renderTratativa(); }catch(e){} } return r; };
 })();
+
+function alternarArquivosRealce(id, valor){
+  const a = aneis.find(x=>x.id === id); if(!a) return;
+  a.arquivosOk = !!valor; a.arquivosOkEm = valor ? new Date().toISOString() : null; a.arquivosOkPor = valor ? nomeDoUsuario() : '';
+  enfileirar('aneis', 'update', { id: a.id, arquivos_ok: a.arquivosOk, arquivos_ok_em: a.arquivosOkEm, arquivos_ok_por: valor ? a.arquivosOkPor : null });
+  salvarLocal(); renderAll();
+  showToast(valor ? `Arquivos de "${a.nome}" marcados como recebidos.` : `Arquivos de "${a.nome}" voltaram para não recebidos.`, { tipo:'ok' });
+}

@@ -2962,3 +2962,9 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .rel-atalhos{ display:flex; gap:8px; margin:8px 0 4px; }
 .rel-atalhos button{ min-height:40px; text-transform:none; }
 .modal-actions button{ text-transform:none; }
+.trat-arq{ display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 12px; margin:0 0 10px; border:1px dashed var(--line); border-radius:12px; cursor:pointer; text-transform:none; letter-spacing:0; }
+.trat-arq input{ width:26px; height:26px; flex:none; }
+.trat-arq b{ display:block; font-size:.95rem; }
+.trat-arq small{ color:var(--muted); font-weight:600; }
+.trat-arq.ok{ border-style:solid; border-color:var(--est-ok); background:rgba(46,155,87,.08); }
+.trat-arq:not(.ok) b{ color:#b4570a; }
