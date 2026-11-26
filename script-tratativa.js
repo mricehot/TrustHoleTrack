@@ -95,3 +95,10 @@ function atualizarContadorAbaTratamento(){
 }
 aoRenderizarTudo(atualizarContadorAbaTratamento);
 aoRenderizarChecklist(atualizarContadorAbaTratamento);
+
+// Ao abrir a aba Tratamento, desenha na hora (sem depender de um renderAll anterior).
+(function(){
+  const orig = window.mostrarView;
+  if(typeof orig !== 'function') return;
+  window.mostrarView = function(v){ const r = orig.apply(this, arguments); if(v === 'perfilagem'){ try{ renderTratativa(); }catch(e){} } return r; };
+})();
