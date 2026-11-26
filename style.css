@@ -3125,3 +3125,14 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .home-pronto{ color:#b23511; font-family:var(--sans); font-weight:700; } .home-sem-arq{ color:#b23511; font-weight:700; }
 @media (min-width:900px){ .home-grade{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
 @media (max-width:640px){ .home-card{ padding:12px 10px; } .home-card th, .home-card td{ padding:6px 4px; font-size:12.5px; } .home-realces th:first-child{ min-width:0; } }
+@media (min-width:1100px){
+  /* Prontos para tratar: seção própria, em destaque (laranja), acima dos demais leques */
+  .trat-prontos-d{ border:2px solid #e8441a; border-radius:14px; background:color-mix(in srgb, #e8441a 7%, var(--surface)); padding:10px 12px 12px; margin-bottom:16px; }
+  .trat-prontos-d-topo{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+  .trat-prontos-d-topo h4{ margin:0; font-size:1rem; color:#b23511; } .trat-prontos-d-topo h4 b{ background:#e8441a; color:#fff; border-radius:999px; padding:1px 9px; margin-left:6px; font-size:.85rem; }
+  .trat-prontos-d .trat-tabela-rolagem{ border-color:color-mix(in srgb, #e8441a 35%, var(--line)); max-height:none; }
+  .trat-prontos-d th span{ display:block; padding:6px 12px; font-size:12px; font-weight:700; color:#b23511; text-transform:uppercase; letter-spacing:.04em; }
+  .trat-prontos-d th.num span{ text-align:right; }
+  .trat-prontos-d th{ background:color-mix(in srgb, #e8441a 10%, var(--surface)); }
+  .trat-filtros-t{ font-weight:700; color:var(--muted); margin-right:4px; font-size:13px; }
+}
