@@ -384,6 +384,8 @@ function calcularEstatisticasInfografico(){
   const porDiaEq = {}; // chaveDia -> { equipeId: metros } (para o gráfico empilhado por equipe)
   const porDiaPerf = {}; // chaveDia -> furos perfilados no checklist
   const porDiaTopo = {}; // chaveDia -> contagem de furos topografados (não metros)
+  const porDiaAz = {}; // chaveDia -> furos azimutados
+  let perfHoje=0, perfSemana=0, perfSemanaAnt=0, perfMes=0, azHoje=0, azSemana=0, azSemanaAnt=0, azMes=0;
 
   const iniSemanaISO = dataISOLocal(inicioSemana), iniMesISO = dataISOLocal(inicioMes);
   const inicioSemanaAnt = new Date(inicioSemana); inicioSemanaAnt.setDate(inicioSemanaAnt.getDate() - 7);
@@ -404,7 +406,10 @@ function calcularEstatisticasInfografico(){
   // visto de dois lados. Somar os dois contava cada furo duas vezes. Por dia vale o MAIOR dos dois.
   const topoChecklist = {}; // pontos topografados: só as marcações do checklist
   furos.forEach(f=>{
-    if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1; }
+    if(f.perfilado && f.perfiladoEm){ const cp = chaveDia(f.perfiladoEm); porDiaPerf[cp] = (porDiaPerf[cp] || 0) + 1;
+      if(cp === hojeChave) perfHoje++; if(cp >= iniSemanaISO) perfSemana++; else if(cp >= iniSemanaAntISO) perfSemanaAnt++; if(cp >= iniMesISO) perfMes++; }
+    if(typeof furoTemAzimute === 'function' && furoTemAzimute(f) && f.azimuteEm){ const ca = chaveDia(f.azimuteEm); porDiaAz[ca] = (porDiaAz[ca] || 0) + 1;
+      if(ca === hojeChave) azHoje++; if(ca >= iniSemanaISO) azSemana++; else if(ca >= iniSemanaAntISO) azSemanaAnt++; if(ca >= iniMesISO) azMes++; }
     // Só conta o furo que continua topografado (marcação desfeita não entra).
     if(f.topografado && f.topografadoEm){ const ct = chaveDia(f.topografadoEm); topoChecklist[ct] = (topoChecklist[ct] || 0) + 1; }
   });
@@ -423,7 +428,7 @@ function calcularEstatisticasInfografico(){
     const d = new Date(agora);
     d.setDate(d.getDate() - i);
     const chave = chaveDia(d);
-    const dadosDia = { metros: porDia[chave] || 0, furosTopo: porDiaTopo[chave] || 0, furosPerf: porDiaPerf[chave] || 0, porEq: porDiaEq[chave] || {} };
+    const dadosDia = { metros: porDia[chave] || 0, furosTopo: porDiaTopo[chave] || 0, furosPerf: porDiaPerf[chave] || 0, furosAz: porDiaAz[chave] || 0, porEq: porDiaEq[chave] || {} };
     serieDiaria.push(Object.assign({
       dia: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'),
       // Domingo é sempre folga (faixa listrada). Se mesmo assim houver produção, o ponto aparece por cima da faixa.
@@ -435,10 +440,12 @@ function calcularEstatisticasInfografico(){
   const totalFuros = furos.length;
   const totalPerfilados = furos.filter(f=>f.perfilado).length;
   const totalTopografados = furos.filter(f=>f.topografado).length;
+  const totalAzimutados = furos.filter(f=>typeof furoTemAzimute === 'function' && furoTemAzimute(f)).length;
 
   return {
     metrosHoje, metrosSemana, metrosMes, metrosSemanaAnt,
     furosTopoHoje, furosTopoSemana, furosTopoMes, furosTopoSemanaAnt,
+    perfHoje, perfSemana, perfSemanaAnt, perfMes, azHoje, azSemana, azSemanaAnt, azMes, totalAzimutados,
     serieDiaria, totalFuros, totalPerfilados, totalTopografados, geral: progressoGeralFuros(furos)
   };
 }
@@ -1029,14 +1036,14 @@ function abrirModalEquipes(){
 }
 
 function renderInfografico(){
-  const svg = el('infografico-chart-dia');
+  const svg = el('infografico-chart-perf-dia');
   if(!svg) return; // view ainda não foi montada na tela
 
   const tagEscopo = el('infografico-escopo-tag');
   if(tagEscopo) tagEscopo.textContent = configApp.projetoAtivo ? `projeto: ${configApp.projetoAtivo}` : 'todos os projetos';
 
   renderChipsProjetoInfo();
-  renderProdutividadeEquipes(); // já atualiza o resumo (KPIs e gráficos) no fim
+  renderInfograficoResumo();
 }
 
 // Troca rápida de projeto: um toque, sem ir até Config.
@@ -1067,18 +1074,15 @@ function definirPeriodoMetrosInfografico(n){
   renderInfograficoResumo();
 }
 function renderInfograficoResumo(){
-  if(!el('infografico-chart-dia')) return;
+  if(!el('infografico-chart-perf-dia')) return;
   const stats = calcularEstatisticasInfografico();
 
-  el('infografico-metros-hoje').innerHTML = `${fmt1(stats.metrosHoje)}<span class="unidade">m</span>`;
-  el('infografico-metros-semana').innerHTML = `${fmt1(stats.metrosSemana)}<span class="unidade">m</span>`;
-  el('infografico-metros-mes').innerHTML = `${fmt1(stats.metrosMes)}<span class="unidade">m</span>`;
-  // Topografia é contagem de furos, não metros — número inteiro, sem casa decimal.
-  el('infografico-topo-hoje').innerHTML = `${stats.furosTopoHoje}<span class="unidade">furos</span>`;
-  el('infografico-topo-semana').innerHTML = `${stats.furosTopoSemana}<span class="unidade">furos</span>`;
-  el('infografico-topo-mes').innerHTML = `${stats.furosTopoMes}<span class="unidade">furos</span>`;
-  el('infografico-metros-ant').innerHTML = `${fmt1(stats.metrosSemanaAnt)}<span class="unidade">m</span>`;
-  el('infografico-topo-ant').innerHTML = `${stats.furosTopoSemanaAnt}<span class="unidade">furos</span>`;
+  const setK = (g, hoje, sem, ant, mes)=>{ const u = '<span class="unidade">furos</span>';
+    el('infografico-'+g+'-hoje').innerHTML = hoje + u; el('infografico-'+g+'-semana').innerHTML = sem + u;
+    el('infografico-'+g+'-ant').innerHTML = ant + u; el('infografico-'+g+'-mes').innerHTML = mes + u; };
+  setK('perf', stats.perfHoje, stats.perfSemana, stats.perfSemanaAnt, stats.perfMes);
+  setK('topo', stats.furosTopoHoje, stats.furosTopoSemana, stats.furosTopoSemanaAnt, stats.furosTopoMes);
+  setK('az', stats.azHoje, stats.azSemana, stats.azSemanaAnt, stats.azMes);
   // Compara a semana atual (até agora) com a semana passada inteira.
   const setaVs = (idEl, atual, anterior)=>{
     const e = el(idEl); if(!e) return;
@@ -1089,7 +1093,8 @@ function renderInfograficoResumo(){
     e.className = 'kpi-vs ' + (pct > 0 ? 'subiu' : 'desceu');
     e.textContent = (pct > 0 ? '▲ +' : '▼ ') + pct + '% vs semana passada';
   };
-  setaVs('infografico-metros-semana-vs', stats.metrosSemana, stats.metrosSemanaAnt);
+  setaVs('infografico-perf-semana-vs', stats.perfSemana, stats.perfSemanaAnt);
+  setaVs('infografico-az-semana-vs', stats.azSemana, stats.azSemanaAnt);
   setaVs('infografico-topo-semana-vs', stats.furosTopoSemana, stats.furosTopoSemanaAnt);
 
   // Percentuais de perfilagem/topografia — mesma base do checklist.
@@ -1099,22 +1104,18 @@ function renderInfograficoResumo(){
   el('infografico-pct-perfilado-barra').style.width = pctPerfilado + '%';
   el('infografico-pct-topografado-texto').textContent = `${stats.totalTopografados}/${stats.totalFuros}`;
   el('infografico-pct-topografado-barra').style.width = pctTopografado + '%';
+  const pctAz = stats.totalFuros > 0 ? Math.round((stats.totalAzimutados/stats.totalFuros)*100) : 0;
+  el('infografico-pct-azimutado-texto').textContent = `${stats.totalAzimutados}/${stats.totalFuros}`;
+  el('infografico-pct-azimutado-barra').style.width = pctAz + '%';
   el('infografico-pct-geral-texto').textContent = `${stats.geral.texto} · ${stats.geral.pct}%`;
   el('infografico-pct-geral-barra').style.width = stats.geral.pct + '%';
 
   const vazio = el('infografico-vazio');
-  if(vazio) vazio.style.display = (stats.totalFuros === 0 && !stats.serieDiaria.some(d=>d.metros > 0)) ? 'block' : 'none';
+  if(vazio) vazio.style.display = (stats.totalFuros === 0) ? 'block' : 'none';
 
-  // Dois gráficos separados — metros e contagem de furos não dividem o
-  // mesmo eixo, senão um dos dois fica ilegível na escala do outro.
-  const metaSemanalTotal = equipesDoProjeto().reduce((t,e)=> t + (e.metaSemanal > 0 ? e.metaSemanal : 0), 0);
-  // Metros por dia: 1 semana (7 dias) ou 2 semanas (14 dias), escolha guardada neste aparelho.
-  const serieMetros = stats.serieDiaria.slice(-periodoMetrosInfografico());
-  document.querySelectorAll('#infografico-periodo-metros button').forEach(b=>{ const on = Number(b.dataset.dias) === serieMetros.length; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-  desenharGraficoAreaInfografico('infografico-chart-dia', 'infografico-eixo-x', serieMetros, 'metros', 'var(--amber)', metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
-  desenharBarrasEquipesInfografico(serieMetros, metaSemanalTotal > 0 ? metaSemanalTotal / 7 : 0);
   desenharGraficoAreaInfografico('infografico-chart-perf-dia', 'infografico-eixo-x-perf', stats.serieDiaria, 'furosPerf', 'var(--est-ok)');
   desenharGraficoAreaInfografico('infografico-chart-topo-dia', 'infografico-eixo-x-topo', stats.serieDiaria, 'furosTopo', 'var(--steel)');
+  desenharGraficoAreaInfografico('infografico-chart-az-dia', 'infografico-eixo-x-az', stats.serieDiaria, 'furosAz', 'var(--amber)');
 }
 
 

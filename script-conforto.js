@@ -121,9 +121,9 @@ function injetarBarrasFixas(){
 // Sutis e rápidos (≤ ~1s), no mesmo estilo do checklist: números contam, barras enchem, gráficos se desenham.
 // Só rodam quando o dado muda ou a tela é aberta de novo; respeitam "reduzir movimento".
 (function(){
-  const IDS_NUM = ['metros-hoje','metros-semana','metros-mes','metros-ant','topo-hoje','topo-semana','topo-mes','topo-ant'];
-  const BARRAS = ['perfilado','topografado'];
-  const GRAFS = ['infografico-chart-dia','infografico-chart-perf-dia','infografico-chart-topo-dia'];
+  const IDS_NUM = ['perf-hoje','perf-semana','perf-mes','perf-ant','topo-hoje','topo-semana','topo-mes','topo-ant','az-hoje','az-semana','az-mes','az-ant'];
+  const BARRAS = ['perfilado','topografado','azimutado'];
+  const GRAFS = ['infografico-chart-az-dia','infografico-chart-perf-dia','infografico-chart-topo-dia'];
   const ult = {}; // última assinatura animada por elemento
   window.__infoReset = ()=>{ for(const k in ult) delete ult[k]; };
 

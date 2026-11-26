@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l136">
+<link rel="stylesheet" href="style.css?v=l137">
 
 </head>
 <body>
@@ -569,98 +569,40 @@
             <span class="view-card-label">Infográfico</span>
             <span class="tag" id="infografico-escopo-tag">todos os projetos</span>
             <span class="spacer"></span>
-            <button type="button" id="btn-resumo-semanal" class="steel" title="resumo da semana com todas as equipes: imagem e mensagem de WhatsApp">Resumo semanal</button>
-            <button type="button" id="btn-relatorio-mensal" class="steel" title="relatório do mês com totais, semanas, equipes e realces: imagem e mensagem de WhatsApp">Relatório mensal</button>
             <button type="button" id="btn-baixar-imagem-infografico" class="steel" title="baixa o infográfico como imagem PNG"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar imagem</button>
             <button type="button" id="btn-enviar-foto-infografico-whatsapp" class="ghost" title="manda uma foto deste infográfico pelo WhatsApp"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Enviar foto no WhatsApp</button>
           </div>
           <div class="config-body">
             <div class="chip-group info-projetos" id="info-projetos" role="group" aria-label="Projeto"></div>
-            <div class="infografico-grupo-label titulo-ajuda" style="margin-top:4px;">Perfilagem <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Metros: lançados por equipe em "Produtividade semanal". Topografia e percentuais: marcações do checklist. As setas ▲▼ comparam a semana atual com a semana passada inteira.</div></details></div>
+            <div class="hint" style="margin:0 0 4px;">Contagem de furos marcados no checklist. As setas ▲▼ comparam a semana atual com a semana passada inteira.</div>
+            <div class="infografico-grupo-label" style="margin-top:4px;">Furos perfilados</div>
             <div class="infografico-kpis">
-              <div class="infografico-kpi">
-                <div class="label">Hoje</div>
-                <div class="valor" id="infografico-metros-hoje">0<span class="unidade">m</span></div>
-              </div>
-              <div class="infografico-kpi">
-                <div class="label">Esta semana</div>
-                <div class="valor" id="infografico-metros-semana">0<span class="unidade">m</span></div>
-                <div class="kpi-vs" id="infografico-metros-semana-vs"></div>
-              </div>
-              <div class="infografico-kpi">
-                <div class="label">Semana passada</div>
-                <div class="valor" id="infografico-metros-ant">0<span class="unidade">m</span></div>
-              </div>
-              <div class="infografico-kpi">
-                <div class="label">Este mês</div>
-                <div class="valor" id="infografico-metros-mes">0<span class="unidade">m</span></div>
-              </div>
+              <div class="infografico-kpi infografico-kpi-perf"><div class="label">Hoje</div><div class="valor" id="infografico-perf-hoje">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-perf"><div class="label">Esta semana</div><div class="valor" id="infografico-perf-semana">0<span class="unidade">furos</span></div><div class="kpi-vs" id="infografico-perf-semana-vs"></div></div>
+              <div class="infografico-kpi infografico-kpi-perf"><div class="label">Semana passada</div><div class="valor" id="infografico-perf-ant">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-perf"><div class="label">Este mês</div><div class="valor" id="infografico-perf-mes">0<span class="unidade">furos</span></div></div>
             </div>
-
-            <div class="infografico-grupo-label" style="margin-top:16px;">Topografia</div>
+            <div class="infografico-grupo-label" style="margin-top:16px;">Furos topografados</div>
             <div class="infografico-kpis">
-              <div class="infografico-kpi infografico-kpi-steel">
-                <div class="label">Hoje</div>
-                <div class="valor" id="infografico-topo-hoje">0<span class="unidade">furos</span></div>
-              </div>
-              <div class="infografico-kpi infografico-kpi-steel">
-                <div class="label">Esta semana</div>
-                <div class="valor" id="infografico-topo-semana">0<span class="unidade">furos</span></div>
-                <div class="kpi-vs" id="infografico-topo-semana-vs"></div>
-              </div>
-              <div class="infografico-kpi infografico-kpi-steel">
-                <div class="label">Semana passada</div>
-                <div class="valor" id="infografico-topo-ant">0<span class="unidade">furos</span></div>
-              </div>
-              <div class="infografico-kpi infografico-kpi-steel">
-                <div class="label">Este mês</div>
-                <div class="valor" id="infografico-topo-mes">0<span class="unidade">furos</span></div>
-              </div>
+              <div class="infografico-kpi infografico-kpi-steel"><div class="label">Hoje</div><div class="valor" id="infografico-topo-hoje">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-steel"><div class="label">Esta semana</div><div class="valor" id="infografico-topo-semana">0<span class="unidade">furos</span></div><div class="kpi-vs" id="infografico-topo-semana-vs"></div></div>
+              <div class="infografico-kpi infografico-kpi-steel"><div class="label">Semana passada</div><div class="valor" id="infografico-topo-ant">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-steel"><div class="label">Este mês</div><div class="valor" id="infografico-topo-mes">0<span class="unidade">furos</span></div></div>
+            </div>
+            <div class="infografico-grupo-label" style="margin-top:16px;">Furos azimutados</div>
+            <div class="infografico-kpis">
+              <div class="infografico-kpi infografico-kpi-az"><div class="label">Hoje</div><div class="valor" id="infografico-az-hoje">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-az"><div class="label">Esta semana</div><div class="valor" id="infografico-az-semana">0<span class="unidade">furos</span></div><div class="kpi-vs" id="infografico-az-semana-vs"></div></div>
+              <div class="infografico-kpi infografico-kpi-az"><div class="label">Semana passada</div><div class="valor" id="infografico-az-ant">0<span class="unidade">furos</span></div></div>
+              <div class="infografico-kpi infografico-kpi-az"><div class="label">Este mês</div><div class="valor" id="infografico-az-mes">0<span class="unidade">furos</span></div></div>
             </div>
 
-            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Produtividade semanal por equipe <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Cada projeto tem as suas equipes. Lançamento manual: digite quanto fez no turno no campo "+" e toque em ＋ (ou digite o total da semana, de segunda a domingo). Os metros entram no gráfico diário na hora. Defina a meta semanal em "Gerenciar equipes" para ver realizado × meta.</div></details></div>
-            <div class="equipe-cabecalho">
-              <span class="tag" id="infografico-equipes-escopo">Geral</span>
-              <button type="button" class="ghost so-gestor" onclick="abrirModalEquipes()">Gerenciar equipes</button>
-            </div>
-            
-            <div class="equipe-semana-nav">
-              <button type="button" class="ghost" id="infografico-semana-ant" aria-label="semana anterior">◀</button>
-              <span id="infografico-semana-label">Esta semana</span>
-              <button type="button" class="ghost" id="infografico-semana-prox" aria-label="próxima semana">▶</button>
-            </div>
-            <div class="equipe-dia-lanc"><label for="infografico-dia-lanc">Lançar no dia</label><select id="infografico-dia-lanc" aria-label="Dia em que os próximos lançamentos de produtividade serão gravados" onchange="infoDiaLancamento=this.value;renderProdutividadeEquipes()"></select></div>
-            <div class="equipe-lista" id="infografico-equipes"></div>
-            <div class="equipe-total" id="infografico-equipes-total"></div>
-
-            <div class="card-titulo titulo-ajuda" style="margin-top:26px;">Produtividade mensal por equipe <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Soma de todos os lançamentos do mês (cada um conta no dia em que foi feito).</div></details></div>
-            
-            <div class="equipe-semana-nav">
-              <button type="button" class="ghost" id="infografico-mes-ant" aria-label="mês anterior">◀</button>
-              <span id="infografico-mes-label">Mês atual</span>
-              <button type="button" class="ghost" id="infografico-mes-prox" aria-label="próximo mês">▶</button>
-            </div>
-            <div class="equipe-lista" id="infografico-equipes-mes"></div>
-            <div class="equipe-total" id="infografico-equipes-mes-total"></div>
-
-            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Metros perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 7 dias (1 semana) ou 14 dias (2 semanas), à sua escolha — soma dos metros lançados pelas equipes. Cada lançamento entra no dia em que foi feito.</div></details></div>
-            <div class="seg-periodo" id="infografico-periodo-metros" role="group" aria-label="período do gráfico de metros"><button type="button" data-dias="7" onclick="definirPeriodoMetrosInfografico(7)">1 semana</button><button type="button" data-dias="14" onclick="definirPeriodoMetrosInfografico(14)">2 semanas</button></div>
-            <div class="info-grafico">
-            
-            <div id="infografico-barras-eq" class="infografico-barras-eq" style="display:none;"></div>
-            <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x"></div></div>
-
-            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Furos perfilados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — quantos furos foram marcados como perfilados no checklist em cada dia. Sobe a cada marcação, sem precisar lançar metros.</div></details></div>
-            <div class="info-grafico">
-            <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-perf-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x-perf"></div></div>
-
-            <div class="card-titulo titulo-ajuda" style="margin-top:22px;">Furos topografados por dia <details class="ajuda"><summary aria-label="ajuda">?</summary><div class="hint">Últimos 14 dias — quantos furos foram topografados a cada dia (contagem, não metros). Se a equipe lançou os pontos do dia e o checklist também foi marcado, vale o maior dos dois, sem contar o mesmo furo duas vezes.</div></details></div>
-            <div class="info-grafico">
-            
-            <svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-topo-dia"></svg>
-            <div class="chart-eixo-x" id="infografico-eixo-x-topo"></div></div>
+            <div class="card-titulo" style="margin-top:22px;">Furos perfilados por dia</div>
+            <div class="info-grafico"><svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-perf-dia"></svg><div class="chart-eixo-x" id="infografico-eixo-x-perf"></div></div>
+            <div class="card-titulo" style="margin-top:22px;">Furos topografados por dia</div>
+            <div class="info-grafico"><svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-topo-dia"></svg><div class="chart-eixo-x" id="infografico-eixo-x-topo"></div></div>
+            <div class="card-titulo" style="margin-top:22px;">Furos azimutados por dia</div>
+            <div class="info-grafico"><svg class="infografico-chart" viewBox="0 0 900 200" preserveAspectRatio="none" id="infografico-chart-az-dia"></svg><div class="chart-eixo-x" id="infografico-eixo-x-az"></div></div>
 
             <div class="infografico-percentuais">
               <div>
@@ -670,6 +612,10 @@
               <div>
                 <div class="progresso-item-topo"><span>Furos topografados (checklist)</span><b id="infografico-pct-topografado-texto">0/0</b></div>
                 <div class="progress-track"><div class="progress-fill fill-steel" id="infografico-pct-topografado-barra" style="width:0%;"></div></div>
+              </div>
+              <div>
+                <div class="progresso-item-topo"><span>Furos azimutados (checklist)</span><b id="infografico-pct-azimutado-texto">0/0</b></div>
+                <div class="progress-track"><div class="progress-fill fill-az" id="infografico-pct-azimutado-barra" style="width:0%;"></div></div>
               </div>
               <div class="info-geral" title="obstruído ou detonado = 1 · perfilado + topografado = 1 · só um dos dois = 0,5">
                 <div class="progresso-item-topo"><span>Progresso geral (obstruídos e detonados contam)</span><b id="infografico-pct-geral-texto">0/0</b></div>
@@ -702,16 +648,16 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js?v=l85"></script>
-<script src="script-leques.js?v=l95"></script>
-<script src="script-checklist.js?v=l120"></script>
+<script src="script-leques.js?v=l96"></script>
+<script src="script-checklist.js?v=l121"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l90"></script>
 <script src="script-config.js?v=3"></script>
-<script src="script-telas.js?v=l95"></script>
+<script src="script-telas.js?v=l96"></script>
 <script src="script-sessao.js?v=l99"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v=l2"></script>
-<script src="script-conforto.js?v=l84"></script>
+<script src="script-conforto.js?v=l84x"></script>
 <script src="script-tratativa.js?v=5"></script>
 <script src="script-envios.js?v=2"></script>
 <script src="script-notas.js?v=2"></script>

@@ -2920,3 +2920,6 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 /* Infográfico: troca rápida de projeto */
 .info-projetos{ margin:0 0 12px; }
 .info-projetos .info-chip{ width:auto; padding:10px 16px; min-height:44px; font-family:inherit; font-size:14px; }
+.progress-fill.fill-az{ background:var(--amber); }
+.infografico-kpi-az .valor{ color:var(--amber); }
+.infografico-kpi-perf .valor{ color:var(--est-ok); }

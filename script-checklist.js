@@ -378,7 +378,7 @@ function desfazerLoteChecklist(snapLeques, snapFuros){
     if(!f) return;
     f.perfilado = s.perfilado; f.perfiladoEm = s.perfiladoEm; f.topografado = s.topografado; f.topografadoEm = s.topografadoEm;
     const reg = { id:f.id, perfilado:f.perfilado, perfilado_em:f.perfiladoEm, topografado:f.topografado, topografado_em:f.topografadoEm };
-    if('azimuteOk' in s){ f.azimuteOk = !!s.azimuteOk; reg.azimute_ok = f.azimuteOk; }
+    if('azimuteOk' in s){ f.azimuteOk = !!s.azimuteOk; reg.azimute_ok = f.azimuteOk; if(f.azimuteOk && !f.azimuteEm) f.azimuteEm = new Date().toISOString(); if(!f.azimuteOk) f.azimuteEm = null; reg.azimute_em = f.azimuteEm || null; }
     enfileirar('checklist_furos', 'update', reg);
   });
   salvarChecklistLocal();
@@ -1924,7 +1924,7 @@ function aplicarFaixa(lequeId, tipo, alvo){
   const snap = [];
   alvo.forEach(f=>{
     snap.push({ id:f.id, perfilado:f.perfilado, perfiladoEm:f.perfiladoEm, topografado:f.topografado, topografadoEm:f.topografadoEm, azimuteOk:f.azimuteOk });
-    if(tipo === 'azimute'){ f.azimuteOk = true; enfileirar('checklist_furos', 'update', { id:f.id, azimute_ok:true }); }
+    if(tipo === 'azimute'){ f.azimuteOk = true; if(!f.azimuteEm) f.azimuteEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, azimute_ok:true, azimute_em:f.azimuteEm }); }
     else if(tipo === 'perfilado'){ f.perfilado = true; f.perfiladoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, perfilado:true, perfilado_em:agora }); }
     else { f.topografado = true; f.topografadoEm = agora; enfileirar('checklist_furos', 'update', { id:f.id, topografado:true, topografado_em:agora }); }
   });
@@ -1962,7 +1962,8 @@ function toggleChecklistFuroAzimute(id){
   if(f.obstruido){ renderChecklist(); return; }
   const vaiMarcar = !furoTemAzimute(f);
   f.azimuteOk = vaiMarcar;
-  const reg = { id: f.id, azimute_ok: vaiMarcar };
+  f.azimuteEm = vaiMarcar ? (f.azimuteEm || new Date().toISOString()) : null;
+  const reg = { id: f.id, azimute_ok: vaiMarcar, azimute_em: f.azimuteEm };
   if(!vaiMarcar && f.azimute != null){ f.azimute = null; reg.azimute = null; }
   vibrarCurto(10);
   enfileirar('checklist_furos', 'update', reg);
@@ -1975,7 +1976,8 @@ function definirAzimuteFuro(id, texto){
   const v = t === '' ? null : parseFloat(t);
   if(v != null && (isNaN(v) || v < 0 || v > 360)){ showToast('Azimute inválido. Use de 0 a 360, ex.: 215,5.', { tipo:'aviso' }); setTimeout(renderChecklist, 0); return; }
   f.azimute = v; f.azimuteOk = v != null;
-  enfileirar('checklist_furos', 'update', { id: f.id, azimute: v, azimute_ok: v != null });
+  f.azimuteEm = v != null ? (f.azimuteEm || new Date().toISOString()) : null;
+  enfileirar('checklist_furos', 'update', { id: f.id, azimute: v, azimute_ok: v != null, azimute_em: f.azimuteEm });
   salvarChecklistFurosLocal();
   setTimeout(renderChecklist, 0);
 }
