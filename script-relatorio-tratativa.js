@@ -57,6 +57,7 @@ async function exportarRelatorioTratativaPDF(anelIds){
     doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
     doc.text(`Total (${g.leques.length})`, 17, y); doc.text(fmtM(g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0)), 120, y, { align:'right' }); y += 10;
   });
+  adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
   await baixarOuCompartilharPDF(doc, `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório em PDF gerado.', { tipo:'ok' });
