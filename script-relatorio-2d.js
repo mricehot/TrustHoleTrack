@@ -134,7 +134,7 @@ async function gerarRelatorio2DPDF(){
     try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - R2D_LOGO_W, 9, R2D_LOGO_W, R2D_LOGO_H); }catch(e){}
   };
   const infoLinha = ()=>{ doc.setFont(undefined,'normal'); doc.setFontSize(8.5); doc.setTextColor(110);
-    doc.text(`Supervisor: ${configApp.supervisor || '-'}   ·   Projeto: ${configApp.projetoAtivo || '-'}   ·   Gerado em ${new Date().toLocaleString('pt-BR')}`, 15, 31, { maxWidth: 150 }); doc.setTextColor(0); };
+    doc.text(`Projeto: ${configApp.projetoAtivo || '-'}   ·   Gerado em ${new Date().toLocaleString('pt-BR')}`, 15, 31, { maxWidth: 150 }); doc.setTextColor(0); };
   const imagem = async (reg, x, y, wMax, hMax)=>{
     if(!reg){ doc.setDrawColor(190); doc.setLineDashPattern([2,2],0); doc.rect(x, y, wMax, Math.min(hMax, 60)); doc.setLineDashPattern([],0); doc.setFontSize(9); doc.setTextColor(140); doc.text('(sem imagem anexada)', x + wMax/2, y + 30, { align:'center' }); doc.setTextColor(0); return Math.min(hMax, 60); }
     let w = wMax, h = w * reg.h / reg.w; if(h > hMax){ h = hMax; w = h * reg.w / reg.h; }
@@ -146,9 +146,9 @@ async function gerarRelatorio2DPDF(){
   doc.setFont(undefined,'bold'); doc.setFontSize(14); doc.text('RELATÓRIO 2D DE TRATATIVA', 15, 16);
   doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(120); doc.text('Gerado em ' + new Date().toLocaleString('pt-BR'), 15, 22); doc.setTextColor(0);
   doc.setDrawColor(180); doc.setLineWidth(0.2); doc.line(15, 30, 195, 30);
-  doc.setFontSize(10); doc.text('Supervisor:', 15, 38); doc.text(String(configApp.supervisor || '-'), 42, 38); doc.text('Projeto:', 15, 45); doc.text(String(configApp.projetoAtivo || '-'), 42, 45);
-  doc.line(15, 51, 195, 51);
-  let y1 = 55;
+  doc.setFontSize(10); doc.text('Projeto:', 15, 38); doc.text(String(configApp.projetoAtivo || '-'), 42, 38);
+  doc.line(15, 44, 195, 44);
+  let y1 = 48;
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, y1, 100, 10); doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text(NOME, 17, y1 + 6.8, { maxWidth: 96 });
   y1 += 14; const hG = await imagem(geral, 15, y1, 180, 285 - y1 - 20); legenda(y1 + hG + 8, true);
   // Uma página por leque
