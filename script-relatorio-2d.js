@@ -123,6 +123,11 @@ async function gerarRelatorio2DPDF(){
   if(!geral && !lista.length){ showToast('Anexe a imagem geral ou trate ao menos um leque.', { tipo:'aviso' }); return; }
   showToast('Gerando o PDF…');
   const doc = new window.jspdf.jsPDF(), NOME = a.nome;
+  // Marca d'água ATRÁS do conteúdo (desenhada antes de tudo em cada página) e bem suave; as imagens (fundo opaco) a cobrem.
+  const marca = ()=>{ const T = 130; doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.05 }));
+    try{ doc.addImage('data:image/png;base64,'+LOGO_MARCA_DAGUA_B64, 'PNG', 210 - T * 0.72, 297 - T * 0.72, T, T); }catch(e){} doc.restoreGraphicsState(); };
+  const novaPagina = ()=>{ doc.addPage(); marca(); };
+  marca();
   const cab = (cod)=>{
     doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, 12, cod ? 100 : 60, 12); doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text(NOME, 17, 19.5, { maxWidth: cod ? 70 : 56 });
     if(cod){ doc.line(87, 12, 87, 24); doc.text(cod, 101, 19.5, { align:'center' }); }
@@ -148,7 +153,7 @@ async function gerarRelatorio2DPDF(){
   y1 += 14; const hG = await imagem(geral, 15, y1, 180, 285 - y1 - 20); legenda(y1 + hG + 8, true);
   // Uma página por leque
   for(const e of lista){
-    doc.addPage(); cab(codigoLequeCk(e.c)); infoLinha();
+    novaPagina(); cab(codigoLequeCk(e.c)); infoLinha();
     const fs = checklistFurosDoLeque(e.c.id).slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, { numeric:true }));
     const linhaH = 6.2, tabH = (fs.length + 1) * linhaH, hMax = Math.max(60, 285 - 38 - 22 - tabH - 6);
     const reg = await r2dImg('get', 'leque:' + e.c.id), h = await imagem(reg, 15, 38, 180, Math.min(hMax, 130));
@@ -162,7 +167,6 @@ async function gerarRelatorio2DPDF(){
       x = 15; COLS.forEach(([,w],i)=>{ doc.rect(x, y, w, linhaH); doc.setFont(undefined, i === 3 && cel[i] ? 'bold' : 'normal'); doc.text(cel[i], x + w/2, y + 4.3, { align:'center', maxWidth: w - 2 }); x += w; }); y += linhaH;
     });
   }
-  adicionarMarcaDaguaPDF(doc);
   await baixarOuCompartilharPDF(doc, `relatorio-2d_${String(NOME).replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório 2D gerado.', { tipo:'ok' });
 }
