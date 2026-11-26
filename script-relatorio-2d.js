@@ -155,9 +155,11 @@ async function gerarRelatorio2DPDF(){
   for(const e of lista){
     novaPagina(); cab(codigoLequeCk(e.c)); infoLinha();
     const fs = checklistFurosDoLeque(e.c.id).slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, { numeric:true }));
-    const linhaH = 6.2, tabH = (fs.length + 1) * linhaH, hMax = Math.max(60, 285 - 38 - 22 - tabH - 6);
-    const reg = await r2dImg('get', 'leque:' + e.c.id), h = await imagem(reg, 15, 38, 180, Math.min(hMax, 130));
-    let y = 38 + h + 8; legenda(y); y += 14;
+    // A tabela fica sempre encostada no fim da página; a legenda logo acima; a imagem ocupa o espaço que sobra.
+    const linhaH = 6.2, tabH = (fs.length + 1) * linhaH, fimPag = 285, yTab = fimPag - tabH, yLeg = yTab - 15;
+    const reg = await r2dImg('get', 'leque:' + e.c.id);
+    await imagem(reg, 15, 38, 180, Math.max(40, yLeg - 6 - 38));
+    legenda(yLeg); let y = yTab;
     const COLS = [['FURO',15],['PLANEJADO (m)',34],['EXECUTADO (m)',34],['DESVIO (CM)',28],['OBSERVAÇÃO',69]];
     doc.setLineWidth(0.2); doc.setDrawColor(0); doc.setFontSize(8);
     let x = 15; doc.setFont(undefined,'bold'); COLS.forEach(([t,w])=>{ doc.rect(x, y, w, linhaH); doc.text(t, x + w/2, y + 4.2, { align:'center' }); x += w; }); y += linhaH;
