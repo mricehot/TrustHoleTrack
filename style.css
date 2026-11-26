@@ -2765,7 +2765,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 }
 
 /* ===== Tratativa dos dados (aba Perfilagem) ===== */
-#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root){ display:none !important; }
+#view-perfilagem.com-tratativa > :not(#tratativa-root):not(#fechamento-root){ display:none !important; }
 #tratativa-root{ display:block; }
 .trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
 .trat-topo h2{ margin:0; font-size:1.25rem; }
@@ -2855,13 +2855,13 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .tab-badge.tab-badge-trat{ background:#0f7d78; }
 
 /* ---- Envios da tratativa (por mês) ---- */
-#envios-root{ margin:18px 0 24px; }
+#fechamento-root{ margin:18px 0 24px; }
 .env-topo{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
 .env-topo h2{ margin:0; font-size:18px; }
-.env-add{ width:100%; min-height:48px; margin-bottom:10px; font-weight:600; background:var(--surface); color:var(--text); border:1px dashed var(--steel); border-radius:12px; cursor:pointer; }
-.env-form{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; }
-.env-btns{ display:flex; gap:8px; margin-top:6px; }
-.env-btns button{ min-height:46px; flex:1; }
+
+
+
+
 .env-mes{ background:var(--surface); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; overflow:hidden; }
 .env-mes-cab{ width:100%; display:flex; align-items:center; gap:8px; min-height:52px; padding:8px 12px; background:transparent; border:0; color:var(--text); text-align:left; cursor:pointer; font-size:15px; }
 .env-mes-cab b{ flex:1; text-transform:capitalize; } .env-mes-cab b i{ font-weight:400; font-size:12px; color:var(--muted); text-transform:none; }
@@ -2873,15 +2873,15 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .env-info > b{ font-family:var(--mono); min-width:44px; }
 .env-desc{ flex:1; min-width:0; display:flex; flex-direction:column; font-size:14px; } .env-desc small{ color:var(--muted); font-size:12px; }
 .env-m{ font-family:var(--mono); font-weight:700; white-space:nowrap; }
-.env-del{ width:44px; background:transparent; border:0; color:var(--muted); cursor:pointer; font-size:16px; }
-.env-mes-cab, .env-info, .env-del, .env-mes-cab b{ text-transform:none !important; letter-spacing:normal; }
-.env-chips-acoes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
-.env-chips-acoes .ghost{ min-height:36px; padding:4px 10px; font-size:12px; text-transform:none; }
-.env-chips-lista{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
-.env-chip{ min-height:42px; min-width:56px; padding:4px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-family:var(--mono); font-weight:600; font-size:13px; cursor:pointer; text-transform:none; }
-.env-chip i{ display:block; font-style:normal; font-family:inherit; font-size:10px; font-weight:500; color:var(--muted); }
-.env-chip.ja{ opacity:.65; }
-.env-chip.on{ background:#0f7d78; border-color:#0f7d78; color:#fff; opacity:1; } .env-chip.on i{ color:#d9f2f0; }
+
+.env-mes-cab, .env-info, .env-mes-cab b { text-transform:none !important; letter-spacing:normal; }
+
+
+
+
+
+
+ 
 .trat-tratados{ margin:10px 0 0; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
 .trat-tratados summary{ min-height:44px; display:flex; align-items:center; padding:0 12px; font-weight:600; font-size:14px; cursor:pointer; color:#0f7d78; }
 .trat-linha-tr{ display:flex; align-items:center; gap:10px; padding:6px 12px; border-top:1px solid var(--line); }
@@ -3019,19 +3019,24 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .env-mes-topo{ padding:8px 12px 8px 0; gap:10px; }
 .env-mes-topo .env-mes-cab{ min-height:44px; padding-top:0; padding-bottom:0; }
 .env-exp{ min-height:44px; padding:0 16px; margin:0; }
-.trat-enviados{ margin:12px 0 0; border:1.5px solid var(--steel); border-radius:14px; background:rgba(60,110,160,.06); overflow:hidden; }
-.trat-enviados h4{ margin:0; padding:12px 14px; font-size:15px; color:var(--steel); background:rgba(60,110,160,.12); text-transform:none; letter-spacing:0; }
-.trat-enviados .trat-linha-tr{ padding:8px 14px; }
-.trat-enviados .trat-linha-tr .ghost{ background:var(--surface); border-color:var(--steel); color:var(--steel); font-weight:600; }
-.env-sub{ padding:10px 14px 2px; font-size:13px; font-weight:700; color:var(--text); } .env-sub small{ font-weight:400; color:var(--muted); }
-.env-trat .env-info{ cursor:default; }
-.env-sub{ padding:10px 14px 2px; font-size:13px; font-weight:700; color:var(--text); } .env-sub small{ font-weight:400; color:var(--muted); }
-.env-trat .env-info{ cursor:default; }
+
+
+
+
+ 
+
+ 
+
 .trat-linha-tr{ flex-wrap:wrap; }
-.trat-env-ok{ font-style:normal; font-size:12px; font-weight:700; color:var(--steel); white-space:nowrap; }
-.trat-tratados .trat-linha-tr .trat-env-btn{ border-color:var(--steel); color:var(--steel); }
-.trat-enviados .trat-linha-tr .ghost + .ghost{ border-color:var(--line); color:var(--muted); }
+
+
+
 .trat-linha-tr{ flex-wrap:wrap; }
-.trat-env-ok{ font-style:normal; font-size:12px; font-weight:700; color:var(--steel); white-space:nowrap; }
-.trat-tratados .trat-linha-tr .trat-env-btn{ border-color:var(--steel); color:var(--steel); }
-.trat-enviados .trat-linha-tr .ghost + .ghost{ border-color:var(--line); color:var(--muted); }
+
+
+
+/* Cabeçalho do mês: título e total em duas linhas, botão Exportar fixo à direita */
+.env-mes-txt{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.env-mes-txt b{ text-transform:capitalize; font-size:15px; }
+.env-mes-txt .env-tot{ font-size:14px; }
+.env-mes-cab b{ flex:none; }

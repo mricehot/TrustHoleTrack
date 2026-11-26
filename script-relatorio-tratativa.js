@@ -1,4 +1,4 @@
-// ---------- Relatório das tratativas: realces, leques, furos, metragens e envios (PDF ou planilha CSV) ----------
+// ---------- Relatórios das tratativas: leques tratados e fechamento mensal (PDF ou planilha CSV) ----------
 const fmtM = n => (Math.round(Number(n || 0) * 10) / 10).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 });
 const fmtDataBR = iso => { if(!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }); };
 
@@ -22,10 +22,8 @@ function dadosRelatorioTratativa(anelIds){
     return { realce: a, leques, tot: { leques: leques.length, furos: soma('furos'), uteis: soma('uteis'), obst: soma('obst'), perf: soma('perf'), topo: soma('topo'), az: soma('az'), esp: soma('esp'), real: soma('real'), espMed: soma('espMed'),
       tratados: leques.filter(l=>l.status === 'Tratado').length, prontos: leques.filter(l=>l.status === 'Pronto p/ tratar').length } };
   });
-  const envios = (typeof tratativaEnvios !== 'undefined' ? tratativaEnvios : []).filter(e=> envioNoEscopo(e) && (!e.anelId || ids.has(e.anelId)))
-    .sort((x,y)=> x.data.localeCompare(y.data));
   const tot = realces.reduce((t,r)=>{ Object.keys(r.tot).forEach(k=> t[k] = (t[k] || 0) + r.tot[k]); return t; }, {});
-  return { realces, envios, tot, metrosEnviados: envios.reduce((s,e)=> s + e.metragem, 0) };
+  return { realces, tot };
 }
 
 // Resumido: só os leques TRATADOS, com metros e data da tratativa.
@@ -161,16 +159,15 @@ function abrirExportarTratativa(){
 }
 
 // ---------- Fechamento mensal das tratativas (somatório do mês) ----------
-// Reúne o que foi ENVIADO no mês (Envios da tratativa) e os leques TRATADOS no mês, com totais por realce.
+// Reúne os leques TRATADOS no mês, com total de metros por realce.
 function dadosFechamentoMensal(ym){
-  const envios = tratativaEnvios.filter(e=> envioNoEscopo(e) && e.data.slice(0,7) === ym).sort((a,b)=> a.data.localeCompare(b.data));
   const escopo = aneis.filter(a=> !configApp.projetoAtivo || !a.projeto || a.projeto === configApp.projetoAtivo).map(a=>a.id);
   const tratados = [];
   dadosRelatorioTratativa(escopo).realces.forEach(r=> r.leques.forEach(l=>{ if(l.status === 'Tratado' && l.tratadoEm && l.tratadoEm.slice(0,7) === ym) tratados.push({ realce:r.realce.nome, codigo:l.codigo, metros:metrosDoLeque(l), data:l.tratadoEm }); }));
   const porRealce = new Map();
   tratados.forEach(l=>{ const r = porRealce.get(l.realce) || { realce:l.realce, leques:0, metros:0 }; r.leques++; r.metros += l.metros; porRealce.set(l.realce, r); });
   tratados.sort((a,b)=> String(a.data).localeCompare(String(b.data)) || a.realce.localeCompare(b.realce, undefined, { numeric:true }) || a.codigo.localeCompare(b.codigo, undefined, { numeric:true }));
-  return { ym, envios, resumo:[...porRealce.values()], tratados,
+  return { ym, resumo:[...porRealce.values()], tratados,
     metrosTratados: tratados.reduce((s,l)=> s + l.metros, 0) };
 }
 
@@ -180,7 +177,7 @@ async function exportarFechamentoMensalPDF(ym){
   let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'FECHAMENTO MENSAL DAS TRATATIVAS' });
   const garante = h => { if(y + h > 282){ doc.addPage(); y = 20; } };
   const titulo = t => { garante(14); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(t, 15, y); y += 7; doc.setFont(undefined,'normal'); doc.setFontSize(9); };
-  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(rotuloMesEnvio(ym), 15, y); y += 8;
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(rotuloMes(ym), 15, y); y += 8;
   doc.setFontSize(10); doc.setFont(undefined,'normal');
   doc.setFont(undefined,'bold'); doc.text(`Metros tratados no mês: ${fmtM(d.metrosTratados)} m  ·  ${d.tratados.length} ${d.tratados.length === 1 ? 'leque tratado' : 'leques tratados'}`, 15, y); doc.setFont(undefined,'normal'); y += 10;
 
@@ -191,12 +188,6 @@ async function exportarFechamentoMensalPDF(ym){
     doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
     doc.text('Total', 17, y); doc.text(String(d.tratados.length), 130, y, { align:'right' }); doc.text(fmtM(d.metrosTratados), 175, y, { align:'right' }); doc.setFont(undefined,'normal'); y += 10;
   }
-  titulo('Enviados no mês (consulta)');
-  if(!d.envios.length){ doc.text('Nenhum envio registrado neste mês.', 17, y); y += 8; }
-  else d.envios.forEach(e=>{
-    const ls = doc.splitTextToSize(`${fmtDiaEnvio(e.data)}   ${e.anelRotulo || 'Sem realce'}${e.leques ? '  ·  ' + e.leques : ''}${e.observacao ? '  ·  ' + e.observacao : ''}`, 176);
-    garante(ls.length * 4.6 + 2); doc.text(ls, 17, y); y += ls.length * 4.6 + 1.5; });
-  y += 6;
   titulo('Leques tratados no mês');
   if(!d.tratados.length){ doc.text('Nenhum leque marcado como tratado neste mês.', 17, y); y += 8; }
   else{
@@ -212,10 +203,9 @@ async function exportarFechamentoMensalPDF(ym){
 
 function exportarFechamentoMensalCSV(ym){
   const d = dadosFechamentoMensal(ym), n = v => String(Math.round(Number(v || 0) * 10) / 10).replace('.', ','), q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
-  const L = [[`FECHAMENTO MENSAL — ${rotuloMesEnvio(ym)}`], [], ['LEQUES TRATADOS NO MÊS'], ['Data','Realce','Leque','Metros']];
+  const L = [[`FECHAMENTO MENSAL — ${rotuloMes(ym)}`], [], ['LEQUES TRATADOS NO MÊS'], ['Data','Realce','Leque','Metros']];
   d.tratados.forEach(l=> L.push([fmtDataBR(l.data), l.realce, l.codigo, n(l.metros)]));
-  L.push(['Total tratado','','',n(d.metrosTratados)], [], ['ENVIADOS NO MÊS (consulta)'], ['Data','Realce','Leques','Observação']);
-  d.envios.forEach(e=> L.push([e.data.slice(8,10) + '/' + e.data.slice(5,7) + '/' + e.data.slice(0,4), e.anelRotulo, e.leques, e.observacao]));
+  L.push(['Total tratado','','',n(d.metrosTratados)]);
   const url = URL.createObjectURL(new Blob(['﻿' + L.map(r=> r.map(q).join(';')).join('\r\n')], { type:'text/csv;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = `tratativas_${ym}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
   showToast('Planilha gerada.', { tipo:'ok' });
@@ -224,8 +214,8 @@ function exportarFechamentoMensalCSV(ym){
 function abrirExportarMes(ym){
   const d = dadosFechamentoMensal(ym), root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
-    <p style="font-weight:700;margin:0 0 6px;">Exportar ${escHtml(rotuloMesEnvio(ym))}</p>
-    <div class="hint" style="margin-bottom:12px;">${fmtM(d.metrosTratados)} m tratados em ${d.tratados.length} ${d.tratados.length === 1 ? 'leque' : 'leques'}. Traz o total por realce, a lista de leques tratados e, só para consulta, os envios do mês.</div>
+    <p style="font-weight:700;margin:0 0 6px;">Exportar ${escHtml(rotuloMes(ym))}</p>
+    <div class="hint" style="margin-bottom:12px;">${fmtM(d.metrosTratados)} m tratados em ${d.tratados.length} ${d.tratados.length === 1 ? 'leque' : 'leques'}. Traz o total por realce e a lista de leques tratados no mês.</div>
     <div class="modal-actions"><button class="ghost" id="mes-cancelar">Cancelar</button><button class="ghost" id="mes-csv">Planilha (CSV)</button><button class="steel" id="mes-pdf">Baixar PDF</button></div></div></div>`;
   const fechar = ()=>{ root.innerHTML = ''; };
   el('mes-cancelar').onclick = fechar; el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
