@@ -2983,3 +2983,26 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
   #plano-painel{ inset:0 0 0 auto; width:50vw; box-shadow:-8px 0 30px rgba(0,0,0,.25); border-left:1px solid var(--line); }
   body.plano-aberto{ padding-right:50vw; }
 }
+
+/* Relatório 2D */
+.trat-acoes-card{ margin:0 0 10px; }
+.trat-acoes-card button{ min-height:44px; text-transform:none; letter-spacing:0; }
+.r2d-box{ max-height:92vh; overflow:auto; }
+.r2d-geral{ border:1px solid var(--line); border-radius:12px; padding:10px; }
+.r2d-geral img, .r2d-img-linha img{ display:block; max-width:100%; max-height:260px; margin:8px auto; border-radius:8px; border:1px solid var(--line); background:#fff; }
+.r2d-img-vazia{ margin:8px 0; padding:22px 10px; text-align:center; color:var(--muted); border:1px dashed var(--line); border-radius:10px; font-size:14px; }
+.r2d-img-acoes{ display:flex; gap:8px; flex-wrap:wrap; }
+.r2d-img-acoes button, .r2d-leque button{ min-height:44px; text-transform:none; letter-spacing:0; }
+.r2d-leque{ border:1px solid var(--line); border-radius:12px; padding:6px 10px; margin-bottom:8px; }
+.r2d-leque.aberto{ border-color:var(--steel); }
+.r2d-l1{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-height:48px; }
+.r2d-inc{ display:flex; align-items:center; gap:8px; min-height:44px; text-transform:none; letter-spacing:0; font-size:15px; }
+.r2d-inc input{ width:24px; height:24px; }
+.r2d-sit{ font-size:12px; color:var(--muted); } .r2d-sit.ok{ color:var(--est-ok); font-weight:700; }
+.r2d-img-st{ font-size:12px; color:var(--muted); flex:1; }
+.r2d-tab-scroll{ overflow-x:auto; margin-top:8px; }
+.r2d-tab{ width:100%; border-collapse:collapse; font-size:14px; min-width:460px; }
+.r2d-tab th, .r2d-tab td{ border:1px solid var(--line); padding:4px 6px; text-align:center; }
+.r2d-tab th{ font-size:11px; text-transform:uppercase; background:var(--surface-2, rgba(128,128,128,.1)); }
+.r2d-tab input{ width:100%; min-height:40px; padding:0 6px; text-align:center; border:1px solid transparent; background:transparent; font:inherit; color:inherit; }
+.r2d-tab input:focus{ border-color:var(--steel); background:var(--surface); }
