@@ -43,10 +43,9 @@ let r2dEstado = null; // { anelId, incluir:Set(lequeId), aberto:lequeId|null, ur
 
 async function abrirRelatorio2D(anelId){
   const a = aneis.find(x=>x.id === (anelId || anelAtivoId)); if(!a){ showToast('Nenhum realce ativo.'); return; }
-  const lista = r2dLequesDoRealce(a.id);
-  if(!lista.length){ showToast('Esse realce não tem leques no checklist.', { tipo:'aviso' }); return; }
-  r2dEstado = { anelId: a.id, incluir: new Set(lista.filter(e=>e.tratado).map(e=>e.c.id)), aberto: null, urls: {} };
-  if(!r2dEstado.incluir.size) lista.forEach(e=> r2dEstado.incluir.add(e.c.id));
+  const lista = r2dLequesDoRealce(a.id).filter(e=>e.tratado);
+  if(!lista.length){ showToast('Esse realce ainda não tem leques tratados.', { tipo:'aviso' }); return; }
+  r2dEstado = { anelId: a.id, aberto: null, urls: {} };
   await r2dRender();
 }
 
@@ -56,15 +55,15 @@ async function r2dUrl(chave){
 }
 
 async function r2dRender(){
-  const st = r2dEstado; if(!st) return; const a = aneis.find(x=>x.id === st.anelId); const lista = r2dLequesDoRealce(a.id);
+  const st = r2dEstado; if(!st) return; const a = aneis.find(x=>x.id === st.anelId); const lista = r2dLequesDoRealce(a.id).filter(e=>e.tratado); // só os tratados entram
   const geral = await r2dUrl('geral:' + a.id);
   const linhas = [];
   for(const e of lista){
     const id = e.c.id, cod = codigoLequeCk(e.c), url = await r2dUrl('leque:' + id), aberto = st.aberto === id, fs = checklistFurosDoLeque(id).slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, { numeric:true }));
     linhas.push(`<div class="r2d-leque ${aberto ? 'aberto' : ''}">
       <div class="r2d-l1">
-        <label class="r2d-inc"><input type="checkbox" data-r2d-inc="${id}" ${st.incluir.has(id) ? 'checked' : ''}><b>${escHtml(cod)}</b></label>
-        <span class="r2d-sit ${e.tratado ? 'ok' : ''}">${e.tratado ? 'tratado' : e.pronto ? 'pronto' : ''}</span>
+        <b class="r2d-cod">${escHtml(cod)}</b>
+        <span class="r2d-sit ok">tratado${e.c.tratadoEm ? ' ' + fmtDataBR(e.c.tratadoEm) : ''}</span>
         <span class="r2d-img-st">${url ? '🖼 imagem ✓' : 'sem imagem'}</span>
         <button type="button" class="ghost" data-r2d-abrir="${id}" aria-expanded="${aberto}">${aberto ? 'Fechar ▲' : 'Imagem e tabela ▼'}</button>
       </div>
@@ -81,12 +80,11 @@ async function r2dRender(){
   }
   el('modal-root').innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga r2d-box">
     <p style="font-weight:700;margin:0 0 4px;">Relatório 2D · ${escHtml(a.nome)}</p>
-    <div class="hint" style="margin-bottom:10px;">Página 1: imagem geral dos leques. Depois, uma página por leque marcado, com a imagem e a tabela. As imagens ficam guardadas neste aparelho.</div>
+    <div class="hint" style="margin-bottom:10px;">Página 1: imagem geral dos leques. Depois, uma página por leque tratado, com a imagem e a tabela. As imagens ficam guardadas neste aparelho.</div>
     <div class="r2d-geral"><b>1 · Imagem geral dos leques</b>
       ${geral ? `<img src="${geral}" alt="imagem geral dos leques">` : '<div class="r2d-img-vazia">Anexe a imagem com todos os leques do realce</div>'}
       <div class="r2d-img-acoes"><button type="button" class="steel" data-r2d-anexar="geral:${a.id}">${geral ? 'Trocar imagem' : 'Anexar imagem'}</button>${geral ? `<button type="button" class="ghost" data-r2d-remover="geral:${a.id}">Remover</button>` : ''}</div></div>
-    <b style="display:block;margin:12px 0 4px;">2 · Leques no relatório</b>
-    <div class="rel-atalhos"><button type="button" class="ghost" id="r2d-todos">Marcar todos</button><button type="button" class="ghost" id="r2d-trat">Só tratados</button></div>
+    <b style="display:block;margin:12px 0 4px;">2 · Leques tratados (${lista.length})</b>
     <div class="r2d-lista">${linhas.join('')}</div>
     <input type="file" id="r2d-arq" accept="image/*" hidden>
     <div class="modal-actions"><button class="ghost" id="r2d-fechar">Fechar</button><button class="steel" id="r2d-pdf">Gerar PDF</button></div>
@@ -96,8 +94,6 @@ async function r2dRender(){
 document.addEventListener('click', async ev=>{
   const t = ev.target; if(!r2dEstado || !t.closest || !t.closest('.r2d-box') && t.id !== 'modal-overlay') return;
   if(t.id === 'modal-overlay' || t.id === 'r2d-fechar'){ Object.values(r2dEstado.urls).forEach(u=> u && URL.revokeObjectURL(u)); r2dEstado = null; el('modal-root').innerHTML = ''; return; }
-  if(t.id === 'r2d-todos'){ r2dLequesDoRealce(r2dEstado.anelId).forEach(e=> r2dEstado.incluir.add(e.c.id)); return r2dRender(); }
-  if(t.id === 'r2d-trat'){ r2dEstado.incluir = new Set(r2dLequesDoRealce(r2dEstado.anelId).filter(e=>e.tratado).map(e=>e.c.id)); return r2dRender(); }
   if(t.id === 'r2d-pdf'){ return gerarRelatorio2DPDF(); }
   const ab = t.closest('[data-r2d-abrir]'); if(ab){ const id = ab.dataset.r2dAbrir; r2dEstado.aberto = r2dEstado.aberto === id ? null : id; return r2dRender(); }
   const an = t.closest('[data-r2d-anexar]'); if(an){ const inp = el('r2d-arq'); inp.dataset.chave = an.dataset.r2dAnexar; inp.value = ''; inp.click(); return; }
@@ -111,7 +107,6 @@ document.addEventListener('change', async ev=>{
     catch(e){ showToast(e.message || 'Não consegui anexar a imagem.', { tipo:'erro' }); }
     return r2dRender();
   }
-  const inc = t.closest && t.closest('[data-r2d-inc]'); if(inc){ const id = inc.dataset.r2dInc; if(inc.checked) r2dEstado.incluir.add(id); else r2dEstado.incluir.delete(id); return; }
   const campo = t.dataset && t.dataset.r2dCampo; if(!campo) return;
   const f = checklistFuros.find(x=>x.id === t.closest('tr').dataset.furo); if(!f) return;
   const reg = { id: f.id };
@@ -123,9 +118,9 @@ document.addEventListener('change', async ev=>{
 async function gerarRelatorio2DPDF(){
   const st = r2dEstado; if(!st) return;
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
-  const a = aneis.find(x=>x.id === st.anelId), lista = r2dLequesDoRealce(a.id).filter(e=> st.incluir.has(e.c.id));
+  const a = aneis.find(x=>x.id === st.anelId), lista = r2dLequesDoRealce(a.id).filter(e=>e.tratado);
   const geral = await r2dImg('get', 'geral:' + a.id);
-  if(!geral && !lista.length){ showToast('Anexe a imagem geral ou marque ao menos um leque.', { tipo:'aviso' }); return; }
+  if(!geral && !lista.length){ showToast('Anexe a imagem geral ou trate ao menos um leque.', { tipo:'aviso' }); return; }
   showToast('Gerando o PDF…');
   const doc = new window.jspdf.jsPDF(), NOME = a.nome;
   const cab = (cod)=>{
