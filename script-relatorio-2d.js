@@ -133,6 +133,7 @@ function r2dSalvarCampoFuro(t, campo){
 // ---------- Dados do leque (preenchidos na hora da tratativa, antes do relatório geral) ----------
 let dlEstado = null; // { id, url }
 async function abrirDadosLeque(id){ dlEstado = { id, url: undefined }; await dlRender(); }
+function dlContarPreenchidos(){ if(!dlEstado) return 0; return checklistFurosDoLeque(dlEstado.id).reduce((n, f)=> n + (f.desvioCm != null && f.desvioCm !== '' ? 1 : 0) + (f.obsTratamento ? 1 : 0), 0); }
 function dlFechar(){ if(dlEstado && dlEstado.url) URL.revokeObjectURL(dlEstado.url); dlEstado = null; el('modal-root').innerHTML = ''; }
 async function dlRender(){
   const st = dlEstado; if(!st) return;
@@ -143,21 +144,24 @@ async function dlRender(){
   el('modal-root').innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga r2d-box dl-box">
     <p style="font-weight:700;margin:0 0 2px;">Dados do leque · ${escHtml(cod)}</p>
     <div class="hint" style="margin-bottom:10px;">${escHtml(a.nome)} · ${c.tratado ? 'tratado' + (c.tratadoEm ? ' em ' + fmtDataBR(c.tratadoEm) : '') : 'ainda não marcado como tratado'}. O que você preencher aqui já vai para o Relatório 2D e para o relatório geral.</div>
+    <div class="dl-corpo">
     <div class="r2d-img-linha">${st.url ? `<img src="${st.url}" alt="imagem do ${escHtml(cod)}">` : '<div class="r2d-img-vazia">Anexe a imagem deste leque</div>'}
       <div class="r2d-img-acoes"><button type="button" class="steel" data-dl-anexar>${st.url ? 'Trocar imagem' : 'Anexar imagem'}</button>${st.url ? '<button type="button" class="ghost" data-dl-remover>Remover</button>' : ''}<small class="hint">a imagem fica guardada só neste aparelho</small></div></div>
-    <div class="r2d-tab-scroll"><table class="r2d-tab"><thead><tr><th>Furo</th><th>Planejado (m)</th><th>Executado (m)</th><th>Desvio (cm)</th><th>Observação</th></tr></thead><tbody>
+    <div class="r2d-tab-scroll"><table class="r2d-tab"><colgroup><col style="width:11%"><col style="width:17%"><col style="width:19%"><col style="width:18%"><col style="width:35%"></colgroup><thead><tr><th>Furo</th><th>Plan. (m)</th><th>Exec. (m)</th><th>Desvio (cm)</th><th>Observação</th></tr></thead><tbody>
       ${fs.map(f=>`<tr data-furo="${f.id}"><td><b>${escHtml(String(f.numero))}</b></td><td>${r2dNum(f.metragemEsperada)}</td>
         <td><input inputmode="decimal" data-dl-campo="metragem" value="${r2dNum(f.metragem > 0 ? f.metragem : '')}" aria-label="Executado do furo ${escHtml(String(f.numero))}"></td>
         <td><input inputmode="decimal" data-dl-campo="desvioCm" value="${r2dNum(f.desvioCm)}" aria-label="Desvio em cm do furo ${escHtml(String(f.numero))}"></td>
         <td><input type="text" data-dl-campo="obsTratamento" maxlength="60" value="${escHtml(r2dObsAuto(f))}" placeholder="Obstruído, Varado…" aria-label="Observação do furo ${escHtml(String(f.numero))}"></td></tr>`).join('') || '<tr><td colspan="5">Esse leque ainda não tem furos.</td></tr>'}
     </tbody></table></div>
+    </div>
     <input type="file" id="dl-arq" accept="image/*" hidden>
-    <div class="modal-actions"><button class="ghost" id="dl-fechar">Fechar</button>${c.tratado ? '' : '<button class="steel" id="dl-tratar">Marcar como tratado</button>'}</div>
+    <div class="modal-actions"><button class="ghost" id="dl-fechar">Fechar</button><button class="ghost dl-salvar" id="dl-salvar" title="guarda o que já foi preenchido, sem marcar o leque como tratado">Salvar parcial</button>${c.tratado ? '' : '<button class="steel" id="dl-tratar">Marcar como tratado</button>'}</div>
   </div></div>`;
 }
 document.addEventListener('click', async ev=>{
   const t = ev.target; if(!dlEstado || !t.closest) return;
   if(t.id === 'modal-overlay' || t.id === 'dl-fechar') return dlFechar();
+  if(t.id === 'dl-salvar'){ const n = dlContarPreenchidos(); if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); dlFechar(); showToast(n ? `Dados parciais salvos (${n} ${n === 1 ? 'campo preenchido' : 'campos preenchidos'}). O leque continua como está.` : 'Nada preenchido ainda.', { tipo: n ? 'ok' : 'aviso' }); return; }
   if(t.id === 'dl-tratar'){ const id = dlEstado.id; dlFechar(); return marcarLequeTratado(id); }
   if(t.closest('[data-dl-anexar]')){ const inp = el('dl-arq'); inp.value = ''; inp.click(); return; }
   if(t.closest('[data-dl-remover]')){ await r2dImg('del', 'leque:' + dlEstado.id); if(dlEstado.url) URL.revokeObjectURL(dlEstado.url); dlEstado.url = undefined; return dlRender(); }

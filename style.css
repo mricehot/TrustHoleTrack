@@ -3141,3 +3141,18 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .nota-fora{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#fdf3dc; border:1px solid #e8b04a; border-radius:12px; padding:8px 12px; margin:0 0 12px; font-size:13px; }
 .nota-fora button{ min-height:36px !important; text-transform:none; }
 @media (max-width:420px){ .tab-item .tab-label{ font-size:10.5px; letter-spacing:-.1px; } }
+/* Modal "Dados do leque": cabeçalho e botões fixos, só o miolo rola; tabela cabe na largura, com folga nas bordas */
+.modal-overlay:has(.dl-box){ padding:10px; }
+.dl-box{ display:flex; flex-direction:column; width:min(760px, calc(100vw - 20px)); max-width:none; max-height:calc(100dvh - 20px); padding:18px 18px 14px; overflow:hidden; box-sizing:border-box; }
+.dl-box > p{ flex:none; margin:0 0 4px; } .dl-box > .hint{ flex:none; }
+.dl-corpo{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px 6px; -webkit-overflow-scrolling:touch; }
+.dl-box .modal-actions{ flex:none; margin-top:10px; padding-top:12px; border-top:1px solid var(--line); gap:10px; }
+.dl-box .modal-actions button{ flex:1 1 0; min-height:46px; }
+.dl-box .r2d-img-acoes{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:6px; }
+.dl-box .r2d-tab-scroll{ overflow-x:hidden; margin-top:10px; }
+.r2d-tab{ table-layout:fixed; min-width:0 !important; }
+.r2d-tab th{ padding:6px 4px; font-size:10.5px; letter-spacing:.02em; }
+.r2d-tab td{ padding:2px 3px; }
+.r2d-tab input{ font-size:14px; padding:0 4px; min-width:0; text-overflow:ellipsis; }
+.r2d-tab input::placeholder{ font-size:12px; }
+@media (max-width:480px){ .dl-box{ padding:14px 12px 12px; border-radius:14px; } .dl-corpo{ margin:0 -4px; padding:0 4px 6px; } }
