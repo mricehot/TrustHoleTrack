@@ -3023,3 +3023,15 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .trat-enviados h4{ margin:0; padding:12px 14px; font-size:15px; color:var(--steel); background:rgba(60,110,160,.12); text-transform:none; letter-spacing:0; }
 .trat-enviados .trat-linha-tr{ padding:8px 14px; }
 .trat-enviados .trat-linha-tr .ghost{ background:var(--surface); border-color:var(--steel); color:var(--steel); font-weight:600; }
+.env-sub{ padding:10px 14px 2px; font-size:13px; font-weight:700; color:var(--text); } .env-sub small{ font-weight:400; color:var(--muted); }
+.env-trat .env-info{ cursor:default; }
+.env-sub{ padding:10px 14px 2px; font-size:13px; font-weight:700; color:var(--text); } .env-sub small{ font-weight:400; color:var(--muted); }
+.env-trat .env-info{ cursor:default; }
+.trat-linha-tr{ flex-wrap:wrap; }
+.trat-env-ok{ font-style:normal; font-size:12px; font-weight:700; color:var(--steel); white-space:nowrap; }
+.trat-tratados .trat-linha-tr .trat-env-btn{ border-color:var(--steel); color:var(--steel); }
+.trat-enviados .trat-linha-tr .ghost + .ghost{ border-color:var(--line); color:var(--muted); }
+.trat-linha-tr{ flex-wrap:wrap; }
+.trat-env-ok{ font-style:normal; font-size:12px; font-weight:700; color:var(--steel); white-space:nowrap; }
+.trat-tratados .trat-linha-tr .trat-env-btn{ border-color:var(--steel); color:var(--steel); }
+.trat-enviados .trat-linha-tr .ghost + .ghost{ border-color:var(--line); color:var(--muted); }

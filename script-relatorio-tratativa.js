@@ -164,14 +164,14 @@ function abrirExportarTratativa(){
 // Reúne o que foi ENVIADO no mês (Envios da tratativa) e os leques TRATADOS no mês, com totais por realce.
 function dadosFechamentoMensal(ym){
   const envios = tratativaEnvios.filter(e=> envioNoEscopo(e) && e.data.slice(0,7) === ym).sort((a,b)=> a.data.localeCompare(b.data));
-  const porRealce = new Map();
-  envios.forEach(e=>{ const k = e.anelRotulo || 'Sem realce'; const r = porRealce.get(k) || { realce:k, envios:0, metros:0 }; r.envios++; r.metros += e.metragem; porRealce.set(k, r); });
   const escopo = aneis.filter(a=> !configApp.projetoAtivo || !a.projeto || a.projeto === configApp.projetoAtivo).map(a=>a.id);
   const tratados = [];
   dadosRelatorioTratativa(escopo).realces.forEach(r=> r.leques.forEach(l=>{ if(l.status === 'Tratado' && l.tratadoEm && l.tratadoEm.slice(0,7) === ym) tratados.push({ realce:r.realce.nome, codigo:l.codigo, metros:metrosDoLeque(l), data:l.tratadoEm }); }));
+  const porRealce = new Map();
+  tratados.forEach(l=>{ const r = porRealce.get(l.realce) || { realce:l.realce, leques:0, metros:0 }; r.leques++; r.metros += l.metros; porRealce.set(l.realce, r); });
   tratados.sort((a,b)=> String(a.data).localeCompare(String(b.data)) || a.realce.localeCompare(b.realce, undefined, { numeric:true }) || a.codigo.localeCompare(b.codigo, undefined, { numeric:true }));
   return { ym, envios, resumo:[...porRealce.values()], tratados,
-    metrosEnviados: envios.reduce((s,e)=> s + e.metragem, 0), metrosTratados: tratados.reduce((s,l)=> s + l.metros, 0) };
+    metrosTratados: tratados.reduce((s,l)=> s + l.metros, 0) };
 }
 
 async function exportarFechamentoMensalPDF(ym){
@@ -182,21 +182,20 @@ async function exportarFechamentoMensalPDF(ym){
   const titulo = t => { garante(14); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(t, 15, y); y += 7; doc.setFont(undefined,'normal'); doc.setFontSize(9); };
   doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(rotuloMesEnvio(ym), 15, y); y += 8;
   doc.setFontSize(10); doc.setFont(undefined,'normal');
-  doc.text(`Metragem enviada: ${fmtM(d.metrosEnviados)} m em ${d.envios.length} ${d.envios.length === 1 ? 'envio' : 'envios'}`, 15, y); y += 6;
-  doc.text(`Leques tratados no mês: ${d.tratados.length}  ·  ${fmtM(d.metrosTratados)} m`, 15, y); y += 10;
+  doc.setFont(undefined,'bold'); doc.text(`Metros tratados no mês: ${fmtM(d.metrosTratados)} m  ·  ${d.tratados.length} ${d.tratados.length === 1 ? 'leque tratado' : 'leques tratados'}`, 15, y); doc.setFont(undefined,'normal'); y += 10;
 
   if(d.resumo.length){
-    titulo('Total por realce (envios)');
-    doc.setFont(undefined,'bold'); doc.text('Realce', 17, y); doc.text('Envios', 130, y, { align:'right' }); doc.text('Metros', 175, y, { align:'right' }); y += 5.5; doc.setFont(undefined,'normal');
-    d.resumo.forEach(r=>{ garante(6); doc.text(r.realce, 17, y, { maxWidth:90 }); doc.text(String(r.envios), 130, y, { align:'right' }); doc.text(fmtM(r.metros), 175, y, { align:'right' }); y += 5.5; });
+    titulo('Total por realce (tratados)');
+    doc.setFont(undefined,'bold'); doc.text('Realce', 17, y); doc.text('Leques', 130, y, { align:'right' }); doc.text('Metros', 175, y, { align:'right' }); y += 5.5; doc.setFont(undefined,'normal');
+    d.resumo.forEach(r=>{ garante(6); doc.text(r.realce, 17, y, { maxWidth:90 }); doc.text(String(r.leques), 130, y, { align:'right' }); doc.text(fmtM(r.metros), 175, y, { align:'right' }); y += 5.5; });
     doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
-    doc.text('Total', 17, y); doc.text(String(d.envios.length), 130, y, { align:'right' }); doc.text(fmtM(d.metrosEnviados), 175, y, { align:'right' }); doc.setFont(undefined,'normal'); y += 10;
+    doc.text('Total', 17, y); doc.text(String(d.tratados.length), 130, y, { align:'right' }); doc.text(fmtM(d.metrosTratados), 175, y, { align:'right' }); doc.setFont(undefined,'normal'); y += 10;
   }
-  titulo('Envios do mês');
+  titulo('Enviados no mês (consulta)');
   if(!d.envios.length){ doc.text('Nenhum envio registrado neste mês.', 17, y); y += 8; }
   else d.envios.forEach(e=>{
-    const ls = doc.splitTextToSize(`${fmtDiaEnvio(e.data)}   ${e.anelRotulo || 'Sem realce'}${e.leques ? '  ·  ' + e.leques : ''}${e.observacao ? '  ·  ' + e.observacao : ''}`, 140);
-    garante(ls.length * 4.6 + 2); doc.text(ls, 17, y); doc.text(fmtM(e.metragem) + ' m', 195, y, { align:'right' }); y += ls.length * 4.6 + 1.5; });
+    const ls = doc.splitTextToSize(`${fmtDiaEnvio(e.data)}   ${e.anelRotulo || 'Sem realce'}${e.leques ? '  ·  ' + e.leques : ''}${e.observacao ? '  ·  ' + e.observacao : ''}`, 176);
+    garante(ls.length * 4.6 + 2); doc.text(ls, 17, y); y += ls.length * 4.6 + 1.5; });
   y += 6;
   titulo('Leques tratados no mês');
   if(!d.tratados.length){ doc.text('Nenhum leque marcado como tratado neste mês.', 17, y); y += 8; }
@@ -213,11 +212,10 @@ async function exportarFechamentoMensalPDF(ym){
 
 function exportarFechamentoMensalCSV(ym){
   const d = dadosFechamentoMensal(ym), n = v => String(Math.round(Number(v || 0) * 10) / 10).replace('.', ','), q = v => { const s = String(v ?? ''); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
-  const L = [[`FECHAMENTO MENSAL — ${rotuloMesEnvio(ym)}`], [], ['ENVIOS'], ['Data','Realce','Leques','Metragem (m)','Observação']];
-  d.envios.forEach(e=> L.push([e.data.slice(8,10) + '/' + e.data.slice(5,7) + '/' + e.data.slice(0,4), e.anelRotulo, e.leques, n(e.metragem), e.observacao]));
-  L.push(['Total enviado','','',n(d.metrosEnviados)], [], ['LEQUES TRATADOS NO MÊS'], ['Data','Realce','Leque','Metros']);
+  const L = [[`FECHAMENTO MENSAL — ${rotuloMesEnvio(ym)}`], [], ['LEQUES TRATADOS NO MÊS'], ['Data','Realce','Leque','Metros']];
   d.tratados.forEach(l=> L.push([fmtDataBR(l.data), l.realce, l.codigo, n(l.metros)]));
-  L.push(['Total tratado','','',n(d.metrosTratados)]);
+  L.push(['Total tratado','','',n(d.metrosTratados)], [], ['ENVIADOS NO MÊS (consulta)'], ['Data','Realce','Leques','Observação']);
+  d.envios.forEach(e=> L.push([e.data.slice(8,10) + '/' + e.data.slice(5,7) + '/' + e.data.slice(0,4), e.anelRotulo, e.leques, e.observacao]));
   const url = URL.createObjectURL(new Blob(['﻿' + L.map(r=> r.map(q).join(';')).join('\r\n')], { type:'text/csv;charset=utf-8' }));
   const a = document.createElement('a'); a.href = url; a.download = `tratativas_${ym}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
   showToast('Planilha gerada.', { tipo:'ok' });
@@ -227,7 +225,7 @@ function abrirExportarMes(ym){
   const d = dadosFechamentoMensal(ym), root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
     <p style="font-weight:700;margin:0 0 6px;">Exportar ${escHtml(rotuloMesEnvio(ym))}</p>
-    <div class="hint" style="margin-bottom:12px;">${fmtM(d.metrosEnviados)} m enviados em ${d.envios.length} ${d.envios.length === 1 ? 'envio' : 'envios'} · ${d.tratados.length} ${d.tratados.length === 1 ? 'leque tratado' : 'leques tratados'} (${fmtM(d.metrosTratados)} m). Traz o total por realce, a lista de envios e os leques tratados no mês.</div>
+    <div class="hint" style="margin-bottom:12px;">${fmtM(d.metrosTratados)} m tratados em ${d.tratados.length} ${d.tratados.length === 1 ? 'leque' : 'leques'}. Traz o total por realce, a lista de leques tratados e, só para consulta, os envios do mês.</div>
     <div class="modal-actions"><button class="ghost" id="mes-cancelar">Cancelar</button><button class="ghost" id="mes-csv">Planilha (CSV)</button><button class="steel" id="mes-pdf">Baixar PDF</button></div></div></div>`;
   const fechar = ()=>{ root.innerHTML = ''; };
   el('mes-cancelar').onclick = fechar; el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
