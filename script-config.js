@@ -293,7 +293,7 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
 
   doc.setFontSize(PDF_FONT_INFO);
   let y = 38;
-  const campos = [['Projeto:', configApp.projetoAtivo]];
+  const campos = configApp.projetoAtivo ? [['Projeto:', configApp.projetoAtivo]] : [];
   doc.setFont(undefined,'normal');
   campos.forEach(([label,val])=>{
     doc.text(label, 15, y);
@@ -301,6 +301,7 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
     y += 7;
   });
 
+  if(!campos.length) return 38;
   y += 4;
   doc.setDrawColor(180); doc.line(15, y, 195, y); y += 10;
   return y;

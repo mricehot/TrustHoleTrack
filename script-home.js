@@ -21,8 +21,9 @@ function dadosHomeInicio(offset){
     if(furoTemAzimute(f) && f.azimuteEm) marca(chaveDia(f.azimuteEm), 'az');
   });
   const rel = dadosRelatorioTratativa([...idsA]).realces;
-  const ymAtual = iniISO.slice(0,7); let metrosMes = 0, tratMes = 0;
+  const ymAtual = iniISO.slice(0,7); let metrosMes = 0, tratMes = 0; const tratadosSemana = [];
   rel.forEach(r=> r.leques.forEach(l=>{ if(l.status !== 'Tratado' || !l.tratadoEm) return; const iso = chaveDia(l.tratadoEm), m = metrosDoLeque(l);
+    if(iso >= iniISO && iso <= fimISO) tratadosSemana.push({ realce: r.realce.nome, codigo: l.codigo, metros: m, iso });
     marca(iso, 'trat'); marca(iso, 'metros', m); if(iso.slice(0,7) === ymAtual){ metrosMes += m; tratMes++; } }));
   // Situação atual (não depende da semana escolhida)
   const est = leques.map(estadoTratativaLeque);
@@ -44,7 +45,8 @@ function dadosHomeInicio(offset){
       ult, semana, completo: n > 0 && trat === n,
       parado: n > 0 && trat < n ? (ult ? Math.floor((new Date(hojeISO) - new Date(ult)) / 86400000) : null) : 0 };
   }).filter(r=>r.n > 0);
-  return { ini, fim, iniISO, fimISO, dias, cur, ant, metrosMes, tratMes, pipe, ritmo, porRealce, prontos: est.filter(e=>e.pronto).length,
+  tratadosSemana.sort((x,y)=> x.iso.localeCompare(y.iso) || x.realce.localeCompare(y.realce) || x.codigo.localeCompare(y.codigo, undefined, { numeric:true }));
+  return { ini, fim, iniISO, fimISO, dias, cur, ant, tratadosSemana, metrosMes, tratMes, pipe, ritmo, porRealce, prontos: est.filter(e=>e.pronto).length,
     prontosSemAz: est.filter(e=>e.pronto && !e.az).length, semArquivos: porRealce.filter(r=>!r.completo && !r.a.arquivosOk).map(r=>r.a.nome), hojeISO };
 }
 
@@ -79,7 +81,8 @@ function renderHome(){
       <div class="home-nav"><button type="button" class="ghost" onclick="homeSemana(-1)" aria-label="Semana anterior">‹</button>
         <button type="button" class="ghost" onclick="homeSemana(0)" ${atual ? 'disabled' : ''}>Esta semana</button>
         <button type="button" class="ghost" onclick="homeSemana(1)" ${atual ? 'disabled' : ''} aria-label="Próxima semana">›</button>
-        <button type="button" class="steel" onclick="abrirResumoSemanal(${homeOffset})" title="resumo da semana em imagem ou mensagem de WhatsApp">Fechamento semanal</button></div></div>
+        <button type="button" class="steel" onclick="exportarFechamentoSemanalPDF(${homeOffset})" title="PDF do fechamento desta semana">⬇ Fechamento semanal (PDF)</button>
+        <button type="button" class="ghost" onclick="abrirResumoSemanal(${homeOffset})" title="resumo da semana em imagem ou mensagem de WhatsApp">Imagem / WhatsApp</button></div></div>
     <div class="home-kpis">${kpi('Furos perfilados', d.cur.perf, d.ant.perf, '#1f8a4c')}${kpi('Furos topografados', d.cur.topo, d.ant.topo, '#1f63b0')}${kpi('Furos azimutados', d.cur.az, d.ant.az, '#8a5cc2')}${kpi('Leques tratados', d.cur.trat, d.ant.trat, '#0f7d78')}${kpi('Metros tratados', d.cur.metros, d.ant.metros, '#e8441a', 'm')}
       <div class="home-kpi" style="--c:#7a7f8c"><span>Metros tratados no mês</span><b>${fmtHM(d.metrosMes)}<small> m</small></b><small class="home-var neutro">${d.tratMes} ${d.tratMes === 1 ? 'leque' : 'leques'} no mês</small></div></div>
     <div class="home-grade">
@@ -95,3 +98,73 @@ function homeSemana(n){ homeOffset = n === 0 ? 0 : Math.min(0, homeOffset + n); 
 aoRenderizarTudo(renderHome);
 aoRenderizarChecklist(renderHome);
 (function(){ const orig = window.mostrarView; if(typeof orig !== 'function') return; window.mostrarView = function(v){ const r = orig.apply(this, arguments); if(v === 'home'){ try{ renderHome(); }catch(e){ console.error(e); } } return r; }; })();
+
+// PDF do fechamento da semana: números, dia a dia, realces, leques tratados e pendências.
+async function exportarFechamentoSemanalPDF(offset){
+  if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
+  const d = dadosHomeInicio(offset === undefined ? homeOffset : offset), p = d.pipe;
+  const doc = new window.jspdf.jsPDF();
+  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'FECHAMENTO SEMANAL' });
+  const novaPagina = ()=>{ doc.addPage(); y = 20; };
+  const garantir = h=>{ if(y + h > 282) novaPagina(); };
+  const titulo = t=>{ garantir(14); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(0); doc.text(t, 15, y); doc.setDrawColor(200); doc.line(15, y + 1.8, 195, y + 1.8); y += 8; };
+  doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.text(`Semana de ${ddmmHome(d.ini)} a ${ddmmHome(d.fim)}/${d.fim.getFullYear()}`, 15, y); y += 9;
+  // 1) números
+  const sv = (a, b)=>{ const v = varHome(a, b); return v === null ? 'sem base' : v === 0 ? '= sem. passada' : (v > 0 ? '+' : '') + v + '%'; };
+  const cards = [['Perfilados', d.cur.perf, d.ant.perf, [31,138,76]], ['Topografados', d.cur.topo, d.ant.topo, [31,99,176]], ['Azimutados', d.cur.az, d.ant.az, [138,92,194]], ['Leques tratados', d.cur.trat, d.ant.trat, [15,125,120]], ['Metros tratados', d.cur.metros, d.ant.metros, [232,68,26]]];
+  const w = 34, gap = 2.5;
+  cards.forEach(([rot, v, a, cor], i)=>{ const x = 15 + i * (w + gap);
+    doc.setDrawColor(215); doc.setFillColor(250,250,252); doc.roundedRect(x, y, w, 21, 2, 2, 'FD'); doc.setFillColor(...cor); doc.rect(x, y, w, 1.6, 'F');
+    doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(110); doc.text(rot.toUpperCase(), x + 3, y + 6.5);
+    doc.setFontSize(15); doc.setTextColor(...cor); doc.text(rot === 'Metros tratados' ? fmtHM(v) : String(v), x + 3, y + 14);
+    doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.text(sv(v, a) + (v || a ? '' : ''), x + 3, y + 18.5); });
+  doc.setTextColor(0); y += 26;
+  doc.setFontSize(9); doc.setTextColor(90); doc.text(`Metros tratados no mês: ${fmtHM(d.metrosMes)} m  ·  ${d.tratMes} ${d.tratMes === 1 ? 'leque' : 'leques'}`, 15, y); doc.setTextColor(0); y += 8;
+  // 2) dia a dia
+  titulo('Dia a dia');
+  const col = [15, 62, 100, 138, 176];
+  doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(9.5); doc.setFont(undefined,'bold');
+  doc.text('Dia', 17, y); ['Perf.','Topo','Azim.','Trat.'].forEach((t, i)=> doc.text(t, col[i + 1] + 18, y, { align:'right' })); y += 6;
+  d.dias.forEach((x, i)=>{ if(i % 2){ doc.setFillColor(248,248,251); doc.rect(15, y - 4, 180, 5.4, 'F'); }
+    doc.setFont(undefined, x.iso === d.hojeISO ? 'bold' : 'normal'); doc.setTextColor(0); doc.text(`${x.nome} ${x.dd}`, 17, y);
+    if(x.folga && !x.perf && !x.topo && !x.az && !x.trat){ doc.setTextColor(130); doc.text('folga', col[1] + 18, y, { align:'right' }); }
+    else [x.perf, x.topo, x.az, x.trat].forEach((v, k)=> doc.text(String(v), col[k + 1] + 18, y, { align:'right' }));
+    doc.setTextColor(0); y += 5.4; });
+  doc.setFont(undefined,'bold'); doc.setDrawColor(150); doc.line(15, y - 3.6, 195, y - 3.6); doc.text('Total', 17, y);
+  [d.cur.perf, d.cur.topo, d.cur.az, d.cur.trat].forEach((v, k)=> doc.text(String(v), col[k + 1] + 18, y, { align:'right' })); y += 10;
+  // 3) realces
+  titulo('Realces');
+  doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text('Realce', 17, y); doc.text('Perf.', 96, y, { align:'right' }); doc.text('Topo', 114, y, { align:'right' }); doc.text('Azim.', 132, y, { align:'right' }); doc.text('Tratados', 160, y, { align:'right' }); doc.text('Semana', 177, y, { align:'right' }); doc.text('Arq.', 192, y, { align:'right' }); y += 6;
+  const pc = (v, n)=> n ? Math.round(v / n * 100) : 0;
+  d.porRealce.forEach(r=>{ garantir(8); doc.setFont(undefined,'bold'); doc.setFontSize(9.5); doc.setTextColor(0); doc.text(String(r.a.nome), 17, y);
+    doc.setFont(undefined,'normal'); doc.text(pc(r.perf, r.nU) + '%', 96, y, { align:'right' }); doc.text(pc(r.topo, r.nU) + '%', 114, y, { align:'right' }); doc.text(pc(r.az, r.nU) + '%', 132, y, { align:'right' });
+    doc.text(`${r.trat}/${r.n}${r.prontos ? ' (+' + r.prontos + ' prontos)' : ''}`, 160, y, { align:'right' }); doc.text(String(r.semana), 177, y, { align:'right' });
+    doc.setTextColor(...(r.completo || r.a.arquivosOk ? [31,138,76] : [178,53,17])); doc.text(r.completo ? '—' : r.a.arquivosOk ? 'sim' : 'não', 192, y, { align:'right' }); doc.setTextColor(0);
+    doc.setFillColor(232,232,238); doc.rect(17, y + 1.2, 78, 1.6, 'F'); doc.setFillColor(15,125,120); doc.rect(17, y + 1.2, 78 * (r.n ? r.trat / r.n : 0), 1.6, 'F'); y += 7.2; });
+  y += 4;
+  // 4) tratados na semana
+  titulo(`Leques tratados na semana (${d.tratadosSemana.length})`);
+  if(!d.tratadosSemana.length){ doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.setTextColor(110); doc.text('Nenhum leque tratado nesta semana.', 17, y); doc.setTextColor(0); y += 8; }
+  else {
+    doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(9.5); doc.setFont(undefined,'bold'); doc.text('Data', 17, y); doc.text('Realce', 40, y); doc.text('Leque', 120, y); doc.text('Metros', 190, y, { align:'right' }); y += 6; doc.setFont(undefined,'normal');
+    d.tratadosSemana.forEach(t=>{ garantir(6); doc.text(t.iso.slice(8,10) + '/' + t.iso.slice(5,7), 17, y); doc.text(String(t.realce), 40, y); doc.text(String(t.codigo), 120, y); doc.text(fmtHM(t.metros), 190, y, { align:'right' }); y += 5.2; });
+    doc.setFont(undefined,'bold'); doc.setDrawColor(150); doc.line(15, y - 3.6, 195, y - 3.6); doc.text(`Total (${d.tratadosSemana.length})`, 17, y); doc.text(fmtHM(d.cur.metros), 190, y, { align:'right' }); y += 10;
+  }
+  // 5) pendências
+  titulo('Pendências para a próxima semana');
+  const itens = [];
+  if(d.prontos) itens.push(`${d.prontos} ${d.prontos === 1 ? 'leque pronto' : 'leques prontos'} para tratar${d.prontosSemAz ? ` (${d.prontosSemAz} ainda sem azimute completo)` : ''}`);
+  if(p.esperaTopo) itens.push(`${p.esperaTopo} furos perfilados esperando topografia`);
+  if(p.esperaAz) itens.push(`${p.esperaAz} furos topografados esperando azimute`);
+  if(p.semPerf) itens.push(`${p.semPerf} furos ainda sem perfilagem`);
+  if(d.semArquivos.length) itens.push('Arquivos do realce não recebidos: ' + d.semArquivos.join(', '));
+  d.porRealce.filter(r=> !r.completo && r.parado !== null && r.parado >= 3).forEach(r=> itens.push(`${r.a.nome} sem movimento há ${r.parado} dias`));
+  if(p.obst) itens.push(`${p.obst} ${p.obst === 1 ? 'furo obstruído' : 'furos obstruídos'}`);
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  if(!itens.length) { doc.text('Nada pendente.', 17, y); y += 6; }
+  itens.forEach(t=>{ const ls = doc.splitTextToSize(t, 172); garantir(ls.length * 5 + 2); doc.setFillColor(15,125,120); doc.circle(18, y - 1.2, 0.9, 'F'); doc.text(ls, 22, y); y += ls.length * 5 + 1.5; });
+  adicionarMarcaDaguaPDF(doc); adicionarNumeracaoPaginas(doc);
+  await baixarOuCompartilharPDF(doc, `fechamento_semanal_${d.iniISO}.pdf`, true);
+  showToast('Fechamento semanal em PDF gerado.', { tipo:'ok' });
+}
