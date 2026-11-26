@@ -256,6 +256,7 @@ function htmlCardChecklist(c, agrupado){
             ${furos.length ? `
               <button type="button" class="ghost" onclick="aplicarLoteChecklist('perfilado', ['${c.id}'])">Todos perfilados</button>
               <button type="button" class="ghost" onclick="aplicarLoteChecklist('topografado', ['${c.id}'])">Todos topografados</button>` : ''}
+            ${c.tratado ? '' : c.liberado ? `<button type="button" class="ghost" onclick="liberarLequeTratamento('${c.id}', false)">↩ Tirar de prontos p/ tratar</button>` : `<button type="button" class="ghost" onclick="liberarLequeTratamento('${c.id}')" title="entra em Prontos para tratar mesmo sem completar as etapas">✓ Liberar para tratar</button>`}
             <button type="button" class="ghost" onclick="verHistoricoLeque('${c.id}')">🕘 Histórico</button>
             <button type="button" class="ghost perigo" onclick="removerChecklistLeque('${c.id}')">Remover leque</button>
           </div>
