@@ -130,17 +130,21 @@ async function gerarRelatorio2DPDF(){
     if(cod){ doc.line(87, 12, 87, 24); doc.text(cod, 101, 19.5, { align:'center' }); }
     try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 170, 8, 25, 24.5); }catch(e){}
   };
+  const infoLinha = ()=>{ doc.setFont(undefined,'normal'); doc.setFontSize(8.5); doc.setTextColor(110);
+    doc.text(`Supervisor: ${configApp.supervisor || '-'}   ·   Projeto: ${configApp.projetoAtivo || '-'}   ·   Gerado em ${new Date().toLocaleString('pt-BR')}`, 15, 31, { maxWidth: 150 }); doc.setTextColor(0); };
   const imagem = async (reg, x, y, wMax, hMax)=>{
     if(!reg){ doc.setDrawColor(190); doc.setLineDashPattern([2,2],0); doc.rect(x, y, wMax, Math.min(hMax, 60)); doc.setLineDashPattern([],0); doc.setFontSize(9); doc.setTextColor(140); doc.text('(sem imagem anexada)', x + wMax/2, y + 30, { align:'center' }); doc.setTextColor(0); return Math.min(hMax, 60); }
     let w = wMax, h = w * reg.h / reg.w; if(h > hMax){ h = hMax; w = h * reg.w / reg.h; }
     doc.addImage(await r2dParaDataURL(reg.blob), 'JPEG', x + (wMax - w)/2, y, w, h); return h;
   };
   const legenda = (y, geral)=>{ doc.setFont(undefined,'bold'); doc.setFontSize(10); doc.text('LEGENDA', 15, y); doc.text(geral ? 'AZUL: PLANEJADO' : 'LINHA AZUL: PLANEJADO', 15, y + 5); doc.text(geral ? 'VERMELHO: EXECUTADO' : 'TRACEJADO VERMELHA: EXECUTADO', 15, y + 10); };
-  // Página 1 — imagem geral
-  cab(null); const hG = await imagem(geral, 15, 38, 180, 200); legenda(38 + hG + 8, true);
+  // Página 1 — cabeçalho completo (logo, título, gerado em, supervisor e projeto) + imagem geral
+  let y1 = await desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO 2D DE TRATATIVA' }) - 4;
+  doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, y1, 100, 10); doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text(NOME, 17, y1 + 6.8, { maxWidth: 96 });
+  y1 += 14; const hG = await imagem(geral, 15, y1, 180, 285 - y1 - 20); legenda(y1 + hG + 8, true);
   // Uma página por leque
   for(const e of lista){
-    doc.addPage(); cab(codigoLequeCk(e.c));
+    doc.addPage(); cab(codigoLequeCk(e.c)); infoLinha();
     const fs = checklistFurosDoLeque(e.c.id).slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, { numeric:true }));
     const linhaH = 6.2, tabH = (fs.length + 1) * linhaH, hMax = Math.max(60, 285 - 38 - 22 - tabH - 6);
     const reg = await r2dImg('get', 'leque:' + e.c.id), h = await imagem(reg, 15, 38, 180, Math.min(hMax, 130));
