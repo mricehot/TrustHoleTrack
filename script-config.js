@@ -1,28 +1,23 @@
 // ---------- Configurações do app, perfil do técnico e relatórios em PDF ----------
-// Supervisor e Projeto eram fixos no código — agora ficam editáveis na aba
-// Configurações. Os valores abaixo são só o padrão inicial (os mesmos que já
-// estavam no código antes), pra quem já usa o app não ver nada em branco.
+// WhatsApp e projeto ativo ficam editáveis na aba Configurações.
 const CONFIG_LOCAL_KEY = 'perfilagem-config-app-v1';
-let configApp = { supervisor: 'Talles da Silveira', whatsapp: '', projetoAtivo: '' };
+let configApp = { whatsapp: '', projetoAtivo: '' };
 function carregarConfigLocal(){
   try{
     const raw = localStorage.getItem(CONFIG_LOCAL_KEY);
     if(raw) configApp = { ...configApp, ...JSON.parse(raw) };
+    delete configApp.supervisor; // campo removido
   }catch(e){}
 }
 function salvarConfigLocal(){
   try{ localStorage.setItem(CONFIG_LOCAL_KEY, JSON.stringify(configApp)); }catch(e){}
 }
 function renderConfig(){
-  const campoSupervisor = el('config-supervisor');
   const campoWhatsapp = el('config-whatsapp');
-  if(!campoSupervisor) return;
-  campoSupervisor.value = configApp.supervisor;
   if(campoWhatsapp) campoWhatsapp.value = configApp.whatsapp || '';
   renderProjetosConfig();
 }
 function salvarConfig(){
-  configApp.supervisor = el('config-supervisor').value.trim() || configApp.supervisor;
   configApp.whatsapp = el('config-whatsapp').value.replace(/\D/g, ''); // só dígitos
   salvarConfigLocal();
   showToast('Configurações salvas.');
@@ -282,7 +277,7 @@ function desenharResumoPDF(doc, y, stats){
   return y + alturaBox + 8;
 }
 
-// Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + supervisor e projeto).
+// Desenha o cabeçalho comum de qualquer relatório em PDF (logo + título + projeto).
 // Devolve a coordenada Y onde o conteúdo específico do relatório deve começar.
 async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   const titulo = opcoes.titulo || 'RELATÓRIO DE PERFILAGEM DE LAVRA';
@@ -298,7 +293,7 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
 
   doc.setFontSize(PDF_FONT_INFO);
   let y = 38;
-  const campos = [['Supervisor:', configApp.supervisor], ['Projeto:', configApp.projetoAtivo]];
+  const campos = [['Projeto:', configApp.projetoAtivo]];
   doc.setFont(undefined,'normal');
   campos.forEach(([label,val])=>{
     doc.text(label, 15, y);

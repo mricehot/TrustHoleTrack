@@ -97,7 +97,7 @@ const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV', aux:'AUX
 // Ajuste os valores abaixo (em pt) para controlar o tamanho das letras nos PDFs exportados.
 const PDF_FONT_TITULO = 13;      // título principal do relatório (ex: "STATUS TURNO...")
 const PDF_FONT_SUBTITULO = 10;   // linha "Gerado em ..." abaixo do título
-const PDF_FONT_INFO = 11;        // dados do turno (Data, Técnicos, Supervisor, etc)
+const PDF_FONT_INFO = 11;        // dados do turno (Data, Técnicos, etc)
 const PDF_FONT_CABECALHO = 10;   // cabeçalho da tabela (Furo/Esperada/Real/Diferenca/Situacao)
 const PDF_FONT_CORPO = 10;       // linhas de furos dentro da tabela
 const PDF_FONT_LEQUE_TITULO = 12;// "Anel: X" / "Leque: LQ01" acima de cada tabela

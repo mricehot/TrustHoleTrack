@@ -32,7 +32,7 @@ function mostrarApp(user){
   if(labelUsuario) labelUsuario.textContent = usuarioAtual ? `logado: ${usuarioAtual.nome || usuarioAtual.email}` : '';
   try{ aplicarPapel(); setTimeout(carregarUsuariosEmpresa, 800); }catch(e){}
   try{ atualizarAvatarEMeuDia(); }catch(e){}
-  try{ const u = lerUltimo(); if(u.view && u.view !== 'perfilagem' && document.getElementById('view-' + u.view)) mostrarView(u.view); }catch(e){}
+  try{ const u = lerUltimo(); if(u.view && u.view !== 'home' && document.getElementById('view-' + u.view)) mostrarView(u.view); }catch(e){}
   if(typeof tutorialJaVisto === 'function' && !tutorialJaVisto()) setTimeout(()=> abrirTutorial(0), 700);
 }
 
@@ -856,7 +856,7 @@ function sugerirLocalChecklist(){
 })();
 
 /* ================= Modo conferência (só leitura) ================= */
-// Para o supervisor ou o turno seguinte conferir o estado sem risco de marcar algo sem querer.
+// Para o gestor ou o turno seguinte conferir o estado sem risco de marcar algo sem querer.
 // Não é gravado: ao reabrir o app volta ao normal.
 let modoLeitura = false;
 const FUNCOES_BLOQUEADAS_LEITURA = [

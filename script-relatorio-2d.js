@@ -152,7 +152,7 @@ async function gerarRelatorio2DPDF(){
     doc.addImage(await r2dParaDataURL(reg.blob), 'JPEG', x + (wMax - w)/2, y, w, h); return h;
   };
   const legenda = (y, geral)=>{ doc.setFont(undefined,'bold'); doc.setFontSize(10); doc.text('LEGENDA', 15, y); doc.text(geral ? 'AZUL: PLANEJADO' : 'LINHA AZUL: PLANEJADO', 15, y + 5); doc.text(geral ? 'VERMELHO: EXECUTADO' : 'TRACEJADO VERMELHA: EXECUTADO', 15, y + 10); };
-  // Página 1 — cabeçalho completo (logo, título, gerado em, supervisor e projeto) + imagem geral
+  // Página 1 — cabeçalho completo (logo, título, gerado em e projeto) + imagem geral
   try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - R2D_LOGO_W, 9, R2D_LOGO_W, R2D_LOGO_H); }catch(e){}
   doc.setFont(undefined,'bold'); doc.setFontSize(14); doc.text('RELATÓRIO 2D DE TRATATIVA', 15, 16);
   doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(120); doc.text('Gerado em ' + new Date().toLocaleDateString('pt-BR'), 15, 22); doc.setTextColor(0);

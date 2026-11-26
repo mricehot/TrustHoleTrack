@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BlastHole">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="style.css?v=l156">
+<link rel="stylesheet" href="style.css?v=l158">
 
 </head>
 <body>
@@ -69,7 +69,7 @@
     </div>
     <div class="hint" id="login-erro" style="color:var(--rust); min-height:16px; margin-bottom:10px;"></div>
     <button type="button" id="btn-login" class="steel" style="width:100%;">Entrar</button>
-    <div class="hint" style="margin-top:14px; text-align:center;">Esqueceu a senha ou não tem conta? Fale com o supervisor.</div>
+    <div class="hint" style="margin-top:14px; text-align:center;">Esqueceu a senha ou não tem conta? Fale com o gestor.</div>
   </div>
 </div>
 <div class="banner-leitura" id="banner-leitura" hidden><span>👁 Visualização: nada pode ser marcado. Toque em Editar para alterar.</span><button type="button" onclick="leituraAutomatica=false;definirModoLeitura(false)">✏️ Editar</button></div>
@@ -130,9 +130,10 @@
   </header>
 
   <nav class="tabbar" id="tabbar">
+    <button type="button" class="tab-item active" data-view="home"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg></span><span class="tab-label">Início</span></button>
     <button type="button" class="tab-item" data-view="aneis"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></span><span class="tab-label">Realce</span></button>
-    <button type="button" class="tab-item active" data-view="perfilagem"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="15"/></svg></span><span class="tab-label">Tratamento</span></button>
-    <button type="button" class="tab-item" data-view="notas"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5A2.5 2.5 0 0 1 6.5 19H20v3H6.5A2.5 2.5 0 0 1 4 21.5z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg></span><span class="tab-label">Anotações</span></button>
+    <button type="button" class="tab-item" data-view="perfilagem"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="18" y1="20" x2="18" y2="15"/></svg></span><span class="tab-label">Tratamento</span></button>
+    <button type="button" class="tab-item tab-secundaria" data-view="notas"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5A2.5 2.5 0 0 1 6.5 19H20v3H6.5A2.5 2.5 0 0 1 4 21.5z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/></svg></span><span class="tab-label">Anotações</span></button>
     <button type="button" class="tab-item" data-view="checklist"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="tab-label">Checklist</span></button>
     <button type="button" class="tab-item tab-secundaria" data-view="infografico"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></span><span class="tab-label">Infográfico</span></button>
     <button type="button" class="tab-item tab-secundaria" data-view="config"><span class="tab-icon"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 15.09V15a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="tab-label">Config</span></button>
@@ -147,7 +148,9 @@
       <div class="breadcrumb" id="breadcrumb"></div>
       <div class="aviso-refazer" id="aviso-refazer" style="display:none;"></div>
 
-      <section class="view active com-tratativa" id="view-perfilagem">
+      <section class="view active" id="view-home"></section>
+
+      <section class="view com-tratativa" id="view-perfilagem">
         <div id="tratativa-root"><div class="trat-vazio">Carregando…</div></div>
         <div class="leque-faixa" id="leque-faixa" hidden aria-live="polite"></div>
         <div class="perf-plano"><button type="button" class="ghost btn-plano-ativo" hidden title="abre o PDF do plano de perfuração deste realce" onclick="abrirPlano()">📄 Plano de perfuração</button></div>
@@ -331,18 +334,14 @@
         <div class="view-card">
           <div class="view-card-header">
             <span class="view-card-label">Configurações</span>
-            <span class="tag">usado nos relatórios</span>
+            <span class="tag">WhatsApp</span>
           </div>
           <div class="config-body">
             <div class="field so-gestor">
-              <label for="config-supervisor">Supervisor</label>
-              <input id="config-supervisor" type="text" placeholder="ex: Talles da Silveira">
-            </div>
-            <div class="field so-gestor" style="margin-top:14px;">
               <label for="config-whatsapp">WhatsApp para envio do checklist</label>
               <input id="config-whatsapp" type="text" inputmode="tel" placeholder="ex: 5511987654321 (DDI+DDD+número, só números)">
             </div>
-            <div class="hint so-gestor">O supervisor aparece nos relatórios em PDF, e o número é usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
+            <div class="hint so-gestor">O número é usado no botão de enviar o checklist por WhatsApp — mude aqui uma vez, em vez de repetir sempre.</div>
             <button type="button" id="btn-salvar-config" class="steel so-gestor" style="margin-top:14px;">Salvar</button>
 
             <div class="field" style="margin-top:24px; border-top:1px solid var(--line); padding-top:18px;">
@@ -647,20 +646,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=l85"></script>
+<script src="script.js?v=l86"></script>
 <script src="script-leques.js?v=l99"></script>
 <script src="script-checklist.js?v=l121"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l90"></script>
-<script src="script-config.js?v=3"></script>
-<script src="script-telas.js?v=l96"></script>
-<script src="script-sessao.js?v=l99"></script>
+<script src="script-config.js?v=4"></script>
+<script src="script-telas.js?v=l97"></script>
+<script src="script-sessao.js?v=l100"></script>
 <script src="script-lembretes.js?v="></script>
 <script src="script-plano.js?v=l3"></script>
 <script src="script-conforto.js?v=l84x"></script>
 <script src="script-tratativa.js?v=17"></script>
 <script src="script-relatorio-tratativa.js?v=7"></script>
 <script src="script-andamento.js?v=1"></script>
+<script src="script-home.js?v=2"></script>
 <script src="script-relatorio-2d.js?v=10"></script>
 <script src="script-envios.js?v=3"></script>
 <script src="script-notas.js?v=2"></script>

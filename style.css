@@ -3085,3 +3085,43 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 @media (min-width:1450px){ #anel-list{ grid-template-columns:repeat(3, minmax(0,1fr)) !important; } }
 .and-previa{ white-space:pre-wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.5; max-height:46vh; overflow:auto; margin:0 0 10px; }
 .trat-acoes-card{ display:flex; flex-wrap:wrap; gap:8px; }
+
+/* ================= Início (home): fechamento da semana + o que fazer agora ================= */
+.home-topo{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px 16px; margin:4px 0 14px; }
+.home-topo h2{ margin:0; font-size:1.4rem; }
+.home-sub{ color:var(--muted); font-size:13px; font-weight:600; }
+.home-nav{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.home-nav button{ min-height:40px; text-transform:none; } .home-nav button:disabled{ opacity:.45; }
+.home-kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:14px; }
+.home-kpi{ background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--c); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.home-kpi span{ font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.home-kpi b{ font-family:var(--mono); font-size:28px; line-height:1.15; color:var(--c); } .home-kpi b small{ font-size:14px; color:var(--muted); }
+.home-var{ font-size:12px; font-weight:600; } .home-var.sobe{ color:#1f8a4c; } .home-var.desce{ color:#b23511; } .home-var.neutro{ color:var(--muted); }
+.home-grade{ display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px; }
+.home-card{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:14px; min-width:0; }
+.home-grade .home-card{ margin-bottom:0; }
+.home-card h3{ margin:0 0 10px; font-size:1.05rem; } .home-card h3 small{ font-weight:600; color:var(--muted); font-size:12px; margin-left:6px; }
+.home-card h4{ margin:14px 0 6px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.home-card table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+.home-card th, .home-card td{ padding:7px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+.home-card thead th{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.home-card th small{ display:block; font-weight:600; color:var(--muted); font-size:11.5px; }
+.home-card td.n, .home-card th.n{ text-align:right; font-family:var(--mono); white-space:nowrap; }
+.home-dias td.n{ background:linear-gradient(90deg, color-mix(in srgb, var(--steel) 16%, transparent) var(--p,0%), transparent var(--p,0%)); }
+.home-dias tr.hoje th{ color:#e8441a; } .home-dias tr.folga{ color:var(--muted); background:var(--surface-2); } .home-dias .folga-t{ text-align:center; font-size:12px; color:var(--muted); }
+.home-acoes{ list-style:none; margin:0; padding:0; }
+.home-acoes li{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); }
+.home-acoes .ic{ width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--surface-2); flex:none; font-size:13px; }
+.home-acoes .tx{ flex:1; font-size:13.5px; line-height:1.35; }
+.home-acoes li.ok .ic{ background:#e0f3f1; } .home-acoes li.av .ic{ background:#fdf3dc; } .home-acoes li.ruim .ic{ background:#fde9e2; }
+.home-acoes button{ min-height:36px !important; padding:4px 12px; font-size:12.5px; text-transform:none; }
+.home-prev{ margin:0; padding-left:18px; font-size:13.5px; line-height:1.5; }
+.home-pipe{ display:flex; height:22px; border-radius:8px; overflow:hidden; background:var(--surface-2); border:1px solid var(--line); }
+.home-pipe i{ display:block; height:100%; }
+.home-pipe-leg{ display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:13px; color:var(--muted); }
+.home-pipe-leg i{ display:inline-block; width:12px; height:12px; border-radius:4px; margin-right:6px; vertical-align:-2px; } .home-pipe-leg b{ color:var(--text); font-family:var(--mono); margin-left:4px; }
+.home-tab-rolagem{ overflow-x:auto; }
+.home-realces tbody tr{ cursor:pointer; } .home-realces tbody tr:hover td, .home-realces tbody tr:hover th{ background:color-mix(in srgb, var(--steel) 7%, transparent); }
+.home-pronto{ color:#b23511; font-family:var(--sans); font-weight:700; } .home-sem-arq{ color:#b23511; font-weight:700; }
+@media (min-width:900px){ .home-grade{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); } }
+@media (max-width:640px){ .home-card{ padding:12px 10px; } .home-card th, .home-card td{ padding:6px 4px; font-size:12.5px; } .home-realces th:first-child{ min-width:0; } }
