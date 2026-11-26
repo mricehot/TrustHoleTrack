@@ -36,6 +36,31 @@ function linhasTratados(anelIds){
 // Metros tratados = metragem real medida; se ainda não foi preenchida, usa a esperada.
 const metrosDoLeque = l => l.real > 0 ? l.real : l.esp;
 
+
+// Imagem dos leques tratados (um quadro por realce): cada leque é um cartão com código, metros e data.
+function imagemTratadosCanvas(g){
+  const W = 1000, M = 28, COLS = 4, GAP = 12, CW = Math.floor((W - 2*M - GAP*(COLS-1)) / COLS), CH = 78;
+  const linhas = Math.ceil(g.leques.length / COLS), H = M + 62 + linhas * (CH + GAP) + 24;
+  const esc = 2, cv = document.createElement('canvas'); cv.width = W * esc; cv.height = H * esc;
+  const c = cv.getContext('2d'); c.scale(esc, esc);
+  const F = '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  const rr = (x,y,w,h,r)=>{ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); };
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
+  const tot = g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0);
+  c.fillStyle = '#18202b'; c.font = `700 26px ${F}`; c.textBaseline = 'alphabetic'; c.fillText(g.realce.nome, M, M + 26);
+  c.fillStyle = '#5b6878'; c.font = `500 16px ${F}`;
+  c.fillText(`${g.leques.length} ${g.leques.length === 1 ? 'leque tratado' : 'leques tratados'} · ${fmtM(tot)} m${g.realce.nivel ? ' · ' + g.realce.nivel : ''}`, M, M + 52);
+  g.leques.forEach((l,i)=>{
+    const x = M + (i % COLS) * (CW + GAP), y = M + 66 + Math.floor(i / COLS) * (CH + GAP);
+    rr(x, y, CW, CH, 12); c.fillStyle = '#e3f4f2'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#0f7d78'; c.stroke();
+    c.fillStyle = '#0f7d78'; c.font = `700 14px ${F}`; c.fillText('✓', x + 12, y + 24);
+    c.fillStyle = '#18202b'; c.font = `700 22px ${F}`; c.fillText(l.codigo, x + 32, y + 26);
+    c.fillStyle = '#18202b'; c.font = `600 17px ${F}`; c.fillText(fmtM(metrosDoLeque(l)) + ' m', x + 12, y + 50);
+    c.fillStyle = '#5b6878'; c.font = `500 14px ${F}`; c.fillText(fmtDataBR(l.tratadoEm), x + 12, y + 68);
+  });
+  return cv;
+}
+
 async function exportarRelatorioTratativaPDF(anelIds){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
   const grupos = linhasTratados(anelIds);
@@ -57,10 +82,33 @@ async function exportarRelatorioTratativaPDF(anelIds){
     doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
     doc.text(`Total (${g.leques.length})`, 17, y); doc.text(fmtM(g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0)), 120, y, { align:'right' }); y += 10;
   });
+  // Anexo: imagem dos leques tratados, um quadro por realce.
+  doc.addPage(); y = 20;
+  doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Imagem dos leques tratados', 15, y); y += 6;
+  for(const g of grupos){
+    const cv = imagemTratadosCanvas(g); let w = 180, h = w * cv.height / cv.width;
+    if(h > 255){ h = 255; w = h * cv.width / cv.height; }
+    if(y + h > 285){ doc.addPage(); y = 20; }
+    doc.addImage(cv.toDataURL('image/png'), 'PNG', 15, y, w, h); y += h + 6;
+  }
   adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
   await baixarOuCompartilharPDF(doc, `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório em PDF gerado.', { tipo:'ok' });
+}
+
+async function exportarImagemTratados(anelIds){
+  const grupos = linhasTratados(anelIds);
+  if(!grupos.length){ showToast('Nenhum leque tratado nos realces escolhidos.', { tipo:'aviso' }); return; }
+  const cvs = grupos.map(imagemTratadosCanvas), w = cvs[0].width, h = cvs.reduce((s,c)=> s + c.height, 0);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); let y = 0;
+  cvs.forEach(c=>{ g.drawImage(c, 0, y); y += c.height; });
+  const blob = await new Promise(r=> cv.toBlob(r, 'image/png'));
+  const nome = `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.png`;
+  const arq = new File([blob], nome, { type:'image/png' });
+  try{ if(navigator.canShare && navigator.canShare({ files:[arq] })){ await navigator.share({ files:[arq], title:nome }); return; } }catch(e){ if(e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  showToast('Imagem gerada.', { tipo:'ok' });
 }
 
 function exportarRelatorioTratativaCSV(anelIds){
@@ -87,7 +135,7 @@ function abrirExportarTratativa(){
     <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os metros e a data da tratativa.</div>
     <div class="rel-realces" role="group" aria-label="Realces do relatório">${noEscopo.map(a=>`<label class="rel-item"><input type="checkbox" value="${a.id}" ${marcados.has(a.id) ? 'checked' : ''}><span>${escHtml(a.nome)}</span></label>`).join('') || '<div class="hint">Nenhum realce.</div>'}</div>
     <div class="rel-atalhos"><button type="button" class="ghost" id="rel-todos">Marcar todos</button><button type="button" class="ghost" id="rel-nenhum">Limpar</button></div>
-    <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="ghost" id="rel-csv">Planilha (CSV)</button><button class="steel" id="rel-pdf">Baixar PDF</button></div>
+    <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="ghost" id="rel-csv">Planilha (CSV)</button><button class="ghost" id="rel-img">Só imagem</button><button class="steel" id="rel-pdf">Baixar PDF</button></div>
   </div></div>`;
   const ids = ()=> [...root.querySelectorAll('.rel-realces input:checked')].map(i=>i.value);
   const fechar = ()=>{ root.innerHTML = ''; };
@@ -97,5 +145,6 @@ function abrirExportarTratativa(){
   el('rel-nenhum').addEventListener('click', ()=> root.querySelectorAll('.rel-realces input').forEach(i=> i.checked = false));
   const rodar = fn => async ()=>{ const sel = ids(); if(!sel.length){ showToast('Marque ao menos um realce.', { tipo:'aviso' }); return; } try{ await fn(sel); fechar(); }catch(e){ showToast('Não consegui gerar o relatório.', { tipo:'erro' }); } };
   el('rel-pdf').addEventListener('click', rodar(exportarRelatorioTratativaPDF));
+  el('rel-img').addEventListener('click', rodar(exportarImagemTratados));
   el('rel-csv').addEventListener('click', rodar(async s=> exportarRelatorioTratativaCSV(s)));
 }
