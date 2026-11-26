@@ -2358,24 +2358,24 @@ body.dark-mode .anel-chip[aria-pressed=true]{ background:#e9e8f3; color:#191231;
 .equipe-dia-lanc select.outro-dia{ border-color:#e0a21b; background:rgba(224,162,27,.12); }
 
 /* Pendências */
-.pend-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
-.pend-chip{ min-height:44px; padding:8px 14px; border-radius:99px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-weight:600; font-size:14px; text-transform:none; letter-spacing:0; }
-.pend-chip[aria-pressed=true]{ background:var(--navy); color:#fff; border-color:var(--navy); }
-body.dark-mode .pend-chip[aria-pressed=true]{ background:#e9e8f3; color:#191231; border-color:#e9e8f3; }
-.pend{ background:var(--surface); border:1px solid var(--line); border-left:8px solid var(--pc); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
-.pend.vencida{ box-shadow:0 0 0 2px rgba(214,69,61,.35); }
-.pend-topo{ display:flex; justify-content:space-between; gap:10px; align-items:baseline; font-size:16px; }
-.pend-idade{ font-size:13px; color:var(--muted); white-space:nowrap; } .pend-idade.velha{ color:#d6453d; font-weight:700; }
-.pend-meta{ font-size:13px; color:var(--muted); margin:4px 0 8px; } .pend-det{ font-size:14px; margin-bottom:8px; }
-.pend-status{ display:flex; gap:6px; } .pend-status button{ flex:1; min-height:44px; padding:6px 4px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--text); font-size:13px; font-weight:700; text-transform:none; letter-spacing:0; }
-.pend-status button.on.s-aberta{ background:#d6453d; color:#fff; border-color:#d6453d; } .pend-status button.on.s-em_resolucao{ background:#e0a21b; color:#191231; border-color:#e0a21b; } .pend-status button.on.s-resolvida{ background:#2e9b57; color:#fff; border-color:#2e9b57; }
-.pend-dono{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:8px; font-size:13px; }
-.pend-dono label{ display:flex; align-items:center; gap:6px; } .pend-dono select, .pend-dono input[type=date]{ min-height:44px; }
-.pend-dono i{ font-style:normal; background:#ecebf4; border-radius:99px; padding:4px 10px; font-weight:600; color:#191231; } .pend-dono i.sem{ background:#fff1d6; }
-.pend-dono .icon-remover{ margin-left:auto; }
-.pend-add{ width:100%; min-height:52px; background:transparent; border:2px dashed #b9b9c8; color:var(--steel); font-weight:700; border-radius:12px; margin-top:6px; }
-.pend-form{ margin-top:10px; } .pend-form-btns{ display:flex; gap:8px; }
-button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .sheet-item[data-view="pendencias"] > span[data-n]:not([data-n=""])::after{ content:attr(data-n); display:inline-block; margin-left:4px; min-width:16px; padding:0 4px; border-radius:99px; background:#d6453d; color:#fff; font-size:10px; line-height:16px; }
+
+
+
+
+
+
+
+ 
+ 
+ 
+  
+
+ 
+ 
+
+
+ 
+
 /* Hoje na mina */
 
 
@@ -2393,8 +2393,8 @@ button[data-view="pendencias"] .tab-label[data-n]:not([data-n=""])::after, .shee
   
  
 
-#tab-mais[data-pend="1"] .tab-icon{ position:relative; }
-#tab-mais[data-pend="1"] .tab-icon::after{ content:""; position:absolute; top:-2px; right:-4px; width:10px; height:10px; border-radius:50%; background:#d6453d; border:2px solid var(--surface); }
+
+
 
 /* Importar do PDF */
 .imp-box{ max-width:560px; }
