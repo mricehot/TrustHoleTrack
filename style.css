@@ -2890,3 +2890,10 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 .env-chip i{ display:block; font-style:normal; font-family:inherit; font-size:10px; font-weight:500; color:var(--muted); }
 .env-chip.ja{ opacity:.65; }
 .env-chip.on{ background:#0f7d78; border-color:#0f7d78; color:#fff; opacity:1; } .env-chip.on i{ color:#d9f2f0; }
+.trat-tratados{ margin:10px 0 0; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.trat-tratados summary{ min-height:44px; display:flex; align-items:center; padding:0 12px; font-weight:600; font-size:14px; cursor:pointer; color:#0f7d78; }
+.trat-linha-tr{ display:flex; align-items:center; gap:10px; padding:6px 12px; border-top:1px solid var(--line); }
+.trat-linha-tr b{ font-family:var(--mono); min-width:54px; }
+.trat-linha-tr span{ flex:1; font-size:12px; color:var(--muted); min-width:0; }
+.trat-linha-tr .ghost{ min-height:40px; padding:0 10px; font-size:13px; text-transform:none; white-space:nowrap; }
+body.modo-leitura .trat-linha-tr .ghost{ display:none !important; }
