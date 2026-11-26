@@ -45,7 +45,7 @@ async function abrirRelatorio2D(anelId){
   const a = aneis.find(x=>x.id === (anelId || anelAtivoId)); if(!a){ showToast('Nenhum realce ativo.'); return; }
   const lista = r2dLequesDoRealce(a.id).filter(e=>e.tratado);
   if(!lista.length){ showToast('Esse realce ainda não tem leques tratados.', { tipo:'aviso' }); return; }
-  r2dEstado = { anelId: a.id, aberto: null, urls: {} };
+  r2dEstado = { anelId: a.id, aberto: null, urls: {}, projeto: (()=>{ try{ return localStorage.getItem('r2d_projeto') || ''; }catch(e){ return ''; } })() };
   await r2dRender();
 }
 
@@ -81,6 +81,8 @@ async function r2dRender(){
   el('modal-root').innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga r2d-box">
     <p style="font-weight:700;margin:0 0 4px;">Relatório 2D · ${escHtml(a.nome)}</p>
     <div class="hint" style="margin-bottom:10px;">Página 1: imagem geral dos leques. Depois, uma página por leque tratado, com a imagem e a tabela. As imagens ficam guardadas neste aparelho.</div>
+    <label class="r2d-proj" for="r2d-projeto"><b>Projeto</b> <small>(aparece no cabeçalho do PDF; deixe vazio para não mostrar)</small></label>
+    <input type="text" id="r2d-projeto" maxlength="80" value="${escHtml(st.projeto || '')}" placeholder="Ex.: ERO – Pilar" autocomplete="off">
     <div class="r2d-geral"><b>1 · Imagem geral dos leques</b>
       ${geral ? `<img src="${geral}" alt="imagem geral dos leques">` : '<div class="r2d-img-vazia">Anexe a imagem com todos os leques do realce</div>'}
       <div class="r2d-img-acoes"><button type="button" class="steel" data-r2d-anexar="geral:${a.id}">${geral ? 'Trocar imagem' : 'Anexar imagem'}</button>${geral ? `<button type="button" class="ghost" data-r2d-remover="geral:${a.id}">Remover</button>` : ''}</div></div>
@@ -98,6 +100,10 @@ document.addEventListener('click', async ev=>{
   const ab = t.closest('[data-r2d-abrir]'); if(ab){ const id = ab.dataset.r2dAbrir; r2dEstado.aberto = r2dEstado.aberto === id ? null : id; return r2dRender(); }
   const an = t.closest('[data-r2d-anexar]'); if(an){ const inp = el('r2d-arq'); inp.dataset.chave = an.dataset.r2dAnexar; inp.value = ''; inp.click(); return; }
   const rm = t.closest('[data-r2d-remover]'); if(rm){ const k = rm.dataset.r2dRemover; await r2dImg('del', k); if(r2dEstado.urls[k]) URL.revokeObjectURL(r2dEstado.urls[k]); delete r2dEstado.urls[k]; return r2dRender(); }
+});
+document.addEventListener('input', ev=>{
+  if(!r2dEstado || ev.target.id !== 'r2d-projeto') return;
+  r2dEstado.projeto = ev.target.value; try{ localStorage.setItem('r2d_projeto', ev.target.value); }catch(e){}
 });
 document.addEventListener('change', async ev=>{
   const t = ev.target; if(!r2dEstado) return;
@@ -134,7 +140,7 @@ async function gerarRelatorio2DPDF(){
     try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - R2D_LOGO_W, 9, R2D_LOGO_W, R2D_LOGO_H); }catch(e){}
   };
   const infoLinha = ()=>{ doc.setFont(undefined,'normal'); doc.setFontSize(8.5); doc.setTextColor(110);
-    doc.text(`Projeto: ${configApp.projetoAtivo || '-'}   ·   Gerado em ${new Date().toLocaleString('pt-BR')}`, 15, 31, { maxWidth: 150 }); doc.setTextColor(0); };
+    doc.text([PROJ ? 'Projeto: ' + PROJ : '', 'Gerado em ' + new Date().toLocaleDateString('pt-BR')].filter(Boolean).join('   ·   '), 15, 31, { maxWidth: 150 }); doc.setTextColor(0); };
   const imagem = async (reg, x, y, wMax, hMax)=>{
     if(!reg){ doc.setDrawColor(190); doc.setLineDashPattern([2,2],0); doc.rect(x, y, wMax, Math.min(hMax, 60)); doc.setLineDashPattern([],0); doc.setFontSize(9); doc.setTextColor(140); doc.text('(sem imagem anexada)', x + wMax/2, y + 30, { align:'center' }); doc.setTextColor(0); return Math.min(hMax, 60); }
     let w = wMax, h = w * reg.h / reg.w; if(h > hMax){ h = hMax; w = h * reg.w / reg.h; }
@@ -144,11 +150,11 @@ async function gerarRelatorio2DPDF(){
   // Página 1 — cabeçalho completo (logo, título, gerado em, supervisor e projeto) + imagem geral
   try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - R2D_LOGO_W, 9, R2D_LOGO_W, R2D_LOGO_H); }catch(e){}
   doc.setFont(undefined,'bold'); doc.setFontSize(14); doc.text('RELATÓRIO 2D DE TRATATIVA', 15, 16);
-  doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(120); doc.text('Gerado em ' + new Date().toLocaleString('pt-BR'), 15, 22); doc.setTextColor(0);
+  doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(120); doc.text('Gerado em ' + new Date().toLocaleDateString('pt-BR'), 15, 22); doc.setTextColor(0);
   doc.setDrawColor(180); doc.setLineWidth(0.2); doc.line(15, 30, 195, 30);
-  doc.setFontSize(10); doc.text('Projeto:', 15, 38); doc.text(String(configApp.projetoAtivo || '-'), 42, 38);
-  doc.line(15, 44, 195, 44);
-  let y1 = 48;
+  const PROJ = (st.projeto || '').trim();
+  let y1 = 36;
+  if(PROJ){ doc.setFontSize(10); doc.text('Projeto:', 15, 38); doc.text(PROJ, 42, 38, { maxWidth: 150 }); doc.line(15, 44, 195, 44); y1 = 48; }
   doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(15, y1, 100, 10); doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text(NOME, 17, y1 + 6.8, { maxWidth: 96 });
   y1 += 14; const hG = await imagem(geral, 15, y1, 180, 285 - y1 - 20); legenda(y1 + hG + 8, true);
   // Uma página por leque

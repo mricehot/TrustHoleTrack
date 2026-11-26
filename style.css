@@ -3007,3 +3007,4 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .r2d-tab input{ width:100%; min-height:40px; padding:0 6px; text-align:center; border:1px solid transparent; background:transparent; font:inherit; color:inherit; }
 .r2d-tab input:focus{ border-color:var(--steel); background:var(--surface); }
 .r2d-cod{ font-size:15px; }
+.r2d-proj{ display:block; margin:0 0 4px; } .r2d-proj small{ color:var(--muted); font-weight:400; } #r2d-projeto{ width:100%; min-height:44px; margin:0 0 12px; }
