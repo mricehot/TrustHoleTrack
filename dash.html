@@ -761,12 +761,32 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('./sw.js').then(function(reg){
-        // Já havia um service worker: se um novo assumir, avisa (sem recarregar sozinho no meio do trabalho).
-        var tinhaControlador = !!navigator.serviceWorker.controller;
+        // Já havia um service worker: quando um novo assume, o app recarrega sozinho assim que for seguro
+        // (nada pendente de envio e nenhuma janela aberta). Se não for, avisa com um botão.
+        var tinhaControlador = !!navigator.serviceWorker.controller, recarregando = false, novaVersao = false;
+        function podeRecarregar(){
+          try{
+            if(typeof falhasDeEnvio !== 'undefined' && falhasDeEnvio.size > 0) return false;
+            if(typeof debouncesPendentes !== 'undefined' && debouncesPendentes.size > 0) return false;
+            if(typeof enviosEmAndamento !== 'undefined' && enviosEmAndamento > 0) return false;
+            var m = document.getElementById('modal-root'); if(m && m.children.length) return false;
+            var a = document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return false;
+          }catch(e){}
+          return true;
+        }
+        function tentarRecarregar(){
+          if(!novaVersao || recarregando) return;
+          if(podeRecarregar()){ recarregando = true; location.reload(); return; }
+          if(typeof showToast === 'function') showToast('Nova versão do app pronta.', { tipo:'ok', acaoLabel:'Atualizar agora', onAcao: function(){ recarregando = true; location.reload(); } });
+        }
         navigator.serviceWorker.addEventListener('controllerchange', function(){
-          if(tinhaControlador && typeof showToast === 'function') showToast('Nova versão do app instalada. Feche e abra o app (ou recarregue) para usar.', { erro:false });
+          if(tinhaControlador){ novaVersao = true; tentarRecarregar(); setInterval(tentarRecarregar, 20000); }
           tinhaControlador = true;
         });
+        // Procura versão nova ao voltar para o app e de tempos em tempos (um app instalado pode ficar dias aberto em segundo plano).
+        function procurar(){ try{ reg.update(); }catch(e){} }
+        document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'visible') procurar(); });
+        setInterval(procurar, 10 * 60 * 1000);
       }).catch(function(){});
     });
   }
