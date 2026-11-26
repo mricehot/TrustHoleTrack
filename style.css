@@ -3008,3 +3008,8 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .r2d-tab input:focus{ border-color:var(--steel); background:var(--surface); }
 .r2d-cod{ font-size:15px; }
 .r2d-proj{ display:block; margin:0 0 4px; } .r2d-proj small{ color:var(--muted); font-weight:400; } #r2d-projeto{ width:100%; min-height:44px; margin:0 0 12px; }
+/* Tratados: sempre aberto e bem visível */
+.trat-tratados{ margin:14px 0 0; border:1.5px solid #0f7d78; border-radius:14px; background:rgba(15,125,120,.07); overflow:hidden; }
+.trat-tratados h4{ margin:0; padding:12px 14px; font-size:15px; color:#0f7d78; background:rgba(15,125,120,.12); text-transform:none; letter-spacing:0; }
+.trat-tratados .trat-linha-tr{ padding:8px 14px; }
+.trat-tratados .trat-linha-tr .ghost{ background:var(--surface); border-color:#0f7d78; color:#0f7d78; font-weight:600; }
