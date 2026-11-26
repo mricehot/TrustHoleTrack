@@ -272,8 +272,8 @@ el('btn-baixar-selecionados').addEventListener('click', ()=>{
   exportarLequesPDF(Array.from(lequesSelecionados), { baixar:true });
 });
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
-const VIEWS_SECUNDARIAS = ['infografico','historico','config','tecnico'];
-const ORDEM_VIEWS = ['aneis','perfilagem','notas','checklist','infografico','historico','config','tecnico'];
+const VIEWS_SECUNDARIAS = ['infografico','config','tecnico'];
+const ORDEM_VIEWS = ['aneis','perfilagem','notas','checklist','infografico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;

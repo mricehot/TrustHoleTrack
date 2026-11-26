@@ -291,24 +291,17 @@ button .icon-svg{ stroke:currentColor; }
 .view-card.accent-steel .view-card-label{ color:var(--section-aneis); }
 .view-card.accent-amber .view-card-label{ color:var(--section-turno); }
 
-.historico-body{ padding:14px 16px; border-top:1px solid var(--line); }
+
 .config-body{ padding:14px 16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
-.historico-list{ display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; }
-.historico-row{
-  display:flex; align-items:center; gap:6px 10px; padding:8px 10px; flex-wrap:wrap;
-  border:1px solid var(--line); border-radius:5px; background:var(--surface-2);
-  font-family:var(--sans); font-size:12.5px;
-}
-.historico-row .quando{ color:var(--muted); white-space:nowrap; }
-.historico-row .tipo{
-  font-size:12px; text-transform:uppercase; letter-spacing:0.5px; padding:2px 7px; border-radius:20px;
-  border:1px solid var(--line); color:var(--muted); white-space:nowrap; flex-shrink:0;
-}
-.historico-row .tipo.turno{ color:var(--steel); border-color:var(--steel); }
-.historico-row .tipo.leque{ color:var(--amber); border-color:var(--amber); }
-.historico-row .tipo.combinado{ color:var(--moss); border-color:var(--moss); }
-.historico-row .detalhe{ flex:1 1 100%; color:var(--text); word-break:break-word; }
-.historico-row .arquivo{ font-size:12px; color:var(--muted); flex:1 1 100%; word-break:break-all; }
+
+
+
+
+
+
+
+
+
 
 .obs-add-row{ display:flex; gap:8px; }
 .obs-add-row input{ flex:1; }

@@ -339,70 +339,6 @@ async function baixarOuCompartilharPDF(doc, nomeArquivo, forcarDownload){
   setTimeout(()=> URL.revokeObjectURL(url), 1000);
 }
 
-// ---------- Histórico de exportações ----------
-let historicoExportacoes = [];
-
-async function registrarExportacao({ tipo, leques, qtdLeques, qtdFuros, nomeArquivo }){
-  try{
-    const { error } = await db.from('export_historico').insert({
-      tipo,
-      leques: leques || null,
-      qtd_leques: qtdLeques || 0,
-      qtd_furos: qtdFuros || 0,
-      nome_arquivo: nomeArquivo
-    });
-    if(error) throw error;
-    await loadHistoricoExportacoes();
-    return true;
-  }catch(e){
-    // histórico é auxiliar: não trava a exportação, mas registra o erro real no console para diagnóstico
-    console.error('Falha ao registrar no histórico de exportações:', e);
-    return false;
-  }
-}
-
-async function loadHistoricoExportacoes(){
-  if(!navigator.onLine) return;
-  try{
-    const { data, error } = await db.from('export_historico').select('*').order('criado_em', { ascending:false }).limit(50);
-    if(error) throw error;
-    historicoExportacoes = data || [];
-  }catch(e){
-    historicoExportacoes = [];
-  }
-  renderHistoricoExportacoes();
-}
-
-function renderHistoricoExportacoes(){
-  const lista = el('historico-list');
-  const vazio = el('historico-vazio');
-  if(!lista) return;
-  if(historicoExportacoes.length === 0){
-    lista.innerHTML = '';
-    if(vazio) vazio.style.display = 'block';
-    return;
-  }
-  if(vazio) vazio.style.display = 'none';
-
-  const TIPO_LABEL = { turno:'Só turno', leque:'1 leque', combinado:'Combinado' }; // 'turno' = envios antigos
-
-  lista.innerHTML = historicoExportacoes.map(reg=>{
-    const quando = reg.criado_em ? new Date(reg.criado_em).toLocaleString('pt-BR') : '-';
-    const detalhe = reg.tipo === 'turno'
-      ? 'Sem perfilagem de furos'
-      : `${reg.leques || '-'} · ${reg.qtd_furos || 0} furo(s)`;
-    return `
-      <div class="historico-row">
-        <span class="quando">${quando}</span>
-        <span class="tipo ${reg.tipo}">${TIPO_LABEL[reg.tipo] || reg.tipo}</span>
-        <span>${dataParaExibicao(reg.turno_data || reg.criado_em)}</span>
-        <span class="detalhe">${detalhe}</span>
-        <span class="arquivo">${reg.nome_arquivo || ''}</span>
-      </div>
-    `;
-  }).join('');
-}
-
 // ---------- Exportação de PDF: leque único e combinado ----------
 // Busca a foto do leque e devolve já em base64 (formato que o jsPDF entende),
 // junto com as dimensões reais — pra desenhar no PDF sem esticar/espremer a
@@ -531,10 +467,7 @@ async function exportarLequePDF(id){
 
   const nomeArquivo = (lequeCode(l) + '_' + (a?a.nome:'realce')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo);
-  const salvoNoHistorico = await registrarExportacao({ tipo:'leque', leques: lequeCode(l), qtdLeques:1, qtdFuros: furosDoLeque.length, nomeArquivo });
-  showToast(salvoNoHistorico
-    ? 'PDF de ' + lequeCode(l) + ' exportado.'
-    : 'PDF de ' + lequeCode(l) + ' exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
+  showToast('PDF de ' + lequeCode(l) + ' exportado.');
 }
 
 async function exportarLequesPDF(ids, opcoes){
@@ -666,16 +599,7 @@ async function exportarLequesPDF(ids, opcoes){
 
   const nomeArquivo = ('Relatorio_' + selecionados.map(l=>lequeCode(l)).join('-')).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
   await baixarOuCompartilharPDF(doc, nomeArquivo, baixar);
-  const salvoNoHistorico = await registrarExportacao({
-    tipo:'combinado',
-    leques: selecionados.map(l=>lequeCode(l)).join(', '),
-    qtdLeques: selecionados.length,
-    qtdFuros: totalGeralFuros,
-    nomeArquivo
-  });
-  showToast(salvoNoHistorico
-    ? 'PDF combinado com ' + selecionados.length + ' leque(s) exportado.'
-    : 'PDF combinado exportado (não entrou no histórico agora, mas o arquivo foi gerado normalmente).');
+  showToast('PDF combinado com ' + selecionados.length + ' leque(s) exportado.');
   limparSelecaoLeques();
 }
 

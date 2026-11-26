@@ -67,7 +67,6 @@ function iniciarApp(){
   renderPerfilTecnico();
   loadData();
   iniciarTempoReal();
-  loadHistoricoExportacoes();
 }
 
 // Reúne num só lugar o que precisa acontecer sempre que uma sessão é confirmada
