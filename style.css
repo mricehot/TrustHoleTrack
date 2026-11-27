@@ -3229,9 +3229,6 @@ body.area-ceu-aberto #painel-leque, body.area-ceu-aberto #leque-faixa, body.area
 
 .ck-esp-btn{ cursor:pointer; }
 
-.ck-img-tabela{ margin:14px 0 8px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--surface-2); }
-.ck-img-tit{ font-weight:700; margin-bottom:8px; }
-.ck-img-tabela img{ width:100%; max-height:420px; object-fit:contain; background:#fff; border-radius:8px; border:1px solid var(--line); cursor:zoom-in; display:block; }
-.ck-img-acoes{ display:flex; gap:8px; margin-top:8px; }
-.ck-img-zona{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:18px; border:2px dashed var(--line); border-radius:10px; outline:none; }
-.ck-img-zona:focus{ border-color:var(--steel,#2a6fa8); background:rgba(42,111,168,.06); }
+
+.dl-img-tabela{ border-top:1px dashed var(--line); padding-top:10px; margin-bottom:12px; }
+.dl-img-rot{ font-weight:700; margin-bottom:6px; }

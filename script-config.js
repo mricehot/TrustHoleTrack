@@ -282,12 +282,12 @@ function desenharResumoPDF(doc, y, stats){
 async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   const titulo = opcoes.titulo || 'RELATÓRIO DE PERFILAGEM DE LAVRA';
 
-  try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 8, 20, 19.6); }catch(e){}
+  try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - 48, 9, 48, 48 * 216 / 943); }catch(e){} // logos Trust + ERO à direita
 
   doc.setFontSize(PDF_FONT_TITULO); doc.setFont(undefined,'bold');
-  doc.text(titulo, 40, 15);
+  doc.text(titulo, 15, 15, { maxWidth: 128 });
   doc.setFontSize(PDF_FONT_SUBTITULO); doc.setFont(undefined,'normal'); doc.setTextColor(120);
-  doc.text('Gerado em ' + (opcoes.titulo ? new Date().toLocaleDateString('pt-BR') : new Date().toLocaleString('pt-BR')), 40, 21); // relatórios de tratamento: só a data
+  doc.text('Gerado em ' + (opcoes.titulo ? new Date().toLocaleDateString('pt-BR') : new Date().toLocaleString('pt-BR')), 15, 21); // relatórios de tratamento: só a data
   doc.setTextColor(0);
   doc.setDrawColor(180); doc.line(15, 30, 195, 30);
 

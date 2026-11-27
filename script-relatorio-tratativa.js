@@ -79,7 +79,7 @@ async function exportarRelatorioTratativaPDF(anelIds){
   let y = 0, parcial = false;
   const linhaH = (yy)=>{ doc.setDrawColor(0); doc.setLineWidth(0.35); doc.line(15, yy, 195, yy); doc.setLineWidth(0.2); };
   // Cabeçalho oficial
-  try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 10, 20, 19.6); }catch(e){}
+  try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 15, 11, 54, 54 * 216 / 943); }catch(e){}
   doc.setTextColor(PRETO); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('RELATÓRIO DE TRATAMENTO DE DADOS', 195, 17, { align:'right' });
   doc.setFontSize(10.5); doc.setFont('helvetica','normal'); doc.text('Leques tratados — perfilagem de furos de lavra', 195, 23, { align:'right' });
   doc.setFontSize(9); doc.setTextColor(90); doc.text('Emitido em ' + hoje, 195, 28.5, { align:'right' }); doc.setTextColor(PRETO);
