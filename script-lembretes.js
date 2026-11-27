@@ -24,7 +24,7 @@ function adicionarLembrete(texto, alvo, extra){
   lembretes.push(l);
   salvarLembretesLocal();
   const reg = { id: l.id, user_id: usuarioAtual.id, texto: l.texto, feito: false, criado_em: l.ts };
-  if(l.alvoTipo){ reg.alvo_tipo = l.alvoTipo; reg.alvo_id = l.alvoId; reg.alvo_rotulo = l.alvoRotulo; }
+  if(l.alvoTipo){ reg.alvo_tipo = l.alvoTipo; reg.alvo_id = l.alvoId; reg.alvo_rotulo = l.alvoRotulo; } else if(l.alvoRotulo){ reg.alvo_rotulo = l.alvoRotulo; }
   if(titulo) reg.titulo = titulo; if(l.prioridade !== 'normal') reg.prioridade = l.prioridade; if(l.prazo) reg.prazo = l.prazo;
   enfileirar('lembretes', 'insert', reg);
   renderLembretes();
@@ -87,10 +87,7 @@ function garantirPainelLembretes(){
       <textarea id="lb-input" rows="3" maxlength="2000" placeholder="Anotar para decidir depois (Enter salva · Shift+Enter nova linha)" aria-label="Novo lembrete"></textarea>
       <button type="submit" aria-label="Adicionar lembrete">+</button>
     </form>
-    <div class="lb-alvo" id="lb-alvo-linha">
-      <select id="lb-alvo-leque" aria-label="Ligar a um leque"><option value="">🔗 Sem leque</option></select>
-      <select id="lb-alvo-furo" aria-label="Ligar a um furo" hidden><option value="">Leque todo</option></select>
-    </div>
+    <input type="text" class="lb-ref" id="lb-ref" maxlength="80" placeholder="Leque / referência (opcional) — ex.: SL07 F3" aria-label="Leque ou referência">
     <input type="search" class="lb-busca" id="lb-busca" placeholder="Buscar nos lembretes…" aria-label="Buscar lembretes">
     <ul class="lb-lista" id="lb-lista"></ul>
     <details class="lb-feitos" id="lb-feitos"><summary id="lb-feitos-t">Resolvidos</summary>
@@ -103,7 +100,6 @@ function garantirPainelLembretes(){
   document.body.appendChild(b);
   const form = p.querySelector('#lb-form'), inp = p.querySelector('#lb-input');
   form.addEventListener('submit', e=>{ e.preventDefault(); adicionarLembrete(inp.value, lerAlvoLembrete()); inp.value = ''; zerarAlvoLembrete(); inp.focus(); });
-  p.querySelector('#lb-alvo-leque').addEventListener('change', ()=>preencherFurosLembrete());
   inp.addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); form.requestSubmit(); } });
   p.querySelector('#lb-busca').addEventListener('input', e=>{ lembretesBusca = e.target.value; renderLembretes(); });
   p.querySelector('#lb-tela').addEventListener('click', ()=>{ mostrarView('lembretes'); });
@@ -151,7 +147,7 @@ function renderLembretes(){
     <div class="lb-corpo">${lembreteEditando===l.id
       ? `<textarea class="lb-edit" id="lb-edit-${l.id}" rows="4" maxlength="2000">${escapeHtml(l.texto)}</textarea><div class="lb-edit-btns"><button type="button" class="lb-salvar">Salvar</button><button type="button" class="lb-cancelar">Cancelar</button></div>`
       : `${l.titulo ? `<div class="lb-tit">${escapeHtml(l.titulo)}</div>` : ''}<div class="lb-txt" title="Clique para editar">${escapeHtml(l.texto)}</div>`}
-      <div class="lb-meta"><span>${dataCurtaLembrete(l.ts)}${l.feito && l.feitoEm ? ' · resolvido ' + dataCurtaLembrete(l.feitoEm) : ''}</span>${l.alvoTipo ? `<button type="button" class="lb-ir" title="Ir para ${escapeHtml(l.alvoRotulo)} no checklist">↗ ${escapeHtml(l.alvoRotulo)}</button>` : ''}</div></div>
+      <div class="lb-meta"><span>${dataCurtaLembrete(l.ts)}${l.feito && l.feitoEm ? ' · resolvido ' + dataCurtaLembrete(l.feitoEm) : ''}</span>${l.alvoTipo ? `<button type="button" class="lb-ir" title="Ir para ${escapeHtml(l.alvoRotulo)} no checklist">↗ ${escapeHtml(l.alvoRotulo)}</button>` : l.alvoRotulo ? `<span class="lb-ref-chip">${escapeHtml(l.alvoRotulo)}</span>` : ''}</div></div>
     <button type="button" class="lb-del" aria-label="Apagar lembrete">✕</button></li>`;
   const foco = document.activeElement && p.contains(document.activeElement) && document.activeElement.id === 'lb-input';
   const pendF = pend.filter(filtra), feitosF = feitos.filter(filtra);
@@ -159,54 +155,12 @@ function renderLembretes(){
   document.getElementById('lb-lista-feitos').innerHTML = feitosF.map(item).join('');
   document.getElementById('lb-feitos').hidden = !feitos.length;
   document.getElementById('lb-feitos-t').textContent = `Resolvidos (${feitos.length})`;
-  preencherLequesLembrete();
   if(foco) document.getElementById('lb-input').focus();
 }
 // ----- vínculo com leque/furo -----
 function codigoLequeCk(c){ return (PREFIXO[c.tipo] || '') + c.numero; }
-// Opções de leque de TODOS os realces, agrupadas por realce (lembretes são gerais).
-function lequesTodosRealces(){
-  const grupos = [];
-  (aneis || []).forEach(a=>{ const its = checklistLeques.filter(c=>c.anelId === a.id); if(its.length) grupos.push({ anel:a, itens:its }); });
-  return grupos;
-}
-function opcoesLequesLembrete(sel){
-  return '<option value="">🔗 Sem vínculo (geral)</option>' + lequesTodosRealces().map(g=>`<optgroup label="${escapeHtml(g.anel.nome)}">${g.itens.map(c=>`<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(codigoLequeCk(c))}</option>`).join('')}</optgroup>`).join('');
-}
-function rotuloLequeLembrete(c){ const a = (aneis || []).find(x=>x.id === c.anelId); return (a ? a.nome + ' · ' : '') + codigoLequeCk(c); }
-function preencherLequesLembrete(){
-  const sel = document.getElementById('lb-alvo-leque'); if(!sel) return;
-  if(sel === document.activeElement) return; // não mexe enquanto a pessoa escolhe
-  const atual = sel.value;
-  const itens = checklistLeques.slice();
-  const sig = itens.map(c=>c.id + codigoLequeCk(c) + c.anelId).join('|') + (aneis || []).map(x=>x.nome).join('|');
-  if(sel.dataset.sig === sig) return;
-  sel.dataset.sig = sig;
-  sel.innerHTML = opcoesLequesLembrete('');
-  sel.value = itens.some(c=>c.id===atual) ? atual : '';
-  preencherFurosLembrete();
-}
-function preencherFurosLembrete(){
-  const lq = document.getElementById('lb-alvo-leque'), fu = document.getElementById('lb-alvo-furo'); if(!lq || !fu) return;
-  const id = lq.value;
-  fu.hidden = !id;
-  const atual = fu.value;
-  const furosL = id ? checklistFurosDoLeque(id) : [];
-  fu.innerHTML = '<option value="">Leque todo</option>' + furosL.map(f=>`<option value="${f.id}">F${escapeHtml(String(f.numero))}</option>`).join('');
-  fu.value = furosL.some(f=>f.id===atual) ? atual : '';
-}
-function lerAlvoLembrete(){
-  const lq = document.getElementById('lb-alvo-leque'), fu = document.getElementById('lb-alvo-furo');
-  if(!lq || !lq.value) return null;
-  const c = checklistLeques.find(x=>x.id===lq.value); if(!c) return null;
-  const cod = rotuloLequeLembrete(c);
-  if(fu && fu.value){ const f = checklistFuros.find(x=>x.id===fu.value); if(f) return { tipo:'furo', id:f.id, rotulo: cod + ' F' + f.numero }; }
-  return { tipo:'leque', id:c.id, rotulo: cod };
-}
-function zerarAlvoLembrete(){
-  const lq = document.getElementById('lb-alvo-leque'), fu = document.getElementById('lb-alvo-furo');
-  if(lq) lq.value = ''; if(fu){ fu.value = ''; fu.hidden = true; }
-}
+function lerAlvoLembrete(){ const r = document.getElementById('lb-ref'); const t = r ? r.value.trim().slice(0, 80) : ''; return t ? { tipo:'', id:'', rotulo:t } : null; }
+function zerarAlvoLembrete(){ const r = document.getElementById('lb-ref'); if(r) r.value = ''; }
 function irParaAlvoLembrete(id){
   const l = lembretes.find(x=>x.id===id); if(!l || !l.alvoTipo) return;
   const furo = l.alvoTipo === 'furo' ? checklistFuros.find(x=>x.id===l.alvoId) : null;
