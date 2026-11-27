@@ -214,7 +214,7 @@ function htmlCardChecklist(c, agrupado){
               `).join('')}
             </tbody>
           </table>
-          ${(()=>{ const num = v => Number(v) > 0 ? Number(v) : 0, t = furos.reduce((s,f)=> s + num(f.metragemEsperada), 0), r = furos.reduce((s,f)=> s + num(f.metragem), 0), n = furos.filter(f=> num(f.metragem) > 0).length; return (t > 0 || r > 0) ? `<div class="ck-total-esp"><span>Total esperado do leque</span><b>${fmtMetCk(t)} m</b></div><div class="ck-total-real"><span>Total real até agora <small>(${n} de ${furos.length} furos)</small></span><b>${fmtMetCk(r)} m</b></div>` : ''; })()}
+          ${(()=>{ const num = v => Number(v) > 0 ? Number(v) : 0, t = furos.reduce((s,f)=> s + num(f.metragemEsperada), 0), r = furos.reduce((s,f)=> s + num(f.metragem), 0), n = furos.filter(f=> num(f.metragem) > 0).length; return (t > 0 || r > 0) ? `<div class="ck-total-esp"><span>${c.tipo === 'cava' ? 'Total planejado' : 'Total esperado do leque'}</span><b>${fmtMetCk(t)} m</b></div><div class="ck-total-real"><span>Total real até agora <small>(${n} de ${furos.length} furos)</small></span><b>${fmtMetCk(r)} m</b></div>` : ''; })()}
           ${(()=>{
             const linhas = furos.map(f=>({ f, t: textoQuemQuando(f) })).filter(x=>x.t);
             return linhas.length ? `<details class="ck-quem"><summary>Quem marcou (${linhas.length})</summary>${linhas.map(x=>`<div><b>F${escHtml(x.f.numero)}</b> ${escHtml(x.t)}</div>`).join('')}</details>` : '';
@@ -250,6 +250,7 @@ function htmlCardChecklist(c, agrupado){
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
           ${furos.some(f=> f.fotoUrl || fotosPendentes.has(f.id)) ? `<button type="button" class="ghost" onclick="enviarFotosWhatsApp(['${c.id}'])">📷 Enviar fotos</button>` : ''}
         </div>
+        ${c.tipo === 'cava' ? htmlImagemTabelaCava(c) : ''}
         <details class="ck-mais-acoes so-gestor" ${ckMaisAbertos.has(c.id) ? 'open' : ''} ontoggle="alternarMaisAcoes('${c.id}', this.open)">
           <summary>Mais ações do gestor</summary>
           ${htmlSeletoresEquipeLeque(c)}
@@ -1733,6 +1734,69 @@ function lancamentosEfetivos(){
   return manuais.concat([...mapa.values()]);
 }
 // Realce a céu aberto: apaga o conjunto inteiro de furos (o grupo interno continua, vazio, pronto para novos furos).
+// ---- Imagem da tabela (final da lista de furos do realce a céu aberto) ----
+function htmlImagemTabelaCava(c){
+  const u = c.imagemTabelaUrl;
+  return `<div class="ck-img-tabela" id="ck-img-${c.id}">
+    <div class="ck-img-tit">🖼 Imagem da tabela</div>
+    ${u ? `<img src="${escHtml(u)}" alt="imagem da tabela" onclick="verImagemTabelaCava('${c.id}')" title="toque para ampliar">
+      <div class="ck-img-acoes so-gestor"><button type="button" class="ghost" onclick="anexarImagemTabelaCava('${c.id}')">Trocar</button><button type="button" class="ghost perigo" onclick="removerImagemTabelaCava('${c.id}')">Remover</button></div>`
+    : `<div class="ck-img-zona so-gestor" tabindex="0" onpaste="colarImagemTabelaCava(event, '${c.id}')" title="clique aqui e use Ctrl+V para colar uma imagem">
+        <button type="button" class="steel" onclick="anexarImagemTabelaCava('${c.id}')">Anexar imagem</button>
+        <span class="hint">ou clique nesta área e cole com Ctrl+V</span></div>`}
+  </div>`;
+}
+async function reduzirImagemTabela(arquivo){
+  try{
+    const bmp = await createImageBitmap(arquivo);
+    const esc = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * esc); cv.height = Math.round(bmp.height * esc);
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    return (await new Promise(r=> cv.toBlob(r, 'image/jpeg', 0.9))) || arquivo;
+  }catch(e){ return arquivo; }
+}
+async function enviarImagemTabelaCava(id, arquivo){
+  if(!exigirGestor('anexar imagem')) return;
+  const c = checklistLeques.find(x=>x.id===id); if(!c || !arquivo) return;
+  if(!navigator.onLine){ showToast('Sem internet: anexe a imagem quando houver sinal.', { tipo:'aviso' }); return; }
+  showToast('Enviando imagem…');
+  const blob = await reduzirImagemTabela(arquivo);
+  const caminho = `tabela-${id}-${Date.now()}.jpg`;
+  const { error } = await db.storage.from('fotos-leque').upload(caminho, blob, { contentType:'image/jpeg', upsert:false });
+  if(error){ showToast('Não consegui enviar a imagem: ' + (error.message || 'erro'), { tipo:'erro' }); return; }
+  const { data } = db.storage.from('fotos-leque').getPublicUrl(caminho);
+  c.imagemTabelaUrl = data.publicUrl;
+  enfileirar('checklist_leques', 'update', { id, imagem_tabela_url: c.imagemTabelaUrl });
+  salvarChecklistLocal(); renderChecklist();
+  showToast('Imagem da tabela anexada.', { tipo:'ok' });
+}
+function anexarImagemTabelaCava(id){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.addEventListener('change', ()=>{ const a = inp.files && inp.files[0]; if(a) enviarImagemTabelaCava(id, a); });
+  inp.click();
+}
+function colarImagemTabelaCava(ev, id){
+  const it = [...(ev.clipboardData && ev.clipboardData.items || [])].find(x=> x.type && x.type.startsWith('image/'));
+  if(!it) return;
+  ev.preventDefault(); enviarImagemTabelaCava(id, it.getAsFile());
+}
+function removerImagemTabelaCava(id){
+  const c = checklistLeques.find(x=>x.id===id); if(!c || !c.imagemTabelaUrl) return;
+  const antes = c.imagemTabelaUrl; c.imagemTabelaUrl = '';
+  enfileirar('checklist_leques', 'update', { id, imagem_tabela_url: null });
+  salvarChecklistLocal(); renderChecklist();
+  showToast('Imagem removida.', { acaoLabel:'Desfazer', onAcao: ()=>{ c.imagemTabelaUrl = antes; enfileirar('checklist_leques', 'update', { id, imagem_tabela_url: antes }); salvarChecklistLocal(); renderChecklist(); } });
+}
+function verImagemTabelaCava(id){
+  const c = checklistLeques.find(x=>x.id===id); if(!c || !c.imagemTabelaUrl) return;
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box modal-box-larga" style="max-width:96vw;">
+    <img src="${escHtml(c.imagemTabelaUrl)}" alt="imagem da tabela" style="max-width:100%;max-height:80vh;display:block;margin:0 auto;border-radius:8px;">
+    <div class="modal-actions"><a class="ghost" href="${escHtml(c.imagemTabelaUrl)}" target="_blank" rel="noopener" style="padding:10px 14px;">Abrir em nova aba</a><button class="steel" id="modal-fechar">Fechar</button></div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('modal-fechar').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+}
 async function apagarTodosFurosCava(grupoId){
   if(!exigirGestor('apagar os furos')) return;
   const c = checklistLeques.find(x=>x.id===grupoId); if(!c) return;
