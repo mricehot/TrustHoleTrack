@@ -13,7 +13,9 @@ function dadosRelatorioTratativa(anelIds){
       const esp = uteis.reduce((s,f)=> s + Number(f.metragemEsperada || 0), 0), real = uteis.reduce((s,f)=> s + Number(f.metragem || 0), 0);
       const espMed = uteis.filter(f=>Number(f.metragem) > 0).reduce((s,f)=> s + Number(f.metragemEsperada || 0), 0); // esperada só dos furos já medidos (base justa p/ variação)
       const status = e.tratado ? 'Tratado' : e.pronto ? 'Pronto p/ tratar' : !e.tem ? 'Sem furos' : (fs.some(f=>f.perfilado || f.topografado) ? 'Em andamento' : 'Não iniciado');
-      const furosLista = fs.map(f=>({ numero: String(f.numero), obst: !!f.obstruido, metros: Number(f.metragem) > 0 ? Number(f.metragem) : Number(f.metragemEsperada || 0) }));
+      const furosLista = fs.slice().sort((x,y)=> String(x.numero).localeCompare(String(y.numero), undefined, { numeric:true })).map(f=>({ numero: String(f.numero), obst: !!f.obstruido, metros: Number(f.metragem) > 0 ? Number(f.metragem) : Number(f.metragemEsperada || 0),
+        plan: Number(f.metragemEsperada || 0), exec: Number(f.metragem) > 0 ? Number(f.metragem) : null, desvio: f.desvioCm != null && f.desvioCm !== '' ? Number(f.desvioCm) : null,
+        obs: typeof r2dObsAuto === 'function' ? r2dObsAuto(f) : (f.obsTratamento || (f.obstruido ? 'Obstruído' : '')) }));
       return { codigo: codigoLequeCk(e.c), furosLista, furos: fs.length, uteis: uteis.length, obst,
         perf: uteis.filter(f=>f.perfilado).length, topo: uteis.filter(f=>f.topografado).length, az: uteis.filter(f=>furoTemAzimute(f)).length,
         esp, real, espMed, status, tratadoEm: e.tratado ? e.c.tratadoEm : null, tratadoPor: e.tratado ? e.c.tratadoPor : '', observacao: e.c.observacao || '' };
@@ -40,7 +42,7 @@ const metrosDoLeque = l => l.real > 0 ? l.real : l.esp;
 
 // Imagem dos leques tratados (um quadro por realce): cada leque é um cartão com código, metros e data.
 function imagemTratadosCanvas(g){
-  const W = 1000, M = 28, COLS = 4, GAP = 12, CW = Math.floor((W - 2*M - GAP*(COLS-1)) / COLS), CH = 78;
+  const W = 720, M = 24, COLS = 3, GAP = 12, CW = Math.floor((W - 2*M - GAP*(COLS-1)) / COLS), CH = 78;
   const linhas = Math.ceil(g.leques.length / COLS), H = M + 62 + linhas * (CH + GAP) + 24;
   const esc = 2, cv = document.createElement('canvas'); cv.width = W * esc; cv.height = H * esc;
   const c = cv.getContext('2d'); c.scale(esc, esc);
@@ -53,8 +55,8 @@ function imagemTratadosCanvas(g){
   c.fillText(`${g.leques.length} ${g.leques.length === 1 ? 'leque tratado' : 'leques tratados'} · ${fmtM(tot)} m${g.realce.nivel ? ' · ' + g.realce.nivel : ''}`, M, M + 52);
   g.leques.forEach((l,i)=>{
     const x = M + (i % COLS) * (CW + GAP), y = M + 66 + Math.floor(i / COLS) * (CH + GAP);
-    rr(x, y, CW, CH, 12); c.fillStyle = '#e3f4f2'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#0f7d78'; c.stroke();
-    c.fillStyle = '#0f7d78'; c.font = `700 14px ${F}`; c.fillText('✓', x + 12, y + 24);
+    rr(x, y, CW, CH, 12); c.fillStyle = '#f3f3f3'; c.fill(); c.lineWidth = 1.5; c.strokeStyle = '#333333'; c.stroke();
+    c.fillStyle = '#222'; c.font = `700 14px ${F}`; c.fillText('✓', x + 12, y + 24);
     c.fillStyle = '#18202b'; c.font = `700 22px ${F}`; c.fillText(l.codigo, x + 32, y + 26);
     c.fillStyle = '#18202b'; c.font = `600 17px ${F}`; c.fillText(fmtM(metrosDoLeque(l)) + ' m', x + 12, y + 50);
     c.fillStyle = '#5b6878'; c.font = `500 14px ${F}`; c.fillText(fmtDataBR(l.tratadoEm), x + 12, y + 68);
@@ -66,40 +68,95 @@ async function exportarRelatorioTratativaPDF(anelIds){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
   const grupos = linhasTratados(anelIds);
   if(!grupos.length){ showToast('Nenhum leque tratado nos realces escolhidos.', { tipo:'aviso' }); return; }
-  const doc = new window.jspdf.jsPDF();
-  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'RELATÓRIO DE LEQUES TRATADOS' });
-  const todos = grupos.flatMap(g=>g.leques), totM = todos.reduce((s,l)=> s + metrosDoLeque(l), 0);
-  doc.setFontSize(11); doc.setFont(undefined,'bold');
-  doc.text(`${todos.length} ${todos.length === 1 ? 'leque tratado' : 'leques tratados'}  ·  ${fmtM(totM)} m`, 15, y); y += 9;
-  const cab = ()=>{ doc.setFillColor(235,235,242); doc.rect(15, y - 4.5, 180, 6.5, 'F'); doc.setFontSize(10); doc.setFont(undefined,'bold');
-    doc.text('Leque', 17, y); doc.text('Metros tratados', 120, y, { align:'right' }); doc.text('Data', 150, y); y += 6.5; };
-  grupos.forEach(g=>{
-    if(y > 262){ doc.addPage(); y = 20; }
-    doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(g.realce.nome, 15, y); y += 7; cab();
-    doc.setFont(undefined,'normal'); doc.setFontSize(10);
+  const doc = new window.jspdf.jsPDF(), PROJ = configApp.projetoAtivo || '';
+  const hoje = new Date().toLocaleDateString('pt-BR'), quem = (typeof nomeDoUsuario === 'function' ? nomeDoUsuario() : '') || '';
+  const todos = grupos.flatMap(g=>g.leques);
+  const soma = (k, f)=> todos.reduce((t,l)=> t + (f ? f(l) : l[k]), 0);
+  const plan = soma('esp'), exec = soma('real'), difT = soma(null, l=> l.real > 0 ? l.real - l.espMed : 0), nFuros = soma('uteis');
+  const datas = todos.map(l=>l.tratadoEm).filter(Boolean).sort(), periodo = datas.length ? (fmtDataBR(datas[0]) === fmtDataBR(datas[datas.length-1]) ? fmtDataBR(datas[0]) : fmtDataBR(datas[0]) + ' a ' + fmtDataBR(datas[datas.length-1])) : '—';
+  const sinal = n => (n > 0.049 ? '+' : n < -0.049 ? '-' : '') + fmtM(Math.abs(n));
+  const PRETO = 20, CINZA = [235,235,235], CINZA2 = [217,217,217];
+  let y = 0, parcial = false;
+  const linhaH = (yy)=>{ doc.setDrawColor(0); doc.setLineWidth(0.35); doc.line(15, yy, 195, yy); doc.setLineWidth(0.2); };
+  // Cabeçalho oficial
+  try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 10, 20, 19.6); }catch(e){}
+  doc.setTextColor(PRETO); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('RELATÓRIO DE TRATATIVA DE DADOS', 195, 17, { align:'right' });
+  doc.setFontSize(10.5); doc.setFont('helvetica','normal'); doc.text('Leques tratados — perfilagem de furos de lavra', 195, 23, { align:'right' });
+  doc.setFontSize(9); doc.setTextColor(90); doc.text('Emitido em ' + hoje, 195, 28.5, { align:'right' }); doc.setTextColor(PRETO);
+  linhaH(33); y = 40;
+  const tituloSecao = t=>{ if(y > 262){ doc.addPage(); y = 20; } doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(t, 15, y); y += 2; doc.setLineWidth(0.2); doc.setDrawColor(120); doc.line(15, y, 195, y); y += 6; };
+  // 1. Identificação
+  tituloSecao('1. IDENTIFICAÇÃO');
+  const ident = [['Projeto', PROJ || '—', 'Período das tratativas', periodo], ['Realce(s)', grupos.map(g=>g.realce.nome).join(', '), 'Data de emissão', hoje], ['Elaborado por', quem || '—', 'Leques tratados', String(todos.length)]];
+  doc.setFontSize(9);
+  ident.forEach(r=>{ const rh = Math.max(7, doc.splitTextToSize(r[1], 51).length * 4 + 3);
+    doc.setFillColor(...CINZA); doc.rect(15, y, 28, rh, 'F'); doc.rect(98, y, 40, rh, 'F');
+    doc.setDrawColor(120); doc.rect(15, y, 180, rh); [43, 98, 138].forEach(x=> doc.line(x, y, x, y + rh));
+    doc.setFont('helvetica','bold'); doc.text(r[0], 17, y + 4.6); doc.text(r[2], 100, y + 4.6);
+    doc.setFont('helvetica','normal'); doc.text(doc.splitTextToSize(r[1], 51), 45, y + 4.6); doc.text(doc.splitTextToSize(r[3], 53), 140, y + 4.6); y += rh; });
+  y += 8;
+  // 2. Resumo
+  tituloSecao('2. RESUMO GERAL');
+  const colR = [['Leques tratados', String(todos.length)], ['Furos considerados', String(nFuros)], ['Planejado (m)', fmtM(plan)], ['Executado (m)', fmtM(exec)], ['Diferença (m)', sinal(difT)]], wR = 180 / colR.length;
+  doc.setDrawColor(120); doc.setFontSize(8.5);
+  colR.forEach(([r, v], k)=>{ const x = 15 + k * wR; doc.setFillColor(...CINZA); doc.rect(x, y, wR, 6.5, 'FD'); doc.rect(x, y + 6.5, wR, 9, 'D');
+    doc.setFont('helvetica','bold'); doc.text(r, x + wR / 2, y + 4.4, { align:'center' }); doc.setFontSize(12); doc.text(v, x + wR / 2, y + 13, { align:'center' }); doc.setFontSize(8.5); });
+  y += 24;
+  // 3. Detalhamento por realce
+  tituloSecao('3. DETALHAMENTO POR REALCE E LEQUE');
+  const X = [15, 32, 48, 60, 85, 110, 131, 152, 195];  // limites das colunas
+  const cab = ()=>{ doc.setFillColor(...CINZA2); doc.setDrawColor(0); doc.rect(15, y, 180, 8, 'FD'); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    [['LEQUE',0,'l'], ['DATA',1,'l'], ['FURO',2,'l'], ['PLAN. (m)',3,'r'], ['EXEC. (m)',4,'r'], ['DIF. (m)',5,'r'], ['DESVIO (cm)',6,'r'], ['OBSERVAÇÃO',7,'l']].forEach(([t, c, al])=>{
+      if(c) doc.line(X[c], y, X[c], y + 8); if(al === 'r') doc.text(t, X[c + 1] - 2, y + 5.2, { align:'right' }); else doc.text(t, X[c] + 2, y + 5.2); }); y += 8; doc.setFont('helvetica','normal'); doc.setFontSize(8.5); };
+  const linha = (cel, opc)=>{ opc = opc || {}; const rh = opc.h || 5.4;
+    if(y + rh > 281){ doc.addPage(); y = 20; cab(); }
+    if(opc.fill){ doc.setFillColor(...opc.fill); doc.rect(15, y, 180, rh, 'F'); }
+    doc.setDrawColor(150); doc.rect(15, y, 180, rh); for(let c = 1; c < 8; c++) if(!(opc.junta && c < opc.junta)) doc.line(X[c], y, X[c], y + rh);
+    doc.setFont('helvetica', opc.bold ? 'bold' : 'normal'); doc.setFontSize(8.5);
+    cel.forEach((t, c)=>{ if(t === '' || t == null) return; const dir = c >= 3 && c <= 6; if(dir) doc.text(String(t), X[c + 1] - 2, y + rh - 1.7, { align:'right' }); else { if(c === 0 && !opc.bold) doc.setFont('helvetica','bold'); doc.text(String(t), X[c] + 2, y + rh - 1.7, opc.junta && c === 0 ? undefined : { maxWidth: X[c + 1] - X[c] - 3 }); if(c === 0 && !opc.bold) doc.setFont('helvetica','normal'); } });
+    y += rh; };
+  const realces = dadosRelatorioTratativa(anelIds).realces;
+  grupos.forEach((g, gi)=>{
+    const r = realces.find(x=>x.realce.id === g.realce.id), meta = [g.realce.nivel, g.realce.orientacao === 'ascendente' ? 'Ascendente' : g.realce.orientacao === 'descendente' ? 'Descendente' : ''].filter(Boolean).join(' · ');
+    if(y > 240){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(PRETO); doc.text(`3.${gi + 1}  Realce ${g.realce.nome}${meta ? '  —  ' + meta : ''}`, 15, y); y += 4; cab();
     g.leques.forEach(l=>{
-      if(y > 280){ doc.addPage(); y = 20; cab(); doc.setFont(undefined,'normal'); doc.setFontSize(10); }
-      doc.text(l.codigo, 17, y); doc.text(fmtM(metrosDoLeque(l)), 120, y, { align:'right' }); doc.text(fmtDataBR(l.tratadoEm), 150, y); y += 5;
-      if(l.furosLista.length){
-        const txt = 'Furos: ' + l.furosLista.map(f=> `F${f.numero} ${f.obst ? 'obstruído' : fmtM(f.metros) + ' m'}`).join('  ·  ');
-        const ls = doc.splitTextToSize(txt, 172); doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(100);
-        if(y + ls.length * 3.6 > 284){ doc.addPage(); y = 20; }
-        doc.text(ls, 21, y); y += ls.length * 3.6 + 2; doc.setTextColor(0); doc.setFontSize(10);
-      } else y += 0.5; });
-    doc.setDrawColor(150); doc.line(15, y - 3.8, 195, y - 3.8); doc.setFont(undefined,'bold');
-    doc.text(`Total (${g.leques.length})`, 17, y); doc.text(fmtM(g.leques.reduce((s,l)=> s + metrosDoLeque(l), 0)), 120, y, { align:'right' }); y += 10;
+      if(y + 5.4 * 3 > 281){ doc.addPage(); y = 20; cab(); }
+      l.furosLista.forEach((f, k)=>{
+        const d = f.exec != null ? f.exec - f.plan : null;
+        linha([k === 0 ? l.codigo : '', k === 0 ? fmtDataBR(l.tratadoEm) : '', 'F' + f.numero, fmtM(f.plan), f.obst ? '—' : (f.exec != null ? fmtM(f.exec) : 'não medido'), f.obst || d == null ? '—' : sinal(d), f.desvio != null ? fmtM(f.desvio) : '', f.obs || ''], { bold: false });
+      });
+      const part = l.real > 0 && l.espMed < l.esp - 0.049; if(part) parcial = true;
+      linha(['Subtotal ' + l.codigo, '', '', fmtM(l.esp), l.real > 0 ? fmtM(l.real) : '—', l.real > 0 ? sinal(l.real - l.espMed) + (part ? '*' : '') : '—', '', `${l.uteis} ${l.uteis === 1 ? 'furo' : 'furos'}${l.obst ? ' · ' + l.obst + ' obst.' : ''}`], { bold:true, fill: CINZA, junta: 3 });
+    });
+    const tp = g.leques.reduce((t,l)=> t + l.esp, 0), te = g.leques.reduce((t,l)=> t + l.real, 0), td = g.leques.reduce((t,l)=> t + (l.real > 0 ? l.real - l.espMed : 0), 0);
+    linha([`TOTAL DO REALCE (${g.leques.length} ${g.leques.length === 1 ? 'leque' : 'leques'})`, '', '', fmtM(tp), fmtM(te), sinal(td), '', ''], { bold:true, fill: CINZA2, junta: 3, h: 6.4 });
+    y += 9;
   });
-  // Anexo: imagem dos leques tratados, um quadro por realce.
+  // 4. Observações
+  tituloSecao('4. OBSERVAÇÕES');
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  const obs = ['Planejado: metragem prevista em projeto para cada furo. Executado: metragem medida na perfilagem.', 'Diferença = executado − planejado. Valor positivo indica furo mais longo que o planejado.', 'Furos obstruídos ou detonados não entram nos totais de metragem.'];
+  if(parcial) obs.push('* Diferença calculada apenas sobre os furos já medidos do leque.');
+  obs.forEach(t=>{ const ls = doc.splitTextToSize('•  ' + t, 175); if(y + ls.length * 4.2 > 280){ doc.addPage(); y = 20; } doc.text(ls, 17, y); y += ls.length * 4.2 + 1.2; });
+  y += 6;
+  // Assinatura
+  if(y > 250){ doc.addPage(); y = 20; }
+  doc.setDrawColor(0); doc.line(15, y + 14, 95, y + 14); doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.text(quem || 'Elaborado por', 15, y + 19); doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.text('Elaborado por  ·  ' + hoje, 15, y + 23.5); doc.setTextColor(PRETO); y += 30;
+  // Anexo: quadro dos leques tratados
   doc.addPage(); y = 20;
-  doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Imagem dos leques tratados', 15, y); y += 6;
+  tituloSecao('ANEXO A — QUADRO DOS LEQUES TRATADOS');
   for(const g of grupos){
     const cv = imagemTratadosCanvas(g); let w = 180, h = w * cv.height / cv.width;
-    if(h > 255){ h = 255; w = h * cv.width / cv.height; }
-    if(y + h > 285){ doc.addPage(); y = 20; }
+    if(h > 250){ h = 250; w = h * cv.width / cv.height; }
+    if(y + h > 282){ doc.addPage(); y = 20; }
     doc.addImage(cv.toDataURL('image/png'), 'PNG', 15, y, w, h); y += h + 6;
   }
   adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
+  // rodapé de identificação em todas as páginas
+  const np = doc.getNumberOfPages();
+  for(let p = 1; p <= np; p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110); doc.setDrawColor(180); doc.line(15, 289, 195, 289); doc.text('Relatório de Tratativa de Dados — Leques tratados' + (PROJ ? '  ·  ' + PROJ : '') + '  ·  Emitido em ' + hoje, 15, 293.5); doc.setTextColor(0); }
   await baixarOuCompartilharPDF(doc, `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório em PDF gerado.', { tipo:'ok' });
 }
