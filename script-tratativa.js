@@ -1,4 +1,4 @@
-// ---------- Tratativa dos dados: perfilagem -> topografia -> azimute -> tratado, por leque e por realce ----------
+// ---------- Tratamento dos dados: perfilagem -> topografia -> azimute -> tratado, por leque e por realce ----------
 // Tudo sai do checklist: o furo obstruído/detonado não conta (100% = tudo que dava para fazer).
 function estadoTratativaLeque(c){
   const fs = checklistFurosDoLeque(c.id), uteis = fs.filter(f=>!f.obstruido);
@@ -126,7 +126,7 @@ function renderTratativa(){
       <label class="trat-arq ${a.arquivosOk ? 'ok' : ''}"><input type="checkbox" ${a.arquivosOk ? 'checked' : ''} onchange="alternarArquivosRealce('${a.id}', this.checked)"><span><b>${a.arquivosOk ? '✓ Arquivos do realce recebidos' : 'Arquivos do realce ainda não recebidos'}</b>${a.arquivosOk && a.arquivosOkEm ? `<small>${new Date(a.arquivosOkEm).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })}${a.arquivosOkPor ? ' · ' + escHtml(a.arquivosOkPor) : ''}</small>` : '<small>marque quando tiver os arquivos</small>'}</span></label>
       ${n ? `<div class="trat-linhas">${linhas}</div>` : ''}</div><div class="trat-main">${n ? `${tabela}${listaProntos}${listaTratados}<div class="trat-leques-t">Todos os leques</div><div class="trat-chips" role="group" aria-label="Leques do realce">${chips}</div><div class="trat-leg"><span><i class="l-nada"></i>pendente</span><span><i class="l-parcial"></i>em andamento</span><span><i class="l-pronto"></i>pronto p/ tratar</span><span><i class="l-tratado"></i>tratado</span></div>` : '<div class="hint">Sem leques neste realce ainda.</div>'}</div></div></section>`;
   }).join('');
-  root.innerHTML = `<div class="trat-topo"><h2>Tratativa dos dados</h2><button type="button" class="ghost trat-export" onclick="abrirExportarTratativa()" title="PDF ou planilha com os leques tratados: metros e data">⬇ Exportar relatório</button>${prontosTot ? `<span class="trat-badge">${prontosTot} ${prontosTot === 1 ? 'leque pronto' : 'leques prontos'} para tratar</span>` : '<span class="trat-badge nada">nada pronto agora</span>'}</div>
+  root.innerHTML = `<div class="trat-topo"><h2>Tratamento dos dados</h2><button type="button" class="ghost trat-export" onclick="abrirExportarTratativa()" title="PDF ou planilha com os leques tratados: metros e data">⬇ Exportar relatório</button>${prontosTot ? `<span class="trat-badge">${prontosTot} ${prontosTot === 1 ? 'leque pronto' : 'leques prontos'} para tratar</span>` : '<span class="trat-badge nada">nada pronto agora</span>'}</div>
     ${fallback ? '<div class="hint trat-dica">Nenhum realce favoritado: mostrando o realce ativo. Toque na ⭐ na aba Realce para fixar os que você trata.</div>' : ''}${cartoes}`;
 }
 aoRenderizarTudo(renderTratativa);

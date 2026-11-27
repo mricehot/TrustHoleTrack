@@ -1,4 +1,4 @@
-// ---------- Relatório 2D da tratativa ----------
+// ---------- Relatório 2D do tratamento ----------
 // Modelo: 1ª página = imagem geral dos leques do realce (planejado azul × executado vermelho);
 // depois uma página por leque = imagem do leque + tabela FURO / PLANEJADO / EXECUTADO / DESVIO (cm) / OBSERVAÇÃO.
 // As imagens vêm do software de topografia (print/exportação) e ficam guardadas neste aparelho (IndexedDB).
@@ -151,7 +151,7 @@ function r2dSalvarCampoFuro(t, campo){
   enfileirar('checklist_furos', 'update', reg); salvarChecklistFurosLocal();
 }
 
-// ---------- Dados do leque (preenchidos na hora da tratativa, antes do relatório geral) ----------
+// ---------- Dados do leque (preenchidos na hora do tratamento, antes do relatório geral) ----------
 let dlEstado = null; // { id, url }
 async function abrirDadosLeque(id){ dlEstado = { id, url: undefined }; await dlRender(); }
 function dlContarPreenchidos(){ if(!dlEstado) return 0; return checklistFurosDoLeque(dlEstado.id).reduce((n, f)=> n + (f.desvioCm != null && f.desvioCm !== '' ? 1 : 0) + (f.obsTratamento ? 1 : 0), 0); }
@@ -226,7 +226,7 @@ async function gerarRelatorio2DPDF(){
   const legenda = (y, geral)=>{ doc.setFont(undefined,'bold'); doc.setFontSize(10); doc.text('LEGENDA', 15, y); doc.text(geral ? 'AZUL: PLANEJADO' : 'LINHA AZUL: PLANEJADO', 15, y + 5); doc.text(geral ? 'VERMELHO: EXECUTADO' : 'TRACEJADO VERMELHA: EXECUTADO', 15, y + 10); };
   // Página 1 — cabeçalho completo (logo, título, gerado em e projeto) + imagem geral
   try{ doc.addImage('data:image/png;base64,'+R2D_LOGO_B64, 'PNG', 195 - R2D_LOGO_W, 9, R2D_LOGO_W, R2D_LOGO_H); }catch(e){}
-  doc.setFont(undefined,'bold'); doc.setFontSize(14); doc.text('RELATÓRIO 2D DE TRATATIVA', 15, 16);
+  doc.setFont(undefined,'bold'); doc.setFontSize(14); doc.text('RELATÓRIO 2D DE TRATAMENTO', 15, 16);
   doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(120); doc.text('Gerado em ' + new Date().toLocaleDateString('pt-BR'), 15, 22); doc.setTextColor(0);
   doc.setDrawColor(180); doc.setLineWidth(0.2); doc.line(15, 30, 195, 30);
   const PROJ = (st.projeto || '').trim();

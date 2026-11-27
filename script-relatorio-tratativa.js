@@ -1,4 +1,4 @@
-// ---------- Relatório das tratativas: realces, leques, furos, metragens e envios (PDF ou planilha CSV) ----------
+// ---------- Relatório dos tratamentos: realces, leques, furos, metragens e envios (PDF ou planilha CSV) ----------
 const fmtM = n => (Math.round(Number(n || 0) * 10) / 10).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 });
 const fmtDataBR = iso => { if(!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }); };
 
@@ -30,7 +30,7 @@ function dadosRelatorioTratativa(anelIds){
   return { realces, envios, tot, metrosEnviados: envios.reduce((s,e)=> s + e.metragem, 0) };
 }
 
-// Resumido: só os leques TRATADOS, com metros e data da tratativa.
+// Resumido: só os leques TRATADOS, com metros e data do tratamento.
 function linhasTratados(anelIds){
   return dadosRelatorioTratativa(anelIds).realces.map(r=>({ realce: r.realce,
     leques: r.leques.filter(l=>l.status === 'Tratado').sort((x,y)=> String(x.tratadoEm).localeCompare(String(y.tratadoEm)) || x.codigo.localeCompare(y.codigo, undefined, { numeric:true })) }))
@@ -80,14 +80,14 @@ async function exportarRelatorioTratativaPDF(anelIds){
   const linhaH = (yy)=>{ doc.setDrawColor(0); doc.setLineWidth(0.35); doc.line(15, yy, 195, yy); doc.setLineWidth(0.2); };
   // Cabeçalho oficial
   try{ doc.addImage('data:image/jpeg;base64,'+LOGO_B64, 'JPEG', 15, 10, 20, 19.6); }catch(e){}
-  doc.setTextColor(PRETO); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('RELATÓRIO DE TRATATIVA DE DADOS', 195, 17, { align:'right' });
+  doc.setTextColor(PRETO); doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('RELATÓRIO DE TRATAMENTO DE DADOS', 195, 17, { align:'right' });
   doc.setFontSize(10.5); doc.setFont('helvetica','normal'); doc.text('Leques tratados — perfilagem de furos de lavra', 195, 23, { align:'right' });
   doc.setFontSize(9); doc.setTextColor(90); doc.text('Emitido em ' + hoje, 195, 28.5, { align:'right' }); doc.setTextColor(PRETO);
   linhaH(33); y = 40;
   const tituloSecao = t=>{ if(y > 262){ doc.addPage(); y = 20; } doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(t, 15, y); y += 2; doc.setLineWidth(0.2); doc.setDrawColor(120); doc.line(15, y, 195, y); y += 6; };
   // 1. Identificação
   tituloSecao('1. IDENTIFICAÇÃO');
-  const ident = [['Projeto', PROJ || '—', 'Período das tratativas', periodo], ['Realce(s)', grupos.map(g=>g.realce.nome).join(', '), 'Elaborado por', quem || '—']];
+  const ident = [['Projeto', PROJ || '—', 'Período dos tratamentos', periodo], ['Realce(s)', grupos.map(g=>g.realce.nome).join(', '), 'Elaborado por', quem || '—']];
   doc.setFontSize(9);
   ident.forEach(r=>{ const rh = Math.max(7, doc.splitTextToSize(r[1], 51).length * 4 + 3);
     doc.setFillColor(...CINZA); doc.rect(15, y, 28, rh, 'F'); doc.rect(98, y, 40, rh, 'F');
@@ -143,7 +143,7 @@ async function exportarRelatorioTratativaPDF(anelIds){
   adicionarNumeracaoPaginas(doc);
   // rodapé de identificação em todas as páginas
   const np = doc.getNumberOfPages();
-  for(let p = 1; p <= np; p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110); doc.setDrawColor(180); doc.line(15, 289, 195, 289); doc.text('Relatório de Tratativa de Dados — Leques tratados' + (PROJ ? '  ·  ' + PROJ : '') + '  ·  Emitido em ' + hoje, 15, 293.5); doc.setTextColor(0); }
+  for(let p = 1; p <= np; p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110); doc.setDrawColor(180); doc.line(15, 289, 195, 289); doc.text('Relatório de Tratamento de Dados — Leques tratados' + (PROJ ? '  ·  ' + PROJ : '') + '  ·  Emitido em ' + hoje, 15, 293.5); doc.setTextColor(0); }
   await baixarOuCompartilharPDF(doc, `leques_tratados_${(configApp.projetoAtivo || 'todos').replace(/[^\w-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`, true);
   showToast('Relatório em PDF gerado.', { tipo:'ok' });
 }
@@ -187,7 +187,7 @@ function abrirExportarTratativa(){
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
     <p style="font-weight:700;">Exportar leques tratados</p>
-    <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os furos, os metros e a data da tratativa.</div>
+    <div class="hint" style="margin-bottom:8px;">Lista os leques tratados de cada realce, com os furos, os metros e a data do tratamento.</div>
     <div class="rel-realces" role="group" aria-label="Realces do relatório">${noEscopo.map(a=>`<label class="rel-item"><input type="checkbox" value="${a.id}" ${marcados.has(a.id) ? 'checked' : ''}><span>${escHtml(a.nome)}</span></label>`).join('') || '<div class="hint">Nenhum realce.</div>'}</div>
     <div class="rel-atalhos"><button type="button" class="ghost" id="rel-todos">Marcar todos</button><button type="button" class="ghost" id="rel-nenhum">Limpar</button></div>
     <div class="modal-actions"><button class="ghost" id="modal-cancelar">Cancelar</button><button class="ghost" id="rel-csv">Planilha (CSV)</button><button class="ghost" id="rel-img">Só imagem</button><button class="steel" id="rel-pdf">Baixar PDF</button></div>
@@ -204,8 +204,8 @@ function abrirExportarTratativa(){
   el('rel-csv').addEventListener('click', rodar(async s=> exportarRelatorioTratativaCSV(s)));
 }
 
-// ---------- Fechamento mensal das tratativas (somatório do mês) ----------
-// Reúne o que foi ENVIADO no mês (Envios da tratativa) e os leques TRATADOS no mês, com totais por realce.
+// ---------- Fechamento mensal dos tratamentos (somatório do mês) ----------
+// Reúne o que foi ENVIADO no mês (Envios do tratamento) e os leques TRATADOS no mês, com totais por realce.
 function dadosFechamentoMensal(ym){
   const envios = tratativaEnvios.filter(e=> envioNoEscopo(e) && e.data.slice(0,7) === ym).sort((a,b)=> a.data.localeCompare(b.data));
   const porRealce = new Map();
@@ -221,7 +221,7 @@ function dadosFechamentoMensal(ym){
 async function exportarFechamentoMensalPDF(ym){
   if(!window.jspdf){ showToast('Biblioteca de PDF ainda carregando, tente novamente em 1s.'); return; }
   const d = dadosFechamentoMensal(ym), doc = new window.jspdf.jsPDF();
-  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'FECHAMENTO MENSAL DAS TRATATIVAS' });
+  let y = await desenharCabecalhoTurnoPDF(doc, { titulo:'FECHAMENTO MENSAL DOS TRATAMENTOS' });
   const garante = h => { if(y + h > 282){ doc.addPage(); y = 20; } };
   const titulo = t => { garante(14); doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(t, 15, y); y += 7; doc.setFont(undefined,'normal'); doc.setFontSize(9); };
   doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.text(rotuloMesEnvio(ym), 15, y); y += 8;
@@ -251,7 +251,7 @@ async function exportarFechamentoMensalPDF(ym){
     doc.text(`Total (${d.tratados.length} leques)`, 17, y); doc.text(fmtM(d.metrosTratados), 195, y, { align:'right' });
   }
   adicionarMarcaDaguaPDF(doc); adicionarNumeracaoPaginas(doc);
-  await baixarOuCompartilharPDF(doc, `tratativas_${ym}.pdf`, true);
+  await baixarOuCompartilharPDF(doc, `tratamentos_${ym}.pdf`, true);
   showToast('Fechamento mensal gerado.', { tipo:'ok' });
 }
 
@@ -263,7 +263,7 @@ function exportarFechamentoMensalCSV(ym){
   d.tratados.forEach(l=> L.push([fmtDataBR(l.data), l.realce, l.codigo, n(l.metros)]));
   L.push(['Total tratado','','',n(d.metrosTratados)]);
   const url = URL.createObjectURL(new Blob(['﻿' + L.map(r=> r.map(q).join(';')).join('\r\n')], { type:'text/csv;charset=utf-8' }));
-  const a = document.createElement('a'); a.href = url; a.download = `tratativas_${ym}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  const a = document.createElement('a'); a.href = url; a.download = `tratamentos_${ym}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 1000);
   showToast('Planilha gerada.', { tipo:'ok' });
 }
 

@@ -1,4 +1,4 @@
-// ---------- Envios da tratativa: data + metragem enviada, agrupado por mês (aba Tratamento) ----------
+// ---------- Envios do tratamento: data + metragem enviada, agrupado por mês (aba Tratamento) ----------
 const ENVIOS_KEY = 'perfilagem-tratativa-envios-v1';
 let tratativaEnvios = []; // { id, projeto, anelId, anelRotulo, data(YYYY-MM-DD), metragem, leques, observacao, criadoPor, ts }
 let envioForm = null;     // null = fechado; { id?:string } = aberto (id = editando)
@@ -57,7 +57,7 @@ function renderEnvios(){
       <div class="field"><label for="env-obs">Observação (opcional)</label><input id="env-obs" type="text" maxlength="400" value="${ed ? e2(ed.observacao) : ''}" autocomplete="off"></div>
       <div class="env-btns"><button type="submit" class="steel">${ed ? 'Salvar alterações' : 'Registrar envio'}</button><button type="button" class="ghost" onclick="envioForm=null;renderEnvios()">Cancelar</button></div></form>`
     : `<button type="button" class="env-add" onclick="abrirFormEnvio()">＋ Registrar envio</button>`;
-  root.innerHTML = `<div class="env-topo"><h2>Envios da tratativa</h2><span class="hint">data e metragem enviada, por mês</span></div>${form}${blocos || (f ? '' : '<div class="trat-vazio">Nenhum envio registrado ainda.</div>')}`;
+  root.innerHTML = `<div class="env-topo"><h2>Envios do tratamento</h2><span class="hint">data e metragem enviada, por mês</span></div>${form}${blocos || (f ? '' : '<div class="trat-vazio">Nenhum envio registrado ainda.</div>')}`;
   if(f) envioRenderChips();
 }
 function lequesDoRealceEnvio(anelId){

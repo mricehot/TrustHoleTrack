@@ -2764,7 +2764,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
   .ck-check{ min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center; }
 }
 
-/* ===== Tratativa dos dados (aba Perfilagem) ===== */
+/* ===== Tratamento dos dados (aba Perfilagem) ===== */
 #view-perfilagem.com-tratativa > :not(#tratativa-root):not(#envios-root){ display:none !important; }
 #tratativa-root{ display:block; }
 .trat-topo{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 12px; }
@@ -2809,7 +2809,7 @@ body.modo-leitura .alerta-falhas{ top:62px !important; }
 .trat-faixa.pronto{ background:#fde9e2; color:#b23511; border:1px solid #e8441a; }
 .trat-faixa.ok{ background:#d9f1ef; color:#0b5f5b; }
 .trat-faixa button{ min-height:40px; padding:0 14px; flex:none; }
-/* na Tratativa os contadores e o caminho de leque da medição antiga não se aplicam */
+/* no Tratamento os contadores e o caminho de leque da medição antiga não se aplicam */
 body[data-view="perfilagem"] #breadcrumb{ display:none; }
 @media (max-width:700px){ body[data-view="perfilagem"] .readout{ display:none; } }
 body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, body.modo-leitura .trat-prontos-t button{ display:none !important; }
@@ -2854,7 +2854,7 @@ body.modo-leitura .trat-faixa button, body.modo-leitura .trat-pronto .steel, bod
 }
 .tab-badge.tab-badge-trat{ background:#0f7d78; }
 
-/* ---- Envios da tratativa (por mês) ---- */
+/* ---- Envios do tratamento (por mês) ---- */
 #envios-root{ margin:18px 0 24px; }
 .env-topo{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
 .env-topo h2{ margin:0; font-size:18px; }
@@ -2954,7 +2954,7 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .anel-todos{ margin:0 0 8px; }
 .anel-todos .btn-status-todos, .anel-todos button{ min-height:40px; font-size:13px; }
 
-/* Exportar relatório das tratativas */
+/* Exportar relatório dos tratamentos */
 .trat-export{ margin-left:auto; min-height:40px; text-transform:none; letter-spacing:0; font-weight:600; }
 .rel-realces{ max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:4px 8px; }
 .rel-item{ display:flex; align-items:center; gap:10px; min-height:44px; cursor:pointer; text-transform:none; letter-spacing:0; font-size:14px; }

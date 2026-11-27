@@ -287,7 +287,7 @@ async function desenharCabecalhoTurnoPDF(doc, opcoes={}){
   doc.setFontSize(PDF_FONT_TITULO); doc.setFont(undefined,'bold');
   doc.text(titulo, 40, 15);
   doc.setFontSize(PDF_FONT_SUBTITULO); doc.setFont(undefined,'normal'); doc.setTextColor(120);
-  doc.text('Gerado em ' + (opcoes.titulo ? new Date().toLocaleDateString('pt-BR') : new Date().toLocaleString('pt-BR')), 40, 21); // relatórios de tratativa: só a data
+  doc.text('Gerado em ' + (opcoes.titulo ? new Date().toLocaleDateString('pt-BR') : new Date().toLocaleString('pt-BR')), 40, 21); // relatórios de tratamento: só a data
   doc.setTextColor(0);
   doc.setDrawColor(180); doc.line(15, 30, 195, 30);
 
