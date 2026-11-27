@@ -87,71 +87,58 @@ async function exportarRelatorioTratativaPDF(anelIds){
   const tituloSecao = t=>{ if(y > 262){ doc.addPage(); y = 20; } doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(t, 15, y); y += 2; doc.setLineWidth(0.2); doc.setDrawColor(120); doc.line(15, y, 195, y); y += 6; };
   // 1. Identificação
   tituloSecao('1. IDENTIFICAÇÃO');
-  const ident = [['Projeto', PROJ || '—', 'Período das tratativas', periodo], ['Realce(s)', grupos.map(g=>g.realce.nome).join(', '), 'Data de emissão', hoje], ['Elaborado por', quem || '—', 'Leques tratados', String(todos.length)]];
+  const ident = [['Projeto', PROJ || '—', 'Período das tratativas', periodo], ['Realce(s)', grupos.map(g=>g.realce.nome).join(', '), 'Elaborado por', quem || '—']];
   doc.setFontSize(9);
   ident.forEach(r=>{ const rh = Math.max(7, doc.splitTextToSize(r[1], 51).length * 4 + 3);
     doc.setFillColor(...CINZA); doc.rect(15, y, 28, rh, 'F'); doc.rect(98, y, 40, rh, 'F');
     doc.setDrawColor(120); doc.rect(15, y, 180, rh); [43, 98, 138].forEach(x=> doc.line(x, y, x, y + rh));
     doc.setFont('helvetica','bold'); doc.text(r[0], 17, y + 4.6); doc.text(r[2], 100, y + 4.6);
     doc.setFont('helvetica','normal'); doc.text(doc.splitTextToSize(r[1], 51), 45, y + 4.6); doc.text(doc.splitTextToSize(r[3], 53), 140, y + 4.6); y += rh; });
-  y += 8;
+  y += 6;
   // 2. Resumo
   tituloSecao('2. RESUMO GERAL');
   const colR = [['Leques tratados', String(todos.length)], ['Furos considerados', String(nFuros)], ['Planejado (m)', fmtM(plan)], ['Executado (m)', fmtM(exec)], ['Diferença (m)', sinal(difT)]], wR = 180 / colR.length;
   doc.setDrawColor(120); doc.setFontSize(8.5);
-  colR.forEach(([r, v], k)=>{ const x = 15 + k * wR; doc.setFillColor(...CINZA); doc.rect(x, y, wR, 6.5, 'FD'); doc.rect(x, y + 6.5, wR, 9, 'D');
-    doc.setFont('helvetica','bold'); doc.text(r, x + wR / 2, y + 4.4, { align:'center' }); doc.setFontSize(12); doc.text(v, x + wR / 2, y + 13, { align:'center' }); doc.setFontSize(8.5); });
-  y += 24;
-  // 3. Detalhamento por realce
-  tituloSecao('3. DETALHAMENTO POR REALCE E LEQUE');
-  const X = [15, 32, 48, 60, 85, 110, 131, 152, 195];  // limites das colunas
+  colR.forEach(([r, v], k)=>{ const x = 15 + k * wR; doc.setFillColor(...CINZA); doc.rect(x, y, wR, 6, 'FD'); doc.rect(x, y + 6, wR, 8, 'D');
+    doc.setFont('helvetica','bold'); doc.text(r, x + wR / 2, y + 4.1, { align:'center' }); doc.setFontSize(11); doc.text(v, x + wR / 2, y + 12, { align:'center' }); doc.setFontSize(8.5); });
+  y += 20;
+  // 3. Detalhamento por realce (uma linha por leque)
+  tituloSecao('3. LEQUES TRATADOS');
+  const X = [15, 37, 55, 68, 92, 116, 136, 158, 195];  // limites das colunas
   const cab = ()=>{ doc.setFillColor(...CINZA2); doc.setDrawColor(0); doc.rect(15, y, 180, 8, 'FD'); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-    [['LEQUE',0,'l'], ['DATA',1,'l'], ['FURO',2,'l'], ['PLAN. (m)',3,'r'], ['EXEC. (m)',4,'r'], ['DIF. (m)',5,'r'], ['DESVIO (cm)',6,'r'], ['OBSERVAÇÃO',7,'l']].forEach(([t, c, al])=>{
+    [['LEQUE',0,'l'], ['DATA',1,'l'], ['FUROS',2,'r'], ['PLAN. (m)',3,'r'], ['EXEC. (m)',4,'r'], ['DIF. (m)',5,'r'], ['DESV. (cm)',6,'r'], ['OBSERVAÇÃO',7,'l']].forEach(([t, c, al])=>{
       if(c) doc.line(X[c], y, X[c], y + 8); if(al === 'r') doc.text(t, X[c + 1] - 2, y + 5.2, { align:'right' }); else doc.text(t, X[c] + 2, y + 5.2); }); y += 8; doc.setFont('helvetica','normal'); doc.setFontSize(8.5); };
-  const linha = (cel, opc)=>{ opc = opc || {}; const rh = opc.h || 5.4;
+  const linha = (cel, opc)=>{ opc = opc || {}; const rh = opc.h || 5.6;
     if(y + rh > 281){ doc.addPage(); y = 20; cab(); }
     if(opc.fill){ doc.setFillColor(...opc.fill); doc.rect(15, y, 180, rh, 'F'); }
     doc.setDrawColor(150); doc.rect(15, y, 180, rh); for(let c = 1; c < 8; c++) if(!(opc.junta && c < opc.junta)) doc.line(X[c], y, X[c], y + rh);
     doc.setFont('helvetica', opc.bold ? 'bold' : 'normal'); doc.setFontSize(8.5);
-    cel.forEach((t, c)=>{ if(t === '' || t == null) return; const dir = c >= 3 && c <= 6; if(dir) doc.text(String(t), X[c + 1] - 2, y + rh - 1.7, { align:'right' }); else { if(c === 0 && !opc.bold) doc.setFont('helvetica','bold'); doc.text(String(t), X[c] + 2, y + rh - 1.7, opc.junta && c === 0 ? undefined : { maxWidth: X[c + 1] - X[c] - 3 }); if(c === 0 && !opc.bold) doc.setFont('helvetica','normal'); } });
+    cel.forEach((t, c)=>{ if(t === '' || t == null) return; const dir = c >= 2 && c <= 6;
+      if(dir) doc.text(String(t), X[c + 1] - 2, y + rh - 1.8, { align:'right' });
+      else { if(c === 0 && !opc.bold) doc.setFont('helvetica','bold'); const txt = opc.junta && c === 0 ? String(t) : doc.splitTextToSize(String(t), X[c + 1] - X[c] - 3)[0]; doc.text(txt, X[c] + 2, y + rh - 1.8); if(c === 0 && !opc.bold) doc.setFont('helvetica','normal'); } });
     y += rh; };
   const realces = dadosRelatorioTratativa(anelIds).realces;
   grupos.forEach((g, gi)=>{
-    const r = realces.find(x=>x.realce.id === g.realce.id), meta = [g.realce.nivel, g.realce.orientacao === 'ascendente' ? 'Ascendente' : g.realce.orientacao === 'descendente' ? 'Descendente' : ''].filter(Boolean).join(' · ');
-    if(y > 240){ doc.addPage(); y = 20; }
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(PRETO); doc.text(`3.${gi + 1}  Realce ${g.realce.nome}${meta ? '  —  ' + meta : ''}`, 15, y); y += 4; cab();
+    const meta = [g.realce.nivel, g.realce.orientacao === 'ascendente' ? 'Ascendente' : g.realce.orientacao === 'descendente' ? 'Descendente' : ''].filter(Boolean).join(' · ');
+    if(y > 250){ doc.addPage(); y = 20; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(PRETO); doc.text(`Realce ${g.realce.nome}${meta ? '  —  ' + meta : ''}`, 15, y); y += 3.5; cab();
     g.leques.forEach(l=>{
-      if(y + 5.4 * 3 > 281){ doc.addPage(); y = 20; cab(); }
-      l.furosLista.forEach((f, k)=>{
-        const d = f.exec != null ? f.exec - f.plan : null;
-        linha([k === 0 ? l.codigo : '', k === 0 ? fmtDataBR(l.tratadoEm) : '', 'F' + f.numero, fmtM(f.plan), f.obst ? '—' : (f.exec != null ? fmtM(f.exec) : 'não medido'), f.obst || d == null ? '—' : sinal(d), f.desvio != null ? fmtM(f.desvio) : '', f.obs || ''], { bold: false });
-      });
       const part = l.real > 0 && l.espMed < l.esp - 0.049; if(part) parcial = true;
-      linha(['Subtotal ' + l.codigo, '', '', fmtM(l.esp), l.real > 0 ? fmtM(l.real) : '—', l.real > 0 ? sinal(l.real - l.espMed) + (part ? '*' : '') : '—', '', `${l.uteis} ${l.uteis === 1 ? 'furo' : 'furos'}${l.obst ? ' · ' + l.obst + ' obst.' : ''}`], { bold:true, fill: CINZA, junta: 3 });
+      const desv = l.furosLista.filter(f=>f.desvio != null).map(f=> Math.abs(f.desvio)), obsCont = {};
+      l.furosLista.forEach(f=>{ if(f.obs) obsCont[f.obs] = (obsCont[f.obs] || 0) + 1; });
+      const obsTxt = Object.entries(obsCont).map(([k, n])=> `${n} ${k.toLowerCase()}`).join(' · ');
+      linha([l.codigo, fmtDataBR(l.tratadoEm), String(l.uteis), fmtM(l.esp), l.real > 0 ? fmtM(l.real) : '—', l.real > 0 ? sinal(l.real - l.espMed) + (part ? '*' : '') : '—', desv.length ? fmtM(Math.max(...desv)) : '—', obsTxt]);
     });
-    const tp = g.leques.reduce((t,l)=> t + l.esp, 0), te = g.leques.reduce((t,l)=> t + l.real, 0), td = g.leques.reduce((t,l)=> t + (l.real > 0 ? l.real - l.espMed : 0), 0);
-    linha([`TOTAL DO REALCE (${g.leques.length} ${g.leques.length === 1 ? 'leque' : 'leques'})`, '', '', fmtM(tp), fmtM(te), sinal(td), '', ''], { bold:true, fill: CINZA2, junta: 3, h: 6.4 });
-    y += 9;
+    const tp = g.leques.reduce((t,l)=> t + l.esp, 0), te = g.leques.reduce((t,l)=> t + l.real, 0), td = g.leques.reduce((t,l)=> t + (l.real > 0 ? l.real - l.espMed : 0), 0), tf = g.leques.reduce((t,l)=> t + l.uteis, 0);
+    linha([`Total (${g.leques.length} ${g.leques.length === 1 ? 'leque' : 'leques'})`, '', String(tf), fmtM(tp), fmtM(te), sinal(td), '', ''], { bold:true, fill: CINZA2, junta: 2, h: 6 });
+    y += 6;
   });
-  // 4. Observações
-  tituloSecao('4. OBSERVAÇÕES');
-  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-  const obs = ['Planejado: metragem prevista em projeto para cada furo. Executado: metragem medida na perfilagem.', 'Diferença = executado − planejado. Valor positivo indica furo mais longo que o planejado.', 'Furos obstruídos ou detonados não entram nos totais de metragem.'];
-  if(parcial) obs.push('* Diferença calculada apenas sobre os furos já medidos do leque.');
-  obs.forEach(t=>{ const ls = doc.splitTextToSize('•  ' + t, 175); if(y + ls.length * 4.2 > 280){ doc.addPage(); y = 20; } doc.text(ls, 17, y); y += ls.length * 4.2 + 1.2; });
-  y += 6;
-  // Assinatura
-  if(y > 250){ doc.addPage(); y = 20; }
-  doc.setDrawColor(0); doc.line(15, y + 14, 95, y + 14); doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.text(quem || 'Elaborado por', 15, y + 19); doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.text('Elaborado por  ·  ' + hoje, 15, y + 23.5); doc.setTextColor(PRETO); y += 30;
-  // Anexo: quadro dos leques tratados
-  doc.addPage(); y = 20;
-  tituloSecao('ANEXO A — QUADRO DOS LEQUES TRATADOS');
-  for(const g of grupos){
-    const cv = imagemTratadosCanvas(g); let w = 180, h = w * cv.height / cv.width;
-    if(h > 250){ h = 250; w = h * cv.width / cv.height; }
-    if(y + h > 282){ doc.addPage(); y = 20; }
-    doc.addImage(cv.toDataURL('image/png'), 'PNG', 15, y, w, h); y += h + 6;
-  }
+  // Nota e assinatura
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(80);
+  const nota = doc.splitTextToSize('Diferença = executado - planejado (positivo: furo mais longo que o previsto). Furos obstruídos ou detonados não entram nos totais.' + (parcial ? ' * Calculada só sobre os furos já medidos do leque.' : ''), 180);
+  if(y + nota.length * 3.4 + 22 > 284){ doc.addPage(); y = 20; }
+  doc.text(nota, 15, y); y += nota.length * 3.4 + 12; doc.setTextColor(PRETO);
+  doc.setDrawColor(0); doc.line(15, y, 85, y); doc.setFontSize(8.5); doc.setFont('helvetica','bold'); if(quem){ doc.text(quem, 15, y + 4.5); } doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.text('Elaborado por  ·  ' + hoje, 15, y + (quem ? 8.5 : 4.5)); doc.setTextColor(PRETO);
   adicionarMarcaDaguaPDF(doc);
   adicionarNumeracaoPaginas(doc);
   // rodapé de identificação em todas as páginas
