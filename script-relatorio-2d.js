@@ -19,15 +19,36 @@ async function r2dImg(op, chave, valor){
   }catch(e){ return null; }
 }
 // Reduz a imagem (máx. 1800 px no maior lado, JPEG) para não pesar no aparelho nem no PDF.
+// Guarda a imagem em alta qualidade: até 3200 px, PNG sem perda quando a origem é PNG (prints de desenho técnico),
+// ou JPEG qualidade 95 nos demais casos. O PDF reduz depois, só se passar de ~300 dpi.
 function r2dReduzir(arq){
   return new Promise((ok, falha)=>{
     const url = URL.createObjectURL(arq), im = new Image();
-    im.onload = ()=>{ const k = Math.min(1, 1800 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
-      cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k); const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(im, 0, 0, cv.width, cv.height);
-      URL.revokeObjectURL(url); cv.toBlob(b=> b ? ok({ blob:b, w:cv.width, h:cv.height }) : falha(new Error('imagem inválida')), 'image/jpeg', 0.88); };
+    im.onload = ()=>{
+      const k = Math.min(1, 3200 / Math.max(im.width, im.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(im.width * k); cv.height = Math.round(im.height * k);
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(im, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      const jpeg = ()=> cv.toBlob(b=> b ? ok({ blob:b, w:cv.width, h:cv.height }) : falha(new Error('imagem inválida')), 'image/jpeg', 0.95);
+      if(/png|webp|gif|bmp/i.test(arq.type || '')) cv.toBlob(b=>{ if(b && b.size <= 6 * 1024 * 1024) ok({ blob:b, w:cv.width, h:cv.height }); else jpeg(); }, 'image/png');
+      else jpeg();
+    };
     im.onerror = ()=>{ URL.revokeObjectURL(url); falha(new Error('Não consegui ler essa imagem.')); };
     im.src = url;
   });
+}
+// Prepara a imagem para o PDF: mantém o formato (PNG/JPEG) e só reduz se passar de 300 dpi no tamanho em que será impressa.
+async function r2dImagemParaPDF(reg, wMm){
+  const alvo = Math.ceil(wMm / 25.4 * 300), png = /png/i.test(reg.blob.type || '');
+  if(reg.w <= alvo * 1.1) return { data: await r2dParaDataURL(reg.blob), fmt: png ? 'PNG' : 'JPEG' };
+  const url = URL.createObjectURL(reg.blob);
+  try{
+    const im = await new Promise((ok, no)=>{ const i = new Image(); i.onload = ()=> ok(i); i.onerror = no; i.src = url; });
+    const cv = document.createElement('canvas'); cv.width = alvo; cv.height = Math.round(alvo * reg.h / reg.w);
+    const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.imageSmoothingQuality = 'high'; c.drawImage(im, 0, 0, cv.width, cv.height);
+    return { data: cv.toDataURL(png ? 'image/png' : 'image/jpeg', 0.93), fmt: png ? 'PNG' : 'JPEG' };
+  } finally { URL.revokeObjectURL(url); }
 }
 const r2dParaDataURL = blob => new Promise(ok=>{ const r = new FileReader(); r.onload = ()=> ok(r.result); r.readAsDataURL(blob); });
 
@@ -200,7 +221,7 @@ async function gerarRelatorio2DPDF(){
   const imagem = async (reg, x, y, wMax, hMax)=>{
     if(!reg){ doc.setDrawColor(190); doc.setLineDashPattern([2,2],0); doc.rect(x, y, wMax, Math.min(hMax, 60)); doc.setLineDashPattern([],0); doc.setFontSize(9); doc.setTextColor(140); doc.text('(sem imagem anexada)', x + wMax/2, y + 30, { align:'center' }); doc.setTextColor(0); return Math.min(hMax, 60); }
     let w = wMax, h = w * reg.h / reg.w; if(h > hMax){ h = hMax; w = h * reg.w / reg.h; }
-    doc.addImage(await r2dParaDataURL(reg.blob), 'JPEG', x + (wMax - w)/2, y, w, h); return h;
+    const pr = await r2dImagemParaPDF(reg, w); doc.addImage(pr.data, pr.fmt, x + (wMax - w)/2, y, w, h, undefined, 'SLOW'); return h;
   };
   const legenda = (y, geral)=>{ doc.setFont(undefined,'bold'); doc.setFontSize(10); doc.text('LEGENDA', 15, y); doc.text(geral ? 'AZUL: PLANEJADO' : 'LINHA AZUL: PLANEJADO', 15, y + 5); doc.text(geral ? 'VERMELHO: EXECUTADO' : 'TRACEJADO VERMELHA: EXECUTADO', 15, y + 10); };
   // Página 1 — cabeçalho completo (logo, título, gerado em e projeto) + imagem geral
