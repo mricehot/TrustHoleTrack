@@ -3219,3 +3219,10 @@ body.na-tela-lembretes .lembretes-painel, body.na-tela-lembretes .lembretes-fab{
 .lem-card header h3{ font-size:16px; }
 .lem-card > header{ border:0 !important; padding:0 !important; margin:0 !important; min-height:0 !important; background:none !important; position:static !important; }
 .lem-txt-l{ font-weight:400; color:var(--text); margin-top:2px; }
+
+/* Realce a céu aberto: sem leque, só furos */
+.ar-cava{ background:#fff3d6; color:#8a5a00; border-color:#e8c46a; }
+body.area-ceu-aberto #checklist-adicionar .ck-form-linha1{ display:none; }
+body.area-ceu-aberto #painel-leque, body.area-ceu-aberto #leque-faixa, body.area-ceu-aberto .perf-puxar{ display:none !important; }
+.ck-cava .ck-arrastar, .ck-cava .seta, .ck-cava .ck-est-ico, .ck-cava button[onclick^="moverLequeChecklist"], .ck-cava button[onclick^="removerChecklistLeque"]{ display:none !important; }
+.ck-cava .ck-cab{ cursor:default; }

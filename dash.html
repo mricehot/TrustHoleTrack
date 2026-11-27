@@ -291,6 +291,7 @@
             </div>
             <button type="button" id="btn-novo-anel" class="ghost so-gestor btn-novo-anel" onclick="document.getElementById('form-anel').classList.toggle('aberto'); this.setAttribute('aria-expanded', document.getElementById('form-anel').classList.contains('aberto'))" aria-expanded="false">+ Novo realce</button>
             <div class="anel-form so-gestor" id="form-anel">
+              <select id="anel-tipo-area" aria-label="tipo de área" style="flex:1 1 100%;" onchange="aoMudarTipoAreaAnel()"><option value="subterranea">⛏ Mina subterrânea (com leques)</option><option value="ceu_aberto">☀ Céu aberto / cava (só furos, sem leque)</option></select>
               <input id="anel-nome" type="text" placeholder="nome do realce, ex: Realce N3-Leste" required style="flex:1 1 100%;">
               <input id="anel-nivel" type="text" placeholder="nível, ex: N-125 TR6733" style="flex:1 1 200px; min-width:0;">
               <select id="anel-orientacao" aria-label="orientação do realce"><option value="descendente">↓ Descendente</option><option value="ascendente">↑ Ascendente</option></select>
@@ -648,9 +649,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=l86"></script>
-<script src="script-leques.js?v=l100"></script>
-<script src="script-checklist.js?v=l123"></script>
+<script src="script.js?v=l87"></script>
+<script src="script-leques.js?v=l102"></script>
+<script src="script-checklist.js?v=l124"></script>
 <script src="script-fotos.js?v="></script>
 <script src="script-relatorio-imagem.js?v=l90"></script>
 <script src="script-config.js?v=6"></script>

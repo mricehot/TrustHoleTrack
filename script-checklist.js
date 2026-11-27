@@ -160,7 +160,7 @@ const ROTULO_ESTADO = { ok:'completo', and:'em andamento', obs:'obstrução alta
 function leque100(furos){ return furos.length > 0 && furos.every(f=> f.perfilado && f.topografado && !f.obstruido); }
 function htmlCardChecklist(c, agrupado){
   const codigo = PREFIXO[c.tipo] + c.numero;
-  const expandido = checklistExpandido.has(c.id);
+  const expandido = c.tipo === 'cava' || checklistExpandido.has(c.id);
   const furos = checklistFurosDoLeque(c.id);
   const feitos = furos.filter(f=>f.perfilado).length;
   const topo = furos.filter(f=>f.topografado).length;
@@ -267,7 +267,7 @@ function htmlCardChecklist(c, agrupado){
   }
 
   return `
-    <div class="checklist-leque-card ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-id="${c.id}" data-est="${est}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[est]}">
+    <div class="checklist-leque-card ${c.tipo === 'cava' ? 'ck-cava' : ''} ${c.perfilado ? 'feito' : ''} ${sel ? 'selecionado' : ''} ${obstrucaoAlta(obstr, furos.length) ? 'obstr-alta' : ''}" id="ck-card-${c.id}" data-id="${c.id}" data-est="${est}" ${leque100(furos) ? 'data-raios="1"' : ''} title="Leque ${ROTULO_ESTADO[est]}">
       ${detonado ? '<span class="ck-brasas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' : ''}
       ${leque100(furos) ? '<span class="ck-raios" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}
       <div class="ck-cab" role="button" tabindex="0" aria-expanded="${expandido}" onclick="toggleExpandirChecklist('${c.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExpandirChecklist('${c.id}')}">
@@ -1090,6 +1090,7 @@ function adicionarAoChecklist(){
   if(!exigirGestor('adicionar leques ao checklist')) return;
   const anelAtivo = aneis.find(a=>a.id===anelAtivoId);
   if(!anelAtivo){ showToast('Selecione um realce primeiro.'); return; }
+  if(anelAtivo.tipoArea === 'ceu_aberto') return adicionarFurosCava(anelAtivo);
   const tipo = el('checklist-tipo').value;
   // Aceita número com letra: "8A" (um leque) ou faixa "1" até "5" / "1A" até "5A" (a letra vale para a faixa toda)
   const lerNum = t => { const m = String(t||'').trim().match(/^0*(\d+)([A-Za-z]{0,2})$/); return m ? { n: parseInt(m[1], 10), suf: m[2].toUpperCase() } : null; };
@@ -1455,6 +1456,30 @@ function desfazerRemocaoChecklist(itemRemovido, furosRemovidos){
 }
 
 function lerMetros(txt){ const n = parseFloat(String(txt||'').trim().replace(',', '.')); return (isNaN(n) || n <= 0 || n > 999) ? 0 : n; }
+// Realce a céu aberto: só furos, direto no grupo interno do realce.
+function adicionarFurosCava(anel){
+  const g = garantirGrupoCava(anel);
+  const deTxt = el('checklist-furo-de').value.trim(), ateTxt = el('checklist-furo-ate').value.trim();
+  const de = parseInt(deTxt, 10), ate = ateTxt ? parseInt(ateTxt, 10) : de;
+  if(isNaN(de)){ showToast('Preencha o número (ou a faixa) dos furos.'); return; }
+  if(isNaN(ate) || ate < de){ showToast('O "até" precisa ser maior ou igual ao "de".'); return; }
+  if(ate - de > 500){ showToast('Faixa grande demais pra adicionar de uma vez (máximo 500).'); return; }
+  let adicionados = 0, duplicados = 0;
+  for(let n = de; n <= ate; n++){
+    const numero = normalizarNumero(String(n));
+    if(checklistFuros.some(f=>f.checklistLequeId === g.id && f.numero === numero)){ duplicados++; continue; }
+    const novoId = uuidv4(), ts = new Date(Date.now() + adicionados).toISOString();
+    checklistFuros.push({ id: novoId, checklistLequeId: g.id, numero, perfilado: false, topografado: false, ts });
+    enfileirar('checklist_furos', 'insert', { id: novoId, checklist_leque_id: g.id, numero, perfilado: false, topografado: false });
+    adicionados++;
+  }
+  checklistExpandido.add(g.id);
+  sincronizarLequePerfilado(g.id);
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  el('checklist-furo-de').value = ''; el('checklist-furo-ate').value = '';
+  showToast(adicionados ? `${adicionados} furo(s) adicionado(s).${duplicados ? ' (' + duplicados + ' já existiam)' : ''}` : 'Nada adicionado — todos já estavam no realce.');
+}
 function adicionarFurosAoChecklist(checklistLequeId){
   if(!exigirGestor('adicionar furos ao leque')) return;
   const c = checklistLeques.find(x=>x.id===checklistLequeId);

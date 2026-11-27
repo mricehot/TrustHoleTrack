@@ -91,7 +91,7 @@ function corRGBSituacao(situacao){
 function lequeCode(l){ return PREFIXO[l.tipo] + l.numero; }
 function furoCode(l, f){ return lequeCode(l) + 'F' + f.numero; }
 
-const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV', aux:'AUX' };
+const PREFIXO = { leque:'LQ', slot:'SL', fill:'FL', cr:'CR', inv:'INV', aux:'AUX', cava:'Furos' }; // 'cava' = grupo interno dos realces a céu aberto (sem leque): numero vazio, aparece só como "Furos"
 
 // ---------- Tamanhos de fonte usados na geração dos PDFs ----------
 // Ajuste os valores abaixo (em pt) para controlar o tamanho das letras nos PDFs exportados.

@@ -106,6 +106,7 @@ function htmlLinhaAnel(a, info){
   const fav = ehFavoritoRealce(a.id), nome = escHtml(a.nome);
   const temFotos = checklistFuros.some(f=> (f.fotoUrl || (typeof fotosPendentes !== 'undefined' && fotosPendentes.has(f.id))) && itensA.some(c=>c.id===f.checklistLequeId));
   const sel = [
+    a.tipoArea === 'ceu_aberto' ? '<span class="ar-nivel ar-cava" title="Área a céu aberto: só furos, sem leque">☀ Céu aberto</span>' : '',
     a.nivel ? `<span class="ar-nivel">${escHtml(a.nivel)}</span>` : '',
     `<span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Ascendente' : '↓ Descendente'}</span>`,
     ativo ? '<span class="badge-ativo" title="o realce ativo é individual: só vale pra você">ativo p/ você</span>' : '',
@@ -144,6 +145,7 @@ function htmlLinhaAnel(a, info){
         <button type="button" class="ar-mais-btn" aria-expanded="${aberto}" aria-label="mais opções de ${nome}" onclick="alternarMenuRealce('${a.id}', this)">⋯</button>
       </div>
       <div class="ar-l2">
+        ${a.tipoArea === 'ceu_aberto' ? '<span class="ar-nivel ar-cava">☀ Céu aberto</span>' : ''}
         ${a.nivel ? `<span class="ar-nivel">${escHtml(a.nivel)}</span>` : ''}
         <span class="badge-orientacao ${a.orientacao || 'descendente'}" title="orientação do realce">${a.orientacao === 'ascendente' ? '↑ Asc.' : '↓ Desc.'}</span>
         ${itensA.length ? `<span class="ar-n">${itensA.length} leque${itensA.length===1?'':'s'}</span>` : ''}
@@ -368,18 +370,20 @@ function criarAnel(){
     return;
   }
   const orientacao = (el('anel-orientacao') && el('anel-orientacao').value) || 'descendente';
+  const tipoArea = (el('anel-tipo-area') && el('anel-tipo-area').value === 'ceu_aberto') ? 'ceu_aberto' : 'subterranea';
   const novoId = uuidv4();
-  aneis.push({ id: novoId, nome, ativo: false, nivel, orientacao, projeto, ocultoWhatsapp: false });
+  aneis.push({ id: novoId, nome, ativo: false, nivel, orientacao, projeto, ocultoWhatsapp: false, tipoArea });
   anelAtivoId = novoId;
   if(el('f-tipo')) el('f-tipo').value = '';
   if(el('f-situacao')) el('f-situacao').value = '';
   if(el('f-busca')) el('f-busca').value = '';
   sincronizarLocalComNivelDoAnel();
-  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: false, nivel, projeto, orientacao });
+  enfileirar('aneis', 'insert', { id: novoId, nome, ativo: false, nivel, projeto, orientacao, tipo_area: tipoArea });
   // o FK exige o realce já gravado; o upsert tem debounce, então chega depois do insert
   gravarRealceAtivoDoUsuario(novoId);
   campoNome.value = '';
   el('anel-nivel').value = '';
+  if(tipoArea === 'ceu_aberto'){ garantirGrupoCava(aneis.find(x=>x.id === novoId)); }
   const arqPlano = el('anel-plano') && el('anel-plano').files && el('anel-plano').files[0];
   if(el('anel-plano')){ el('anel-plano').value = ''; if(el('anel-plano-nome')) el('anel-plano-nome').textContent = 'Anexar plano (PDF)'; }
   salvarLocal();
@@ -423,6 +427,9 @@ function renderPainelTrabalho(){
   }
   painel.style.display = '';
 
+  if(ehCeuAberto(anelAtivo.id)) garantirGrupoCava(anelAtivo);
+  const cava = ehCeuAberto(anelAtivo.id);
+  aplicarTipoAreaNaTela();
   const lequeAberto = lequeAbertoDoAnel(anelAtivo.id);
 
   // Formulários recolhidos: abrem sozinhos quando há medição em andamento (para lançar furos) e fecham ao terminar.
@@ -431,7 +438,7 @@ function renderPainelTrabalho(){
     const chave = lequeAberto ? lequeAberto.id : '';
     if(detForms.dataset.ultimo !== chave){ detForms.dataset.ultimo = chave; detForms.open = !!lequeAberto; }
     const rs = el('perf-forms-resumo');
-    if(rs) rs.textContent = lequeAberto ? `＋ Adicionar furos em ${lequeCode(lequeAberto)} (medição em andamento)` : '＋ Criar medição / adicionar furo';
+    if(rs) rs.textContent = cava ? '＋ Adicionar furo' : lequeAberto ? `＋ Adicionar furos em ${lequeCode(lequeAberto)} (medição em andamento)` : '＋ Criar medição / adicionar furo';
   }
 
   const formLeque = el('form-leque');
@@ -441,7 +448,7 @@ function renderPainelTrabalho(){
     el('leque-panel-title').textContent = 'Medição em andamento';
     const furosDoLeque = furos.filter(f=>f.lequeId===lequeAberto.id);
     const podeFinalizar = souDonoDoLeque(lequeAberto);
-    boxAtual.innerHTML = `
+    boxAtual.innerHTML = cava ? '' : `
       <div class="leque-atual">
         <span class="code">${lequeCode(lequeAberto)}</span>
         <span>${tipoLabel(lequeAberto.tipo)}${lequeAberto.nome ? ' · '+escHtml(lequeAberto.nome) : ''}</span>
@@ -459,7 +466,7 @@ function renderPainelTrabalho(){
     boxAtual.innerHTML = '';
   }
 
-  atualizarFaixaLeque(lequeAberto);
+  atualizarFaixaLeque(cava ? null : lequeAberto);
   const semLeque = !lequeAberto;
   ['furo-numero','furo-esperada','furo-real','furo-situacao','furo-observacao','btn-add-furo'].forEach(id=> el(id).disabled = semLeque);
   document.querySelectorAll('#furo-situacao-botoes button').forEach(b=> b.disabled = semLeque);
@@ -838,8 +845,47 @@ function desfazerRemocaoProjeto(projetoRemovido){
   showToast('Projeto restaurado.');
 }
 
-function mapAnel(row){ return { id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp, foraEstatisticas: !!row.fora_estatisticas, planoPath: row.plano_path || '', planoNome: row.plano_nome || '', planoEm: row.plano_atualizado_em || '', arquivosOk: !!row.arquivos_ok, arquivosOkEm: row.arquivos_ok_em || null, arquivosOkPor: row.arquivos_ok_por || '' }; }
+function mapAnel(row){ return { tipoArea: row.tipo_area === 'ceu_aberto' ? 'ceu_aberto' : 'subterranea', id: row.id, nome: row.nome, ativo: row.ativo, nivel: row.nivel || '', orientacao: row.orientacao || 'descendente', projeto: row.projeto || '', empresaId: row.empresa_id || null, ocultoWhatsapp: !!row.oculto_whatsapp, foraEstatisticas: !!row.fora_estatisticas, planoPath: row.plano_path || '', planoNome: row.plano_nome || '', planoEm: row.plano_atualizado_em || '', arquivosOk: !!row.arquivos_ok, arquivosOkEm: row.arquivos_ok_em || null, arquivosOkPor: row.arquivos_ok_por || '' }; }
 function mapLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, nome: row.nome, status: row.status, orientacao: row.orientacao || 'ascendente', turnoNumero: row.turno_numero, turnoLetra: row.turno_letra, criadoPor: row.criado_por || null, fotoUrl: row.foto_url || null }; }
+// ---------- Realce a céu aberto (cava): não tem leque, só furos ----------
+// Por baixo dos panos o realce ganha um único grupo interno (tipo 'cava', sem número) que guarda os furos;
+// a interface esconde o leque e mostra só "Furos".
+function ehCeuAberto(anelId){ const a = aneis.find(x=>x.id === anelId); return !!a && a.tipoArea === 'ceu_aberto'; }
+function grupoCavaChecklist(anelId){ return checklistLeques.find(c=>c.anelId === anelId && c.tipo === 'cava') || null; }
+function garantirGrupoCava(anel){
+  if(!anel) return null;
+  let c = grupoCavaChecklist(anel.id);
+  if(!c){
+    const id = uuidv4(), ts = new Date().toISOString();
+    c = { id, anelId: anel.id, tipo: 'cava', numero: '', perfilado: false, observacao: '', localizacao: '', ts };
+    checklistLeques.push(c);
+    salvarChecklistLocal();
+    inserirLequesEFuros([{ id, anel_id: anel.id, tipo: 'cava', numero: '', perfilado: false, localizacao: null, criado_em: ts }], []);
+  }
+  if(!leques.some(l=>l.anelId === anel.id && l.tipo === 'cava')){
+    const lid = uuidv4(), criadoPor = usuarioAtual ? usuarioAtual.id : null;
+    leques.push({ id: lid, anelId: anel.id, tipo: 'cava', numero: '', nome: null, status: 'aberto', orientacao: anel.orientacao || 'descendente', turnoNumero: null, turnoLetra: null, criadoPor, fotoUrl: null });
+    enfileirar('leques', 'insert', { id: lid, anel_id: anel.id, tipo: 'cava', numero: '', nome: null, status: 'aberto', orientacao: anel.orientacao || 'descendente', criado_por: criadoPor });
+    salvarLocal();
+  }
+  return c;
+}
+// Ajusta os formulários ao tipo do realce ativo (chamado a cada renderização).
+function aoMudarTipoAreaAnel(){
+  const cava = el('anel-tipo-area') && el('anel-tipo-area').value === 'ceu_aberto';
+  const o = el('anel-orientacao'); if(o) o.style.display = cava ? 'none' : '';
+  const p = document.querySelector('.anel-plano-lbl'); if(p) p.style.display = cava ? 'none' : '';
+  const n = el('anel-nivel'); if(n) n.placeholder = cava ? 'bancada / cota, ex: Bancada 420' : 'nível, ex: N-125 TR6733';
+}
+function aplicarTipoAreaNaTela(){
+  const cava = ehCeuAberto(anelAtivoId);
+  document.body.classList.toggle('area-ceu-aberto', cava);
+  const t = document.querySelector('#checklist-adicionar > summary'); if(t) t.textContent = cava ? '＋ Adicionar furos' : '＋ Adicionar leques ao checklist';
+  const ft = document.querySelector('#checklist-adicionar .ck-form-titulo'); if(ft) ft.textContent = cava ? 'Novos furos' : 'Novo leque';
+  const b = el('btn-add-checklist'); if(b) b.textContent = cava ? '+ Adicionar furos' : '+ Adicionar ao checklist';
+  const bu = el('checklist-busca'); if(bu) bu.placeholder = cava ? 'Furo (12)' : 'Leque (12) ou leque.furo (12.5)';
+  const tt = document.querySelector('#view-checklist .view-card-label'); if(tt && /CHECKLIST DE|Checklist de/i.test(tt.textContent) ) tt.textContent = cava ? 'Checklist de furos' : 'Checklist de leques';
+}
 function mapChecklistLeque(row){ return { id: row.id, anelId: row.anel_id, tipo: row.tipo, numero: row.numero, perfilado: !!row.perfilado, observacao: row.observacao || '', localizacao: row.localizacao || '', perfiladoPor: row.perfilado_por || '', liberado: !!row.liberado_tratamento, liberadoEm: row.liberado_em || null, liberadoPor: row.liberado_por || '', tratado: !!row.tratado, tratadoEm: row.tratado_em || null, tratadoPor: row.tratado_por || '', ordem: row.ordem != null ? Number(row.ordem) : null, equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipePerfManual: !!row.equipe_perfilagem_manual, equipeTopoManual: !!row.equipe_topografia_manual, observacao: row.observacao || '', ts: row.criado_em }; }
 function mapChecklistFuro(row){ return { azimuteOk: !!row.azimute_ok, azimuteEm: row.azimute_em || null, obstruidoEm: row.obstruido_em || null, id: row.id, checklistLequeId: row.checklist_leque_id, numero: row.numero, perfilado: !!row.perfilado, topografado: !!row.topografado, metragem: row.metragem != null ? Number(row.metragem) : null, perfiladoEm: row.perfilado_em || null, topografadoEm: row.topografado_em || null, obstruido: row.obstruido || '', perfiladoPor: row.perfilado_por || '', topografadoPor: row.topografado_por || '', obstruidoPor: row.obstruido_por || '', equipePerfId: row.equipe_perfilagem_id || null, equipeTopoId: row.equipe_topografia_id || null, equipeObsId: row.equipe_obstrucao_id || null, metragemEsperada: row.metragem_esperada != null ? Number(row.metragem_esperada) : null, obstruidoMotivo: row.obstruido_motivo || '', azimute: row.azimute != null ? Number(row.azimute) : null, observacao: row.observacao || '', desvioCm: row.desvio_cm != null ? Number(row.desvio_cm) : null, obsTratamento: row.obs_tratamento || '', fotoUrl: row.foto_url || '', ts: row.criado_em }; }
 
@@ -1158,7 +1204,7 @@ function renderChecklistBase(){
   const itens = checklistDoAnelAtivo();
   if(progresso){
     const feitos = itens.filter(c=>c.perfilado).length;
-    progresso.textContent = `${feitos}/${itens.length} perfilados`;
+    progresso.textContent = ehCeuAberto(anelAtivoId) ? `${checklistFuros.filter(f=>itens.some(c=>c.id===f.checklistLequeId) && f.perfilado).length}/${checklistFuros.filter(f=>itens.some(c=>c.id===f.checklistLequeId)).length} furos perfilados` : `${feitos}/${itens.length} perfilados`;
   }
 
   // Progresso geral de furos — soma os furos de TODOS os leques do checklist
@@ -1171,7 +1217,7 @@ function renderChecklistBase(){
     const a = aneis.find(x=>x.id===anelAtivoId);
     nomeRealceEl.textContent = a ? a.nome : 'Sem realce ativo';
     const lq = el('checklist-realce-leques');
-    if(lq) lq.textContent = itens.length ? `${itens.filter(c=>c.perfilado).length}/${itens.length} leques` : '';
+    if(lq) lq.textContent = ehCeuAberto(anelAtivoId) ? '' : itens.length ? `${itens.filter(c=>c.perfilado).length}/${itens.length} leques` : '';
   }
   const textoFurosBarra = el('checklist-progresso-furos-texto');
   const barraFuros = el('checklist-progresso-furos-barra');
