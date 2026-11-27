@@ -3226,3 +3226,5 @@ body.area-ceu-aberto #checklist-adicionar .ck-form-linha1{ display:none; }
 body.area-ceu-aberto #painel-leque, body.area-ceu-aberto #leque-faixa, body.area-ceu-aberto .perf-puxar{ display:none !important; }
 .ck-cava .ck-arrastar, .ck-cava .seta, .ck-cava .ck-est-ico, .ck-cava button[onclick^="moverLequeChecklist"], .ck-cava button[onclick^="removerChecklistLeque"]{ display:none !important; }
 .ck-cava .ck-cab{ cursor:default; }
+
+.ck-esp-btn{ cursor:pointer; }

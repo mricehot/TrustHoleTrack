@@ -1649,7 +1649,9 @@ function toggleChecklistFuro(id){
 }
 // Modal da metragem real: abre ao tocar no botão "+ REAL" / "REAL x m" da linha do furo.
 function pedirMetragemFuro(id){
-  const f = checklistFuros.find(x=>x.id===id); if(!f || !(f.perfilado || f.obstruido)) return;
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const _cv = (checklistLeques.find(c=>c.id===f.checklistLequeId) || {}).tipo === 'cava';
+  if(!(f.perfilado || f.obstruido || _cv)) return;
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0;
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
@@ -1980,10 +1982,11 @@ const fmtMetCk = n => (Math.round(Number(n)*10)/10).toFixed(1).replace('.', ',')
 function htmlMetragemFuroChecklist(f){
   const esp = Number(f.metragemEsperada) > 0 ? Number(f.metragemEsperada) : 0, real = Number(f.metragem) > 0 ? Number(f.metragem) : 0;
   const az = (f.azimute != null && f.azimute !== '' && !isNaN(Number(f.azimute))) ? Number(f.azimute) : null;
-  if(!esp && !real && az == null && !(f.perfilado || f.topografado || f.obstruido)) return '';
+  const cava = (checklistLeques.find(c=>c.id===f.checklistLequeId) || {}).tipo === 'cava';
+  if(!cava && !esp && !real && az == null && !(f.perfilado || f.topografado || f.obstruido)) return '';
   const falta = metragemAMenos(real, esp);
-  const espTxt = esp ? `<span class="ck-esp">esp. ${fmtMetCk(esp)} m</span>` : '';
-  const realTxt = (f.perfilado || f.obstruido)
+  const espTxt = (esp || cava) ? `<button type="button" class="ck-real ck-esp-btn ${esp ? '' : 'vazio'}" onclick="pedirMetragemEsperadaFuro('${f.id}')" title="editar a profundidade planejada do furo" aria-label="F${escHtml(String(f.numero))} profundidade planejada: toque para editar">${esp ? 'prof. ' + fmtMetCk(esp) + ' m ✎' : '+ profundidade'}</button>` : '';
+  const realTxt = (f.perfilado || f.obstruido || cava)
     ? `<button type="button" class="ck-real ${falta ? 'a-menos' : ''} ${real ? '' : 'vazio'}" onclick="pedirMetragemFuro('${f.id}')" aria-label="F${escHtml(String(f.numero))} metragem real: toque para informar">${real ? 'real ' + fmtMetCk(real) + ' m' : '+ real'}</button>`
     : '';
   const azTxt = (az != null || f.perfilado || f.topografado || f.obstruido)
@@ -2033,6 +2036,38 @@ function pedirAzimuteFuro(id){
   el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
   el('az-val').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el('az-ok').click(); } });
   setTimeout(()=>{ try{ el('az-val').focus(); el('az-val').select(); }catch(_){} }, 50);
+}
+// Profundidade planejada (esperada) do furo: editável a qualquer momento (em realce a céu aberto não há plano que a traga).
+function definirMetragemEsperadaFuro(id, texto, paraTodosSemValor){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const t = String(texto||'').trim().replace(',', '.');
+  const v = t === '' ? null : parseFloat(t);
+  if(v != null && (isNaN(v) || v < 0 || v > 500)){ showToast('Profundidade inválida. Use só números, ex.: 13,5.', { tipo:'aviso' }); return; }
+  const alvos = paraTodosSemValor ? checklistFuros.filter(x=>x.checklistLequeId === f.checklistLequeId && !(Number(x.metragemEsperada) > 0)).concat(f) : [f];
+  new Set(alvos).forEach(x=>{ x.metragemEsperada = v; enfileirar('checklist_furos', 'update', { id: x.id, metragem_esperada: v }); });
+  salvarChecklistFurosLocal();
+  setTimeout(renderChecklist, 0);
+  showToast(paraTodosSemValor ? 'Profundidade aplicada aos furos sem valor.' : `F${f.numero}: profundidade ${v == null ? 'removida' : fmtMetCk(v) + ' m'}.`, { tipo:'ok' });
+}
+function pedirMetragemEsperadaFuro(id){
+  const f = checklistFuros.find(x=>x.id===id); if(!f) return;
+  const root = el('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
+    <p style="font-weight:700;margin:0 0 4px;">F${escHtml(String(f.numero))} · profundidade planejada</p>
+    <p class="hint" style="margin:0 0 10px;">Em metros. Deixe vazio para remover.</p>
+    <input id="pe-val" type="text" inputmode="decimal" enterkeyhint="done" maxlength="6" placeholder="metros, ex.: 13,5" value="${Number(f.metragemEsperada) > 0 ? fmtMetCk(f.metragemEsperada) : ''}" style="width:100%;min-height:52px;font-size:1.3rem;text-align:center;" aria-label="profundidade planejada em metros">
+    <div class="modal-actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+      <button type="button" class="steel" id="pe-ok">Salvar</button>
+      <button type="button" class="ghost" id="pe-todos" title="usa o mesmo valor em todos os furos deste grupo que ainda estão sem profundidade">Salvar e aplicar aos furos sem valor</button>
+      <button type="button" class="ghost" id="pe-pular">Cancelar</button>
+    </div></div></div>`;
+  const fechar = ()=>{ root.innerHTML = ''; };
+  el('pe-ok').onclick = ()=>{ const v = el('pe-val').value; fechar(); definirMetragemEsperadaFuro(id, v); };
+  el('pe-todos').onclick = ()=>{ const v = el('pe-val').value; fechar(); definirMetragemEsperadaFuro(id, v, true); };
+  el('pe-pular').onclick = fechar;
+  el('modal-overlay').addEventListener('click', e=>{ if(e.target.id === 'modal-overlay') fechar(); });
+  el('pe-val').addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); el('pe-ok').click(); } });
+  setTimeout(()=>{ try{ el('pe-val').focus(); el('pe-val').select(); }catch(_){} }, 50);
 }
 function definirMetragemFuroChecklist(id, texto){
   const f = checklistFuros.find(x=>x.id===id); if(!f) return;
