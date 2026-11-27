@@ -6,7 +6,8 @@ const enviosMesAberto = new Set();
 try{ tratativaEnvios = JSON.parse(localStorage.getItem(ENVIOS_KEY) || '[]') || []; }catch(e){ tratativaEnvios = []; }
 const salvarEnviosLocal = ()=>{ try{ localStorage.setItem(ENVIOS_KEY, JSON.stringify(tratativaEnvios)); }catch(e){} };
 function mapEnvio(r){ return { id:r.id, projeto:r.projeto || '', anelId:r.anel_id || '', anelRotulo:r.anel_rotulo || '', data:String(r.data || '').slice(0,10), metragem:Number(r.metragem) || 0, leques:r.leques || '', lequeIds:Array.isArray(r.leque_ids) ? r.leque_ids : [], observacao:r.observacao || '', criadoPor:r.criado_por || '', ts:r.criado_em || '' }; }
-const envioNoEscopo = e => { const pr = typeof configApp !== 'undefined' ? configApp.projetoAtivo : ''; return !pr || !e.projeto || e.projeto === pr; };
+// Os envios do tratamento aparecem sempre, de qualquer projeto (não dependem do projeto ativo).
+const envioNoEscopo = e => true;
 const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const rotuloMesEnvio = ym => { const m = MESES_PT[parseInt(ym.slice(5,7),10)-1]; return m.charAt(0).toUpperCase() + m.slice(1) + ' de ' + ym.slice(0,4); };
 const fmtDiaEnvio = iso => iso.slice(8,10) + '/' + iso.slice(5,7);

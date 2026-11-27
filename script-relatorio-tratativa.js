@@ -182,7 +182,7 @@ function exportarRelatorioTratativaCSV(anelIds){
 // Janela para escolher quais realces entram e o formato.
 function abrirExportarTratativa(){
   const { lista, fallback } = realcesDaTratativa();
-  const noEscopo = (typeof aneisDoEscopo === 'function') ? aneisDoEscopo() : (configApp.projetoAtivo ? aneis.filter(a=>a.projeto === configApp.projetoAtivo) : aneis);
+  const noEscopo = aneis; // todos os realces, de qualquer projeto
   const marcados = new Set(lista.map(a=>a.id));
   const root = el('modal-root');
   root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">
@@ -210,7 +210,7 @@ function dadosFechamentoMensal(ym){
   const envios = tratativaEnvios.filter(e=> envioNoEscopo(e) && e.data.slice(0,7) === ym).sort((a,b)=> a.data.localeCompare(b.data));
   const porRealce = new Map();
   envios.forEach(e=>{ const k = e.anelRotulo || 'Sem realce'; const r = porRealce.get(k) || { realce:k, envios:0, metros:0 }; r.envios++; r.metros += e.metragem; porRealce.set(k, r); });
-  const escopo = aneis.filter(a=> !configApp.projetoAtivo || !a.projeto || a.projeto === configApp.projetoAtivo).map(a=>a.id);
+  const escopo = aneis.map(a=>a.id); // todos os projetos
   const tratados = [];
   dadosRelatorioTratativa(escopo).realces.forEach(r=> r.leques.forEach(l=>{ if(l.status === 'Tratado' && l.tratadoEm && l.tratadoEm.slice(0,7) === ym) tratados.push({ realce:r.realce.nome, codigo:l.codigo, metros:metrosDoLeque(l), data:l.tratadoEm }); }));
   tratados.sort((a,b)=> String(a.data).localeCompare(String(b.data)) || a.realce.localeCompare(b.realce, undefined, { numeric:true }) || a.codigo.localeCompare(b.codigo, undefined, { numeric:true }));
