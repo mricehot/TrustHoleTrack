@@ -4,6 +4,8 @@
 let lembretes = []; // { id, texto, feito, feitoEm, ts }
 let lembretesAberto = false; // só vale no celular (no PC o painel fica fixo, a menos que recolhido)
 let lembretesRecolhido = false;
+let lembreteEditando = null, lembretesBusca = '', lembretesLargo2 = false;
+const LEMBRETES_LARG_KEY = 'perfilagem-lembretes-largo-v1';
 const LEMBRETES_PREF_KEY = 'perfilagem-lembretes-recolhido-v1';
 const chaveLembretes = () => 'perfilagem-lembretes-v1:' + (usuarioAtual && usuarioAtual.id || 'anon');
 
@@ -12,7 +14,7 @@ function carregarLembretesLocal(){ try{ lembretes = JSON.parse(localStorage.getI
 function salvarLembretesLocal(){ try{ localStorage.setItem(chaveLembretes(), JSON.stringify(lembretes)); }catch(e){} }
 
 function adicionarLembrete(texto, alvo){
-  texto = String(texto || '').trim().slice(0, 500);
+  texto = String(texto || '').trim().slice(0, 2000);
   if(!texto || !usuarioAtual) return;
   alvo = alvo || {};
   const l = { id: uuidv4(), texto, feito: false, feitoEm: null, ts: new Date().toISOString(), alvoTipo: alvo.tipo || '', alvoId: alvo.id || '', alvoRotulo: alvo.rotulo || '' };
@@ -42,16 +44,18 @@ function limparLembretesFeitos(){
   if(!confirm(`Apagar ${feitos.length} lembrete(s) resolvido(s)?`)) return;
   feitos.forEach(x=>apagarLembrete(x.id));
 }
-function editarLembrete(id){
-  const l = lembretes.find(x=>x.id===id); if(!l) return;
-  const novo = prompt('Editar lembrete:', l.texto);
-  if(novo === null) return;
-  const t = novo.trim().slice(0, 500);
-  if(!t){ apagarLembrete(id); return; }
-  l.texto = t; salvarLembretesLocal();
-  enfileirar('lembretes', 'update', { id, texto: t });
+function editarLembrete(id){ lembreteEditando = id; renderLembretes(); const t = document.getElementById('lb-edit-' + id); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
+function salvarEdicaoLembrete(id){
+  const t = document.getElementById('lb-edit-' + id); const l = lembretes.find(x=>x.id===id);
+  lembreteEditando = null; if(!t || !l){ renderLembretes(); return; }
+  const novo = t.value.trim().slice(0, 2000);
+  if(!novo){ apagarLembrete(id); return; }
+  if(novo !== l.texto){ l.texto = novo; salvarLembretesLocal(); enfileirar('lembretes', 'update', { id, texto: novo }); }
   renderLembretes();
 }
+function cancelarEdicaoLembrete(){ lembreteEditando = null; renderLembretes(); }
+function alternarLarguraLembretes(){ lembretesLargo2 = !lembretesLargo2; try{ localStorage.setItem(LEMBRETES_LARG_KEY, lembretesLargo2 ? '1' : '0'); }catch(e){} renderLembretes(); }
+function dataCurtaLembrete(ts){ try{ const d = new Date(ts); return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }catch(e){ return ''; } }
 
 function garantirPainelLembretes(){
   let p = document.getElementById('lembretes-painel');
@@ -60,15 +64,17 @@ function garantirPainelLembretes(){
   p.setAttribute('aria-label', 'Lembretes rápidos');
   p.innerHTML = `
     <div class="lb-topo"><strong>📝 Lembretes</strong><span class="lb-cont" id="lb-cont"></span>
+      <button type="button" class="lb-x" id="lb-largura" aria-label="Alargar painel" title="Alargar / estreitar">⇔</button>
       <button type="button" class="lb-x" id="lb-fechar" aria-label="Fechar lembretes">✕</button></div>
     <form class="lb-novo" id="lb-form" autocomplete="off">
-      <input type="text" id="lb-input" maxlength="500" placeholder="Anotar para decidir depois" enterkeyhint="done" aria-label="Novo lembrete">
+      <textarea id="lb-input" rows="3" maxlength="2000" placeholder="Anotar para decidir depois (Enter salva · Shift+Enter nova linha)" aria-label="Novo lembrete"></textarea>
       <button type="submit" aria-label="Adicionar lembrete">+</button>
     </form>
     <div class="lb-alvo" id="lb-alvo-linha">
       <select id="lb-alvo-leque" aria-label="Ligar a um leque"><option value="">🔗 Sem leque</option></select>
       <select id="lb-alvo-furo" aria-label="Ligar a um furo" hidden><option value="">Leque todo</option></select>
     </div>
+    <input type="search" class="lb-busca" id="lb-busca" placeholder="Buscar nos lembretes…" aria-label="Buscar lembretes">
     <ul class="lb-lista" id="lb-lista"></ul>
     <details class="lb-feitos" id="lb-feitos"><summary id="lb-feitos-t">Resolvidos</summary>
       <ul class="lb-lista" id="lb-lista-feitos"></ul>
@@ -81,6 +87,11 @@ function garantirPainelLembretes(){
   const form = p.querySelector('#lb-form'), inp = p.querySelector('#lb-input');
   form.addEventListener('submit', e=>{ e.preventDefault(); adicionarLembrete(inp.value, lerAlvoLembrete()); inp.value = ''; zerarAlvoLembrete(); inp.focus(); });
   p.querySelector('#lb-alvo-leque').addEventListener('change', ()=>preencherFurosLembrete());
+  inp.addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); form.requestSubmit(); } });
+  p.querySelector('#lb-busca').addEventListener('input', e=>{ lembretesBusca = e.target.value; renderLembretes(); });
+  p.querySelector('#lb-largura').addEventListener('click', alternarLarguraLembretes);
+  p.addEventListener('keydown', e=>{ const t = e.target; if(!t.classList || !t.classList.contains('lb-edit')) return; const id = t.closest('li').dataset.id;
+    if(e.key === 'Escape'){ e.preventDefault(); cancelarEdicaoLembrete(); } else if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); salvarEdicaoLembrete(id); } });
   p.querySelector('#lb-fechar').addEventListener('click', ()=>definirLembretesAberto(false));
   b.addEventListener('click', ()=>definirLembretesAberto(true));
   p.querySelector('#lb-limpar').addEventListener('click', limparLembretesFeitos);
@@ -90,6 +101,8 @@ function garantirPainelLembretes(){
     const id = li.dataset.id;
     if(e.target.closest('.lb-chk')) alternarLembrete(id);
     else if(e.target.closest('.lb-del')) apagarLembrete(id);
+    else if(e.target.closest('.lb-salvar')) salvarEdicaoLembrete(id);
+    else if(e.target.closest('.lb-cancelar')) cancelarEdicaoLembrete();
     else if(e.target.closest('.lb-txt')) editarLembrete(id);
   });
   return p;
@@ -108,14 +121,23 @@ function renderLembretes(){
   const largo = lembretesEhLargo();
   const painelVisivel = largo ? !lembretesRecolhido : lembretesAberto;
   p.hidden = !painelVisivel;
+  p.classList.toggle('lb-largo', lembretesLargo2); document.body.classList.toggle('lembretes-largo', lembretesLargo2 && largo && painelVisivel);
   fab.hidden = painelVisivel;
   document.body.classList.toggle('com-lembretes', largo && painelVisivel);
   const badge = document.getElementById('lb-badge'); badge.textContent = pend.length > 99 ? '99+' : pend.length; badge.hidden = !pend.length;
   document.getElementById('lb-cont').textContent = pend.length ? pend.length + ' pendente' + (pend.length>1?'s':'') : '';
-  const item = l => `<li data-id="${l.id}" class="${l.feito?'feito':''}"><button type="button" class="lb-chk" role="checkbox" aria-checked="${l.feito}" aria-label="${l.feito?'Reabrir':'Marcar como resolvido'}"></button><span class="lb-txt" title="Tocar para editar">${escapeHtml(l.texto)}</span>${l.alvoTipo ? `<button type="button" class="lb-ir" title="Ir para ${escapeHtml(l.alvoRotulo)} no checklist">↗ ${escapeHtml(l.alvoRotulo)}</button>` : ''}<button type="button" class="lb-del" aria-label="Apagar lembrete">✕</button></li>`;
+  const q = lembretesBusca.trim().toLowerCase();
+  const filtra = l => !q || (l.texto + ' ' + l.alvoRotulo).toLowerCase().includes(q);
+  const item = l => `<li data-id="${l.id}" class="${l.feito?'feito':''}${lembreteEditando===l.id?' editando':''}"><button type="button" class="lb-chk" role="checkbox" aria-checked="${l.feito}" aria-label="${l.feito?'Reabrir':'Marcar como resolvido'}"></button>
+    <div class="lb-corpo">${lembreteEditando===l.id
+      ? `<textarea class="lb-edit" id="lb-edit-${l.id}" rows="4" maxlength="2000">${escapeHtml(l.texto)}</textarea><div class="lb-edit-btns"><button type="button" class="lb-salvar">Salvar</button><button type="button" class="lb-cancelar">Cancelar</button></div>`
+      : `<div class="lb-txt" title="Clique para editar">${escapeHtml(l.texto)}</div>`}
+      <div class="lb-meta"><span>${dataCurtaLembrete(l.ts)}${l.feito && l.feitoEm ? ' · resolvido ' + dataCurtaLembrete(l.feitoEm) : ''}</span>${l.alvoTipo ? `<button type="button" class="lb-ir" title="Ir para ${escapeHtml(l.alvoRotulo)} no checklist">↗ ${escapeHtml(l.alvoRotulo)}</button>` : ''}</div></div>
+    <button type="button" class="lb-del" aria-label="Apagar lembrete">✕</button></li>`;
   const foco = document.activeElement && p.contains(document.activeElement) && document.activeElement.id === 'lb-input';
-  document.getElementById('lb-lista').innerHTML = pend.length ? pend.map(item).join('') : '<li class="lb-vazio">Nada pendente. Anote aqui o que precisa decidir depois.</li>';
-  document.getElementById('lb-lista-feitos').innerHTML = feitos.map(item).join('');
+  const pendF = pend.filter(filtra), feitosF = feitos.filter(filtra);
+  document.getElementById('lb-lista').innerHTML = pendF.length ? pendF.slice().reverse().map(item).join('') : `<li class="lb-vazio">${q ? 'Nenhum lembrete encontrado.' : 'Nada pendente. Anote aqui o que precisa decidir depois.'}</li>`;
+  document.getElementById('lb-lista-feitos').innerHTML = feitosF.map(item).join('');
   document.getElementById('lb-feitos').hidden = !feitos.length;
   document.getElementById('lb-feitos-t').textContent = `Resolvidos (${feitos.length})`;
   preencherLequesLembrete();
@@ -185,7 +207,7 @@ async function sincronizarLembretes(){
   lembretes = novo; salvarLembretesLocal(); renderLembretes();
 }
 function iniciarLembretes(){
-  try{ lembretesRecolhido = localStorage.getItem(LEMBRETES_PREF_KEY) === '1'; }catch(e){}
+  try{ lembretesRecolhido = localStorage.getItem(LEMBRETES_PREF_KEY) === '1'; lembretesLargo2 = localStorage.getItem(LEMBRETES_LARG_KEY) === '1'; }catch(e){}
   carregarLembretesLocal(); renderLembretes();
   sincronizarLembretes();
 }
