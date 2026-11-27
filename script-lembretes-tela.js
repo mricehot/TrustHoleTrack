@@ -6,10 +6,7 @@ const lemSemAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 const lemHoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 const lemFmtPrazo = p => p ? p.split('-').reverse().join('/') : '';
 
-function lemOpcoesLeque(sel){
-  const itens = (typeof checklistDoAnelAtivo === 'function') ? checklistDoAnelAtivo() : [];
-  return '<option value="">Sem leque</option>' + itens.map(c=>`<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(codigoLequeCk(c))}</option>`).join('');
-}
+function lemOpcoesLeque(sel){ return opcoesLequesLembrete(sel).replace('🔗 Sem vínculo (geral)', 'Sem vínculo (geral)'); }
 function renderLembretesTela(){
   const view = document.getElementById('view-lembretes'); if(!view) return;
   if(lemForm && document.activeElement && view.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && view.dataset.congela === '1') return;
@@ -72,7 +69,7 @@ function lemSalvar(){
   const titulo = g('lem-titulo').trim(), texto = g('lem-texto').trim();
   if(!titulo && !texto){ showToast('Escreva um título ou os detalhes.', { tipo:'aviso' }); return; }
   let alvo = null; const lq = g('lem-leque'), fu = g('lem-furo');
-  if(lq){ const c = checklistLeques.find(x=>x.id===lq); if(c){ const cod = codigoLequeCk(c); const fr = fu ? checklistFuros.find(x=>x.id===fu) : null;
+  if(lq){ const c = checklistLeques.find(x=>x.id===lq); if(c){ const cod = rotuloLequeLembrete(c); const fr = fu ? checklistFuros.find(x=>x.id===fu) : null;
     alvo = fr ? { tipo:'furo', id:fr.id, rotulo: cod + ' F' + fr.numero } : { tipo:'leque', id:c.id, rotulo: cod }; } }
   const extra = { titulo, prioridade: g('lem-prio') || 'normal', prazo: g('lem-prazo') };
   if(lemForm && lemForm.id) atualizarLembreteCompleto(lemForm.id, { titulo, texto, prioridade: extra.prioridade, prazo: extra.prazo, alvo: alvo || { tipo:'', id:'', rotulo:'' } });

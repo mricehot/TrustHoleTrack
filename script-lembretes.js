@@ -164,15 +164,25 @@ function renderLembretes(){
 }
 // ----- vínculo com leque/furo -----
 function codigoLequeCk(c){ return (PREFIXO[c.tipo] || '') + c.numero; }
+// Opções de leque de TODOS os realces, agrupadas por realce (lembretes são gerais).
+function lequesTodosRealces(){
+  const grupos = [];
+  (aneis || []).forEach(a=>{ const its = checklistLeques.filter(c=>c.anelId === a.id); if(its.length) grupos.push({ anel:a, itens:its }); });
+  return grupos;
+}
+function opcoesLequesLembrete(sel){
+  return '<option value="">🔗 Sem vínculo (geral)</option>' + lequesTodosRealces().map(g=>`<optgroup label="${escapeHtml(g.anel.nome)}">${g.itens.map(c=>`<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(codigoLequeCk(c))}</option>`).join('')}</optgroup>`).join('');
+}
+function rotuloLequeLembrete(c){ const a = (aneis || []).find(x=>x.id === c.anelId); return (a ? a.nome + ' · ' : '') + codigoLequeCk(c); }
 function preencherLequesLembrete(){
   const sel = document.getElementById('lb-alvo-leque'); if(!sel) return;
   if(sel === document.activeElement) return; // não mexe enquanto a pessoa escolhe
   const atual = sel.value;
-  const itens = (typeof checklistDoAnelAtivo === 'function') ? checklistDoAnelAtivo() : [];
-  const sig = itens.map(c=>c.id + codigoLequeCk(c)).join('|');
+  const itens = checklistLeques.slice();
+  const sig = itens.map(c=>c.id + codigoLequeCk(c) + c.anelId).join('|') + (aneis || []).map(x=>x.nome).join('|');
   if(sel.dataset.sig === sig) return;
   sel.dataset.sig = sig;
-  sel.innerHTML = '<option value="">🔗 Sem leque</option>' + itens.map(c=>`<option value="${c.id}">${escapeHtml(codigoLequeCk(c))}</option>`).join('');
+  sel.innerHTML = opcoesLequesLembrete('');
   sel.value = itens.some(c=>c.id===atual) ? atual : '';
   preencherFurosLembrete();
 }
@@ -189,7 +199,7 @@ function lerAlvoLembrete(){
   const lq = document.getElementById('lb-alvo-leque'), fu = document.getElementById('lb-alvo-furo');
   if(!lq || !lq.value) return null;
   const c = checklistLeques.find(x=>x.id===lq.value); if(!c) return null;
-  const cod = codigoLequeCk(c);
+  const cod = rotuloLequeLembrete(c);
   if(fu && fu.value){ const f = checklistFuros.find(x=>x.id===fu.value); if(f) return { tipo:'furo', id:f.id, rotulo: cod + ' F' + f.numero }; }
   return { tipo:'leque', id:c.id, rotulo: cod };
 }
