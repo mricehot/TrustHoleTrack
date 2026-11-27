@@ -273,7 +273,7 @@ el('btn-baixar-selecionados').addEventListener('click', ()=>{
 });
 // ---------- Barra de abas: troca entre as "páginas" do app ----------
 const VIEWS_SECUNDARIAS = ['infografico','config','tecnico'];
-const ORDEM_VIEWS = ['home','aneis','perfilagem','notas','checklist','infografico','config','tecnico'];
+const ORDEM_VIEWS = ['home','aneis','perfilagem','notas','lembretes','checklist','infografico','config','tecnico'];
 const posicaoRolagemView = {};
 function mostrarView(viewId){
   const viewAnterior = document.body.dataset.view;

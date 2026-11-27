@@ -9,19 +9,23 @@ const LEMBRETES_LARG_KEY = 'perfilagem-lembretes-largo-v1';
 const LEMBRETES_PREF_KEY = 'perfilagem-lembretes-recolhido-v1';
 const chaveLembretes = () => 'perfilagem-lembretes-v1:' + (usuarioAtual && usuarioAtual.id || 'anon');
 
-function mapLembrete(r){ return { id: r.id, texto: r.texto || '', feito: !!r.feito, feitoEm: r.feito_em || null, ts: r.criado_em || new Date().toISOString(), alvoTipo: r.alvo_tipo || '', alvoId: r.alvo_id || '', alvoRotulo: r.alvo_rotulo || '' }; }
+function mapLembrete(r){ return { id: r.id, texto: r.texto || '', feito: !!r.feito, feitoEm: r.feito_em || null, ts: r.criado_em || new Date().toISOString(), alvoTipo: r.alvo_tipo || '', alvoId: r.alvo_id || '', alvoRotulo: r.alvo_rotulo || '', titulo: r.titulo || '', prioridade: r.prioridade || 'normal', prazo: r.prazo || '' }; }
 function carregarLembretesLocal(){ try{ lembretes = JSON.parse(localStorage.getItem(chaveLembretes()) || '[]'); }catch(e){ lembretes = []; } }
 function salvarLembretesLocal(){ try{ localStorage.setItem(chaveLembretes(), JSON.stringify(lembretes)); }catch(e){} }
 
-function adicionarLembrete(texto, alvo){
+function adicionarLembrete(texto, alvo, extra){
   texto = String(texto || '').trim().slice(0, 2000);
+  extra = extra || {};
+  const titulo = String(extra.titulo || '').trim().slice(0, 200);
+  if(!texto) texto = titulo;
   if(!texto || !usuarioAtual) return;
   alvo = alvo || {};
-  const l = { id: uuidv4(), texto, feito: false, feitoEm: null, ts: new Date().toISOString(), alvoTipo: alvo.tipo || '', alvoId: alvo.id || '', alvoRotulo: alvo.rotulo || '' };
+  const l = { id: uuidv4(), texto, feito: false, feitoEm: null, ts: new Date().toISOString(), alvoTipo: alvo.tipo || '', alvoId: alvo.id || '', alvoRotulo: alvo.rotulo || '', titulo, prioridade: extra.prioridade || 'normal', prazo: extra.prazo || '' };
   lembretes.push(l);
   salvarLembretesLocal();
   const reg = { id: l.id, user_id: usuarioAtual.id, texto: l.texto, feito: false, criado_em: l.ts };
   if(l.alvoTipo){ reg.alvo_tipo = l.alvoTipo; reg.alvo_id = l.alvoId; reg.alvo_rotulo = l.alvoRotulo; }
+  if(titulo) reg.titulo = titulo; if(l.prioridade !== 'normal') reg.prioridade = l.prioridade; if(l.prazo) reg.prazo = l.prazo;
   enfileirar('lembretes', 'insert', reg);
   renderLembretes();
 }
@@ -53,6 +57,18 @@ function salvarEdicaoLembrete(id){
   if(novo !== l.texto){ l.texto = novo; salvarLembretesLocal(); enfileirar('lembretes', 'update', { id, texto: novo }); }
   renderLembretes();
 }
+function atualizarLembreteCompleto(id, c){
+  const l = lembretes.find(x=>x.id===id); if(!l) return;
+  const titulo = String(c.titulo || '').trim().slice(0, 200), texto = (String(c.texto || '').trim().slice(0, 2000)) || titulo;
+  if(!texto) return;
+  Object.assign(l, { titulo, texto, prioridade: c.prioridade || 'normal', prazo: c.prazo || '' });
+  if(c.alvo){ l.alvoTipo = c.alvo.tipo || ''; l.alvoId = c.alvo.id || ''; l.alvoRotulo = c.alvo.rotulo || ''; }
+  salvarLembretesLocal();
+  const reg = { id, texto, titulo: titulo || null, prioridade: l.prioridade, prazo: l.prazo || null };
+  if(c.alvo){ reg.alvo_tipo = l.alvoTipo || null; reg.alvo_id = l.alvoId || null; reg.alvo_rotulo = l.alvoRotulo || null; }
+  enfileirar('lembretes', 'update', reg);
+  renderLembretes();
+}
 function cancelarEdicaoLembrete(){ lembreteEditando = null; renderLembretes(); }
 function alternarLarguraLembretes(){ lembretesLargo2 = !lembretesLargo2; try{ localStorage.setItem(LEMBRETES_LARG_KEY, lembretesLargo2 ? '1' : '0'); }catch(e){} renderLembretes(); }
 function dataCurtaLembrete(ts){ try{ const d = new Date(ts); return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }catch(e){ return ''; } }
@@ -64,6 +80,7 @@ function garantirPainelLembretes(){
   p.setAttribute('aria-label', 'Lembretes rápidos');
   p.innerHTML = `
     <div class="lb-topo"><strong>📝 Lembretes</strong><span class="lb-cont" id="lb-cont"></span>
+      <button type="button" class="lb-x" id="lb-tela" aria-label="Abrir em tela cheia" title="Abrir em tela cheia">⤢</button>
       <button type="button" class="lb-x" id="lb-largura" aria-label="Alargar painel" title="Alargar / estreitar">⇔</button>
       <button type="button" class="lb-x" id="lb-fechar" aria-label="Fechar lembretes">✕</button></div>
     <form class="lb-novo" id="lb-form" autocomplete="off">
@@ -89,6 +106,7 @@ function garantirPainelLembretes(){
   p.querySelector('#lb-alvo-leque').addEventListener('change', ()=>preencherFurosLembrete());
   inp.addEventListener('keydown', e=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); form.requestSubmit(); } });
   p.querySelector('#lb-busca').addEventListener('input', e=>{ lembretesBusca = e.target.value; renderLembretes(); });
+  p.querySelector('#lb-tela').addEventListener('click', ()=>{ mostrarView('lembretes'); });
   p.querySelector('#lb-largura').addEventListener('click', alternarLarguraLembretes);
   p.addEventListener('keydown', e=>{ const t = e.target; if(!t.classList || !t.classList.contains('lb-edit')) return; const id = t.closest('li').dataset.id;
     if(e.key === 'Escape'){ e.preventDefault(); cancelarEdicaoLembrete(); } else if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); salvarEdicaoLembrete(id); } });
@@ -125,13 +143,14 @@ function renderLembretes(){
   fab.hidden = painelVisivel;
   document.body.classList.toggle('com-lembretes', largo && painelVisivel);
   const badge = document.getElementById('lb-badge'); badge.textContent = pend.length > 99 ? '99+' : pend.length; badge.hidden = !pend.length;
+  try{ if(typeof renderLembretesTela === 'function') renderLembretesTela(); }catch(e){}
   document.getElementById('lb-cont').textContent = pend.length ? pend.length + ' pendente' + (pend.length>1?'s':'') : '';
   const q = lembretesBusca.trim().toLowerCase();
   const filtra = l => !q || (l.texto + ' ' + l.alvoRotulo).toLowerCase().includes(q);
   const item = l => `<li data-id="${l.id}" class="${l.feito?'feito':''}${lembreteEditando===l.id?' editando':''}"><button type="button" class="lb-chk" role="checkbox" aria-checked="${l.feito}" aria-label="${l.feito?'Reabrir':'Marcar como resolvido'}"></button>
     <div class="lb-corpo">${lembreteEditando===l.id
       ? `<textarea class="lb-edit" id="lb-edit-${l.id}" rows="4" maxlength="2000">${escapeHtml(l.texto)}</textarea><div class="lb-edit-btns"><button type="button" class="lb-salvar">Salvar</button><button type="button" class="lb-cancelar">Cancelar</button></div>`
-      : `<div class="lb-txt" title="Clique para editar">${escapeHtml(l.texto)}</div>`}
+      : `${l.titulo ? `<div class="lb-tit">${escapeHtml(l.titulo)}</div>` : ''}<div class="lb-txt" title="Clique para editar">${escapeHtml(l.texto)}</div>`}
       <div class="lb-meta"><span>${dataCurtaLembrete(l.ts)}${l.feito && l.feitoEm ? ' · resolvido ' + dataCurtaLembrete(l.feitoEm) : ''}</span>${l.alvoTipo ? `<button type="button" class="lb-ir" title="Ir para ${escapeHtml(l.alvoRotulo)} no checklist">↗ ${escapeHtml(l.alvoRotulo)}</button>` : ''}</div></div>
     <button type="button" class="lb-del" aria-label="Apagar lembrete">✕</button></li>`;
   const foco = document.activeElement && p.contains(document.activeElement) && document.activeElement.id === 'lb-input';

@@ -3173,3 +3173,37 @@ body.modo-leitura .nota-add, body.modo-leitura .nota-acoes{ display:none !import
 .lb-edit-btns .lb-salvar{ background:var(--steel,#2a6fa8); border-color:var(--steel,#2a6fa8); color:#fff; }
 .lembretes-painel .lb-lista{ overflow-y:auto; }
 @media (min-width:1101px){ .lembretes-painel .lb-lista{ flex:1 1 auto; } .lembretes-painel .lb-feitos{ flex:none; } }
+
+/* Lembretes em tela cheia */
+.lem-form{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; display:flex; flex-direction:column; gap:10px; }
+.lem-form input[type=text], .lem-form textarea{ width:100%; box-sizing:border-box; font:inherit; font-size:15px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; }
+.lem-form textarea{ min-height:180px; resize:vertical; line-height:1.5; }
+.lem-linha{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.lem-linha label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:700; color:var(--muted); }
+.lem-linha select, .lem-linha input{ min-height:40px; font-size:14px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:inherit; font-weight:400; }
+.lem-filtros{ display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-bottom:12px; }
+.lem-filtros .nota-busca{ flex:1 1 280px; max-width:420px; margin:0; }
+.lem-filtros .nota-chips{ margin:0; }
+.lem-grade{ display:grid; grid-template-columns:1fr; gap:12px; align-items:start; }
+@media (min-width:1100px){ .lem-grade{ grid-template-columns:repeat(2,1fr); } }
+@media (min-width:1700px){ .lem-grade{ grid-template-columns:repeat(3,1fr); } }
+.lem-card{ background:var(--surface); border:1px solid var(--line); border-left:5px solid var(--steel,#2a6fa8); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; min-height:120px; }
+.lem-card.prio-alta{ border-left-color:#d6453d; } .lem-card.prio-baixa{ border-left-color:var(--muted); }
+.lem-card.feito{ opacity:.65; } .lem-card.feito h3{ text-decoration:line-through; }
+.lem-card header{ display:flex; align-items:flex-start; gap:10px; }
+.lem-card h3{ flex:1; margin:0; font-size:17px; line-height:1.3; overflow-wrap:anywhere; }
+.lem-chk{ flex:none; margin:-4px 0 0 -8px !important; }
+.lem-tag{ flex:none; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; color:#fff; text-transform:uppercase; }
+.lem-tag.p-alta{ background:#d6453d; } .lem-tag.p-normal{ background:#1f63b0; } .lem-tag.p-baixa{ background:#7a8794; }
+.lem-corpo{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:15px; line-height:1.6; }
+.lem-card footer{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; font-size:12px; color:var(--muted); margin-top:auto; padding-top:8px; border-top:1px solid var(--line); }
+.lem-prazo{ font-weight:700; } .lem-prazo.atras{ color:#d6453d; } .lem-prazo.hoje{ color:#c7821a; } .lem-venc{ color:#d6453d; }
+.lem-acoes{ margin-left:auto; display:flex; gap:6px; } .lem-acoes .ghost{ min-height:34px; padding:0 12px; font-size:13px; text-transform:none; } .lem-acoes .perigo{ color:#c9382f; }
+.lem-card .lb-ir{ min-height:30px; padding:2px 10px; font-size:12px; font-weight:700; border-radius:999px; border:1px solid var(--steel,#2a6fa8); background:transparent; color:var(--steel,#2a6fa8); cursor:pointer; }
+.lem-card .lb-chk{ width:44px; height:44px; min-width:44px; padding:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.lem-card .lb-chk::before{ content:''; width:24px; height:24px; border:2px solid var(--muted); border-radius:6px; box-sizing:border-box; display:block; }
+.lem-card.feito .lb-chk::before{ content:'✓'; background:var(--est-ok,#2e9b57); border-color:var(--est-ok,#2e9b57); color:#fff; font-size:15px; font-weight:800; line-height:20px; text-align:center; }
+.lem-card.feito .lb-chk::after{ content:none; }
+.lb-tit{ font-weight:700; font-size:15px; overflow-wrap:anywhere; }
+body.modo-leitura .nota-add{ display:none !important; }
+body.na-tela-lembretes .lembretes-painel, body.na-tela-lembretes .lembretes-fab{ display:none !important; } body.na-tela-lembretes.com-lembretes{ padding-right:0 !important; }
