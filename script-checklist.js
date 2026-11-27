@@ -246,6 +246,7 @@ function htmlCardChecklist(c, agrupado){
         </div>
         <div class="ck-ferramentas">
           ${furos.length > 1 ? `<button type="button" class="ghost" onclick="abrirMarcarFaixa('${c.id}')">Marcar faixa de furos</button>` : ''}
+          ${c.tipo === 'cava' && furos.length ? `<button type="button" class="ghost perigo so-gestor" onclick="apagarTodosFurosCava('${c.id}')">🗑 Apagar todos os furos</button>` : ''}
           <button type="button" class="ghost" onclick="enviarLequeWhatsApp('${c.id}')">Enviar no WhatsApp</button>
           ${furos.some(f=> f.fotoUrl || fotosPendentes.has(f.id)) ? `<button type="button" class="ghost" onclick="enviarFotosWhatsApp(['${c.id}'])">📷 Enviar fotos</button>` : ''}
         </div>
@@ -1730,6 +1731,22 @@ function lancamentosEfetivos(){
     mapa.get(k).pontos++;
   });
   return manuais.concat([...mapa.values()]);
+}
+// Realce a céu aberto: apaga o conjunto inteiro de furos (o grupo interno continua, vazio, pronto para novos furos).
+async function apagarTodosFurosCava(grupoId){
+  if(!exigirGestor('apagar os furos')) return;
+  const c = checklistLeques.find(x=>x.id===grupoId); if(!c) return;
+  const lista = checklistFurosDoLeque(grupoId).map(f=>({ ...f }));
+  if(!lista.length) return;
+  const marcados = lista.filter(f=> f.perfilado || f.topografado || furoTemAzimute(f) || Number(f.metragem) > 0).length;
+  const msg = `Apagar TODOS os ${lista.length} furos deste realce${marcados ? ` (${marcados} já têm marcações ou metragem)` : ''}? Dá para desfazer logo em seguida.`;
+  if(!(await confirmDialog(msg, 'Apagar todos'))) return;
+  checklistFuros = checklistFuros.filter(f=>f.checklistLequeId !== grupoId);
+  lista.forEach(f=> enfileirar('checklist_furos', 'delete', { id: f.id }));
+  sincronizarLequePerfilado(grupoId);
+  salvarChecklistFurosLocal();
+  renderChecklist();
+  showToast(`${lista.length} furos apagados.`, { acaoLabel: 'Desfazer', onAcao: ()=> lista.forEach(f=> desfazerRemocaoChecklistFuro(f)) });
 }
 async function removerChecklistFuro(id){
   if(!exigirGestor('remover furo')) return;
