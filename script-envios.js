@@ -47,7 +47,7 @@ function renderEnvios(){
   const f = envioForm, ed = f && f.id ? tratativaEnvios.find(x=>x.id === f.id) : null;
   const { lista: favs } = (typeof realcesDaTratativa === 'function') ? realcesDaTratativa() : { lista: [] };
   const ids = new Set(favs.map(a=>a.id));
-  const realces = aneis.filter(a=>!configApp.projetoAtivo || !a.projeto || a.projeto === configApp.projetoAtivo)
+  const realces = aneis.slice() // todos os realces, de qualquer projeto e tipo de área
     .sort((a,b)=> (ids.has(b.id) - ids.has(a.id)) || String(a.nome).localeCompare(String(b.nome), undefined, { numeric:true }));
   const form = f ? `<form class="env-form" onsubmit="event.preventDefault();salvarEnvio()">
       <div class="grid-2"><div class="field"><label for="env-data">Data (feita e enviada)</label><input id="env-data" type="date" value="${e2(ed ? ed.data : dataISOLocal(new Date()))}" required></div>
