@@ -6,6 +6,17 @@ const lemSemAcento = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '
 const lemHoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 const lemFmtPrazo = p => p ? p.split('-').reverse().join('/') : '';
 
+// Corpo: linhas "SL01 - F01-F02" viram duas colunas (leque | furos); o resto fica como texto.
+function lemCorpoHtml(txt){
+  const linhas = String(txt || '').replace(/^\s*\n+/, '').replace(/\s+$/, '').split('\n');
+  return linhas.map(ln=>{
+    const m = ln.match(/^\s*([A-Za-z]{1,4}\s?\d{1,3}[A-Za-z]?)\s*[-–:]\s*(.+)$/);
+    if(m) return `<div class="lem-lq"><b>${escapeHtml(m[1].replace(/\s+/g, '').toUpperCase())}</b><span>${escapeHtml(m[2])}</span></div>`;
+    return ln.trim() ? `<div class="lem-txt-l">${escapeHtml(ln)}</div>` : '<div class="lem-esp"></div>';
+  }).join('');
+}
+function lemCopiar(id){ const l = lembretes.find(x=>x.id===id); if(!l) return; const txt = (l.titulo ? l.titulo + '\n' : '') + l.texto;
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(()=>showToast('Lembrete copiado.', { tipo:'ok' })).catch(()=>showToast('Não foi possível copiar.', { tipo:'aviso' })); }
 function renderLembretesTela(){
   const view = document.getElementById('view-lembretes'); if(!view) return;
   if(lemForm && document.activeElement && view.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && view.dataset.congela === '1') return;
@@ -37,11 +48,11 @@ function renderLembretesTela(){
       <header><button type="button" class="lb-chk lem-chk" role="checkbox" aria-checked="${l.feito}" onclick="alternarLembrete('${l.id}')" aria-label="${l.feito ? 'Reabrir' : 'Marcar como resolvido'}"></button>
       <h3>${escapeHtml(l.titulo || l.texto.split('\n')[0].slice(0, 80))}</h3>
       <span class="lem-tag p-${l.prioridade}">${LEM_PRIO[l.prioridade] || ''}</span></header>
-      ${corpo || !l.titulo ? `<div class="lem-corpo">${escapeHtml(l.titulo ? corpo : l.texto.split('\n').slice(1).join('\n'))}</div>` : ''}
+      ${(l.titulo ? corpo.trim() : l.texto.split('\n').slice(1).join('').trim()) ? `<div class="lem-corpo">${lemCorpoHtml(l.titulo ? corpo : l.texto.split('\n').slice(1).join('\n'))}</div>` : ''}
       <footer><span class="lem-data">Criado ${dataCurtaLembrete(l.ts)}${l.feito && l.feitoEm ? ' · resolvido ' + dataCurtaLembrete(l.feitoEm) : ''}</span>
         ${l.prazo ? `<span class="lem-prazo ${atras ? 'atras' : ehHoje ? 'hoje' : ''}">${atras ? '⚠ venceu ' : ehHoje ? '⏰ hoje · ' : '📅 '}${lemFmtPrazo(l.prazo)}</span>` : ''}
         ${l.alvoTipo ? `<button type="button" class="lb-ir" onclick="irParaAlvoLembrete('${l.id}')">↗ ${escapeHtml(l.alvoRotulo)}</button>` : l.alvoRotulo ? `<span class="lb-ref-chip">${escapeHtml(l.alvoRotulo)}</span>` : ''}
-        <span class="lem-acoes"><button type="button" class="ghost" onclick="lemEditar('${l.id}')">Editar</button><button type="button" class="ghost perigo" onclick="lemApagar('${l.id}')">Apagar</button></span></footer></article>`;
+        <span class="lem-acoes"><button type="button" class="ghost" onclick="lemCopiar('${l.id}')">Copiar</button><button type="button" class="ghost" onclick="lemEditar('${l.id}')">Editar</button><button type="button" class="ghost perigo" onclick="lemApagar('${l.id}')">Apagar</button></span></footer></article>`;
   };
   root.innerHTML = `<div class="nota-topo"><h2>Lembretes</h2><span class="hint">${pend.length} pendente${pend.length === 1 ? '' : 's'}${venc ? ` · <b class="lem-venc">${venc} vencido${venc > 1 ? 's' : ''}</b>` : ''}</span></div>
     ${lemForm ? form : '<button type="button" class="nota-add" onclick="lemNovo()">+ Novo lembrete</button>'}
